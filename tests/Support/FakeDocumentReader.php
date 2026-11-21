@@ -214,7 +214,21 @@ final class FakeDocumentReader implements DocumentReader
             throw $this->failureAt['failure'];
         }
 
-        return new Reading($this->extraction, 'gemini', 'gemini-3.8-flash', inputTokens: 1200, outputTokens: 300, cacheReadTokens: 0);
+        $extraction = $this->extraction;
+
+        // a bill by its file name answers with a consumption, unless the extraction already has one
+        if (str_contains(mb_strtolower($context->fileName ?? ''), 'bolletta') && $extraction->consumption_quantity === null) {
+            $extraction = $extraction->toArray();
+            $extraction = Extraction::from([
+                ...$extraction,
+                'consumption_quantity' => 312.0,
+                'consumption_unit' => 'kwh',
+                'period_start' => '2026-08-01',
+                'period_end' => '2026-09-30',
+            ]);
+        }
+
+        return new Reading($extraction, 'gemini', 'gemini-3.8-flash', inputTokens: 1200, outputTokens: 300, cacheReadTokens: 0);
     }
 
     /**
