@@ -292,8 +292,8 @@ describe('FmBarChart, tooltips', () => {
 
         await userEvent.hover(january);
 
-        expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            'January 2026: 290 kWh, 86,10 €; January 2025: 248 kWh',
+        expect((await screen.findByRole('tooltip')).textContent).toBe(
+            'January 2026: 290 kWh, 86,10 €\nJanuary 2025: 248 kWh',
         );
     });
 
@@ -327,8 +327,8 @@ describe('FmBarChart, tooltips', () => {
             container.querySelectorAll('[data-bar-target]')[0],
         );
 
-        expect(await screen.findByRole('tooltip')).toHaveTextContent(
-            'November 2025: 238 kWh, 74,50 €; November 2024: 252 kWh',
+        expect((await screen.findByRole('tooltip')).textContent).toBe(
+            'November 2025: 238 kWh, 74,50 €\nNovember 2024: 252 kWh',
         );
     });
 });

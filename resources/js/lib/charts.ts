@@ -55,6 +55,32 @@ export function gridStep(highest: number, minimum = 0): number {
 }
 
 /**
+ * The box on the page where a bar of the drawing ends at the top, as wide as
+ * the bar and with no height: a bubble opened beside it sits on the bar, not
+ * on the top of the whole chart.
+ *
+ * @param drawing - the box of the drawing on the page
+ * @param bar - where the bar stands in the drawing: left edge, width and top
+ * @param frame - the size of the drawing (its `viewBox`)
+ * @returns the box on the page
+ */
+export function barAnchor(
+    drawing: DOMRect,
+    bar: { x: number; width: number; top: number },
+    frame: { width: number; height: number },
+): DOMRect {
+    const across = drawing.width / frame.width;
+    const down = drawing.height / frame.height;
+
+    return new DOMRect(
+        drawing.left + bar.x * across,
+        drawing.top + bar.top * down,
+        bar.width * across,
+        0,
+    );
+}
+
+/**
  * Turns a month of *Planned and spent* into a month of the chart: the spent is
  * the bar, the planned the mark. A month of the chart stays as it is.
  *
