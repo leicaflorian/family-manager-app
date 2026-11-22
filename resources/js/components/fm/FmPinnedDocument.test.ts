@@ -79,6 +79,19 @@ describe('FmPinnedDocument', () => {
         ).toBeInTheDocument();
     });
 
+    it('renders no line when there is no category, person, organization or date', () => {
+        render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/documents/7' },
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'Patente B' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link').querySelectorAll('.text-meta'),
+        ).toHaveLength(0);
+    });
+
     it('colours the icon with its area, neutral without one', () => {
         const first = render(FmPinnedDocument, {
             props: { pinned: pinned({}, { area: 'work' }), href: '/d' },

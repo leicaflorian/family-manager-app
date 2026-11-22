@@ -106,7 +106,10 @@ describe('FmDocumentActions', () => {
         ).toBeInTheDocument();
     });
     describe('pinning', () => {
-        afterEach(() => vi.restoreAllMocks());
+        afterEach(() => {
+            vi.restoreAllMocks();
+            vi.unstubAllGlobals();
+        });
 
         const open = async (): Promise<void> => {
             await userEvent.click(
@@ -142,7 +145,6 @@ describe('FmDocumentActions', () => {
                     .getAllByRole('menuitem')
                     .map((item) => item.textContent?.trim()),
             ).toEqual(['Open in a new tab', 'Share', 'Pin at the top']);
-            vi.unstubAllGlobals();
         });
 
         it('shows only Unpin when it is pinned', async () => {

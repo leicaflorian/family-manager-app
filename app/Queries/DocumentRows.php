@@ -8,7 +8,6 @@ use App\Cards\CardTypes;
 use App\Data\DocumentData;
 use App\Data\PinnedDocumentData;
 use App\Models\Document;
-use App\Models\DocumentCategory;
 use App\Services\CategoryTree;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -75,31 +74,18 @@ final readonly class DocumentRows
     }
 
     /**
-     * The area of the card type of every category, from its own type or the nearest one up the tree, read in one query.
+     * The area of the card type of every category, from its own type or the nearest one up the tree.
      *
      * @return array<int, string> the area value by category id; categories with no card type up the tree are missing
      */
     private function areas(): array
     {
-        $categories = DocumentCategory::query()->get(['id', 'parent_id', 'card_type'])->keyBy('id');
         $areas = [];
 
-        foreach ($categories as $id => $category) {
-            $seen = [];
-            $current = $category;
-            // A loop in the tree stops at the first category seen twice
-            while ($current !== null && ! in_array($current->id, $seen, true)) {
-                $seen[] = $current->id;
-                if ($current->card_type !== null) {
-                    $area = CardTypes::find($current->card_type)?->area()->value;
-                    if ($area !== null) {
-                        $areas[$id] = $area;
-                    }
-
-                    break;
-                }
-
-                $current = $current->parent_id === null ? null : $categories->get($current->parent_id);
+        foreach ($this->categories->cardTypes() as $id => $type) {
+            $area = CardTypes::find($type)?->area()->value;
+            if ($area !== null) {
+                $areas[$id] = $area;
             }
         }
 

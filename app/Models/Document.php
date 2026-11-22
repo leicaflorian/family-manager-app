@@ -96,6 +96,19 @@ final class Document extends FamilyModel
     use HasFactory;
 
     /**
+     * Pinning follows the person: when the document moves to another person it is no longer pinned.
+     */
+    protected static function booted(): void
+    {
+        self::updating(static function (self $document): void {
+            if ($document->isDirty('person_id')) {
+                $document->pinned_at = null;
+                $document->pinned_by = null;
+            }
+        });
+    }
+
+    /**
      * The file of the document.
      *
      * @return BelongsTo<File, $this>
@@ -152,19 +165,6 @@ final class Document extends FamilyModel
     {
         return $this->person_id !== null
             && ! DB::table('documentables')->where('document_id', $this->id)->exists();
-    }
-
-    /**
-     * Pinning follows the person: when the document moves to another person it is no longer pinned.
-     */
-    protected static function booted(): void
-    {
-        self::updating(static function (self $document): void {
-            if ($document->isDirty('person_id')) {
-                $document->pinned_at = null;
-                $document->pinned_by = null;
-            }
-        });
     }
 
     /**

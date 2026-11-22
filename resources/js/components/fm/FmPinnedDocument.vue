@@ -12,7 +12,6 @@ import { Link } from '@inertiajs/vue3';
 import { Pin } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
-import { useFormat } from '@/composables/useFormat';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { documentLine } from '@/lib/documents';
 import type { DocumentLineTone } from '@/lib/documents';
@@ -42,8 +41,6 @@ const emit = defineEmits<{
     unpin: [];
 }>();
 
-const { date } = useFormat();
-
 /** The area of the document, if it has a known one. */
 const area = computed(() => areaOf(pinned.area));
 
@@ -56,27 +53,16 @@ const iconClass = computed(() =>
 const icon = computed(() => areaIcon(area.value ?? 'general'));
 
 /** The line below the title: the expiry with its colour, or what it is and its date. */
-const line = computed((): { text: string; tone: DocumentLineTone } => {
-    const { document } = pinned;
-    const found = documentLine(document, {
+const line = computed(() =>
+    documentLine(pinned.document, {
         expiry: true,
+        withDate: true,
         today,
         aheadTone: 'normal',
-    });
+    }),
+);
 
-    if (document.expiry_date !== null) {
-        return { text: found.text ?? '', tone: found.tone };
-    }
-
-    return {
-        text: [found.text, date(document.date)]
-            .filter((part): part is string => Boolean(part))
-            .join(' · '),
-        tone: 'normal',
-    };
-});
-
-/** The colour of the line for its tone. */
+/** The colour of the line for its tone; `warning` is never asked here (an expiry ahead is grey) but the type of the tone has it. */
 const toneClass: Record<DocumentLineTone, string> = {
     normal: cn('text-ink-soft'),
     overdue: cn('text-overdue'),

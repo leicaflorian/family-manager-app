@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
 use App\Models\DocumentCategory;
@@ -358,8 +359,12 @@ test('it shows it pinned again once unlinked', function (): void {
     insideBianchi(function () use ($a): void {
         $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save();
         DB::table('documentables')->insert(['document_id' => $a->id, 'documentable_type' => 'vehicle', 'documentable_id' => Vehicle::query()->firstOrFail()->id]);
-        DB::table('documentables')->where('document_id', $a->id)->delete();
     });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0));
+
+    insideBianchi(fn (): int => DB::table('documentables')->where('document_id', $a->id)->delete());
 
     $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->has('pinned', 1)
@@ -370,6 +375,42 @@ test('the page of a person tells whether the account may pin documents', functio
     ['person' => $person] = peoplePinnedSetup();
 
     $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
+});
+
+test('a member may pin documents too', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+    $member = User::factory()->for($this->marco->family)->create(['role' => Role::Member, 'email_verified_at' => now()]);
+    $this->actingAs($member);
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
+});
+
+test('the partial reload after an unpin sends page one of the personal documents and the updated pinned list', function (): void {
+    ['person' => $person, 'a' => $a, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(fn () => $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save());
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+    $headers = [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'pinned,personal,personalNext,personalTotal',
+    ];
+
+    $this->withHeaders($headers)->get(route('people.show', $person))
+        ->assertOk()
+        ->assertJsonCount(1, 'props.pinned')
+        ->assertJsonCount(2, 'props.personal');
+
+    $this->delete(route('documents.unpin', $a))->assertRedirect();
+
+    $this->withHeaders($headers)->get(route('people.show', $person))
+        ->assertOk()
+        ->assertJsonCount(0, 'props.pinned')
+        ->assertJsonCount(3, 'props.personal')
+        ->assertJsonPath('props.personalTotal', 3)
+        ->assertJsonPath('props.personalNext', null)
+        ->assertJsonMissingPath('props.documents');
+    expect(collect($this->withHeaders($headers)->get(route('people.show', $person))->json('props.personal'))->pluck('id'))->toContain($c->id, $a->id);
 });
 
 /**

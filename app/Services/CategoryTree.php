@@ -55,6 +55,31 @@ final class CategoryTree
     }
 
     /**
+     * The card type of every category: its own, else the one of the nearest category above with one.
+     *
+     * @return array<int, string> the type of the morph map by id of the category; categories with none up the tree are missing
+     */
+    public function cardTypes(): array
+    {
+        $categories = DocumentCategory::query()->get(['id', 'parent_id', 'card_type'])->keyBy('id');
+        $types = [];
+
+        foreach ($categories as $id => $category) {
+            // The visited ids stop a loop, should the data have one.
+            for ($current = $category, $seen = []; $current !== null && ! isset($seen[$current->id]); $current = $categories->get($current->parent_id ?? 0)) {
+                $seen[$current->id] = true;
+                if ($current->card_type !== null) {
+                    $types[$id] = $current->card_type;
+
+                    break;
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
      * The ids of a category and of all those below it, at every level.
      *
      * @param  int  $id  the category to start from

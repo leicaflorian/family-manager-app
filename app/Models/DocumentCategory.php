@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\CategoryTree;
 use Carbon\CarbonImmutable;
 use Database\Factories\DocumentCategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -87,24 +88,7 @@ final class DocumentCategory extends FamilyModel
      */
     public static function cardTypeOf(?int $id): ?string
     {
-        $seen = [];
-
-        // A loop in the tree (which the settings refuse) stops at the first category seen twice
-        while ($id !== null && ! in_array($id, $seen, true)) {
-            $seen[] = $id;
-            $category = self::query()->find($id, ['id', 'parent_id', 'card_type']);
-            if ($category === null) {
-                return null;
-            }
-
-            if ($category->card_type !== null) {
-                return $category->card_type;
-            }
-
-            $id = $category->parent_id;
-        }
-
-        return null;
+        return $id === null ? null : (new CategoryTree)->cardTypes()[$id] ?? null;
     }
 
     /**

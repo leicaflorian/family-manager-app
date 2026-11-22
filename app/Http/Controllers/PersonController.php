@@ -90,25 +90,13 @@ final class PersonController extends Controller
         $reminders = function () use (&$reminderList, $person): array {
             return $reminderList ??= $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
         };
-        $personalPage = null;
-        $personal = function () use (&$personalPage, $rows, $theirs, $request): array {
-            return $personalPage ??= $rows->page([...$theirs, 'linked' => false, 'pinned' => false], $this->pageAsked($request, 'personal'), self::PERSONAL_PER_PAGE);
-        };
-        $documentsPage = null;
-        $documents = function () use (&$documentsPage, $rows, $theirs, $request): array {
-            return $documentsPage ??= $rows->page([...$theirs, 'linked' => true], $this->pageAsked($request, 'documents'), self::DOCUMENTS_PER_PAGE);
-        };
 
         return Inertia::render('family/Person', [
             'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user),
             'pinned' => fn (): array => $rows->pinned($person->id),
             'canPin' => $user->can('create', Document::class),
-            'personal' => Inertia::merge(fn (): array => $personal()['documents'])->matchOn('id'),
-            'personalNext' => fn (): ?int => $personal()['next'],
-            'personalTotal' => fn (): int => $personal()['total'],
-            'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
-            'documentsNext' => fn (): ?int => $documents()['next'],
-            'documentsTotal' => fn (): int => $documents()['total'],
+            ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false], self::PERSONAL_PER_PAGE),
+            ...$this->documentPages($request, $rows, 'documents', [...$theirs, 'linked' => true], self::DOCUMENTS_PER_PAGE),
             'pageSizes' => ['personal' => self::PERSONAL_PER_PAGE, 'documents' => self::DOCUMENTS_PER_PAGE],
             'links' => fn (): array => $this->records->ofPerson($person),
             'reminders' => $reminders,

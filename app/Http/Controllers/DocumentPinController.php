@@ -17,6 +17,11 @@ final class DocumentPinController extends Controller
 {
     /**
      * Pins the document.
+     *
+     * @param  User  $user  who pins it
+     * @param  Document  $document  the personal document
+     * @param  PinDocument  $pin  the action
+     * @return RedirectResponse back to the page
      */
     public function store(#[CurrentUser] User $user, Document $document, PinDocument $pin): RedirectResponse
     {
@@ -27,6 +32,11 @@ final class DocumentPinController extends Controller
 
     /**
      * Unpins the document.
+     *
+     * @param  User  $user  who unpins it
+     * @param  Document  $document  the pinned document
+     * @param  PinDocument  $pin  the action
+     * @return RedirectResponse back to the page
      */
     public function destroy(#[CurrentUser] User $user, Document $document, PinDocument $pin): RedirectResponse
     {

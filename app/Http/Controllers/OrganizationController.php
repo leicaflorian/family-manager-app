@@ -83,17 +83,10 @@ final class OrganizationController extends Controller
      */
     public function show(Request $request, Organization $organization, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
-        $documentsPage = null;
-        $documents = function () use (&$documentsPage, $rows, $organization, $request): array {
-            return $documentsPage ??= $rows->page(['organization' => $organization->id], $this->pageAsked($request, 'documents'), self::DOCUMENTS_PER_PAGE);
-        };
-
         return Inertia::render('family/Organization', [
             'organization' => fn (): OrganizationDetailData => OrganizationDetailData::fromOrganization($organization, $user),
             'links' => fn (): array => $this->records->ofOrganization($organization),
-            'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
-            'documentsNext' => fn (): ?int => $documents()['next'],
-            'documentsTotal' => fn (): int => $documents()['total'],
+            ...$this->documentPages($request, $rows, 'documents', ['organization' => $organization->id], self::DOCUMENTS_PER_PAGE),
             'pageSizes' => ['documents' => self::DOCUMENTS_PER_PAGE],
         ]);
     }
