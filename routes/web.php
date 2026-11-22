@@ -22,6 +22,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentPinController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FileController;
@@ -288,6 +289,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
         Route::resource('documents', DocumentController::class)->except(['create', 'store']);
         Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
+        Route::put('documents/{document}/pin', [DocumentPinController::class, 'store'])->middleware('throttle:30,1,document-pin')->name('documents.pin');
+        Route::delete('documents/{document}/pin', [DocumentPinController::class, 'destroy'])->middleware('throttle:30,1,document-pin')->name('documents.unpin');
 
         Route::redirect('family', '/family/people')->name('family');
         Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');

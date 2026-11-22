@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A document with its file, linked to the records through `documentables`.
@@ -39,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $pinned_at
+ * @property int|null $pinned_by
  * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
@@ -69,6 +72,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property-read int|null $maintenance_records_count
  * @property-read Organization|null $organization
  * @property-read Person|null $person
+ * @property-read User|null $pinner
  * @property-read PlannedExpense|null $plannedExpense
  * @property-read Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
@@ -129,6 +133,38 @@ final class Document extends FamilyModel
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * The account that pinned it at the top of the person.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function pinner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pinned_by');
+    }
+
+    /**
+     * Whether it belongs only to its person: it has a person and is not linked to any record.
+     */
+    public function isPersonal(): bool
+    {
+        return $this->person_id !== null
+            && ! DB::table('documentables')->where('document_id', $this->id)->exists();
+    }
+
+    /**
+     * Pinning follows the person: when the document moves to another person it is no longer pinned.
+     */
+    protected static function booted(): void
+    {
+        self::updating(static function (self $document): void {
+            if ($document->isDirty('person_id')) {
+                $document->pinned_at = null;
+                $document->pinned_by = null;
+            }
+        });
     }
 
     /**
@@ -331,6 +367,7 @@ final class Document extends FamilyModel
             'date' => 'date',
             'expiry_date' => 'date',
             'tags' => 'array',
+            'pinned_at' => 'immutable_datetime',
         ];
     }
 }
