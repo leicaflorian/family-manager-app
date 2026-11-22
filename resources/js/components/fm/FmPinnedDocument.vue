@@ -72,8 +72,10 @@ const toneClass: Record<DocumentLineTone, string> = {
 /** The hint of the pin: who pinned the document, when we know. */
 const pinTitle = computed(() =>
     pinned.pinned_by
-        ? trans('Pinned by :name · unpin', { name: pinned.pinned_by })
-        : trans('Pinned · unpin'),
+        ? trans('Marked by :name · remove from favourites', {
+              name: pinned.pinned_by,
+          })
+        : trans('Favourite · remove from favourites'),
 );
 </script>
 
@@ -109,7 +111,9 @@ const pinTitle = computed(() =>
             v-if="canUnpin"
             type="button"
             :aria-label="
-                trans('Unpin «:title»', { title: pinned.document.title })
+                trans('Remove from favourites «:title»', {
+                    title: pinned.document.title,
+                })
             "
             :title="pinTitle"
             aria-pressed="true"

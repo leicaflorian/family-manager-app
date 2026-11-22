@@ -121,10 +121,13 @@ describe('FmPinnedDocument', () => {
         });
 
         const button = screen.getByRole('button', {
-            name: 'Unpin «Patente B»',
+            name: 'Remove from favourites «Patente B»',
         });
         expect(button).toHaveAttribute('aria-pressed', 'true');
-        expect(button).toHaveAttribute('title', 'Pinned by Laura · unpin');
+        expect(button).toHaveAttribute(
+            'title',
+            'Marked by Laura · remove from favourites',
+        );
 
         await userEvent.click(button);
         expect(view.emitted().unpin).toHaveLength(1);
@@ -140,8 +143,10 @@ describe('FmPinnedDocument', () => {
         });
 
         expect(
-            screen.getByRole('button', { name: 'Unpin «Patente B»' }),
-        ).toHaveAttribute('title', 'Pinned · unpin');
+            screen.getByRole('button', {
+                name: 'Remove from favourites «Patente B»',
+            }),
+        ).toHaveAttribute('title', 'Favourite · remove from favourites');
     });
 
     it('without canUnpin has no button', () => {

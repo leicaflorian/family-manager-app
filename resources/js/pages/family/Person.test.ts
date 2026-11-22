@@ -495,7 +495,7 @@ describe('A person', () => {
 
             await userEvent.click(
                 screen.getByRole('button', {
-                    name: 'Unpin «Driving licence»',
+                    name: 'Remove from favourites «Driving licence»',
                 }),
             );
 
@@ -564,7 +564,9 @@ describe('A person', () => {
             renderGiulia(personDetail, [], withPinned({ canPin: false }));
 
             expect(
-                screen.queryByRole('button', { name: /^Unpin/ }),
+                screen.queryByRole('button', {
+                    name: /^Remove from favourites/,
+                }),
             ).not.toBeInTheDocument();
         });
 
