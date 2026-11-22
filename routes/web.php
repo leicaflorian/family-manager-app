@@ -22,11 +22,13 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentFavoriteController;
 use App\Http\Controllers\DocumentPinController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileReadingController;
+use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InvitationController;
@@ -287,6 +289,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->name('mail.text')->whereNumber('receivedMail');
         Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->name('mail.destroy')->whereNumber('receivedMail');
         Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
+        // `gallery` before `documents/{document}`, so it is not taken for a document id
+        Route::get('documents/gallery', [GalleryController::class, 'index'])->name('documents.gallery');
+        Route::post('documents/gallery', [GalleryController::class, 'store'])->middleware('throttle:20,1,gallery-add')->name('documents.gallery.store');
+        Route::put('documents/{document}/favorite', [DocumentFavoriteController::class, 'store'])->middleware('throttle:60,1,document-favorite')->name('documents.favorite');
+        Route::delete('documents/{document}/favorite', [DocumentFavoriteController::class, 'destroy'])->middleware('throttle:60,1,document-favorite')->name('documents.unfavorite');
         Route::resource('documents', DocumentController::class)->except(['create', 'store']);
         Route::post('documents/{document}/file', [DocumentController::class, 'file'])->name('documents.file');
         Route::put('documents/{document}/pin', [DocumentPinController::class, 'store'])->middleware('throttle:30,1,document-pin')->name('documents.pin');

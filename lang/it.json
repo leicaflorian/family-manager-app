@@ -2339,5 +2339,9 @@
     "Pin at the top": "Fissa in cima",
     "Unpin": "Togli dalla cima",
     "Drawings and crafts": "Disegni e lavoretti",
-    "Show as a gallery": "Mostra in una galleria"
+    "Show as a gallery": "Mostra in una galleria",
+    "Drawing by :name": "Disegno di :name",
+    "Drawing": "Disegno",
+    "Only a drawing of the gallery can be a favourite.": "Solo un disegno della galleria può essere un preferito.",
+    "Choose a gallery category in Categories first.": "Scegli prima una categoria da mostrare come galleria in Categorie."
 }

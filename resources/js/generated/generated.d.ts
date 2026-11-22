@@ -372,6 +372,27 @@ readonly proposal: App.Data.Reading.DocumentProposalData | null,
 readonly can_read: boolean,
 readonly unavailable: string | null,
 };
+export type DrawingData = {
+readonly id: number,
+readonly title: string,
+readonly notes: string | null,
+readonly person_id: number | null,
+readonly person_name: string | null,
+readonly age: number | null,
+readonly uploaded_on: string,
+readonly pages: number | null,
+readonly is_favorite: boolean,
+readonly image_url: string,
+readonly file_url: string,
+readonly download_url: string,
+readonly document_url: string,
+readonly can_favorite: boolean,
+};
+export type DrawingYearData = {
+readonly year: number,
+readonly count: number,
+readonly drawings: App.Data.DrawingData[],
+};
 export type ExceptionData = {
 readonly id: number,
 readonly occurrence_date: string,
