@@ -148,6 +148,10 @@ describe('FmRow', () => {
 
         const link = screen.getByRole('link', { current: 'page' });
         expect(link).not.toHaveClass('bg-action-soft');
+        // nor on hover or focus: the wrapper paints them, under its menu too
+        expect(link).not.toHaveClass('hover:bg-action-soft');
+        expect(link).not.toHaveClass('focus-visible:bg-action-soft');
+        expect(link).toHaveClass('cursor-pointer');
     });
 
     it('shows the open row on the light blue background, not a transparent one', () => {

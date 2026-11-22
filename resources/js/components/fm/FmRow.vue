@@ -51,7 +51,7 @@ const {
     button?: boolean;
     /** The row is the one open now, as the document shown beside the list. */
     current?: boolean;
-    /** With `current`: paint the row's highlight; off when a wrapper paints it, so `aria-current` stays and the background does not double. */
+    /** Paint the row's blue (open, hover, focus); off when a wrapper paints it, so `aria-current` stays and the background does not double. */
     highlight?: boolean;
     /** The arrow of a link with nothing on the right; off where buttons follow. */
     arrow?: boolean;
@@ -100,7 +100,10 @@ const titleTone = computed(() =>
         :class="
             cn(
                 'relative flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline',
-                (href || button) && rowLink,
+                (href || button) &&
+                    (highlight
+                        ? rowLink
+                        : 'cursor-pointer focus-visible:outline-none'),
                 current && highlight && 'bg-action-soft',
             )
         "

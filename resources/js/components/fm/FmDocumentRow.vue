@@ -5,8 +5,8 @@
  * the expiry instead, red once passed and orange while it is ahead, as at the
  * top of *A person*. With `menu` the row has a ⋮ button beside its link with
  * the actions of the document; the parent's attributes and class then go on the
- * row, not on the wrapper, and a `current` highlight covers the whole wrapper,
- * under the ⋮ too. A pinned document shows a pin before its date.
+ * row, not on the wrapper, and the blue of `current`, hover and focus covers the
+ * whole wrapper, under the ⋮ too. A pinned document shows a pin before its date.
  *
  * @group rows
  */
@@ -135,7 +135,12 @@ const when = computed(() => {
     </DefineRow>
     <div
         v-if="menu"
-        :class="cn('flex items-center', current && 'bg-action-soft')"
+        :class="
+            cn(
+                'flex items-center hover:bg-action-soft has-[a:focus-visible]:bg-action-soft',
+                current && 'bg-action-soft',
+            )
+        "
     >
         <UseRow />
         <FmMenu

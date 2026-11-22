@@ -156,6 +156,20 @@ describe('FmDocumentRow', () => {
         expect(link).not.toHaveClass('bg-action-soft');
     });
 
+    it('with the menu, the hover and focus blue covers the whole wrapper, under the menu too', () => {
+        const { container } = render(FmDocumentRow, {
+            props: { document, href: '/d', menu: true },
+        });
+
+        expect(container.firstElementChild).toHaveClass(
+            'hover:bg-action-soft',
+            'has-[a:focus-visible]:bg-action-soft',
+        );
+        expect(screen.getByRole('link')).not.toHaveClass(
+            'hover:bg-action-soft',
+        );
+    });
+
     it('with the menu, does not highlight the wrapper when not current', () => {
         const { container } = render(FmDocumentRow, {
             props: { document, href: '/d', menu: true },
