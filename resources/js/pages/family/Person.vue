@@ -312,7 +312,7 @@ usePageTrail(() => [
                             >
                                 <FmIcon :icon="Pin" :size="14" />{{
                                     $t(
-                                        'Pin a document at the top from its menu',
+                                        'Mark a document as favourite from its menu',
                                     )
                                 }}
                             </span>

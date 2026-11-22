@@ -122,10 +122,12 @@ describe('FmDocumentActions', () => {
             await open();
 
             expect(
-                screen.queryByRole('menuitem', { name: 'Pin at the top' }),
+                screen.queryByRole('menuitem', { name: 'Mark as favourite' }),
             ).not.toBeInTheDocument();
             expect(
-                screen.queryByRole('menuitem', { name: 'Unpin' }),
+                screen.queryByRole('menuitem', {
+                    name: 'Remove from favourites',
+                }),
             ).not.toBeInTheDocument();
         });
 
@@ -138,13 +140,13 @@ describe('FmDocumentActions', () => {
                 document: { ...documentDetail, can_pin: true },
             });
             await open();
-            await screen.findByRole('menuitem', { name: 'Pin at the top' });
+            await screen.findByRole('menuitem', { name: 'Mark as favourite' });
 
             expect(
                 screen
                     .getAllByRole('menuitem')
                     .map((item) => item.textContent?.trim()),
-            ).toEqual(['Open in a new tab', 'Share', 'Pin at the top']);
+            ).toEqual(['Open in a new tab', 'Share', 'Mark as favourite']);
         });
 
         it('shows only Unpin when it is pinned', async () => {
@@ -154,10 +156,12 @@ describe('FmDocumentActions', () => {
             await open();
 
             expect(
-                await screen.findByRole('menuitem', { name: 'Unpin' }),
+                await screen.findByRole('menuitem', {
+                    name: 'Remove from favourites',
+                }),
             ).toBeInTheDocument();
             expect(
-                screen.queryByRole('menuitem', { name: 'Pin at the top' }),
+                screen.queryByRole('menuitem', { name: 'Mark as favourite' }),
             ).not.toBeInTheDocument();
         });
 
@@ -174,7 +178,7 @@ describe('FmDocumentActions', () => {
                 await open();
                 await userEvent.click(
                     await screen.findByRole('menuitem', {
-                        name: 'Pin at the top',
+                        name: 'Mark as favourite',
                     }),
                 );
 
@@ -202,7 +206,9 @@ describe('FmDocumentActions', () => {
                 });
                 await open();
                 await userEvent.click(
-                    await screen.findByRole('menuitem', { name: 'Unpin' }),
+                    await screen.findByRole('menuitem', {
+                        name: 'Remove from favourites',
+                    }),
                 );
 
                 expect(del).toHaveBeenCalledWith('/documents/5/pin', {
