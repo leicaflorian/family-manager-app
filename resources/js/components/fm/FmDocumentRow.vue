@@ -73,7 +73,7 @@ const { togglePin, pinLabel } = useDocumentPin();
 /** The row, written once for both layouts (with the menu beside it or alone). */
 const [DefineRow, UseRow] = createReusableTemplate();
 
-/** The row would show the arrow: a link with nothing on the right (the pin then carries it in the slot). */
+/** The row would show the arrow: a link with nothing on the right; with the expiry line a pinned row draws it next to its pin. */
 const showArrow = computed(() => !menu && !dateless);
 
 /** The line below the title and its colour. */
@@ -126,7 +126,7 @@ const when = computed(() => {
                         >{{ when }}</span
                     >
                     <FmIcon
-                        v-if="showArrow && document.pinned"
+                        v-if="showArrow && expiry && document.pinned"
                         :icon="ChevronRight"
                         :size="20"
                         class="text-ink-faint"

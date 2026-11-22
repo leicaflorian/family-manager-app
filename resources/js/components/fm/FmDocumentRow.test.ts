@@ -102,6 +102,10 @@ describe('FmDocumentRow', () => {
         });
 
         expect(screen.getByText('Pinned at the top')).toHaveClass('sr-only');
+        // file tile and pin: the date takes the place of the arrow, as on an unpinned row
+        expect(screen.getByRole('link').querySelectorAll('svg')).toHaveLength(
+            2,
+        );
     });
 
     it('keeps the arrow on a pinned row with the expiry line', () => {
