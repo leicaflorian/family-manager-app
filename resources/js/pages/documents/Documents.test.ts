@@ -38,6 +38,8 @@ const payslip = {
     mime_type: 'application/pdf',
 };
 
+const threeDocuments = [5, 6, 7].map((id) => ({ ...payslip, id }));
+
 const props = {
     documents: [payslip],
     total: 18,
@@ -109,6 +111,7 @@ describe('Documents', () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Documents, props);
 
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
         await choose('Person', 'Laura Bianchi');
 
         expect(get).toHaveBeenCalledWith(
@@ -184,48 +187,65 @@ describe('Documents', () => {
         ).toHaveAttribute('href', '/upload');
     });
 
-    it('on the computer shows the filters in a column from 1280 px, not only from 1440', () => {
+    it('the filters open in a box under the search', async () => {
         screenWidth(1280);
         renderPage(Documents, props);
 
-        const aside = screen.getByRole('complementary', { name: 'Filters' });
-        expect(aside).toHaveClass('sticky', 'top-(--app-header)');
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
         expect(
-            screen.queryByRole('button', { name: /Filters/ }),
+            screen.getByRole('region', { name: 'Filters' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', { name: 'Filters' }),
         ).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('on the computer shows the chosen document in the left column in place of the filters', () => {
+    it('the chosen document opens in the column on the right', async () => {
         screenWidth(1280);
-        renderPage(Documents, { ...props, selected: documentDetail });
-
-        const aside = screen.getByRole('complementary', {
-            name: 'Busta paga di ottobre',
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            documents: threeDocuments,
+            total: 3,
+            selected: { ...documentDetail, id: 6, title: 'Bolletta' },
         });
-        expect(
-            within(aside).getByRole('heading', {
-                name: 'Busta paga di ottobre',
-                level: 2,
-            }),
-        ).toBeInTheDocument();
-        expect(
-            within(aside).getByRole('button', { name: 'Back to the filters' }),
-        ).toBeInTheDocument();
+
+        const aside = screen.getByRole('complementary', { name: 'Bolletta' });
+        expect(within(aside).getByText('2 of 3')).toBeInTheDocument();
         expect(
             within(aside).getByRole('link', {
                 name: 'Open the page of the document',
             }),
         ).toBeInTheDocument();
-        expect(screen.queryByLabelText('Person')).not.toBeInTheDocument();
-        // no third column and no floating panel
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(screen.getAllByRole('complementary')).toHaveLength(1);
-        expect(screen.getByRole('link', { current: 'page' })).toHaveTextContent(
-            'Busta paga di ottobre',
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(aside).getByRole('button', { name: 'Next document' }),
+        );
+
+        expect(visit).toHaveBeenCalledWith(
+            expect.stringContaining('document=7'),
+            expect.objectContaining({ preserveScroll: true }),
         );
     });
 
-    it('Back to the filters and the × leave the document, keeping filters and page', async () => {
+    it('a chosen document that left the list still shows', () => {
+        screenWidth(1280);
+        renderPage(Documents, {
+            ...props,
+            documents: threeDocuments,
+            total: 3,
+            selected: { ...documentDetail, id: 99, title: 'Vecchia' },
+        });
+
+        const aside = screen.getByRole('complementary', { name: 'Vecchia' });
+        expect(within(aside).getByText('– of 3')).toBeInTheDocument();
+    });
+
+    it('the × leaves the document, keeping filters and page', async () => {
         screenWidth(1280);
         address.url = '/documents?person=3&page=2&document=5';
         const visit = vi.spyOn(router, 'get').mockImplementation(() => {});
@@ -235,14 +255,9 @@ describe('Documents', () => {
             selected: documentDetail,
         });
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Back to the filters' }),
-        );
         await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-        expect(visit).toHaveBeenCalledTimes(2);
-        expect(visit).toHaveBeenNthCalledWith(
-            1,
+        expect(visit).toHaveBeenCalledWith(
             '/documents?person=3&page=2',
             {},
             expect.objectContaining({

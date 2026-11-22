@@ -2338,5 +2338,9 @@
     "Pin a document at the top from its menu": "Fissa in cima un documento dal suo menu",
     "Pin at the top": "Fissa in cima",
     "Unpin": "Togli dalla cima",
-    "More actions for «:title»": "Altre azioni su «:title»"
+    "More actions for «:title»": "Altre azioni su «:title»",
+    ":position of :total": ":position di :total",
+    "– of :total": "– di :total",
+    "Previous document": "Documento precedente",
+    "Next document": "Documento successivo"
 }
