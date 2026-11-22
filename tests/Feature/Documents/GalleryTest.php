@@ -212,6 +212,15 @@ it('ignores filter values that are not valid, without leaving the page', functio
     'a list instead of a value' => [['person' => ['1'], 'drawing' => ['2'], 'filter' => ['favorites']]],
 ]);
 
+it('does not take the heart from a mass assignment, only from the favourite action', function (): void {
+    $drawing = galleryDrawing('2026-02-01 10:00:00');
+
+    $drawing->fill(['is_favorite' => true, 'title' => 'The sun'])->save();
+
+    expect($drawing->fresh()?->is_favorite)->toBeFalse()
+        ->and($drawing->fresh()?->title)->toBe('The sun');
+});
+
 it('marks and unmarks a favourite', function (): void {
     $drawing = galleryDrawing('2026-02-01 10:00:00');
 

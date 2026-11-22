@@ -89,7 +89,7 @@ use Illuminate\Support\Facades\DB;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes', 'is_favorite'])]
+#[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes'])]
 #[ObservedBy(DeadlineObserver::class)]
 final class Document extends FamilyModel
 {
