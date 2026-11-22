@@ -2,6 +2,14 @@
 
 All notable changes to Fameja.app.
 
+## [2.6.1] - 2026-11-22
+
+### CI
+- Install Ghostscript in the shared setup action so the PDF preview tests run on the CI runner.
+
+### Tests
+- The seeder test of the automatic reminders now runs on a fixed date (20/11/2026), before the car policy expires.
+
 ## [2.6.0] - 2026-11-22
 
 ### Documents

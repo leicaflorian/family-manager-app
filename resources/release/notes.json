@@ -1,5 +1,17 @@
 [
     {
+        "version": "2.6.1",
+        "date": "2026-11-22",
+        "notes": {
+            "it": [
+                "Nessuna novità da vedere in questa versione: abbiamo solo sistemato i controlli interni, così l'app resta affidabile."
+            ],
+            "en": [
+                "Nothing new to see in this version: we only tidied up our internal checks, so the app stays reliable."
+            ]
+        }
+    },
+    {
         "version": "2.6.0",
         "date": "2026-11-22",
         "notes": {
