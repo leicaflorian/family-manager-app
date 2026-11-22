@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { router } from '@inertiajs/vue3';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
@@ -103,5 +104,76 @@ describe('FmDocumentActions', () => {
         expect(
             screen.getByRole('menuitem', { name: 'Open in a new tab' }),
         ).toBeInTheDocument();
+    });
+    describe('pinning', () => {
+        afterEach(() => vi.restoreAllMocks());
+
+        const open = async (): Promise<void> => {
+            await userEvent.click(
+                screen.getByRole('button', { name: 'More actions' }),
+            );
+        };
+
+        it('has no pin item without can_pin', async () => {
+            renderPage(FmDocumentActions, { document: documentDetail });
+            await open();
+
+            expect(
+                screen.queryByRole('menuitem', { name: 'Pin at the top' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('menuitem', { name: 'Unpin' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it.each([false, true])(
+            'on its own page pins with a PUT (compact: %s)',
+            async (compact) => {
+                const put = vi
+                    .spyOn(router, 'put')
+                    .mockImplementation(() => {});
+                renderPage(FmDocumentActions, {
+                    document: { ...documentDetail, can_pin: true },
+                    compact,
+                });
+                await open();
+                await userEvent.click(
+                    await screen.findByRole('menuitem', {
+                        name: 'Pin at the top',
+                    }),
+                );
+
+                expect(put).toHaveBeenCalledWith(
+                    '/documents/5/pin',
+                    {},
+                    { preserveScroll: true },
+                );
+            },
+        );
+
+        it.each([false, true])(
+            'unpins with a DELETE when it is pinned (compact: %s)',
+            async (compact) => {
+                const del = vi
+                    .spyOn(router, 'delete')
+                    .mockImplementation(() => {});
+                renderPage(FmDocumentActions, {
+                    document: {
+                        ...documentDetail,
+                        can_pin: true,
+                        pinned: true,
+                    },
+                    compact,
+                });
+                await open();
+                await userEvent.click(
+                    await screen.findByRole('menuitem', { name: 'Unpin' }),
+                );
+
+                expect(del).toHaveBeenCalledWith('/documents/5/pin', {
+                    preserveScroll: true,
+                });
+            },
+        );
     });
 });
