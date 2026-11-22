@@ -32,6 +32,8 @@ final readonly class FilterDocuments
      *   document is not archived;
      * - `linked`: linked to at least one record or, with `false`, to none
      *   (the personal documents of *A person*);
+     * - `pinned`: pinned at the top of the person (in the order they were
+     *   pinned, instead of the usual order) or, with `false`, not pinned;
      * - `record`: linked to that record, `['type' => 'vehicle', 'id' => 1]`;
      * - `not_record`: not linked to that record, in the same form;
      * - `search`: in the title and in the notes, ignoring capitals and accents
@@ -75,6 +77,11 @@ final readonly class FilterDocuments
             $filters['linked'] ? $query->whereExists($links) : $query->whereNotExists($links);
         }
 
+        $pinned = $filters['pinned'] ?? null;
+        if (is_bool($pinned)) {
+            $pinned ? $query->whereNotNull('pinned_at') : $query->whereNull('pinned_at');
+        }
+
         $record = $this->record($filters['record'] ?? null);
         if ($record instanceof Closure) {
             $query->whereExists($record);
@@ -89,6 +96,10 @@ final readonly class FilterDocuments
             // % and _ are letters here, not the wildcards of LIKE.
             $like = '%'.addcslashes($search, '%_\\').'%';
             $query->where(fn (Builder $query) => $query->whereLike('title', $like)->orWhereLike('notes', $like));
+        }
+
+        if ($pinned === true) {
+            return $query->oldest('pinned_at')->orderBy('id');
         }
 
         return $query->orderByDesc('date')->latest()->orderByDesc('id');

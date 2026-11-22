@@ -3,6 +3,7 @@
 declare(strict_types=1);
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Enrollment;
 use App\Models\Organization;
 use App\Models\Person;
@@ -300,4 +301,73 @@ test('an admin edits an organization', function (): void {
         ->assertSessionHasNoErrors()->assertRedirect(route('organizations.show', $edison));
 
     expect($edison->fresh())->name->toBe('Edison Energia')->phone->toBe('800 031 141');
+});
+
+/**
+ * A person of the Bianchis with three personal documents, A, B and C, all in the same family.
+ *
+ * @return array{person: Person, a: Document, b: Document, c: Document}
+ */
+function peoplePinnedSetup(): array
+{
+    return insideBianchi(function (): array {
+        $family = Person::query()->where('first_name', 'Giulia')->sole()->family_id;
+        $person = Person::factory()->create(['family_id' => $family]);
+        $make = fn (string $title, ?int $category = null): Document => Document::factory()->create(['family_id' => $family, 'person_id' => $person->id, 'title' => $title, 'category_id' => $category]);
+        $withCard = DocumentCategory::query()->whereNotNull('card_type')->orderBy('id')->firstOrFail();
+        $without = DocumentCategory::query()->whereNull('card_type')->whereNull('parent_id')->orderBy('id')->firstOrFail();
+
+        return ['person' => $person, 'a' => $make('A', $withCard->id), 'b' => $make('B', $without->id), 'c' => $make('C')];
+    });
+}
+
+test('it sends the pinned personal documents apart, in the order they were pinned', function (): void {
+    ['person' => $person, 'a' => $a, 'b' => $b, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(function () use ($a, $b): void {
+        $b->forceFill(['pinned_at' => now()->subMinutes(5), 'pinned_by' => $this->marco->id])->save();
+        $a->forceFill(['pinned_at' => now()->subMinute(), 'pinned_by' => $this->marco->id])->save();
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 2)
+        ->where('pinned.0.document.title', 'B')
+        ->where('pinned.1.document.title', 'A')
+        ->where('pinned.0.pinned_by', $this->marco->name)
+        ->where('pinned.0.area', null)
+        ->where('pinned.1.area', fn ($area): bool => is_string($area))
+        ->where('personal', fn ($documents): bool => collect($documents)->pluck('id')->all() === [$c->id])
+        ->where('personalTotal', 1)
+        ->where('canPin', true));
+});
+
+test('it leaves a pinned document linked to a record out of both lists', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    insideBianchi(function () use ($a): void {
+        $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save();
+        DB::table('documentables')->insert(['document_id' => $a->id, 'documentable_type' => 'vehicle', 'documentable_id' => Vehicle::query()->firstOrFail()->id]);
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0)
+        ->where('personal', fn ($documents): bool => ! collect($documents)->pluck('id')->contains($a->id))
+        ->where('personalTotal', 2));
+});
+
+test('it shows it pinned again once unlinked', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    insideBianchi(function () use ($a): void {
+        $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save();
+        DB::table('documentables')->insert(['document_id' => $a->id, 'documentable_type' => 'vehicle', 'documentable_id' => Vehicle::query()->firstOrFail()->id]);
+        DB::table('documentables')->where('document_id', $a->id)->delete();
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 1)
+        ->where('personalTotal', 2));
+});
+
+test('the page of a person tells whether the account may pin documents', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
 });

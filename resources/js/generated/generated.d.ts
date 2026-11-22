@@ -353,6 +353,8 @@ readonly file: App.Data.FileData,
 readonly links: App.Data.DocumentLinkData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly pinned: boolean,
+readonly can_pin: boolean,
 };
 export type DocumentLinkData = {
 readonly type: string,
@@ -668,6 +670,11 @@ readonly expires_at: string | null,
 readonly person: string,
 readonly family: string,
 readonly devices: App.Data.LinkedDeviceData[],
+};
+export type PinnedDocumentData = {
+readonly document: App.Data.DocumentData,
+readonly area: string | null,
+readonly pinned_by: string | null,
 };
 export type PlannedChoiceData = {
 readonly kind: string,

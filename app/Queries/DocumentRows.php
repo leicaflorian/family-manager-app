@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Cards\CardTypes;
 use App\Data\DocumentData;
+use App\Data\PinnedDocumentData;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Services\CategoryTree;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -49,6 +52,58 @@ final readonly class DocumentRows
             'next' => $paginator->hasMorePages() ? $page + 1 : null,
             'total' => $paginator->total(),
         ];
+    }
+
+    /**
+     * The personal documents of a person that are pinned, in the order they were
+     * pinned, with the area of their card type and who pinned them.
+     *
+     * @param  int  $personId  the person
+     * @return list<PinnedDocumentData>
+     */
+    public function pinned(int $personId): array
+    {
+        $documents = $this->filter->apply(Document::query()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true])->get();
+        $paths = $this->categories->paths();
+        $areas = $this->areas();
+
+        return array_values($documents->map(static fn (Document $document): PinnedDocumentData => PinnedDocumentData::fromDocument(
+            $document,
+            $paths,
+            $areas[$document->category_id ?? 0] ?? null,
+        ))->all());
+    }
+
+    /**
+     * The area of the card type of every category, from its own type or the nearest one up the tree, read in one query.
+     *
+     * @return array<int, string> the area value by category id; categories with no card type up the tree are missing
+     */
+    private function areas(): array
+    {
+        $categories = DocumentCategory::query()->get(['id', 'parent_id', 'card_type'])->keyBy('id');
+        $areas = [];
+
+        foreach ($categories as $id => $category) {
+            $seen = [];
+            $current = $category;
+            // A loop in the tree stops at the first category seen twice
+            while ($current !== null && ! in_array($current->id, $seen, true)) {
+                $seen[] = $current->id;
+                if ($current->card_type !== null) {
+                    $area = CardTypes::find($current->card_type)?->area()->value;
+                    if ($area !== null) {
+                        $areas[$id] = $area;
+                    }
+
+                    break;
+                }
+
+                $current = $current->parent_id === null ? null : $categories->get($current->parent_id);
+            }
+        }
+
+        return $areas;
     }
 
     /**

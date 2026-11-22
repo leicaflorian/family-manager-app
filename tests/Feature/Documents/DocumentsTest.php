@@ -8,6 +8,7 @@ use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Home;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
@@ -238,4 +239,20 @@ test('it filters the documents of one record', function (): void {
     });
 
     expect($titles)->toBe(['Polizza RC auto 2026']);
+});
+
+test('it tells whether a document can be pinned', function (): void {
+    $person = Person::factory()->for($this->marco->family)->create();
+    $personal = Document::factory()->for($this->marco->family)->create(['person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked = Document::factory()->for($this->marco->family)->create(['person_id' => $person->id]);
+    $linked->employments()->attach($this->employment);
+    $nobody = Document::factory()->for($this->marco->family)->create(['person_id' => null]);
+
+    $check = fn (Document $document, bool $canPin, bool $pinned) => $this->get(route('documents.show', $document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.can_pin', $canPin)
+        ->where('document.pinned', $pinned));
+
+    $check($personal, true, true);
+    $check($linked, false, false);
+    $check($nobody, false, false);
 });

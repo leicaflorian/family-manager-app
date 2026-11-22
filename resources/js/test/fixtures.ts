@@ -94,6 +94,8 @@ export const documentDetail: App.Data.DocumentDetailData = {
     ],
     can_edit: true,
     can_delete: true,
+    pinned: false,
+    can_pin: false,
 };
 
 /**
