@@ -107,8 +107,8 @@ describe('FmPlannedFilters', () => {
             columns: true,
         });
 
-        expect(container.firstElementChild).toHaveClass(
-            'grid-cols-2',
+        expect(container.firstElementChild).toHaveClass('grid-cols-2');
+        expect(container.firstElementChild).not.toHaveClass(
             'computer:grid-cols-4',
         );
         expect(container.firstElementChild).not.toHaveClass('@container');

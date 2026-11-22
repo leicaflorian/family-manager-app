@@ -35,7 +35,7 @@ const emit = defineEmits<{
 /** The classes of the form: a grid of cells in the box, a stack in the panel. */
 const rootClass = computed(() =>
     columns
-        ? cn('grid grid-cols-2 gap-x-3.5 gap-y-3 computer:grid-cols-4')
+        ? cn('grid grid-cols-2 gap-x-3.5 gap-y-3')
         : cn('@container flex flex-col gap-4'),
 );
 
