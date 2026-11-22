@@ -449,6 +449,8 @@ test('the Bianchis have three reminder groups in the stored shape', function ():
 });
 
 test('the open automatic reminders come from the cards, and the Panda inspection is on 09/01/2027', function (): void {
+    // The seeder's dates are fixed: on a day after 21/11/2026 the car policy has expired and gets no open reminder
+    $this->travelTo(CarbonImmutable::parse('2026-11-20 09:00', 'Europe/Rome'));
     $this->seed(BianchiFamilySeeder::class);
 
     insideBianchi(function (): void {
