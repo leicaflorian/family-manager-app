@@ -548,7 +548,8 @@ describe('Movements', () => {
         expect(links[0]).not.toHaveAttribute('aria-current');
     });
 
-    it('offers Planned and spent in the box under the tabs, on every layout', () => {
+    it('on the phone offers Planned and spent in the box under the tabs', () => {
+        screenWidth(390);
         renderPage(Movements, props);
 
         const box = screen.getByRole('navigation', {
@@ -584,9 +585,24 @@ describe('Movements', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('adds the use of electricity, gas and water when the family has a utility with it', () => {
+    it('with the sidebar, on the tablet and the computer, has no box: the sidebar has those pages under Budget', () => {
         shared.has_consumption = true;
-        screenWidth(true);
+        for (const width of [800, 1280]) {
+            screenWidth(width);
+            const view = renderPage(Movements, props);
+
+            expect(
+                screen.queryByRole('navigation', {
+                    name: 'More in the budget',
+                }),
+            ).not.toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it('on the phone adds the use of electricity, gas and water when the family has a utility with it', () => {
+        shared.has_consumption = true;
+        screenWidth(390);
         renderPage(Movements, props);
 
         const box = screen.getByRole('navigation', {

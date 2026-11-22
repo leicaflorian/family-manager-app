@@ -7,12 +7,13 @@
  * the page searches every month: the list is grouped by month, with how many
  * were found and their total instead of the month and its figures. On the
  * wide layout the filters open in a box under the search; on the phone they
- * are in the panel from below. Under the tabs, while no search or filter is on, a box leads
- * to the other pages of the Budget: *Planned and spent* and, with a utility with
- * consumption, *Usage*. A row, and *New expense or income*, always open the page of
+ * are in the panel from below. On the phone, under the tabs, while no search or filter is on,
+ * a box leads to the other pages of the Budget: *Planned and spent* and, with a utility with
+ * consumption, *Usage*; on the tablet and the computer the sidebar has them under *Budget*. A row, and *New expense or income*, always open the page of
  * the movement, which brings back to this list (`?from=`).
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import {
     ChartColumn,
     ChartPie,
@@ -82,6 +83,9 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 const { euro } = useFormat();
 const bankFeed = useBankFeed();
 const page = usePage();
+
+/** The layout of the screen: the box of the other pages shows only on the phone, which has no sidebar. */
+const layout = useLayoutMode();
 
 /** The family has an electricity, gas or water utility: *Usage* is offered too. */
 const hasConsumption = computed(
@@ -328,11 +332,10 @@ function subtitle(movement: App.Data.MovementData): string {
             :label="$t('Budget')"
         />
 
-        <!-- The other pages of the Budget: they have no tab, the sidebar has them on the computer too -->
+        <!-- The other pages of the Budget: they have no tab; on the tablet and the computer the sidebar has them under Budget -->
         <nav
-            v-if="pills.length === 0"
+            v-if="pills.length === 0 && layout === 'phone'"
             :aria-label="$t('More in the budget')"
-            class="wide:max-w-130"
         >
             <FmCard list>
                 <FmRow
