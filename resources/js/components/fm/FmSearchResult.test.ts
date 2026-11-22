@@ -103,6 +103,22 @@ describe('FmSearchResult', () => {
         }
     });
 
+    it('shows the palette for a drawing of the gallery', () => {
+        const view = render(FmSearchResult, {
+            props: {
+                result: result({ area: null, icon: 'palette' }),
+                query: 'Pan',
+            },
+        });
+
+        expect(
+            view.container.querySelector('[class*="lucide-palette"]'),
+        ).not.toBeNull();
+        expect(
+            view.container.querySelector('[class*="lucide-file-text"]'),
+        ).toBeNull();
+    });
+
     it('is the chosen row when active', () => {
         render(FmSearchResult, {
             props: { result: result(), query: '', active: true, compact: true },
