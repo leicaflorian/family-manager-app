@@ -17,6 +17,18 @@ const none: App.Data.MovementFiltersData = {
 
 const accounts = accountOptions.map(({ value, label }) => ({ value, label }));
 
+/** Whether every element follows the one before it in the page. */
+function inOrder(elements: HTMLElement[]): boolean {
+    return elements.every(
+        (element, index) =>
+            index === 0 ||
+            Boolean(
+                elements[index - 1].compareDocumentPosition(element) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+    );
+}
+
 describe('FmMovementFilters', () => {
     it('sends the filters with the kind chosen', async () => {
         const view = renderPage(FmMovementFilters, { filters: none, accounts });
@@ -129,5 +141,27 @@ describe('FmMovementFilters', () => {
                 'The max field must be greater than or equal to 50.',
             ),
         ).toBeInTheDocument();
+    });
+
+    it('in columns every field is a cell of the grid', () => {
+        const { container } = renderPage(FmMovementFilters, {
+            filters: { ...none, min: 20 },
+            accounts,
+            columns: true,
+        });
+
+        expect(container.firstElementChild).toHaveClass(
+            'grid-cols-2',
+            'computer:grid-cols-4',
+        );
+        expect(
+            inOrder([
+                screen.getByText('Type'),
+                screen.getByText('Bank account'),
+                screen.getByRole('group', { name: 'Amount' }),
+                screen.getByRole('group', { name: 'Date' }),
+                screen.getByRole('button', { name: 'Remove the filters' }),
+            ]),
+        ).toBe(true);
     });
 });
