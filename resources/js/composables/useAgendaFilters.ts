@@ -20,7 +20,7 @@ export type UseAgendaFilters = {
 };
 
 /** The filters of a new account: one month, the whole family, every area. */
-const defaults: App.Data.AgendaFiltersData = {
+export const defaults: App.Data.AgendaFiltersData = {
     months: 1,
     person_id: null,
     hidden_areas: [],

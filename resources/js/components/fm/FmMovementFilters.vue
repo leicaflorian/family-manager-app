@@ -5,7 +5,8 @@
  * is sent at once (the amounts after a short pause in typing); the page
  * reloads the list. The text searched is not here: it is in the box above
  * the list, and is kept as it is when another filter changes. Used in the
- * column on the left on the computer and in the panel from below on the phone.
+ * box under the search on the wide layout and in the panel from below on the
+ * phone.
  *
  * @group forms
  */
@@ -14,11 +15,13 @@ import FilterRanges from '@/components/filters/FilterRanges.vue';
 import { accountChoices as withAllAccounts, movementKinds } from '@/lib/budget';
 import { anyFilterOn, withoutFilters } from '@/lib/filters';
 import { textOrNull } from '@/lib/forms';
+import { cn } from '@/lib/utils';
 
 const {
     filters,
     accounts,
     errors = {},
+    columns = false,
 } = defineProps<{
     /** The filters in use. */
     filters: App.Data.MovementFiltersData;
@@ -26,6 +29,8 @@ const {
     accounts: { value: string; label: string }[];
     /** What the server found wrong, by filter (an amount *to* under the *from*). */
     errors?: Partial<Record<string, string>>;
+    /** Lay the fields out as a grid, for the box under the search; without it they stack, for the panel from below. */
+    columns?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -41,6 +46,13 @@ const kinds = computed(() => movementKinds(ALL));
 
 /** The accounts of the menu, «All the accounts» first. */
 const accountChoices = computed(() => withAllAccounts(accounts));
+
+/** The classes of the form: a grid of cells in the box, a stack in the panel. */
+const rootClass = computed(() =>
+    columns
+        ? cn('grid grid-cols-2 gap-x-3.5 gap-y-3 computer:grid-cols-4')
+        : cn('@container flex flex-col gap-4'),
+);
 
 /** Whether any filter is on, the search included. */
 const anyOn = computed(() => anyFilterOn(filters));
@@ -64,7 +76,7 @@ function change(changed: Partial<App.Data.MovementFiltersData>): void {
 </script>
 
 <template>
-    <div class="@container flex flex-col gap-4">
+    <div :class="rootClass">
         <FormKit
             type="togglebuttons"
             enforced
@@ -100,6 +112,7 @@ function change(changed: Partial<App.Data.MovementFiltersData>): void {
             :help="$t('Without dates I look in every month.')"
             :removable="anyOn"
             :errors="errors"
+            :columns="columns"
             @change="change"
             @remove="emit('change', withoutFilters(filters))"
         />

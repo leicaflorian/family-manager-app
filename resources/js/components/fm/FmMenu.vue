@@ -8,7 +8,9 @@
  * panel from below), as beside *Done* and *Postpone* of a reminder. With
  * `choice` the button is the thing chosen, its label in ink and bold with a
  * chevron after it, and the entries are the other things to choose, open from
- * its left edge: the utility of *Usage*. The entries
+ * its left edge: the utility of *Usage*. With `primary` the button is blue: on the wide layout the label
+ * beside the icon and a chevron after it, as *Add*; on the phone only the icon
+ * in a square (the label is its name for screen readers). The entries
  * open above every panel, so a menu inside a panel shows.
  *
  * @group navigation
@@ -21,6 +23,7 @@ import {
     DropdownMenuRoot,
     DropdownMenuTrigger,
 } from 'reka-ui';
+import { useWideLayout } from '@/composables/useWideLayout';
 import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 import FmSectionLink from './FmSectionLink.vue';
@@ -34,6 +37,7 @@ const {
     control = false,
     choice = false,
     row = false,
+    primary = false,
     icon,
 } = defineProps<{
     /** The text of the button for screen readers; «More actions» if missing. */
@@ -54,7 +58,12 @@ const {
     choice?: boolean;
     /** The 32 px vertical ⋮ at the right of a list row, outside its link; `label` is the name for screen readers. */
     row?: boolean;
+    /** A blue button with the `icon`, the `label` as visible text and a chevron after it, as *Add* of the planned expenses; the entries open under its right edge. */
+    primary?: boolean;
 }>();
+
+/** The primary button is a square with only the icon under 900 px. */
+const wide = useWideLayout();
 
 defineSlots<{
     /** The entries, `FmMenuItem`. */
@@ -74,6 +83,25 @@ defineSlots<{
                 <FmIcon :icon="icon ?? Ellipsis" :size="18" />{{
                     label ?? $t('More actions')
                 }}
+            </button>
+            <button
+                v-else-if="primary && !wide"
+                type="button"
+                :aria-label="label ?? $t('More actions')"
+                :title="label ?? $t('More actions')"
+                class="flex size-control-md shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-action text-on-action hover:bg-action-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            >
+                <FmIcon :icon="icon ?? Ellipsis" :size="20" />
+            </button>
+            <button
+                v-else-if="primary"
+                type="button"
+                class="flex h-control shrink-0 cursor-pointer items-center gap-2 rounded-control border-0 bg-action pr-4 pl-5 text-body whitespace-nowrap text-on-action hover:bg-action-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+            >
+                <FmIcon v-if="icon" :icon="icon" :size="20" />{{
+                    label ?? $t('More actions')
+                }}
+                <FmIcon :icon="ChevronDown" :size="20" />
             </button>
             <button
                 v-else-if="row"

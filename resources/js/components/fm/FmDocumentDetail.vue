@@ -34,7 +34,7 @@ const {
      */
     compact?: boolean;
     /**
-     * Inside the left column of *Documents* (`FmFilterAside` is the card):
+     * Inside the left column of *Documents*:
      * no card of its own, and a link to the page of the document at the bottom.
      */
     embedded?: boolean;

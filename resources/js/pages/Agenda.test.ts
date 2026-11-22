@@ -37,6 +37,11 @@ const areas = [
     ['paperwork', 'Paperwork'],
 ].map(([value, label]) => ({ value: value!, label: label! }));
 
+/** Opens the box of the filters, on the wide layout. */
+async function openFilters(): Promise<void> {
+    await userEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+}
+
 /** The gas bill of 23/10, not paid yet: a late payment. */
 const lateGas = agendaEntry({
     key: 'payment:7:2026-10-23',
@@ -498,6 +503,7 @@ describe('Agenda', () => {
     it('hides the task of another person with the person filter', async () => {
         screenWidth(true);
         renderPage(Agenda, agenda());
+        await openFilters();
 
         expect(row(/Chiamare l'idraulico/)).toBeInTheDocument();
 
@@ -516,6 +522,7 @@ describe('Agenda', () => {
     it('turns an area off on the computer from the menu of the areas', async () => {
         screenWidth(true);
         renderPage(Agenda, agenda());
+        await openFilters();
 
         await userEvent.click(
             screen.getByRole('button', { name: 'All areas' }),
@@ -528,6 +535,40 @@ describe('Agenda', () => {
             screen.queryByRole('button', { name: /Primo pagamento/ }),
         ).not.toBeInTheDocument();
         expect(put).toHaveBeenCalled();
+    });
+
+    it('the filters open in a box under the title', async () => {
+        screenWidth(true);
+        renderPage(Agenda, agenda());
+
+        expect(screen.queryByRole('region', { name: 'Filters' })).toBeNull();
+        expect(screen.queryByRole('radiogroup', { name: 'Period' })).toBeNull();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
+        const box = screen.getByRole('region', { name: 'Filters' });
+        expect(
+            within(box).getByRole('radiogroup', { name: 'Period' }),
+        ).toBeInTheDocument();
+    });
+
+    it('counts the filters away from the defaults on the Filters button', () => {
+        screenWidth(true);
+        renderPage(
+            Agenda,
+            agenda({
+                filters: {
+                    months: 1,
+                    person_id: 1,
+                    hidden_areas: [],
+                    calendar: false,
+                },
+            }),
+        );
+
+        expect(
+            screen.getByRole('button', { name: 'Filters, 1 on' }),
+        ).toBeInTheDocument();
     });
 
     it('opens the filters from the buttons of the phone', async () => {
@@ -585,6 +626,7 @@ describe('Agenda', () => {
     it('loads the period with a visit and saves nothing else', async () => {
         screenWidth(true);
         renderPage(Agenda, agenda());
+        await openFilters();
 
         await userEvent.click(screen.getByRole('radio', { name: '3 months' }));
 
@@ -703,6 +745,7 @@ describe('Agenda, the Done view', () => {
     it('reloads the whole list when the person changes, so the pages start again', async () => {
         screenWidth(true);
         renderPage(Agenda, doneView({ done_next_page: 2 }));
+        await openFilters();
 
         await userEvent.click(screen.getByRole('radio', { name: /Laura/ }));
 
@@ -844,6 +887,7 @@ describe('Agenda, the calendar view', () => {
     it('filters the month with the person, without the period', async () => {
         screenWidth(true);
         renderPage(Agenda, calendarView());
+        await openFilters();
         await userEvent.click(day('4 Nov'));
 
         expect(
