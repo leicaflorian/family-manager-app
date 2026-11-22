@@ -19,11 +19,15 @@ final class CategoryTree
     /**
      * The tree, from the main categories, with the number of documents of each.
      *
+     * @param  bool  $withoutGallery  leaves out the gallery category and its subcategories (the filters of *Documents*,
+     *                                whose list does not show the drawings)
      * @return list<CategoryData>
      */
-    public function tree(): array
+    public function tree(bool $withoutGallery = false): array
     {
-        $categories = DocumentCategory::query()->withCount('documents')->orderBy('sort')->orderBy('name')->get();
+        $categories = DocumentCategory::query()->withCount('documents')
+            ->when($withoutGallery, fn ($query) => $query->whereKeyNot($this->galleryIds()))
+            ->orderBy('sort')->orderBy('name')->get();
 
         return $this->branches($categories->toBase()->groupBy('parent_id'), null, null, null);
     }
