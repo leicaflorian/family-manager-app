@@ -30,7 +30,7 @@ final readonly class DocumentRows
      */
     public function of(array $filters): array
     {
-        return $this->rows($this->filter->apply(Document::query()->with(self::RELATIONS), $filters)->get());
+        return $this->rows($this->filter->apply(Document::query()->withLinked()->with(self::RELATIONS), $filters)->get());
     }
 
     /**
@@ -43,7 +43,7 @@ final readonly class DocumentRows
      */
     public function page(array $filters, int $page, int $perPage): array
     {
-        $paginator = $this->filter->apply(Document::query()->with(self::RELATIONS), $filters)
+        $paginator = $this->filter->apply(Document::query()->withLinked()->with(self::RELATIONS), $filters)
             ->paginate($perPage, page: $page);
 
         return [
@@ -62,7 +62,7 @@ final readonly class DocumentRows
      */
     public function pinned(int $personId): array
     {
-        $documents = $this->filter->apply(Document::query()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true])->get();
+        $documents = $this->filter->apply(Document::query()->withLinked()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true])->get();
         $paths = $this->categories->paths();
         $areas = $this->areas();
 
@@ -110,7 +110,7 @@ final readonly class DocumentRows
      */
     public function latest(int $count): array
     {
-        return $this->rows(Document::query()->with(self::RELATIONS)->latest()->orderByDesc('id')->limit($count)->get());
+        return $this->rows(Document::query()->withLinked()->with(self::RELATIONS)->latest()->orderByDesc('id')->limit($count)->get());
     }
 
     /**
@@ -133,6 +133,7 @@ final readonly class DocumentRows
     private function rows(Collection $documents): array
     {
         $paths = $this->categories->paths();
+        Document::markLinked($documents);
 
         return array_values($documents->map(static fn (Document $document): DocumentData => DocumentData::fromDocument($document, $paths))->all());
     }

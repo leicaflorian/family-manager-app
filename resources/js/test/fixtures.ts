@@ -236,6 +236,10 @@ export const healthCard: App.Data.DocumentData = {
     status: 'active',
     mime_type: 'application/pdf',
     file_url: '/files/21',
+    download_url: '/files/21/download',
+    pinned: false,
+    can_edit: true,
+    can_pin: true,
 };
 
 /** Three organizations of the Bianchis, by name. */

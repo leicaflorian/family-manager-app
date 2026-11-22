@@ -460,3 +460,17 @@ test('it starts from the first page on a full visit even with documents_page in 
         ->has('documents', 10)
         ->where('documentsNext', 2));
 });
+
+test('the rows of a person carry what the row menu needs', function (): void {
+    ['person' => $person, 'a' => $a, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(fn () => $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save());
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pinned.0.document.pinned', true)
+        ->where('pinned.0.document.can_pin', true)
+        ->where('personal', fn ($documents): bool => collect($documents)->every(fn (array $row): bool => $row['can_pin'] === true
+            && $row['pinned'] === false
+            && $row['can_edit'] === true
+            && str_contains((string) $row['download_url'], '/download'))
+            && collect($documents)->pluck('id')->contains($c->id)));
+});

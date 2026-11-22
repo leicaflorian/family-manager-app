@@ -13,6 +13,10 @@ const document: App.Data.DocumentData = {
     status: 'active',
     mime_type: 'application/pdf',
     file_url: '/files/5',
+    download_url: '/files/5/download',
+    pinned: false,
+    can_edit: true,
+    can_pin: true,
 };
 
 describe('FmDocumentRow', () => {

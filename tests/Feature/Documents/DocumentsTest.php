@@ -256,3 +256,45 @@ test('it tells whether a document can be pinned', function (): void {
     $check($linked, false, false);
     $check($nobody, false, false);
 });
+
+test('it sends what the row menu needs', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $personal = Document::factory()->for($family)->create(['title' => 'Personal one', 'person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked = Document::factory()->for($family)->create(['title' => 'Linked one', 'person_id' => $person->id]);
+    $linked->employments()->attach($this->employment);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', function ($documents) use ($personal, $linked): bool {
+            $rows = collect($documents)->keyBy('title');
+
+            return $rows['Personal one']['pinned'] === true
+                && $rows['Personal one']['can_pin'] === true
+                && $rows['Personal one']['can_edit'] === true
+                && $rows['Personal one']['download_url'] === route('files.download', $personal->file)
+                && $rows['Linked one']['pinned'] === false
+                && $rows['Linked one']['can_pin'] === false
+                && $rows['Linked one']['can_edit'] === true
+                && $rows['Linked one']['download_url'] === route('files.download', $linked->file);
+        }));
+});
+
+test('it reads whether documents are personal without a query per row', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $this->get(route('documents.index'))->assertOk(); // the first visit also records the account's language and last visit
+    $count = function (): int {
+        DB::enableQueryLog();
+        $this->get(route('documents.index'))->assertOk();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+
+        return $queries;
+    };
+
+    Document::factory()->for($family)->count(2)->create(['person_id' => $person->id]);
+    $few = $count();
+    Document::factory()->for($family)->count(11)->create(['person_id' => $person->id]);
+    expect($count())->toBe($few);
+});

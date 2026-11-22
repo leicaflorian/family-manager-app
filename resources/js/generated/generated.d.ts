@@ -331,6 +331,10 @@ readonly expiry_date: string | null,
 readonly status: string,
 readonly mime_type: string,
 readonly file_url: string,
+readonly download_url: string,
+readonly pinned: boolean,
+readonly can_edit: boolean,
+readonly can_pin: boolean,
 };
 export type DocumentDetailData = {
 readonly id: number,
