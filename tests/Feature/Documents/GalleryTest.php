@@ -60,7 +60,7 @@ it('groups the drawings by upload year, newest first', function (): void {
         ->where('years.1.year', 2025)
         ->where('years.1.count', 1)
         ->where('years.1.drawings.0.id', $old->id)
-        ->where('years.0.drawings.0.image_url', route('files.show', $second->file_id))
+        ->where('years.0.drawings.0.image_url', route('files.preview', $second->file_id))
         ->where('years.0.drawings.0.file_url', route('files.show', $second->file_id))
         ->where('years.0.drawings.0.download_url', route('files.download', $second->file_id))
         ->where('years.0.drawings.0.document_url', route('documents.show', $second)));

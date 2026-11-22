@@ -8,7 +8,7 @@ use App\Exceptions\Reading\ReadingSkipped;
 use App\Models\File;
 use App\Services\FilePreviews;
 use App\Support\HeicConverter;
-use GdImage;
+use App\Support\PhotoOrientation;
 use Illuminate\Process\Exceptions\ProcessFailedException;
 use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Support\Facades\Config;
@@ -133,83 +133,14 @@ final readonly class ReadingSource
             throw ReadingSkipped::unsupported();
         }
 
-        $orientation = $size['mime'] === 'image/jpeg' ? self::orientationOf($bytes) : 1;
+        $orientation = $size['mime'] === 'image/jpeg' ? PhotoOrientation::of($bytes) : 1;
 
-        // Scaled before it is turned: the turn allocates a second bitmap, and a small one is cheap.
-        // A photo on its side ends up as wide as it is tall now, so that is the side held to 2000 px.
-        $turnsSide = in_array($orientation, [5, 6, 7, 8], true);
-        $image = self::scaled($image, $turnsSide ? imagesy($image) : imagesx($image), $turnsSide);
-        $image = self::straighten($image, $orientation);
+        $image = PhotoOrientation::upright($image, $orientation, self::WIDTH);
 
         ob_start();
         imagejpeg($image, null, self::QUALITY);
 
         return (string) ob_get_clean();
-    }
-
-    /**
-     * The image made smaller so that the side that ends up as its width is at most 2000 px.
-     *
-     * @param  GdImage  $image  the image as stored
-     * @param  int  $side  the length of the side that ends up as the width
-     * @param  bool  $heightIsSide  true when that side is the height of the stored image
-     */
-    private static function scaled(GdImage $image, int $side, bool $heightIsSide): GdImage
-    {
-        if ($side <= self::WIDTH) {
-            return $image;
-        }
-
-        $width = $heightIsSide
-            ? (int) round(imagesx($image) * self::WIDTH / $side)
-            : self::WIDTH;
-
-        return imagescale($image, max(1, $width)) ?: $image;
-    }
-
-    /**
-     * The EXIF orientation of a JPEG, 1 when it has none.
-     *
-     * @param  string  $jpeg  the JPEG
-     */
-    private static function orientationOf(string $jpeg): int
-    {
-        $stream = fopen('php://memory', 'r+');
-
-        if ($stream === false) {
-            return 1;
-        }
-
-        fwrite($stream, $jpeg);
-        rewind($stream);
-        $exif = @exif_read_data($stream);
-        fclose($stream);
-
-        return is_array($exif) && is_int($exif['Orientation'] ?? null) ? $exif['Orientation'] : 1;
-    }
-
-    /**
-     * Turns and flips the image so that it is the right way up, as its EXIF orientation says.
-     *
-     * @param  GdImage  $image  the image as stored
-     * @param  int  $orientation  the EXIF orientation, 1 to 8
-     */
-    private static function straighten(GdImage $image, int $orientation): GdImage
-    {
-        $turned = match ($orientation) {
-            3 => imagerotate($image, 180, 0),
-            6, 5 => imagerotate($image, -90, 0),
-            8, 7 => imagerotate($image, 90, 0),
-            default => $image,
-        } ?: $image;
-
-        match ($orientation) {
-            2, 5, 7 => imageflip($turned, IMG_FLIP_HORIZONTAL),
-            4 => imageflip($turned, IMG_FLIP_VERTICAL),
-            default => null,
-        };
-
-        return $turned;
     }
 
     /**

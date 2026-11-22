@@ -92,7 +92,7 @@ test('the photo is uploaded and takes the place of the previous one', function (
     Storage::disk('local')->assertMissing($previous->path);
     Storage::disk('local')->assertExists((string) $photo?->path);
     $this->get(route('account.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('account.photo', route('files.show', $photo)));
+        ->where('account.photo', route('files.preview', $photo)));
 });
 
 test('the photo is an image', function (): void {

@@ -42,9 +42,9 @@ test('an admin adds a person with a photo, shown on their page and in People', f
     Storage::disk('local')->assertExists((string) $photo?->path);
 
     $this->get(route('people.show', $rosa))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('person.photo', route('files.show', $photo)));
+        ->where('person.photo', route('files.preview', $photo)));
     $this->get(route('people.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('people.3.photo', route('files.show', $photo))
+        ->where('people.3.photo', route('files.preview', $photo))
         ->where('people.0.photo', null));
 });
 
@@ -100,9 +100,9 @@ test('an admin adds an organization with a logo, shown on its page and in Organi
     expect($logo?->original_name)->toBe('coop.png');
 
     $this->get(route('organizations.show', $coop))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('organization.logo', route('files.show', $logo)));
+        ->where('organization.logo', route('files.preview', $logo)));
     $this->get(route('organizations.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Conad')['logo'] === route('files.show', $logo)));
+        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Conad')['logo'] === route('files.preview', $logo)));
 });
 
 test('a new logo replaces the previous one, and removing it deletes the file', function (): void {
@@ -141,5 +141,5 @@ test('the person of a document shows their photo', function (): void {
     $document = insideBianchi(fn (): int => $giulia->documents()->value('id'));
 
     $this->get(route('documents.show', $document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('document.person_photo', route('files.show', $photo)));
+        ->where('document.person_photo', route('files.preview', $photo)));
 });

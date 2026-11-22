@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\File;
 use App\Support\HeicConverter;
+use App\Support\PhotoOrientation;
 use Carbon\CarbonInterval;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Process\Exceptions\ProcessFailedException;
@@ -16,9 +17,10 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * The preview of a file: a JPEG of the first page of a PDF, or of a HEIC photo.
+ * The preview of a file: a JPEG of the first page of a PDF, of a HEIC photo, or of a JPEG, PNG or WebP photo made
+ * smaller, so that a grid of pictures does not download every photo whole.
  *
- * It is made the first time it is asked, with `pdftoppm` and `heif-convert`,
+ * It is made the first time it is asked, with `pdftoppm`, `heif-convert` and GD,
  * and kept next to the file in `families/<family_id>/previews/`. A file that
  * cannot be converted is marked, so the tools do not run on it again.
  */
@@ -27,8 +29,11 @@ final readonly class FilePreviews
     /** Makes the JPEG of a HEIC photo. */
     private HeicConverter $heic;
 
+    /** The photos the browser opens, made smaller with GD. */
+    private const array PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
     /** The mime types a preview can be made for. */
-    public const array TYPES = ['application/pdf', 'image/heic', 'image/heif'];
+    public const array TYPES = ['application/pdf', 'image/heic', 'image/heif', ...self::PHOTO_TYPES];
 
     /** The width of the preview, in pixels. */
     private const int WIDTH = 1200;
@@ -149,9 +154,11 @@ final readonly class FilePreviews
         }
 
         try {
-            $made = $file->mime_type === 'application/pdf'
-                ? $this->fromPdf($disk->path($file->path), $output)
-                : $this->heic->toJpeg($disk->path($file->path), $output, self::WIDTH, self::QUALITY);
+            $made = match (true) {
+                $file->mime_type === 'application/pdf' => $this->fromPdf($disk->path($file->path), $output),
+                in_array($file->mime_type, self::PHOTO_TYPES, true) => $this->fromPhoto($disk->path($file->path), $output),
+                default => $this->heic->toJpeg($disk->path($file->path), $output, self::WIDTH, self::QUALITY),
+            };
         } catch (ProcessTimedOutException) {
             $made = false;
         } catch (ProcessFailedException $exception) {
@@ -295,5 +302,48 @@ final readonly class FilePreviews
         ])->throw();
 
         return true;
+    }
+
+    /**
+     * Writes a JPEG, PNG or WebP photo as a JPEG at most 1200 px wide, the right way up, on white where it is
+     * transparent. The photo is decoded by GD only if it fits in the memory left to PHP.
+     *
+     * @param  string  $source  the photo
+     * @param  string  $output  where the JPEG goes
+     * @return bool whether the JPEG was written
+     */
+    private function fromPhoto(string $source, string $output): bool
+    {
+        $bytes = @file_get_contents($source);
+        $size = $bytes === false ? false : @getimagesizefromstring($bytes);
+
+        if ($bytes === false || $size === false || ! HeicConverter::fitsDimensions($size[0], $size[1], strlen($bytes))) {
+            return false;
+        }
+
+        $image = @imagecreatefromstring($bytes);
+        unset($bytes);
+
+        if ($image === false) {
+            return false;
+        }
+
+        $orientation = $size['mime'] === 'image/jpeg' ? PhotoOrientation::of((string) file_get_contents($source)) : 1;
+        $image = PhotoOrientation::upright($image, $orientation, self::WIDTH);
+
+        // A JPEG has no transparency: without a white background a transparent drawing would come out black.
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $flat = imagecreatetruecolor($width, $height);
+        $white = imagecolorallocate($flat, 255, 255, 255);
+
+        if ($white === false) {
+            return false;
+        }
+
+        imagefill($flat, 0, 0, $white);
+        imagecopy($flat, $image, 0, 0, 0, 0, $width, $height);
+
+        return imagejpeg($flat, $output, self::QUALITY);
     }
 }

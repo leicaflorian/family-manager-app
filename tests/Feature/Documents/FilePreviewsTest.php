@@ -84,12 +84,83 @@ test('a PDF that cannot be read is marked and not tried again', function (): voi
     expect(Storage::disk('local')->allFiles("families/{$good->family_id}/previews"))->toBe([]);
 });
 
-test('a PNG has no preview', function (): void {
-    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.png'));
+test('a photo wider than the preview gets a JPEG 1200 px wide', function (string $name, string $mime): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image($name, 2400, 1600)->mimeType($mime));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->toBe(resolve(FilePreviews::class)->previewPathOf($file))
+        ->and($file->fresh()->preview_path)->toBe($path)
+        ->and($file->hasPreview())->toBeTrue();
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(1200)->and($size[1])->toBe(800)->and($size[2])->toBe(IMAGETYPE_JPEG);
+})->with([
+    'JPEG' => ['photo.jpg', 'image/jpeg'],
+    'PNG' => ['drawing.png', 'image/png'],
+    'WebP' => ['drawing.webp', 'image/webp'],
+]);
+
+test('a small photo keeps its size in the preview', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('drawing.png', 600, 400));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(600)->and($size[1])->toBe(400)->and($size[2])->toBe(IMAGETYPE_JPEG);
+});
+
+test('a photo that cannot be read is marked and leaves nothing', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('broken.jpg', 'not an image')->mimeType('image/jpeg'));
 
     expect(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
 });
+
+test('a photo that does not fit in memory is marked and leaves nothing', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('big.png', 8000, 6000));
+    gc_collect_cycles();
+    gc_mem_caches();
+    $limit = ini_get('memory_limit');
+    ini_set('memory_limit', (string) max(memory_get_usage() + 6 * 1024 * 1024, memory_get_usage(true) + 2 * 1024 * 1024));
+
+    try {
+        $path = resolve(FilePreviews::class)->path($file);
+    } finally {
+        ini_set('memory_limit', (string) $limit);
+    }
+
+    expect($path)->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+});
+
+test('a JPEG turned by its EXIF is turned the right way up in the preview', function (): void {
+    // 40 × 20 pixels with orientation 6: shown 20 wide and 40 tall.
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('turned.jpg', filePreviewsTurnedJpeg())->mimeType('image/jpeg'));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(20)->and($size[1])->toBe(40);
+});
+
+/**
+ * A 40 × 20 JPEG with the EXIF orientation 6 (turned a quarter to the right).
+ */
+function filePreviewsTurnedJpeg(): string
+{
+    $image = imagecreatetruecolor(40, 20);
+    ob_start();
+    imagejpeg($image);
+    $jpeg = (string) ob_get_clean();
+
+    // An APP1 segment with a little-endian TIFF header and one IFD entry: Orientation (0x0112), SHORT, 1, value 6.
+    $tiff = "II*\x00\x08\x00\x00\x00"."\x01\x00"."\x12\x01\x03\x00\x01\x00\x00\x00\x06\x00\x00\x00"."\x00\x00\x00\x00";
+    $app1 = "Exif\x00\x00".$tiff;
+
+    return substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($app1) + 2).$app1.substr($jpeg, 2);
+}
 
 test('a HEIC photo gets a JPEG at most 1200 px wide', function (): void {
     $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
@@ -127,8 +198,8 @@ test('a file with a HEIC mime type reports a preview, a failed one does not', fu
     $file->forceFill(['preview_failed' => true]);
     expect($file->hasPreview())->toBeFalse();
 
-    $png = resolve(FileStore::class)->store(UploadedFile::fake()->image('a.png'));
-    expect($png->hasPreview())->toBeFalse();
+    $text = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('a.txt', 'hello')->mimeType('text/plain'));
+    expect($text->hasPreview())->toBeFalse();
 });
 
 test('a conversion that takes too long marks the file as failed and leaves nothing', function (): void {

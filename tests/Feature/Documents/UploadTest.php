@@ -198,7 +198,7 @@ test('a waiting file has a preview address only when it has a preview', function
     $file->forceFill(['preview_failed' => true])->save();
     expect(waitingData()[0]['preview_url'])->toBeNull();
 
-    $file->forceFill(['preview_failed' => false, 'mime_type' => 'image/png'])->save();
+    $file->forceFill(['preview_failed' => false, 'mime_type' => 'text/plain'])->save();
     expect(waitingData()[0]['preview_url'])->toBeNull();
 });
 
