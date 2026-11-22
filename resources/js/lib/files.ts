@@ -36,3 +36,23 @@ export function previewKind(
 
     return IMAGES.includes(mimeType) ? 'image' : 'other';
 }
+
+/** The extension of each type a file of the family can have. */
+const EXTENSIONS: Record<string, string> = {
+    'application/pdf': '.pdf',
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'image/webp': '.webp',
+    'image/heic': '.heic',
+    'image/heif': '.heif',
+};
+
+/**
+ * The extension of a file of this type, with the dot, to name a file made in the browser.
+ *
+ * @param mimeType - the type of the file, for example `image/png`
+ * @returns the extension, for example `.png`; empty for a type it does not know
+ */
+export function extensionOf(mimeType: string): string {
+    return EXTENSIONS[mimeType] ?? '';
+}

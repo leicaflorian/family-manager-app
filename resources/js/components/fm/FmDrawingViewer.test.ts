@@ -108,13 +108,37 @@ describe('FmDrawingViewer', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('shows Share when the browser can share files', async () => {
+    it('fetches the file when the drawing opens and shares it named after the title', async () => {
+        const share = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal('navigator', { canShare: () => true, share });
+        const fetch = vi.fn().mockResolvedValue({
+            blob: async () => new Blob(['x'], { type: 'image/png' }),
+        });
+        vi.stubGlobal('fetch', fetch);
+        viewerOf();
+
+        const button = await screen.findByRole('button', { name: 'Share' });
+        // The file is ready before the click, so the share sheet opens within the tap.
+        expect(fetch).toHaveBeenCalledWith('/files/7/download');
+
+        await userEvent.click(button);
+
+        await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+        const [{ files, title }] = share.mock.calls[0]! as [
+            { files: File[]; title: string },
+        ];
+        expect(files[0]!.name).toBe('The dragon.png');
+        expect(title).toBe('The dragon');
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('names a shared PDF with its extension', async () => {
         const share = vi.fn().mockResolvedValue(undefined);
         vi.stubGlobal('navigator', { canShare: () => true, share });
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValue({
-                blob: async () => new Blob(['x'], { type: 'image/png' }),
+                blob: async () => new Blob(['x'], { type: 'application/pdf' }),
             }),
         );
         viewerOf();
@@ -124,6 +148,26 @@ describe('FmDrawingViewer', () => {
         );
 
         await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+        expect(
+            (share.mock.calls[0]![0] as { files: File[] }).files[0]!.name,
+        ).toBe('The dragon.pdf');
+    });
+
+    it('a file that cannot be fetched shows no Share', async () => {
+        vi.stubGlobal('navigator', { canShare: () => true, share: vi.fn() });
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+        viewerOf();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(
+            screen.queryByRole('button', { name: 'Share' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('shows the place in the gallery in the on-hero colour on the phone', () => {
+        viewerOf();
+
+        expect(screen.getByText('12 of 48')).toHaveClass('text-on-hero');
     });
 
     it('emits favorite with the new value', async () => {

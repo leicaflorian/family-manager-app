@@ -25,9 +25,17 @@ import {
     Share2,
     X,
 } from '@lucide/vue';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import { trans } from 'laravel-vue-i18n';
 import { useFormat } from '@/composables/useFormat';
+import { extensionOf } from '@/lib/files';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -127,22 +135,60 @@ function probeShare(): void {
         navigator.canShare?.({ files: [new File([], 'drawing')] }) === true;
 }
 
+/** The file of the drawing open, fetched when it opens so that *Share* opens the sheet within the tap. */
+const shareFile = ref<File | null>(null);
+
 /**
- * Takes the file and gives it to the share sheet of the browser; a sheet that
- * is closed by the person is not an error.
+ * Fetches the file of the drawing open and names it after the title with the
+ * extension of its type; a file that cannot be fetched or shared has no *Share*.
  */
-async function share(): Promise<void> {
+async function prepareShare(): Promise<void> {
+    shareFile.value = null;
+
+    if (!canShareFile.value) {
+        return;
+    }
+
+    const id = drawing.id;
+
     try {
         const blob = await (await fetch(drawing.download_url)).blob();
-        const file = new File([blob], drawing.title, { type: blob.type });
+        const file = new File([blob], drawing.title + extensionOf(blob.type), {
+            type: blob.type,
+        });
 
-        if (navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ files: [file], title: drawing.title });
+        // Another drawing opened while this one was coming
+        if (id === drawing.id && navigator.canShare?.({ files: [file] })) {
+            shareFile.value = file;
         }
+    } catch {
+        // No file, no Share
+    }
+}
+
+/**
+ * Gives the file to the share sheet of the browser; a sheet that is closed by
+ * the person is not an error.
+ */
+async function share(): Promise<void> {
+    if (shareFile.value === null) {
+        return;
+    }
+
+    try {
+        await navigator.share({
+            files: [shareFile.value],
+            title: drawing.title,
+        });
     } catch {
         // AbortError when the person closes the sheet; nothing to say
     }
 }
+
+watch(
+    () => drawing.id,
+    () => void prepareShare(),
+);
 
 /**
  * The arrow keys move through the drawings, Escape closes, on the phone only
@@ -189,6 +235,7 @@ function endDrag(x: number): void {
 
 onMounted(() => {
     probeShare();
+    void prepareShare();
     if (isScreen.value) {
         opener = document.activeElement as HTMLElement | null;
         void nextTick(() => closeButton.value?.focus());
@@ -250,7 +297,7 @@ const panelButton = cn(
                 v-if="placed"
                 :class="
                     isScreen
-                        ? 'text-row text-on-hero-soft'
+                        ? 'text-row text-on-hero'
                         : 'text-meta text-ink-soft'
                 "
                 >{{
@@ -492,7 +539,7 @@ const panelButton = cn(
                     }}
                 </a>
                 <button
-                    v-if="canShareFile"
+                    v-if="shareFile !== null"
                     type="button"
                     :class="isScreen ? actionTile : panelButton"
                     @click="share"
