@@ -50,6 +50,9 @@ final readonly class FilePreviews
     /** The exit codes of a shell for a tool that is not executable or not found. */
     public const array TOOL_MISSING = [126, 127];
 
+    /** The most pages `page_count` holds (an unsigned small integer): a bigger number is not believed. */
+    private const int MAX_PAGES = 65535;
+
     /** The seconds a request waits for the lock of a file. */
     private const int LOCK_WAIT = 15;
 
@@ -198,7 +201,8 @@ final readonly class FilePreviews
      * answer without pages is just no number.
      *
      * @param  File  $file  the file
-     * @return int|null the pages; null for a file that is not a PDF, or when the tool fails or finds none
+     * @return int|null the pages; null for a file that is not a PDF, when the tool fails or finds none, or when it
+     *                  says more than the column holds
      */
     public function pageCount(File $file): ?int
     {
@@ -222,7 +226,7 @@ final readonly class FilePreviews
 
         $pages = preg_match('/^Pages:\s+(\d+)\s*$/m', $result->output(), $match) === 1 ? (int) $match[1] : 0;
 
-        return $pages > 0 ? $pages : null;
+        return $pages > 0 && $pages <= self::MAX_PAGES ? $pages : null;
     }
 
     /**

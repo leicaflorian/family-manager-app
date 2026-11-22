@@ -369,3 +369,12 @@ test('it does not run pdfinfo for a photo', function (): void {
         ->and($file->fresh()->page_count)->toBeNull();
     Process::assertNotRan(fn ($process): bool => str_contains(implode(' ', (array) $process->command), 'pdfinfo'));
 });
+
+test('it leaves page_count empty when pdfinfo says more pages than the column holds', function (): void {
+    Process::fake(['*' => Process::result("Pages:          70000\n")]);
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull()
+        ->and(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull();
+});
