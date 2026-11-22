@@ -459,7 +459,9 @@ describe('A person', () => {
             screenWidth(false);
             renderGiulia(personDetail, [], withPinned());
             expect(
-                screen.queryByText('Pin a document at the top from its menu'),
+                screen.queryByText(
+                    'Mark a document as favourite from its menu',
+                ),
             ).not.toBeInTheDocument();
         });
 
@@ -467,7 +469,7 @@ describe('A person', () => {
             screenWidth(true);
             const { container } = renderPageGiulia();
             expect(
-                screen.getByText('Pin a document at the top from its menu'),
+                screen.getByText('Mark a document as favourite from its menu'),
             ).toBeInTheDocument();
             expect(container.querySelector('.grid.gap-2\\.5')).toHaveClass(
                 'wide:grid-cols-2',
@@ -522,7 +524,9 @@ describe('A person', () => {
                 }),
             );
             await userEvent.click(
-                await screen.findByRole('menuitem', { name: 'Pin at the top' }),
+                await screen.findByRole('menuitem', {
+                    name: 'Mark as favourite',
+                }),
             );
 
             expect(put).toHaveBeenCalledWith(

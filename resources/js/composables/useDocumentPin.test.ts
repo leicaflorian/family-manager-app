@@ -32,7 +32,7 @@ describe('useDocumentPin', () => {
     it('labels the item after the state', () => {
         const { pinLabel } = useDocumentPin();
 
-        expect(pinLabel(false)).toBe('Pin at the top');
-        expect(pinLabel(true)).toBe('Unpin');
+        expect(pinLabel(false)).toBe('Mark as favourite');
+        expect(pinLabel(true)).toBe('Remove from favourites');
     });
 });

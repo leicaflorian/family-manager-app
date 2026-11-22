@@ -116,9 +116,7 @@ const when = computed(() => {
                             class="text-action"
                             aria-hidden="true"
                         />
-                        <span class="sr-only">{{
-                            $t('Pinned at the top')
-                        }}</span>
+                        <span class="sr-only">{{ $t('Favourite') }}</span>
                     </template>
                     <span
                         v-if="!expiry && !dateless"

@@ -101,7 +101,7 @@ describe('FmDocumentRow', () => {
             props: { document: { ...document, pinned: true }, href: '/d' },
         });
 
-        expect(screen.getByText('Pinned at the top')).toHaveClass('sr-only');
+        expect(screen.getByText('Favourite')).toHaveClass('sr-only');
         // file tile and pin: the date takes the place of the arrow, as on an unpinned row
         expect(screen.getByRole('link').querySelectorAll('svg')).toHaveLength(
             2,
@@ -118,7 +118,7 @@ describe('FmDocumentRow', () => {
         });
 
         const link = screen.getByRole('link');
-        expect(screen.getByText('Pinned at the top')).toBeInTheDocument();
+        expect(screen.getByText('Favourite')).toBeInTheDocument();
         // file tile, pin, arrow
         expect(link.querySelectorAll('svg')).toHaveLength(3);
     });
@@ -132,7 +132,7 @@ describe('FmDocumentRow', () => {
             },
         });
 
-        expect(screen.getByText('Pinned at the top')).toBeInTheDocument();
+        expect(screen.getByText('Favourite')).toBeInTheDocument();
         expect(screen.getByRole('link').querySelectorAll('svg')).toHaveLength(
             2,
         );
@@ -141,7 +141,7 @@ describe('FmDocumentRow', () => {
     it('has no pin marker when not pinned', () => {
         render(FmDocumentRow, { props: { document, href: '/d' } });
 
-        expect(screen.queryByText('Pinned at the top')).toBeNull();
+        expect(screen.queryByText('Favourite')).toBeNull();
     });
 
     it('with the menu, highlights the whole wrapper when current', () => {
@@ -201,7 +201,7 @@ describe('FmDocumentRow', () => {
 
             const items = await screen.findAllByRole('menuitem');
             expect(items.map((item) => item.textContent?.trim())).toEqual([
-                'Pin at the top',
+                'Mark as favourite',
                 'Download',
                 'Open in a new tab',
                 'Edit',
@@ -218,7 +218,9 @@ describe('FmDocumentRow', () => {
             render(FmDocumentRow, { props });
             await userEvent.click(button());
             await userEvent.click(
-                await screen.findByRole('menuitem', { name: 'Pin at the top' }),
+                await screen.findByRole('menuitem', {
+                    name: 'Mark as favourite',
+                }),
             );
 
             expect(put).toHaveBeenCalledWith(
@@ -235,7 +237,9 @@ describe('FmDocumentRow', () => {
             });
             await userEvent.click(button());
             await userEvent.click(
-                await screen.findByRole('menuitem', { name: 'Unpin' }),
+                await screen.findByRole('menuitem', {
+                    name: 'Remove from favourites',
+                }),
             );
 
             expect(del).toHaveBeenCalledWith('/documents/5/pin', {

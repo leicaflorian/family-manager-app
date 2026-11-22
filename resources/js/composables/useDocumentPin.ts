@@ -38,6 +38,8 @@ export function useDocumentPin(): UseDocumentPin {
             }
         },
         pinLabel: (pinned) =>
-            pinned ? trans('Unpin') : trans('Pin at the top'),
+            pinned
+                ? trans('Remove from favourites')
+                : trans('Mark as favourite'),
     };
 }
