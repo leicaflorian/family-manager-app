@@ -104,6 +104,36 @@ describe('FmDocumentRow', () => {
         expect(screen.getByText('Pinned at the top')).toHaveClass('sr-only');
     });
 
+    it('keeps the arrow on a pinned row with the expiry line', () => {
+        render(FmDocumentRow, {
+            props: {
+                document: { ...document, pinned: true },
+                href: '/d',
+                expiry: true,
+            },
+        });
+
+        const link = screen.getByRole('link');
+        expect(screen.getByText('Pinned at the top')).toBeInTheDocument();
+        // file tile, pin, arrow
+        expect(link.querySelectorAll('svg')).toHaveLength(3);
+    });
+
+    it('shows the pin without an arrow when dateless', () => {
+        render(FmDocumentRow, {
+            props: {
+                document: { ...document, pinned: true },
+                href: '/d',
+                dateless: true,
+            },
+        });
+
+        expect(screen.getByText('Pinned at the top')).toBeInTheDocument();
+        expect(screen.getByRole('link').querySelectorAll('svg')).toHaveLength(
+            2,
+        );
+    });
+
     it('has no pin marker when not pinned', () => {
         render(FmDocumentRow, { props: { document, href: '/d' } });
 
@@ -117,7 +147,9 @@ describe('FmDocumentRow', () => {
 
         const wrapper = container.firstElementChild as HTMLElement;
         expect(wrapper).toHaveClass('bg-action-soft');
-        expect(screen.getByRole('link')).toHaveClass('bg-transparent!');
+        const link = screen.getByRole('link');
+        expect(link).toHaveAttribute('aria-current', 'page');
+        expect(link).not.toHaveClass('bg-action-soft');
     });
 
     it('with the menu, does not highlight the wrapper when not current', () => {

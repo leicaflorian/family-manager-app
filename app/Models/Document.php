@@ -179,6 +179,17 @@ final class Document extends FamilyModel
     }
 
     /**
+     * Whether it counts as pinned at the top of its person: pinned and still personal.
+     *
+     * `pinned_at` stays on a document that gets linked to a record (it is only hidden from
+     * the pinned list until unlinked), so a linked one must not look pinned.
+     */
+    public function isPinned(): bool
+    {
+        return $this->pinned_at !== null && $this->isPersonal();
+    }
+
+    /**
      * Adds `is_linked`: whether the document is linked to any record, in the same query.
      *
      * @param  Builder<Document>  $query  the query

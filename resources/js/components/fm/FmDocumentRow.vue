@@ -13,7 +13,14 @@
 import { trans } from 'laravel-vue-i18n';
 import { createReusableTemplate } from '@vueuse/core';
 import { computed } from 'vue';
-import { Download, ExternalLink, Pencil, Pin, PinOff } from '@lucide/vue';
+import {
+    ChevronRight,
+    Download,
+    ExternalLink,
+    Pencil,
+    Pin,
+    PinOff,
+} from '@lucide/vue';
 import { useDocumentPin } from '@/composables/useDocumentPin';
 import type { PinVisitOptions } from '@/composables/useDocumentPin';
 import { useFormat } from '@/composables/useFormat';
@@ -21,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { documentLine } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
 import { edit } from '@/routes/documents';
+import FmIcon from './FmIcon.vue';
 import FmFileTile from './FmFileTile.vue';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
@@ -65,6 +73,9 @@ const { togglePin, pinLabel } = useDocumentPin();
 /** The row, written once for both layouts (with the menu beside it or alone). */
 const [DefineRow, UseRow] = createReusableTemplate();
 
+/** The row would show the arrow: a link with nothing on the right (the pin then carries it in the slot). */
+const showArrow = computed(() => !menu && !dateless);
+
 /** The line below the title and its colour. */
 const line = computed(() => documentLine(document, { expiry, today }));
 
@@ -84,16 +95,15 @@ const when = computed(() => {
     <DefineRow>
         <FmRow
             v-bind="$attrs"
-            :class="
-                menu && cn('min-w-0 grow pr-2', current && 'bg-transparent!')
-            "
+            :class="menu && 'min-w-0 grow pr-2'"
             :title="document.title"
             :subtitle="line.text"
             :tone="line.tone"
             :href="href"
             :external="external"
             :current="current"
-            :arrow="!menu && !dateless"
+            :highlight="!menu"
+            :arrow="showArrow"
         >
             <template #before>
                 <FmFileTile />
@@ -115,6 +125,12 @@ const when = computed(() => {
                         class="text-meta text-ink-soft"
                         >{{ when }}</span
                     >
+                    <FmIcon
+                        v-if="showArrow && document.pinned"
+                        :icon="ChevronRight"
+                        :size="20"
+                        class="text-ink-faint"
+                    />
                 </span>
             </template>
         </FmRow>

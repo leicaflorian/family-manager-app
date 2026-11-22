@@ -27,7 +27,7 @@ final class DocumentData extends Data
      * @param  string  $mime_type  the type of its file, for the icon
      * @param  string  $file_url  the address that opens its file
      * @param  string  $download_url  the address that downloads its file
-     * @param  bool  $pinned  it is pinned at the top of its person
+     * @param  bool  $pinned  it is pinned at the top of its person (and still personal)
      * @param  bool  $can_edit  the person may change it
      * @param  bool  $can_pin  it can be pinned (it is personal) and the person may change it
      */
@@ -71,7 +71,7 @@ final class DocumentData extends Data
             mime_type: $document->file->mime_type,
             file_url: route('files.show', $document->file),
             download_url: route('files.download', $document->file),
-            pinned: $document->pinned_at !== null,
+            pinned: $document->isPinned(),
             can_edit: $canEdit,
             can_pin: $canEdit && $document->isPersonal(),
         );

@@ -279,6 +279,20 @@ test('it sends what the row menu needs', function (): void {
         }));
 });
 
+test('a linked document that still has pinned_at does not look pinned', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $linked = Document::factory()->for($family)->create(['title' => 'Linked pinned', 'person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked->employments()->attach($this->employment);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', fn ($documents): bool => collect($documents)->firstWhere('title', 'Linked pinned')['pinned'] === false));
+
+    $this->get(route('documents.show', $linked))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.pinned', false)
+        ->where('document.can_pin', false));
+});
+
 test('it reads whether documents are personal without a query per row', function (): void {
     $family = $this->marco->family;
     $person = Person::factory()->for($family)->create();
