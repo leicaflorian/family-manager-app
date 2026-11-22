@@ -8,6 +8,7 @@
  *
  * @group rows
  */
+import { Link } from '@inertiajs/vue3';
 import { Pin } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -16,6 +17,7 @@ import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { documentLine } from '@/lib/documents';
 import type { DocumentLineTone } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
+import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -93,9 +95,10 @@ const pinTitle = computed(() =>
     <div
         class="flex min-w-0 items-center gap-2 rounded-card bg-card pr-2.5 shadow-card"
     >
-        <a
+        <Link
             :href="href"
-            class="flex min-w-0 grow items-center gap-3 px-3.5 py-3 text-ink no-underline"
+            class="flex min-w-0 grow items-center gap-3 rounded-l-card px-3.5 py-3 text-ink no-underline"
+            :class="rowLink"
         >
             <span
                 data-testid="pinned-icon"
@@ -115,7 +118,7 @@ const pinTitle = computed(() =>
                     >{{ line.text }}</span
                 >
             </span>
-        </a>
+        </Link>
         <button
             v-if="canUnpin"
             type="button"
@@ -124,7 +127,7 @@ const pinTitle = computed(() =>
             "
             :title="pinTitle"
             aria-pressed="true"
-            class="flex size-9 shrink-0 items-center justify-center rounded-md bg-action-soft text-action"
+            class="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-action-soft text-action focus-visible:outline-2 focus-visible:outline-action"
             @click="emit('unpin')"
         >
             <FmIcon :icon="Pin" :size="18" />
