@@ -8,7 +8,6 @@
  *
  * @group files
  */
-import { router } from '@inertiajs/vue3';
 import {
     Download,
     ExternalLink,
@@ -20,9 +19,10 @@ import {
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useDocumentPin } from '@/composables/useDocumentPin';
 import { useShare } from '@/composables/useShare';
 import type { Action } from '@/lib/actions';
-import { destroy, edit, pin, unpin } from '@/routes/documents';
+import { destroy, edit } from '@/routes/documents';
 import FmActions from './FmActions.vue';
 import FmButton from './FmButton.vue';
 import FmConfirmDelete from './FmConfirmDelete.vue';
@@ -47,19 +47,7 @@ const { canShare, shareFile } = useShare();
 /** The panel that asks before deleting, opened from the ⋯ menu. */
 const confirmingDelete = ref(false);
 
-/** Pins the document at the top of its person, or takes it off (one visit for the page and the panel). */
-function togglePin(): void {
-    if (document.pinned) {
-        router.delete(unpin.url(document.id), { preserveScroll: true });
-    } else {
-        router.put(pin.url(document.id), {}, { preserveScroll: true });
-    }
-}
-
-/** The label of the pin item, which follows the state. */
-const pinLabel = computed((): string =>
-    document.pinned ? trans('Unpin') : trans('Pin at the top'),
-);
+const { togglePin, pinLabel } = useDocumentPin();
 
 /** The actions of the document on its own page, the most frequent first. */
 const actions = computed((): Action[] => [
@@ -117,9 +105,9 @@ const actions = computed((): Action[] => [
     ...(document.can_pin
         ? [
               {
-                  label: pinLabel.value,
+                  label: pinLabel(document.pinned),
                   icon: document.pinned ? PinOff : Pin,
-                  onSelect: togglePin,
+                  onSelect: () => togglePin(document),
                   menuOnly: true,
               } satisfies Action,
           ]
@@ -160,9 +148,9 @@ const actions = computed((): Action[] => [
             <FmMenuItem
                 v-if="document.can_pin"
                 :icon="document.pinned ? PinOff : Pin"
-                @select="togglePin"
+                @select="togglePin(document)"
             >
-                {{ pinLabel }}
+                {{ pinLabel(document.pinned) }}
             </FmMenuItem>
             <FmMenuItem
                 v-if="document.can_delete"

@@ -119,22 +119,31 @@ describe('Planned expenses', () => {
         ).toHaveAttribute('href', '/budget/planned/income/2');
     });
 
-    it('opens the new planned expense and the new planned income', () => {
+    it('one Add button opens the two new planned', async () => {
         renderPage(Planned, props);
 
         expect(
-            screen.getByRole('link', { name: 'New planned expense' }),
+            screen.queryByRole('link', { name: 'New planned expense' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'New planned income' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Planned expense' }),
         ).toHaveAttribute('href', '/budget/planned/expense/create');
         expect(
-            screen.getByRole('link', { name: 'New planned income' }),
+            screen.getByRole('menuitem', { name: 'Planned income' }),
         ).toHaveAttribute('href', '/budget/planned/income/create');
     });
 
-    it('has no way to add for a member', () => {
+    it('a member does not see Add', () => {
         renderPage(Planned, { ...props, canEdit: false });
 
         expect(
-            screen.queryByRole('link', { name: 'New planned expense' }),
+            screen.queryByRole('button', { name: 'Add' }),
         ).not.toBeInTheDocument();
     });
 
@@ -189,17 +198,26 @@ describe('Planned expenses', () => {
         );
     });
 
-    it('on the computer has the filters in a column, always', () => {
+    it('the filters open in a box under the search, never beside the list', async () => {
         screenWidth(true);
         renderPage(Planned, props);
 
-        const column = screen.getByRole('complementary', { name: 'Filters' });
-        expect(within(column).getByLabelText('At least')).toBeInTheDocument();
         expect(
-            within(column).getByRole('group', { name: 'Next due date' }),
+            screen.queryByRole('complementary', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('region', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
+        const box = screen.getByRole('region', { name: 'Filters' });
+        expect(within(box).getByLabelText('At least')).toBeInTheDocument();
+        expect(
+            within(box).getByRole('group', { name: 'Next due date' }),
         ).toBeInTheDocument();
         expect(
-            screen.queryByRole('button', { name: /^Filters/ }),
+            screen.queryByRole('heading', { level: 2, name: 'Filter' }),
         ).not.toBeInTheDocument();
     });
 
@@ -316,15 +334,6 @@ describe('Planned expenses', () => {
         expect(
             screen.queryByText('No planned expenses yet'),
         ).not.toBeInTheDocument();
-    });
-
-    it('names the column of the filters with a heading', () => {
-        screenWidth(true);
-        renderPage(Planned, props);
-
-        expect(
-            screen.getByRole('heading', { level: 2, name: 'Filter' }),
-        ).toBeInTheDocument();
     });
 
     it('says on the phone whether the panel of the filters is open', async () => {

@@ -535,6 +535,50 @@ describe('A person', () => {
             );
         });
 
+        it('pins a document of the others from the menu of its row, reloading the same props as the tiles', async () => {
+            const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+            renderGiulia(personDetail, [], withPinned());
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'More actions for «Other 1»',
+                }),
+            );
+            await userEvent.click(
+                await screen.findByRole('menuitem', { name: 'Pin at the top' }),
+            );
+
+            expect(put).toHaveBeenCalledWith(
+                '/documents/50/pin',
+                {},
+                expect.objectContaining({
+                    preserveScroll: true,
+                    only: [
+                        'pinned',
+                        'personal',
+                        'personalNext',
+                        'personalTotal',
+                    ],
+                    reset: ['personal'],
+                }),
+            );
+        });
+
+        it('has a ⋯ menu on the rows but not on the tiles', () => {
+            renderGiulia(personDetail, [], withPinned());
+
+            expect(
+                screen.getByRole('button', {
+                    name: 'More actions for «Other 1»',
+                }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', {
+                    name: 'More actions for «Identity card»',
+                }),
+            ).not.toBeInTheDocument();
+        });
+
         it('shows no pin to someone who cannot change documents', () => {
             renderGiulia(personDetail, [], withPinned({ canPin: false }));
 

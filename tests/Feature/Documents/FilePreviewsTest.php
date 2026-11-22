@@ -304,15 +304,14 @@ test('a big HEIC photo that does not fit in memory is marked and leaves nothing'
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
 });
 
-test('a failure is logged with the exit code and the message of the tool', function (): void {
+test('a failure is logged', function (): void {
     Log::spy();
     $broken = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
 
     resolve(FilePreviews::class)->path($broken);
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[file-preview] conversion failed'
-        && is_int($context['exit_code'])
-        && $context['exit_code'] > 0
+        && $context['file'] === $broken->id
         && is_string($context['error']))->once();
 });
 
@@ -383,4 +382,82 @@ test('it leaves page_count empty when pdfinfo says more pages than the column ho
     expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull()
         ->and(resolve(FilePreviews::class)->path($file))->toBeNull()
         ->and($file->fresh()->page_count)->toBeNull();
+});
+
+/**
+ * A one-page PDF that is a white image in a CalGray colour space with the D65 white point, like the pages a scanner makes.
+ */
+function previewsCalGrayPdf(): string
+{
+    return previewsPdf('/MediaBox [0 0 200 200]', "q 200 0 0 200 0 0 cm /Im0 Do Q\n");
+}
+
+/**
+ * A one-page PDF with the given page entries and content, and the CalGray image as /Im0.
+ */
+function previewsPdf(string $pageEntries, string $content): string
+{
+    $objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        "<< /Type /Page /Parent 2 0 R {$pageEntries} /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>",
+        '<< /Length '.strlen($content)." >>\nstream\n{$content}endstream",
+        "<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /BitsPerComponent 8 /Filter /ASCIIHexDecode /ColorSpace [/CalGray << /WhitePoint [0.950455 1 1.08905] /Gamma 2.2 >>] /Length 9 >>\nstream\nFFFFFFFF>\nendstream",
+    ];
+
+    $pdf = "%PDF-1.5\n";
+    $offsets = [];
+
+    foreach ($objects as $index => $object) {
+        $offsets[] = strlen($pdf);
+        $pdf .= ($index + 1)." 0 obj\n{$object}\nendobj\n";
+    }
+
+    $xref = strlen($pdf);
+    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+
+    foreach ($offsets as $offset) {
+        $pdf .= sprintf("%010d 00000 n \n", $offset);
+    }
+
+    return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF\n";
+}
+
+test('the white of a scanned page stays white, not pink', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('scan.pdf', previewsCalGrayPdf()));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $image = imagecreatefromjpeg(Storage::disk('local')->path((string) $path));
+    $color = imagecolorat($image, 5, 5);
+    $channels = [($color >> 16) & 0xFF, ($color >> 8) & 0xFF, $color & 0xFF];
+    expect(min($channels))->toBeGreaterThanOrEqual(250)
+        ->and(max($channels) - min($channels))->toBeLessThanOrEqual(3);
+});
+
+test('a page rotated by 90 degrees is drawn the right way up', function (): void {
+    // 200x100 page with a blue strip on its left; turned 90 degrees clockwise the strip is at the top.
+    $pdf = previewsPdf('/MediaBox [0 0 200 100] /Rotate 90', "0 0 1 rg 0 0 40 100 re f\n");
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('turned.pdf', $pdf));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $disk = Storage::disk('local')->path((string) $path);
+    $image = imagecreatefromjpeg($disk);
+    $top = imagecolorat($image, 600, 5);
+    $bottom = imagecolorat($image, 600, imagesy($image) - 5);
+    expect(getimagesize($disk)[0])->toBe(1200)
+        ->and($top & 0xFF)->toBeGreaterThan(200)
+        ->and(($top >> 16) & 0xFF)->toBeLessThan(60)
+        ->and(($bottom >> 16) & 0xFF)->toBeGreaterThan(200);
+});
+
+test('the lock covers both passes of a conversion', function (): void {
+    $lockSeconds = new ReflectionMethod(FilePreviews::class, 'lockSeconds');
+
+    expect($lockSeconds->invoke(new FilePreviews(20)))->toBe(50);
 });

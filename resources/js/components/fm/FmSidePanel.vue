@@ -9,7 +9,7 @@
  *
  * @group panels
  */
-import { useEventListener } from '@vueuse/core';
+import { useEscapeClose } from '@/composables/useEscapeClose';
 
 const { label } = defineProps<{
     /** What the panel shows, said to screen readers. */
@@ -26,28 +26,8 @@ defineSlots<{
     default: () => unknown;
 }>();
 
-/**
- * Asks to close on Esc, but not when it is meant for an open menu: the menu
- * has the focus while it is open and closes on its own.
- *
- * @param event - the key pressed anywhere in the page
- */
-function closeOnEscape(event: KeyboardEvent): void {
-    if (event.key !== 'Escape' || event.defaultPrevented) {
-        return;
-    }
-
-    if (
-        event.target instanceof Element &&
-        event.target.closest('[role="menu"], [role="listbox"]') !== null
-    ) {
-        return;
-    }
-
-    emit('close');
-}
-
-useEventListener(document, 'keydown', closeOnEscape);
+// Esc closes the panel, but not when it is meant for an open menu inside it
+useEscapeClose(() => emit('close'));
 </script>
 
 <template>

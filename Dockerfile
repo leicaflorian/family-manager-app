@@ -24,11 +24,12 @@ FROM ${PHP_IMAGE} AS base
 USER root
 
 # gd and exif for the photos, intl and bcmath for Laravel and Filament, redis for cache and sessions, pdo_mysql
-# for MySQL. poppler-utils (pdftoppm) and libheif-examples (heif-convert) make the previews of PDF and HEIC; on
+# for MySQL. ghostscript (gs, with -dSAFER) and libheif-examples (heif-convert) make the previews of PDF and HEIC, and
+# poppler-utils (pdfinfo) counts the pages of a PDF; on
 # Debian 13 the HEIC decoder (libde265) is a separate plugin package.
 RUN install-php-extensions gd exif intl bcmath redis pdo_mysql \
     && apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils libheif-examples libheif-plugin-libde265 \
+    && apt-get install -y --no-install-recommends ghostscript poppler-utils libheif-examples libheif-plugin-libde265 \
     && rm -rf /var/lib/apt/lists/*
 
 # Limits of the uploads and of the mail of Mailgun (loaded after the image's own ini)

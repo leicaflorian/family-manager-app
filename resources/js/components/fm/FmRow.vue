@@ -31,6 +31,7 @@ const {
     tone = 'normal',
     button = false,
     current = false,
+    highlight = true,
     arrow = true,
     done = false,
 } = defineProps<{
@@ -50,6 +51,8 @@ const {
     button?: boolean;
     /** The row is the one open now, as the document shown beside the list. */
     current?: boolean;
+    /** With `current`: paint the row's highlight; off when a wrapper paints it, so `aria-current` stays and the background does not double. */
+    highlight?: boolean;
     /** The arrow of a link with nothing on the right; off where buttons follow. */
     arrow?: boolean;
     /** The thing the row names is done: the title is struck through and soft. */
@@ -98,7 +101,7 @@ const titleTone = computed(() =>
             cn(
                 'relative flex w-full items-center gap-3 border-0 bg-transparent px-4 py-3.5 text-left text-inherit no-underline',
                 (href || button) && rowLink,
-                current && 'bg-action-soft',
+                current && highlight && 'bg-action-soft',
             )
         "
         @click="button && $emit('click')"

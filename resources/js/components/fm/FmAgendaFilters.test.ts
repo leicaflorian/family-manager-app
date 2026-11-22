@@ -15,7 +15,7 @@ function props(
     change: Partial<ComponentProps<typeof FmAgendaFilters>> = {},
 ): ComponentProps<typeof FmAgendaFilters> {
     return {
-        variant: 'toolbar',
+        variant: 'box',
         filters: { months: 1, person_id: null, hidden_areas: [] },
         people,
         areas: agendaAreas,
@@ -26,13 +26,34 @@ function props(
     };
 }
 
-/** Opens the menu of the areas of the toolbar. */
+/** Opens the menu of the areas of the box. */
 async function openAreas(name: RegExp | string = 'All areas'): Promise<void> {
     await userEvent.click(screen.getByRole('button', { name }));
 }
 
 describe('FmAgendaFilters', () => {
-    describe('the toolbar of the computer', () => {
+    describe('the box of the wide layout', () => {
+        it('box shows period, people and areas in a row', () => {
+            const { container } = render(FmAgendaFilters, { props: props() });
+
+            const row = container.firstElementChild as HTMLElement;
+            expect(row).toHaveClass('computer:grid-cols-3', 'grid-cols-1');
+            expect(
+                within(row)
+                    .getAllByText(/^(Period|Of whom|Areas)$/)
+                    .map((label) => label.textContent),
+            ).toEqual(['Period', 'Of whom', 'Areas']);
+            expect(
+                screen.getByRole('radiogroup', { name: 'Period' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('radiogroup', { name: 'Person' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'All areas' }),
+            ).toBeInTheDocument();
+        });
+
         it('chooses the period', async () => {
             const view = render(FmAgendaFilters, { props: props() });
 

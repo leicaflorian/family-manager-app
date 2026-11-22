@@ -58,6 +58,26 @@ describe('FmCardDocumentActions', () => {
         }
     });
 
+    it('has Download first in the menu, a link that downloads the file', async () => {
+        renderPage(FmCardDocumentActions, {
+            document: healthCard,
+            card,
+            canDelete: true,
+        });
+
+        await openMenu();
+
+        const items = await screen.findAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'Download',
+            'Edit',
+            'Unlink',
+            'Delete',
+        ]);
+        expect(items[0]).toHaveAttribute('href', healthCard.download_url);
+        expect(items[0]).toHaveAttribute('download');
+    });
+
     it('has Edit in the menu, that opens the document as its row does', async () => {
         renderPage(FmCardDocumentActions, {
             document: healthCard,
@@ -146,6 +166,9 @@ describe('FmCardDocumentActions', () => {
             expect(items[0]).toHaveTextContent('Open the file');
             expect(items[0]).toHaveAttribute('href', healthCard.file_url);
             expect(items[0]).toHaveAttribute('target', '_blank');
+            expect(items[1]).toHaveTextContent('Download');
+            expect(items[1]).toHaveAttribute('href', healthCard.download_url);
+            expect(items[1]).toHaveAttribute('download');
         });
 
         it('unlinks without asking and sends nothing, as the form does it when saved', async () => {

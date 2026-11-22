@@ -1,15 +1,16 @@
 import { router, usePage } from '@inertiajs/vue3';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
-import { useComputerLayout } from '@/composables/useLayoutMode';
+import { useFilterBox } from '@/composables/useFilterBox';
 import type { FilterPill } from '@/lib/filters';
 import { withoutFilters } from '@/lib/filters';
-import { cn } from '@/lib/utils';
 
 /** What a list with a search box and filters gives its page. */
 export type ListFilters<F, E> = {
-    /** The computer layout: the filters in a column, else in the panel from below. */
-    desktop: Ref<boolean>;
+    /** The wide layout (tablet or computer): the filters live in a box under the search bar. */
+    wide: Readonly<Ref<boolean>>;
+    /** Whether the box of the filters is open; shut when the window stops being wide. */
+    boxOpen: Ref<boolean>;
     /** The text in the search box, sent with Enter. */
     searchText: Ref<string>;
     /** Sends the text of the box; only spaces is no search. */
@@ -24,15 +25,12 @@ export type ListFilters<F, E> = {
     filterCount: ComputedRef<number>;
     /** What the server found wrong in the filters (an amount *to* under the *from*). */
     filterErrors: ComputedRef<Partial<Record<string, string>>>;
-    /** The classes of the two columns on the computer, the filters first; one column on the phone. */
-    layout: ComputedRef<string>;
 };
 
 /**
  * The search box and the filters of a list page (*Movements*, *Planned
  * expenses*): the text of the box, the visits with other filters, the pills
- * that take one away, the count of the filters on and the layout of the
- * column of the filters.
+ * that take one away, and the count of the filters on.
  *
  * @param options.filters - the filters in use, as the server sends them
  * @param options.pills - the pills of the filters on, each with what removing it leaves
@@ -47,8 +45,9 @@ export function useListFilters<
     pills: () => FilterPill<F>[];
     url: (query: F & Partial<E>) => string;
 }): ListFilters<F, E> {
-    const desktop = useComputerLayout();
+    const { wide, boxOpen } = useFilterBox();
     const page = usePage();
+
     const searchText = ref(options.filters().search ?? '');
 
     watch(
@@ -70,7 +69,8 @@ export function useListFilters<
     }
 
     return {
-        desktop,
+        wide,
+        boxOpen,
         searchText,
         submitSearch: (): void =>
             go({ search: searchText.value.trim() || null } as Partial<F & E>),
@@ -88,15 +88,6 @@ export function useListFilters<
         ),
         filterErrors: computed(
             (): Partial<Record<string, string>> => page.props.errors ?? {},
-        ),
-        layout: computed(() =>
-            desktop.value
-                ? // The boards' `flex: 1 1 240px` beside `3 1 420px`: the column
-                  // takes a quarter of what is left after both bases and the gap
-                  cn(
-                      'grid grid-cols-[max(240px,calc(240px+(100%-680px)/4))_minmax(0,1fr)] items-start gap-5',
-                  )
-                : cn('flex flex-col gap-4'),
         ),
     };
 }

@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -161,11 +162,73 @@ final class Document extends FamilyModel
 
     /**
      * Whether it belongs only to its person: it has a person and is not linked to any record.
+     *
+     * Reads the `is_linked` attribute when `withLinked()` or `markLinked()` put it there
+     * (lists must not ask once per row), and asks the database otherwise.
      */
     public function isPersonal(): bool
     {
-        return $this->person_id !== null
-            && ! DB::table('documentables')->where('document_id', $this->id)->exists();
+        if ($this->person_id === null) {
+            return false;
+        }
+
+        if (array_key_exists('is_linked', $this->attributes)) {
+            return ! (bool) $this->attributes['is_linked'];
+        }
+
+        return ! DB::table('documentables')->where('document_id', $this->id)->exists();
+    }
+
+    /**
+     * Whether it counts as pinned at the top of its person: pinned and still personal.
+     *
+     * `pinned_at` stays on a document that gets linked to a record (it is only hidden from
+     * the pinned list until unlinked), so a linked one must not look pinned.
+     */
+    public function isPinned(): bool
+    {
+        return $this->pinned_at !== null && $this->isPersonal();
+    }
+
+    /**
+     * Adds `is_linked`: whether the document is linked to any record, in the same query.
+     *
+     * @param  Builder<Document>  $query  the query
+     */
+    #[Scope]
+    protected function withLinked(Builder $query): void
+    {
+        $query->addSelect('documents.*')
+            ->selectRaw('exists (select 1 from documentables where documentables.document_id = documents.id) as is_linked');
+    }
+
+    /**
+     * Sets `is_linked` on documents already found, with one query for all of them.
+     *
+     * @param  Collection<int, Document>  $documents  the documents
+     */
+    public static function markLinked(Collection $documents): void
+    {
+        $documents = $documents->reject(static fn (self $document): bool => array_key_exists('is_linked', $document->attributes));
+        if ($documents->isEmpty()) {
+            return;
+        }
+
+        $linked = DB::table('documentables')->whereIn('document_id', $documents->pluck('id'))->distinct()->pluck('document_id')->flip();
+        foreach ($documents as $document) {
+            $document->setLinked($linked->has($document->id));
+        }
+    }
+
+    /**
+     * Sets `is_linked` as read-only information: it is not a column, so it must never count as a change to save.
+     *
+     * @param  bool  $linked  whether the document is linked to any record
+     */
+    public function setLinked(bool $linked): void
+    {
+        $this->setAttribute('is_linked', $linked);
+        $this->syncOriginalAttribute('is_linked');
     }
 
     /**

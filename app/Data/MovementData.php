@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Models\Document;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\User;
@@ -85,6 +86,8 @@ final class MovementData extends Data
         $expense = $movement instanceof Expense ? $movement : null;
         $income = $movement instanceof Income ? $movement : null;
         $documents = $withDocuments ? $movement->documents : collect();
+        // Linked to this movement, so never personal: no query per document.
+        $documents->each(static fn (Document $document) => $document->setLinked(true));
         $paths ??= $documents->isEmpty() ? [] : resolve(CategoryTree::class)->paths();
 
         return new self(

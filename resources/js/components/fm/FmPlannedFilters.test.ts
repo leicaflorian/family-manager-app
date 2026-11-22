@@ -12,6 +12,18 @@ const none: App.Data.PlannedFiltersData = {
     to: null,
 };
 
+/** Whether every element follows the one before it in the page. */
+function inOrder(elements: HTMLElement[]): boolean {
+    return elements.every(
+        (element, index) =>
+            index === 0 ||
+            Boolean(
+                elements[index - 1].compareDocumentPosition(element) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+    );
+}
+
 describe('FmPlannedFilters', () => {
     it('has the amounts and the next due dates, and says what happens without dates', () => {
         renderPage(FmPlannedFilters, {
@@ -87,5 +99,28 @@ describe('FmPlannedFilters', () => {
                 'The to field must be a date after or equal to from.',
             ),
         ).toBeInTheDocument();
+    });
+
+    it('in columns every field is a cell of the grid', () => {
+        const { container } = renderPage(FmPlannedFilters, {
+            filters: { ...none, min: 20 },
+            columns: true,
+        });
+
+        expect(container.firstElementChild).toHaveClass('grid-cols-2');
+        expect(container.firstElementChild).not.toHaveClass(
+            'computer:grid-cols-4',
+        );
+        expect(container.firstElementChild).not.toHaveClass('@container');
+        expect(
+            inOrder([
+                screen.getByRole('group', { name: 'Amount' }),
+                screen.getByRole('group', { name: 'Next due date' }),
+                screen.getByRole('button', { name: 'Remove the filters' }),
+            ]),
+        ).toBe(true);
+        expect(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        ).toHaveClass('col-span-full');
     });
 });

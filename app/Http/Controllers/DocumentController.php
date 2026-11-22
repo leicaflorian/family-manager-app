@@ -50,7 +50,7 @@ final class DocumentController extends Controller
     public function index(DocumentIndexRequest $request, FilterDocuments $filter, DocumentFormOptions $options, GalleryTeaser $teaser, #[CurrentUser] User $user): Response
     {
         $filters = $request->filters();
-        $page = $filter->apply(Document::query()->with(['person.photo', 'organization', 'file']), [...$filters, 'gallery' => false])
+        $page = $filter->apply(Document::query()->withLinked()->with(['person.photo', 'organization', 'file']), [...$filters, 'gallery' => false])
             ->paginate(self::PER_PAGE)
             ->withQueryString();
         $paths = $this->categories->paths();

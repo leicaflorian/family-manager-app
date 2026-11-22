@@ -12,6 +12,7 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Process\Exceptions\ProcessFailedException;
 use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File as Filesystem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
  * that a grid of pictures does not download every photo whole. A PNG or a WebP is shown as it is: it may be
  * transparent (a logo, a drawing on no background), and a JPEG has no transparency.
  *
- * It is made the first time it is asked, with `pdftoppm`, `heif-convert` and GD,
+ * It is made the first time it is asked, with Ghostscript (`gs`), `heif-convert` and GD,
  * and kept next to the file in `families/<family_id>/previews/`. A file that
  * cannot be converted is marked, so the tools do not run on it again.
  */
@@ -45,6 +46,9 @@ final readonly class FilePreviews
     /** The seconds a conversion may take, unless the constructor says otherwise. */
     public const int TIMEOUT = 20;
 
+    /** The most conversions one preview runs one after the other (a PDF: the size probe and the render). */
+    private const int PASSES = 2;
+
     /** The seconds the lock of a file lasts beyond the timeout of a conversion. */
     private const int LOCK_MARGIN = 10;
 
@@ -65,7 +69,7 @@ final readonly class FilePreviews
      */
     public function __construct(
         private CarbonInterval|int $timeout = self::TIMEOUT,
-        private string $pdfTool = 'pdftoppm',
+        private string $pdfTool = 'gs',
         string $heicTool = 'heif-convert',
         private string $pdfInfoTool = 'pdfinfo',
     ) {
@@ -159,7 +163,7 @@ final readonly class FilePreviews
 
         try {
             $made = match (true) {
-                $file->mime_type === 'application/pdf' => $this->fromPdf($disk->path($file->path), $output),
+                $file->mime_type === 'application/pdf' => $this->fromPdf($disk->path($file->path), $output, $context),
                 in_array($file->mime_type, self::PHOTO_TYPES, true) => $this->fromPhoto($disk->path($file->path), $output),
                 default => $this->heic->toJpeg($disk->path($file->path), $output, self::WIDTH, self::QUALITY),
             };
@@ -280,30 +284,56 @@ final readonly class FilePreviews
     }
 
     /**
-     * The seconds the lock of a file lasts: the timeout of a conversion and some more.
+     * The seconds the lock of a file lasts: the timeout of every pass of a conversion and some more.
      */
     private function lockSeconds(): int
     {
         $seconds = $this->timeout instanceof CarbonInterval ? (int) ceil($this->timeout->totalSeconds) : $this->timeout;
 
-        return $seconds + self::LOCK_MARGIN;
+        return $seconds * self::PASSES + self::LOCK_MARGIN;
     }
 
     /**
-     * Writes the first page of a PDF as a JPEG.
+     * Writes the first page of a PDF as a JPEG, `WIDTH` px wide.
+     *
+     * Ghostscript is used because poppler draws the white of a scanner page (a CalGray image with a D65 white
+     * point) pinkish. The page size is read first with a 72 dpi render (one pixel per point, crop box and rotation
+     * included), then the page is drawn at the resolution that makes it `WIDTH` wide. Fit-to-page options are not
+     * used: they ignore `/Rotate` for 90 and 180 degrees.
      *
      * @param  string  $source  the PDF
      * @param  string  $output  where the JPEG goes
+     * @param  array<string, mixed>  $context  the log context, to which the reason of a failure without an exit code is added
      * @return bool whether the tool finished well
      *
      * @throws ProcessTimedOutException if the tool takes too long
      * @throws ProcessFailedException if the tool fails
      */
-    private function fromPdf(string $source, string $output): bool
+    private function fromPdf(string $source, string $output, array &$context): bool
     {
+        $probe = $output.'-probe.jpg';
+        $options = [
+            $this->pdfTool, '-q', '-dSAFER', '-dBATCH', '-dNOPAUSE', '-dUseCropBox', '-sDEVICE=jpeg',
+            '-dFirstPage=1', '-dLastPage=1',
+        ];
+
+        try {
+            $result = Process::timeout($this->timeout)->run([...$options, '-r72', '-sOutputFile='.$probe, $source])->throw();
+            $size = is_file($probe) ? getimagesize($probe) : false;
+        } finally {
+            if (is_file($probe)) {
+                Filesystem::delete($probe);
+            }
+        }
+
+        if ($size === false || $size[0] < 1) {
+            $context['error'] = mb_substr(trim($result->errorOutput().' '.$result->output()), 0, 500);
+
+            return false;
+        }
+
         Process::timeout($this->timeout)->run([
-            $this->pdfTool, '-f', '1', '-l', '1', '-singlefile', '-jpeg', '-jpegopt', 'quality='.self::QUALITY,
-            '-scale-to-x', (string) self::WIDTH, '-scale-to-y', '-1', $source, substr($output, 0, -4),
+            ...$options, '-dJPEGQ='.self::QUALITY, '-r'.round(72 * self::WIDTH / $size[0], 3), '-sOutputFile='.$output, $source,
         ])->throw();
 
         return true;
