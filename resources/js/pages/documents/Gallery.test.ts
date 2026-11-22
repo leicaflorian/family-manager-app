@@ -136,6 +136,37 @@ describe('Gallery', () => {
         expect(get.mock.calls[1]![0]).toBe('/documents/gallery?drawing=1');
     });
 
+    it('does not go past the first and the last drawing', async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        const first = renderPage(Gallery, { ...base, selected: drawing(1) });
+        expect(
+            screen.getByRole('button', { name: 'Previous drawing' }),
+        ).toBeDisabled();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Previous drawing' }),
+        );
+        first.unmount();
+
+        renderPage(Gallery, { ...base, selected: drawing(3) });
+        expect(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        ).toBeDisabled();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        );
+
+        expect(get).not.toHaveBeenCalled();
+    });
+
+    it('a drawing that left the list shows no place and no working arrows', () => {
+        renderPage(Gallery, { ...base, selected: drawing(9) });
+
+        expect(screen.queryByText(/ of 3/)).toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        ).toBeDisabled();
+    });
+
     it('shows the viewer beside the grid on the computer', () => {
         screenWidth(true);
         renderPage(Gallery, { ...base, selected: drawing(2) });
@@ -155,7 +186,7 @@ describe('Gallery', () => {
         expect(put).toHaveBeenCalledWith(
             '/documents/2/favorite',
             {},
-            expect.objectContaining({ only: ['years', 'selected'] }),
+            expect.objectContaining({ only: ['years', 'selected', 'total'] }),
         );
 
         await view.rerender({ selected: drawing(2, { is_favorite: true }) });
@@ -164,7 +195,7 @@ describe('Gallery', () => {
         );
         expect(del).toHaveBeenCalledWith(
             '/documents/2/favorite',
-            expect.objectContaining({ only: ['years', 'selected'] }),
+            expect.objectContaining({ only: ['years', 'selected', 'total'] }),
         );
     });
 

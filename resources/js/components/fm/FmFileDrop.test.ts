@@ -132,4 +132,24 @@ describe('FmFileDrop', () => {
 
         expect(box()).toHaveStyle({ minHeight: '260px' });
     });
+
+    it('takes one file, with its own picker name and types, icon and chosen file name', () => {
+        render(FmFileDrop, {
+            props: {
+                single: true,
+                sheet: true,
+                accept: 'image/*,application/pdf',
+                inputLabel: 'Photo or PDF',
+                chosen: 'dragon.jpg',
+            },
+        });
+
+        const picker = screen.getByLabelText('Photo or PDF');
+        expect(picker).not.toHaveAttribute('multiple');
+        expect(picker).toHaveAttribute('accept', 'image/*,application/pdf');
+        expect(screen.getByText('dragon.jpg')).toBeInTheDocument();
+        expect(
+            screen.queryByText('PDF, JPG, PNG or HEIC, up to 25 MB each'),
+        ).toBeNull();
+    });
 });

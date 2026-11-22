@@ -7,8 +7,6 @@
  * in the address (`drawing`), so a link opens it. *Add* opens the panel that takes a photo or PDF.
  * Without a gallery category the page says where to choose one (an admin) or whom to ask (a member);
  * with a gallery and no drawing the card invites to add the first.
- *
- * @group sections
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Images, Plus } from '@lucide/vue';
@@ -73,13 +71,11 @@ const order = computed((): App.Data.DrawingData[] =>
     props.years.flatMap((year) => year.drawings),
 );
 
-/** The place of the drawing open, from 1 (1 when it is not among the listed ones). */
-const position = computed((): number =>
-    Math.max(
-        1,
+/** The place of the drawing open, from 1; 0 when it is not among the listed ones (unfavourited under *Favourites*). */
+const position = computed(
+    (): number =>
         order.value.findIndex((drawing) => drawing.id === props.selected?.id) +
-            1,
-    ),
+        1,
 );
 
 /** Something is filtered: an empty list means «nothing here», not «no gallery yet». */
@@ -147,19 +143,17 @@ function open(id: number | null): void {
 }
 
 /**
- * Opens the next or the previous drawing in the order of the page, going round at the ends.
+ * Opens the next or the previous drawing in the order of the page; nothing at the ends, or when
+ * the drawing open is not among the listed ones.
  *
  * @param step - 1 for the next, -1 for the previous
  */
 function move(step: 1 | -1): void {
-    const list = order.value;
+    const target = order.value[position.value - 1 + step];
 
-    if (list.length === 0) {
-        return;
+    if (position.value >= 1 && target) {
+        open(target.id);
     }
-
-    const at = position.value - 1;
-    open(list[(at + step + list.length) % list.length]!.id);
 }
 
 /**
@@ -173,7 +167,7 @@ function setFavorite(value: boolean): void {
     }
 
     const options = {
-        only: ['years', 'selected'],
+        only: ['years', 'selected', 'total'],
         preserveScroll: true,
         preserveState: true,
     };
@@ -236,39 +230,47 @@ function setFavorite(value: boolean): void {
         </FmEmpty>
 
         <template v-else>
-            <nav :aria-label="$t('Show')" class="flex flex-wrap gap-2">
-                <FmChip
-                    :label="$t('All')"
-                    :pressed="filters.filter !== 'favorites'"
-                    :href="address('all', filters.person)"
-                />
-                <FmChip
-                    :label="$t('Favourites')"
-                    :pressed="filters.filter === 'favorites'"
-                    :href="address('favorites', filters.person)"
-                />
-                <template v-if="people.length > 1">
-                    <FmChip
-                        v-for="person in people"
-                        :key="person.id"
-                        :label="person.name"
-                        :pressed="filters.person === person.id"
-                        :href="
-                            address(
-                                filters.filter,
-                                filters.person === person.id ? null : person.id,
-                            )
-                        "
-                    />
-                </template>
-            </nav>
-
-            <p v-if="total === 0" class="m-0 text-body text-ink-soft">
-                {{ $t('No drawings here.') }}
-            </p>
-
             <div :class="wide ? 'flex items-start gap-6' : undefined">
                 <div class="flex min-w-0 grow flex-col gap-5">
+                    <nav :aria-label="$t('Show')" class="flex flex-wrap gap-2">
+                        <FmChip
+                            :label="$t('All')"
+                            :pressed="filters.filter !== 'favorites'"
+                            :href="address('all', filters.person)"
+                            preserve-state
+                            preserve-scroll
+                        />
+                        <FmChip
+                            :label="$t('Favourites')"
+                            :pressed="filters.filter === 'favorites'"
+                            :href="address('favorites', filters.person)"
+                            preserve-state
+                            preserve-scroll
+                        />
+                        <template v-if="people.length > 1">
+                            <FmChip
+                                v-for="person in people"
+                                :key="person.id"
+                                :label="person.name"
+                                :pressed="filters.person === person.id"
+                                preserve-state
+                                preserve-scroll
+                                :href="
+                                    address(
+                                        filters.filter,
+                                        filters.person === person.id
+                                            ? null
+                                            : person.id,
+                                    )
+                                "
+                            />
+                        </template>
+                    </nav>
+
+                    <p v-if="total === 0" class="m-0 text-body text-ink-soft">
+                        {{ $t('No drawings here.') }}
+                    </p>
+
                     <section
                         v-for="year in years"
                         :key="year.year"

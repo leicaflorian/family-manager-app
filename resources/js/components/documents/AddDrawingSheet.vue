@@ -8,12 +8,12 @@
  * @group forms
  */
 import { router } from '@inertiajs/vue3';
-import { ImagePlus } from '@lucide/vue';
+import { Camera } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref, useTemplateRef, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
+import FmFileDrop from '@/components/fm/FmFileDrop.vue';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
 import { withNone } from '@/lib/forms';
@@ -40,9 +40,6 @@ const problems = ref<Record<string, string>>({});
 
 /** The drawing is being sent. */
 const processing = ref(false);
-
-/** The hidden picker that the dashed button opens. */
-const picker = useTemplateRef<HTMLInputElement>('picker');
 
 /** The people as the options of the menu. */
 const options = computed(() =>
@@ -77,16 +74,14 @@ watch(open, (isOpen) => {
     }
 });
 
-/**
- * Keeps the file the person chose.
- *
- * @param event - the change of the picker
- */
-function pickFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    values.file = input.files?.[0] ?? null;
-    input.value = '';
-}
+/** The suggestion in the title field: the child chosen, or a plain one. */
+const titleHint = computed((): string => {
+    const name = people.find(
+        (person) => String(person.id) === values.person_id,
+    )?.name;
+
+    return name ? trans('Drawing by :name', { name }) : trans('Drawing');
+});
 
 /** Sends the drawing. A file makes it a form with files, which PHP only reads as a POST. */
 function save(): void {
@@ -136,28 +131,16 @@ function save(): void {
         <form class="flex flex-col gap-3.5" novalidate @submit.prevent="save">
             <div class="flex flex-col gap-1.5">
                 <span class="text-label text-ink">{{ $t('Drawing') }}</span>
-                <button
-                    type="button"
-                    class="flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-[1.5px] border-dashed border-edge bg-card px-3 py-3 text-row text-action"
-                    @click="picker?.click()"
-                >
-                    <FmIcon :icon="ImagePlus" :size="22" />
-                    <span class="truncate">{{
-                        values.file
-                            ? values.file.name
-                            : $t('Take a photo or choose a file')
-                    }}</span>
-                    <span v-if="!values.file" class="text-meta text-ink-soft">{{
-                        $t('A photo or a PDF, up to 25 MB')
-                    }}</span>
-                </button>
-                <input
-                    ref="picker"
-                    type="file"
-                    class="hidden"
-                    :aria-label="$t('Photo or PDF of the drawing')"
+                <FmFileDrop
+                    sheet
+                    single
+                    :icon="Camera"
+                    :label="$t('Take a photo or choose a file')"
+                    :hint="$t('A photo or a PDF, up to 25 MB')"
+                    :chosen="values.file?.name"
                     accept="image/*,application/pdf,.heic,.heif"
-                    @change="pickFile"
+                    :input-label="$t('Photo or PDF of the drawing')"
+                    @files="(files) => (values.file = files[0] ?? null)"
                 />
                 <p
                     v-if="problems.file"
@@ -183,6 +166,7 @@ function save(): void {
                 name="title"
                 optional
                 :label="$t('Title')"
+                :placeholder="titleHint"
                 :errors="errors(problems.title)"
             />
             <FormKit
@@ -192,6 +176,7 @@ function save(): void {
                 rows="3"
                 optional
                 :label="$t('Description')"
+                :placeholder="$t('Where they made it, with what…')"
                 :errors="errors(problems.notes)"
             />
             <p class="m-0 text-meta text-ink-soft">
@@ -202,15 +187,18 @@ function save(): void {
                 }}
             </p>
 
-            <div
-                class="flex flex-col gap-1 lg:flex-row-reverse lg:justify-start lg:gap-2.5"
-            >
-                <FmButton type="submit" :disabled="processing">{{
-                    $t('Save')
-                }}</FmButton>
-                <FmButton variant="text" @click="open = false">{{
-                    $t('Cancel')
-                }}</FmButton>
+            <div class="flex gap-2.5">
+                <FmButton
+                    variant="text"
+                    class="shrink-0"
+                    @click="open = false"
+                    >{{ $t('Cancel') }}</FmButton
+                >
+                <span class="flex grow">
+                    <FmButton type="submit" wide :disabled="processing">{{
+                        $t('Save')
+                    }}</FmButton>
+                </span>
             </div>
         </form>
     </FmBottomSheet>

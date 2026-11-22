@@ -9,15 +9,21 @@
  * least 320 px high (an empty page, or `minHeight`), `compact` is a small one below a form.
  * The input stays in the page for the keyboard and screen readers, hidden
  * with `sr-only`, and is emptied after each choice so the same file can be
- * chosen again. While the page sends the files `processing` shows
+ * chosen again. `single` takes one file (the picker has no `multiple`), `accept` and
+ * `inputLabel` say which types and how the picker is named, `icon` changes the
+ * icon, `chosen` writes the name of the file already chosen in place of `label`, and
+ * `sheet` is the zone of a panel from below (radius 16, 20 px padding, 32 px icon).
+ * While the page sends the files `processing` shows
  * *Uploading…*.
  *
  * @group fields
  */
 import { FolderOpen, Upload as UploadIcon } from '@lucide/vue';
+import type { LucideIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref, useId } from 'vue';
 import { DOCUMENT_FILE_TYPES } from '@/lib/files';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 const {
@@ -27,6 +33,12 @@ const {
     compact = false,
     minHeight = 320,
     processing = false,
+    icon,
+    single = false,
+    accept = DOCUMENT_FILE_TYPES,
+    inputLabel,
+    chosen: chosenName,
+    sheet = false,
 } = defineProps<{
     /** What the zone asks for. */
     label?: string;
@@ -40,6 +52,18 @@ const {
     minHeight?: number;
     /** The files are being sent: the zone says so. */
     processing?: boolean;
+    /** Another icon than the default one. */
+    icon?: LucideIcon;
+    /** One file at a time. */
+    single?: boolean;
+    /** The types the picker offers, as the `accept` of an input. */
+    accept?: string;
+    /** The name of the picker for screen readers. */
+    inputLabel?: string;
+    /** The name of the file already chosen: it is written in place of `label`. */
+    chosen?: string;
+    /** The zone of a panel from below: smaller, with a 16 px radius. */
+    sheet?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -89,23 +113,25 @@ function dropped(event: DragEvent): void {
 <template>
     <label
         :for="id"
-        class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-card-lg border-2 border-dashed text-center text-ink-soft transition-colors"
+        class="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed text-center text-ink-soft transition-colors"
         :class="[
             dragging ? 'border-action bg-action-soft' : 'border-edge bg-card',
-            compact ? 'p-5' : 'p-8',
+            sheet
+                ? 'gap-2 rounded-card p-5'
+                : cn('gap-3 rounded-card-lg', compact ? 'p-5' : 'p-8'),
         ]"
-        :style="compact ? undefined : { minHeight: `${minHeight}px` }"
+        :style="compact || sheet ? undefined : { minHeight: `${minHeight}px` }"
         @dragover.prevent="dragging = true"
         @dragleave="dragging = false"
         @drop.prevent="dropped"
     >
         <FmIcon
-            :icon="compact ? FolderOpen : UploadIcon"
-            :size="compact ? 22 : 40"
+            :icon="icon ?? (compact ? FolderOpen : UploadIcon)"
+            :size="sheet ? 32 : compact ? 22 : 40"
             class="text-action"
         />
         <span class="text-body-strong text-ink"
-            >{{ label
+            >{{ chosenName ?? label
             }}<template v-if="compact && action"
                 >{{ ' '
                 }}<span class="text-body-strong text-action">{{
@@ -113,16 +139,18 @@ function dropped(event: DragEvent): void {
                 }}</span></template
             ></span
         >
-        <span class="text-body-sm text-ink-soft">{{ hint }}</span>
+        <span v-if="!chosenName" class="text-body-sm text-ink-soft">{{
+            hint
+        }}</span>
         <span v-if="processing" class="text-label text-action">{{
             $t('Uploading…')
         }}</span>
         <input
             :id="id"
             type="file"
-            multiple
-            :accept="DOCUMENT_FILE_TYPES"
-            :aria-label="$t('Choose the files')"
+            :multiple="!single"
+            :accept="accept"
+            :aria-label="inputLabel ?? $t('Choose the files')"
             class="sr-only"
             @change="chosen"
         />

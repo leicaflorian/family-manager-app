@@ -4,7 +4,7 @@
  * background of the camera, with the close button, the place in the gallery
  * and the heart on top, the arrows on the sides, a window of dots (at most
  * five, for decoration) under the picture and the details in a sheet at the bottom, and it moves to the next one with
- * the arrow keys or a drag to the side; on the computer (`panel`) it is the
+ * the arrow keys or a drag to the side (the arrow at an end of the gallery is dimmed and does nothing); on the computer (`panel`) it is the
  * column beside the grid, on the card background.
  *
  * It shows the title, who drew it with the age and the date, the notes, the
@@ -34,7 +34,7 @@ import FmIcon from './FmIcon.vue';
 const { drawing, position, total, variant } = defineProps<{
     /** The drawing open. */
     drawing: App.Data.DrawingData;
-    /** Its place in the gallery, from 1. */
+    /** Its place in the gallery, from 1; 0 when it is not among the listed ones (no place, no arrows). */
     position: number;
     /** How many drawings the gallery has. */
     total: number;
@@ -54,6 +54,15 @@ const emit = defineEmits<{
 }>();
 
 const { date } = useFormat();
+
+/** There is a drawing before this one. */
+const hasPrevious = computed(() => position > 1 && position <= total);
+
+/** There is a drawing after this one. */
+const hasNext = computed(() => position >= 1 && position < total);
+
+/** The place is known: the drawing is among the listed ones. */
+const placed = computed(() => position >= 1);
 
 /** True on the phone. */
 const isScreen = computed(() => variant === 'screen');
@@ -83,6 +92,10 @@ const manyPages = computed(() => drawing.pages !== null && drawing.pages > 1);
 
 /** The dots under the picture: at most five around the place, from 0. */
 const dots = computed(() => {
+    if (!placed.value) {
+        return [];
+    }
+
     const shown = Math.min(5, total);
     const first = Math.max(
         0,
@@ -142,9 +155,9 @@ function onKey(event: KeyboardEvent): void {
         return;
     }
 
-    if (event.key === 'ArrowLeft') {
+    if (event.key === 'ArrowLeft' && hasPrevious.value) {
         emit('previous');
-    } else if (event.key === 'ArrowRight') {
+    } else if (event.key === 'ArrowRight' && hasNext.value) {
         emit('next');
     } else if (event.key === 'Escape') {
         emit('close');
@@ -167,9 +180,9 @@ function endDrag(x: number): void {
     const moved = x - dragFrom;
     dragFrom = null;
 
-    if (moved > 60) {
+    if (moved > 60 && hasPrevious.value) {
         emit('previous');
-    } else if (moved < -60) {
+    } else if (moved < -60 && hasNext.value) {
         emit('next');
     }
 }
@@ -234,6 +247,7 @@ const panelButton = cn(
                 <FmIcon :icon="X" :size="22" />
             </button>
             <span
+                v-if="placed"
                 :class="
                     isScreen
                         ? 'text-row text-on-hero-soft'
@@ -268,7 +282,13 @@ const panelButton = cn(
                 <button
                     type="button"
                     :aria-label="$t('Previous drawing')"
-                    class="flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink"
+                    :disabled="!hasPrevious"
+                    :class="
+                        cn(
+                            'flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink',
+                            !hasPrevious && 'cursor-default text-ink-faint',
+                        )
+                    "
                     @click="emit('previous')"
                 >
                     <FmIcon :icon="ChevronLeft" :size="18" />
@@ -276,7 +296,13 @@ const panelButton = cn(
                 <button
                     type="button"
                     :aria-label="$t('Next drawing')"
-                    class="flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink"
+                    :disabled="!hasNext"
+                    :class="
+                        cn(
+                            'flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink',
+                            !hasNext && 'cursor-default text-ink-faint',
+                        )
+                    "
                     @click="emit('next')"
                 >
                     <FmIcon :icon="ChevronRight" :size="18" />
@@ -322,8 +348,13 @@ const panelButton = cn(
                 <button
                     type="button"
                     :aria-label="$t('Previous drawing')"
+                    :disabled="!hasPrevious"
                     :class="
-                        cn(roundButton, 'absolute top-1/2 left-6 -mt-[22px]')
+                        cn(
+                            roundButton,
+                            'absolute top-1/2 left-6 -mt-[22px]',
+                            !hasPrevious && 'cursor-default text-ink-faint',
+                        )
                     "
                     @click="emit('previous')"
                 >
@@ -332,8 +363,13 @@ const panelButton = cn(
                 <button
                     type="button"
                     :aria-label="$t('Next drawing')"
+                    :disabled="!hasNext"
                     :class="
-                        cn(roundButton, 'absolute top-1/2 right-6 -mt-[22px]')
+                        cn(
+                            roundButton,
+                            'absolute top-1/2 right-6 -mt-[22px]',
+                            !hasNext && 'cursor-default text-ink-faint',
+                        )
                     "
                     @click="emit('next')"
                 >

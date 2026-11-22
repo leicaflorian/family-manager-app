@@ -187,4 +187,57 @@ describe('FmDrawingViewer', () => {
 
         expect(view.emitted().next).toBeUndefined();
     });
+
+    it('dims and disables the arrow at the first and the last drawing', async () => {
+        const first = render(FmDrawingViewer, {
+            props: {
+                drawing: drawingViewerFixture(),
+                position: 1,
+                total: 3,
+                variant: 'screen',
+            },
+        });
+        expect(
+            screen.getByRole('button', { name: 'Previous drawing' }),
+        ).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        ).toBeEnabled();
+        await fireEvent.keyDown(window, { key: 'ArrowLeft' });
+        expect(first.emitted().previous).toBeUndefined();
+        first.unmount();
+
+        const last = render(FmDrawingViewer, {
+            props: {
+                drawing: drawingViewerFixture(),
+                position: 3,
+                total: 3,
+                variant: 'screen',
+            },
+        });
+        expect(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        ).toBeDisabled();
+        await fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(last.emitted().next).toBeUndefined();
+    });
+
+    it('without a place shows no position and no working arrows', () => {
+        render(FmDrawingViewer, {
+            props: {
+                drawing: drawingViewerFixture(),
+                position: 0,
+                total: 3,
+                variant: 'panel',
+            },
+        });
+
+        expect(screen.queryByText(/ of 3/)).toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Previous drawing' }),
+        ).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'Next drawing' }),
+        ).toBeDisabled();
+    });
 });
