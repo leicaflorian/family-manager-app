@@ -266,6 +266,39 @@ describe('FmDrawingViewer', () => {
         expect(last.emitted().next).toBeUndefined();
     });
 
+    it('in the panel puts the arrows left of the place and the close on the right, as the column of a document', () => {
+        viewerOf({}, 'panel');
+
+        const previous = screen.getByRole('button', {
+            name: 'Previous drawing',
+        });
+        const next = screen.getByRole('button', { name: 'Next drawing' });
+        const place = screen.getByText(/ of /);
+        const close = screen.getByRole('button', { name: 'Close' });
+        const follows = (a: Element, b: Element): boolean =>
+            Boolean(
+                a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+            );
+        expect(follows(previous, next)).toBe(true);
+        expect(follows(next, place)).toBe(true);
+        expect(follows(place, close)).toBe(true);
+        expect(previous).toHaveClass('size-10', 'bg-canvas');
+    });
+
+    it('in the panel the picture opens the file in a new tab', () => {
+        viewerOf({}, 'panel');
+
+        const link = screen.getByRole('img', { name: /./ }).closest('a');
+        expect(link).toHaveAttribute('href', '/files/7');
+        expect(link).toHaveAttribute('target', '_blank');
+    });
+
+    it('on the phone the picture is not a link: a drag moves to the next one', () => {
+        viewerOf({}, 'screen');
+
+        expect(screen.getByRole('img', { name: /./ }).closest('a')).toBeNull();
+    });
+
     it('without a place shows no position and no working arrows', () => {
         render(FmDrawingViewer, {
             props: {

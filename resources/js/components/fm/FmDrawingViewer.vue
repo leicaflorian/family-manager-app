@@ -5,7 +5,9 @@
  * and the heart on top, the arrows on the sides, a window of dots (at most
  * five, for decoration) under the picture and the details in a sheet at the bottom, and it moves to the next one with
  * the arrow keys or a drag to the side (the arrow at an end of the gallery is dimmed and does nothing); on the computer (`panel`) it is the
- * column beside the grid, on the card background.
+ * column beside the grid, on the card background, with ‹ › and the place on
+ * the left and the × on the right, as the column of a document, and the
+ * picture opens the file in a new tab.
  *
  * It shows the title, who drew it with the age and the date, the notes, the
  * link to the PDF when the file has more pages, and *Share* (only when the
@@ -36,6 +38,7 @@ import {
 import { trans } from 'laravel-vue-i18n';
 import { useFormat } from '@/composables/useFormat';
 import { extensionOf } from '@/lib/files';
+import { detailStep } from '@/lib/detail';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
@@ -293,20 +296,12 @@ const panelButton = cn(
             >
                 <FmIcon :icon="X" :size="22" />
             </button>
-            <span
-                v-if="placed"
-                :class="
-                    isScreen
-                        ? 'text-row text-on-hero'
-                        : 'text-meta text-ink-soft'
-                "
-                >{{
-                    $t(':position of :total', {
-                        position: String(position),
-                        total: String(total),
-                    })
-                }}</span
-            >
+            <span v-if="isScreen && placed" class="text-row text-on-hero">{{
+                $t(':position of :total', {
+                    position: String(position),
+                    total: String(total),
+                })
+            }}</span>
             <button
                 v-if="isScreen && drawing.can_favorite"
                 type="button"
@@ -325,44 +320,42 @@ const panelButton = cn(
                     aria-hidden="true"
                 />
             </button>
-            <span v-if="!isScreen" class="flex gap-1">
-                <button
-                    type="button"
-                    :aria-label="$t('Previous drawing')"
-                    :disabled="!hasPrevious"
-                    :class="
-                        cn(
-                            'flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink',
-                            !hasPrevious && 'cursor-default text-ink-faint',
-                        )
-                    "
-                    @click="emit('previous')"
-                >
-                    <FmIcon :icon="ChevronLeft" :size="18" />
-                </button>
-                <button
-                    type="button"
-                    :aria-label="$t('Next drawing')"
-                    :disabled="!hasNext"
-                    :class="
-                        cn(
-                            'flex size-9 cursor-pointer items-center justify-center rounded-control border border-edge-soft bg-card p-0 text-ink',
-                            !hasNext && 'cursor-default text-ink-faint',
-                        )
-                    "
-                    @click="emit('next')"
-                >
-                    <FmIcon :icon="ChevronRight" :size="18" />
-                </button>
+            <template v-if="!isScreen">
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        :class="detailStep"
+                        :aria-label="$t('Previous drawing')"
+                        :disabled="!hasPrevious"
+                        @click="emit('previous')"
+                    >
+                        <FmIcon :icon="ChevronLeft" :size="20" />
+                    </button>
+                    <button
+                        type="button"
+                        :class="detailStep"
+                        :aria-label="$t('Next drawing')"
+                        :disabled="!hasNext"
+                        @click="emit('next')"
+                    >
+                        <FmIcon :icon="ChevronRight" :size="20" />
+                    </button>
+                    <span v-if="placed" class="text-body-sm text-ink-soft">{{
+                        $t(':position of :total', {
+                            position: String(position),
+                            total: String(total),
+                        })
+                    }}</span>
+                </div>
                 <button
                     type="button"
                     :aria-label="$t('Close')"
-                    class="flex size-9 cursor-pointer items-center justify-center rounded-control border-0 bg-transparent p-0 text-ink-soft"
+                    class="-mr-2 flex size-touch shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft"
                     @click="emit('close')"
                 >
-                    <FmIcon :icon="X" :size="18" />
+                    <FmIcon :icon="X" :size="22" />
                 </button>
-            </span>
+            </template>
         </div>
 
         <div
@@ -377,20 +370,28 @@ const panelButton = cn(
             @pointerup="endDrag($event.clientX)"
             @pointercancel="dragFrom = null"
         >
-            <img
-                :src="drawing.image_url"
-                :alt="drawing.title"
-                draggable="false"
-                :class="
-                    cn(
-                        'object-contain select-none',
-                        isScreen ? 'rounded-tag' : 'rounded-lg',
-                        isScreen
-                            ? 'max-h-full max-w-full'
-                            : 'aspect-square w-full bg-canvas',
-                    )
-                "
-            />
+            <component
+                :is="isScreen ? 'div' : 'a'"
+                :href="isScreen ? undefined : drawing.file_url"
+                :target="isScreen ? undefined : '_blank'"
+                :rel="isScreen ? undefined : 'noopener'"
+                class="contents"
+            >
+                <img
+                    :src="drawing.image_url"
+                    :alt="drawing.title"
+                    draggable="false"
+                    :class="
+                        cn(
+                            'object-contain select-none',
+                            isScreen ? 'rounded-tag' : 'rounded-lg',
+                            isScreen
+                                ? 'max-h-full max-w-full'
+                                : 'aspect-square w-full bg-canvas',
+                        )
+                    "
+                />
+            </component>
             <template v-if="isScreen">
                 <button
                     type="button"

@@ -2,8 +2,8 @@
 /**
  * The preview of a file: the image the server made of it (a PDF, a HEIC
  * photo), an image as it is, and the placeholder for the files without a
- * preview or whose image does not load. The image and the placeholder open
- * the file in another tab.
+ * preview or whose image does not load. Each of them opens the file in
+ * another tab.
  *
  * @group files
  */
@@ -78,13 +78,15 @@ function onError(): void {
                 @error="onError"
             />
         </a>
-        <img
+        <a
             v-else-if="kind === 'image' && !failed"
-            :src="url"
-            :alt="name"
-            :class="imageClass"
-            @error="onError"
-        />
+            :href="url"
+            target="_blank"
+            rel="noopener"
+            class="contents"
+        >
+            <img :src="url" :alt="name" :class="imageClass" @error="onError" />
+        </a>
         <a
             v-else
             :href="url"

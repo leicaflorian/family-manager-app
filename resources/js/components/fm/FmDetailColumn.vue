@@ -11,7 +11,7 @@
 import { ChevronLeft, ChevronRight, X } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { useEscapeClose } from '@/composables/useEscapeClose';
-import { cn } from '@/lib/utils';
+import { detailStep } from '@/lib/detail';
 import FmIcon from './FmIcon.vue';
 
 const { position, total } = defineProps<{
@@ -49,11 +49,6 @@ useEscapeClose(
     () => emit('close'),
     ['[role="dialog"]', '[role="alertdialog"]'],
 );
-
-/** The ‹ and › buttons of the header. */
-const step = cn(
-    'flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-canvas text-ink disabled:cursor-default disabled:opacity-40',
-);
 </script>
 
 <template>
@@ -65,7 +60,7 @@ const step = cn(
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    :class="step"
+                    :class="detailStep"
                     :aria-label="previousLabel"
                     :disabled="position === null || position <= 1"
                     @click="emit('previous')"
@@ -74,7 +69,7 @@ const step = cn(
                 </button>
                 <button
                     type="button"
-                    :class="step"
+                    :class="detailStep"
                     :aria-label="nextLabel"
                     :disabled="position === null || position >= total"
                     @click="emit('next')"
