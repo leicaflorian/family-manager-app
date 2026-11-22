@@ -2343,5 +2343,6 @@
     "Drawing by :name": "Disegno di :name",
     "Drawing": "Disegno",
     "Only a drawing of the gallery can be a favourite.": "Solo un disegno della galleria può essere un preferito.",
-    "Choose a gallery category in Categories first.": "Scegli prima una categoria da mostrare come galleria in Categorie."
+    "Choose a gallery category in Categories first.": "Scegli prima una categoria da mostrare come galleria in Categorie.",
+    "Only PDF, JPG, PNG, HEIC and WEBP files can be uploaded.": "Si possono caricare solo file PDF, JPG, PNG, HEIC e WEBP."
 }

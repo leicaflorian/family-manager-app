@@ -8,7 +8,7 @@ use App\Models\DocumentCategory;
 use App\Models\File;
 use App\Models\Person;
 use App\Models\User;
-use Carbon\CarbonImmutable;
+use App\Support\CurrentFamily;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -103,7 +103,11 @@ it('selects the drawing asked, else null, also for one of another family or outs
     $drawing = galleryDrawing('2026-02-01 10:00:00', ['title' => 'House']);
     $elsewhere = Document::factory()->for($this->galleryFamily)->create();
     $stranger = User::factory()->create();
-    $foreign = Document::factory()->create(['family_id' => $stranger->family_id]);
+    $foreign = CurrentFamily::using($stranger->family_id, function () use ($stranger): Document {
+        $category = DocumentCategory::query()->create(['name' => 'Their gallery', 'gallery' => true]);
+
+        return Document::factory()->create(['family_id' => $stranger->family_id, 'category_id' => $category->id]);
+    });
 
     $this->get(route('documents.gallery', ['drawing' => $drawing->id]))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('selected.id', $drawing->id)->where('selected.title', 'House'));
@@ -134,10 +138,19 @@ it('gives the age on the upload day, null without a birth date', function (): vo
 });
 
 it('gives the upload day in the Rome time zone', function (): void {
-    // 23:30 UTC on 31 December is already 1 January in Rome
-    galleryDrawing(CarbonImmutable::parse('2025-12-31 23:30:00', 'UTC')->setTimezone(config('app.timezone'))->toDateTimeString(), ['title' => 'New year']);
+    // The row is stored as 23:30 UTC on 31 December, which is already 1 January in Rome
+    $previous = date_default_timezone_get();
+    date_default_timezone_set('UTC');
+    config(['app.timezone' => 'UTC']);
 
-    $this->get(route('documents.gallery'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+    try {
+        galleryDrawing('2025-12-31 23:30:00', ['title' => 'New year']);
+        $response = $this->get(route('documents.gallery'));
+    } finally {
+        date_default_timezone_set($previous);
+    }
+
+    $response->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('years.0.year', 2026)
         ->where('years.0.drawings.0.uploaded_on', '2026-01-01'));
 });

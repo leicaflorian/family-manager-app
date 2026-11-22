@@ -48,7 +48,7 @@ final class AddDrawingRequest extends FormRequest
 
         return [
             'file.required' => __('Choose a file.'),
-            'file.mimes' => __('Only PDF, JPG, PNG and HEIC files can be uploaded.'),
+            'file.mimes' => __('Only PDF, JPG, PNG, HEIC and WEBP files can be uploaded.'),
             'file.max' => $tooBig,
             'file.uploaded' => $tooBig,
         ];

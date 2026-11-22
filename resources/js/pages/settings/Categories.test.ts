@@ -27,6 +27,7 @@ const category = (
     icon: parent_id ? null : 'house',
     color: 'home',
     card_type: null,
+    gallery: false,
     inherited_card_type: null,
     documents_count,
     children,
