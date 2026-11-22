@@ -430,10 +430,10 @@ const actionTile = cn(
                     :class="
                         cn(
                             'object-contain select-none',
-                            isScreen ? 'rounded-tag' : 'rounded-lg',
+                            isScreen ? 'rounded-tag' : 'rounded-xl',
                             isScreen
                                 ? 'max-h-full max-w-full'
-                                : 'aspect-square w-full bg-canvas',
+                                : 'aspect-square w-full bg-segment',
                         )
                     "
                 />

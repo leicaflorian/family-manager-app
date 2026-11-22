@@ -351,6 +351,14 @@ describe('FmDrawingViewer', () => {
         ).toBeTruthy();
     });
 
+    it('in the panel shows the picture on the grey of the preview of a document', () => {
+        viewerOf({}, 'panel');
+
+        const picture = screen.getByRole('img', { name: 'The dragon' });
+        expect(picture).toHaveClass('bg-segment', 'rounded-xl');
+        expect(picture).not.toHaveClass('bg-canvas');
+    });
+
     it('in the panel the picture opens the file in a new tab', () => {
         viewerOf({}, 'panel');
 
