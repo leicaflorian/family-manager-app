@@ -62,6 +62,7 @@ final class GalleryController extends Controller
             'selected' => $selected === null ? null : DrawingData::fromDocument($selected, $user),
             'total' => $drawings->count(),
             'canAdd' => $hasGallery && $user->can('create', Document::class),
+            'canManageCategories' => $user->can('create', DocumentCategory::class),
             'hasGallery' => $hasGallery,
             'addOptions' => [
                 'people' => $this->names(),

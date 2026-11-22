@@ -185,8 +185,32 @@ it('shows a member that she can add and favourite', function (): void {
 
     $this->get(route('documents.gallery'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('canAdd', true)
+        ->where('canManageCategories', false)
         ->where('years.0.drawings.0.can_favorite', true));
 });
+
+it('tells an admin that she can choose the gallery category', function (): void {
+    $this->get(route('documents.gallery'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('canManageCategories', true));
+});
+
+it('ignores filter values that are not valid, without leaving the page', function (array $query): void {
+    $drawing = galleryDrawing('2026-02-01 10:00:00', ['person_id' => $this->giulia->id]);
+
+    $this->get(route('documents.gallery', $query))
+        ->assertOk()
+        ->assertSessionHasNoErrors()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('filters', ['filter' => 'all', 'person' => null])
+            ->where('total', 1)
+            ->where('selected', null)
+            ->where('years.0.drawings.0.id', $drawing->id));
+})->with([
+    'a filter that does not exist' => [['filter' => 'nothing']],
+    'a person that is not a number' => [['person' => 'giulia']],
+    'a drawing that is not a number' => [['drawing' => 'abc']],
+    'a list instead of a value' => [['person' => ['1'], 'drawing' => ['2'], 'filter' => ['favorites']]],
+]);
 
 it('marks and unmarks a favourite', function (): void {
     $drawing = galleryDrawing('2026-02-01 10:00:00');

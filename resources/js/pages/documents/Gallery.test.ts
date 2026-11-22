@@ -5,14 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { renderPage, screenWidth } from '@/test/page';
 import Gallery from './Gallery.vue';
 
-const auth = vi.hoisted(() => ({ role: 'admin' }));
-
 vi.mock('@inertiajs/vue3', async (original) => ({
     ...(await original<typeof import('@inertiajs/vue3')>()),
     Head: { render: () => null },
     usePage: () => ({
         url: '/documents/gallery',
-        props: { auth: { user: { name: 'Laura', role: auth.role } } },
+        // A member's role: what an admin may do comes from canManageCategories, not from here.
+        props: { auth: { user: { name: 'Laura', role: 'member' } } },
     }),
 }));
 
@@ -58,6 +57,7 @@ const base = {
     selected: null,
     total: 3,
     canAdd: true,
+    canManageCategories: true,
     hasGallery: true,
     addOptions: { people: [{ id: 1, name: 'Giulia' }] },
 };
@@ -65,7 +65,6 @@ const base = {
 afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    auth.role = 'admin';
 });
 
 describe('Gallery', () => {
@@ -208,7 +207,7 @@ describe('Gallery', () => {
         ).toBeInTheDocument();
     });
 
-    it('a page without gallery category says to choose one in Categories (admin) or to ask (member)', () => {
+    it('a page without gallery category says to choose one in Categories (who manages them) or to ask (the others)', () => {
         const admin = renderPage(Gallery, {
             ...base,
             years: [],
@@ -221,13 +220,13 @@ describe('Gallery', () => {
         ).toBeInTheDocument();
         admin.unmount();
 
-        auth.role = 'member';
         renderPage(Gallery, {
             ...base,
             years: [],
             total: 0,
             hasGallery: false,
             canAdd: false,
+            canManageCategories: false,
         });
         expect(
             screen.queryByRole('link', { name: 'Go to Categories' }),

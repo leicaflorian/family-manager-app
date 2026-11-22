@@ -5,10 +5,11 @@
  * picture opens the drawing: on the phone it covers the page (`screen`), on the computer it sits in
  * the column beside the grid (`panel`); the arrows and the heart work on both. The drawing open is
  * in the address (`drawing`), so a link opens it. *Add* opens the panel that takes a photo or PDF.
- * Without a gallery category the page says where to choose one (an admin) or whom to ask (a member);
+ * Without a gallery category the page says where to choose one (who can change the categories) or whom
+ * to ask (the others);
  * with a gallery and no drawing the card invites to add the first.
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Images, Plus } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -42,6 +43,8 @@ const props = defineProps<{
     total: number;
     /** The person can add a drawing. */
     canAdd: boolean;
+    /** The person can change the categories, so can choose the gallery category. */
+    canManageCategories: boolean;
     /** A category is shown as a gallery. */
     hasGallery: boolean;
     /** The choices of the panel *Add a drawing*. */
@@ -49,17 +52,9 @@ const props = defineProps<{
 }>();
 
 const wide = useWideLayout();
-const page = usePage();
 
 /** The panel *Add a drawing* is open. */
 const adding = ref(false);
-
-/** The account is an admin, who can choose the gallery category. */
-const admin = computed(
-    (): boolean =>
-        (page.props.auth?.user as { role?: string } | null | undefined)
-            ?.role === 'admin',
-);
 
 usePageTrail(() => [
     { label: trans('Documents'), href: documents().url },
@@ -200,7 +195,7 @@ function setFavorite(value: boolean): void {
             :icon="Images"
             :title="$t('The gallery is not set up yet')"
             :text="
-                admin
+                canManageCategories
                     ? $t(
                           'Choose the category to show as a gallery in Categories.',
                       )
@@ -209,7 +204,7 @@ function setFavorite(value: boolean): void {
                       )
             "
         >
-            <FmButton v-if="admin" :href="categories().url">{{
+            <FmButton v-if="canManageCategories" :href="categories().url">{{
                 $t('Go to Categories')
             }}</FmButton>
         </FmEmpty>

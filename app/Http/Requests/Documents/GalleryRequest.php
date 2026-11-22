@@ -7,7 +7,6 @@ namespace App\Http\Requests\Documents;
 use App\Models\Document;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * The address of the gallery: `?filter=favorites&person=3&drawing=12`.
@@ -23,17 +22,14 @@ final class GalleryRequest extends FormRequest
     }
 
     /**
-     * The rules of the filters; an id of another family finds nothing.
+     * No rules: the address is read leniently, and a value that is not valid (a tampered or old link) is ignored
+     * instead of sending the person back with an error. An id of another family finds nothing.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        return [
-            'filter' => ['nullable', Rule::in(['all', 'favorites'])],
-            'person' => ['nullable', 'integer'],
-            'drawing' => ['nullable', 'integer'],
-        ];
+        return [];
     }
 
     /**
@@ -41,7 +37,7 @@ final class GalleryRequest extends FormRequest
      */
     public function filter(): string
     {
-        return $this->string('filter')->toString() === 'favorites' ? 'favorites' : 'all';
+        return $this->query('filter') === 'favorites' ? 'favorites' : 'all';
     }
 
     /**
@@ -49,7 +45,7 @@ final class GalleryRequest extends FormRequest
      */
     public function person(): ?int
     {
-        return $this->filled('person') ? $this->integer('person') : null;
+        return $this->id('person');
     }
 
     /**
@@ -57,6 +53,19 @@ final class GalleryRequest extends FormRequest
      */
     public function drawing(): ?int
     {
-        return $this->filled('drawing') ? $this->integer('drawing') : null;
+        return $this->id('drawing');
+    }
+
+    /**
+     * A positive whole number of the address, null when it is missing or is anything else.
+     *
+     * @param  string  $key  the name in the address
+     */
+    private function id(string $key): ?int
+    {
+        $value = $this->query($key);
+        $id = is_string($value) ? filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
+
+        return $id === false ? null : $id;
     }
 }
