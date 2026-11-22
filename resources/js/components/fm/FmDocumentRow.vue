@@ -3,16 +3,22 @@
  * A document in a list: the icon of the file, the title, what it is and whose,
  * and on the right its date (or its expiry). With `expiry` the line below is
  * the expiry instead, red once passed and orange while it is ahead, as at the
- * top of *A person*.
+ * top of *A person*. With `menu` the row has a ⋯ button beside its link with
+ * the actions of the document.
  *
  * @group rows
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import { Download, ExternalLink, Pencil, Pin, PinOff } from '@lucide/vue';
+import { useDocumentPin } from '@/composables/useDocumentPin';
 import { useFormat } from '@/composables/useFormat';
 import { documentLine } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
+import { edit } from '@/routes/documents';
 import FmFileTile from './FmFileTile.vue';
+import FmMenu from './FmMenu.vue';
+import FmMenuItem from './FmMenuItem.vue';
 import FmRow from './FmRow.vue';
 
 const {
@@ -23,6 +29,7 @@ const {
     dateless = false,
     today = isoDate(),
     current = false,
+    menu = false,
 } = defineProps<{
     /** The document. */
     document: App.Data.DocumentData;
@@ -38,9 +45,12 @@ const {
     today?: string;
     /** The document is the one open beside the list. */
     current?: boolean;
+    /** A ⋯ menu beside the row, outside its link, in place of the arrow: Pin, Download, Open in a new tab, Edit. */
+    menu?: boolean;
 }>();
 
 const { date } = useFormat();
+const { togglePin, pinLabel } = useDocumentPin();
 
 /** The line below the title and its colour. */
 const line = computed(() => documentLine(document, { expiry, today }));
@@ -58,7 +68,52 @@ const when = computed(() => {
 </script>
 
 <template>
+    <div v-if="menu" class="flex items-center">
+        <FmRow
+            class="min-w-0 grow pr-2"
+            :title="document.title"
+            :subtitle="line.text"
+            :tone="line.tone"
+            :href="href"
+            :external="external"
+            :current="current"
+            :arrow="false"
+        >
+            <template #before>
+                <FmFileTile />
+            </template>
+            <template v-if="!expiry && !dateless" #after>
+                <span class="text-meta text-ink-soft">{{ when }}</span>
+            </template>
+        </FmRow>
+        <FmMenu
+            row
+            :label="$t('More actions for «:title»', { title: document.title })"
+        >
+            <FmMenuItem
+                v-if="document.can_pin"
+                :icon="document.pinned ? PinOff : Pin"
+                @select="togglePin(document)"
+            >
+                {{ pinLabel(document.pinned) }}
+            </FmMenuItem>
+            <FmMenuItem :icon="Download" :href="document.download_url" download>
+                {{ $t('Download') }}
+            </FmMenuItem>
+            <FmMenuItem :icon="ExternalLink" :href="document.file_url" external>
+                {{ $t('Open in a new tab') }}
+            </FmMenuItem>
+            <FmMenuItem
+                v-if="document.can_edit"
+                :icon="Pencil"
+                :href="edit.url(document.id)"
+            >
+                {{ $t('Edit') }}
+            </FmMenuItem>
+        </FmMenu>
+    </div>
     <FmRow
+        v-else
         :title="document.title"
         :subtitle="line.text"
         :tone="line.tone"

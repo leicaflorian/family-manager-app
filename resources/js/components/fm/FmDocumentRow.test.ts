@@ -1,5 +1,7 @@
+import { router } from '@inertiajs/vue3';
 import { render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import FmDocumentRow from './FmDocumentRow.vue';
 
 const document: App.Data.DocumentData = {
@@ -92,5 +94,105 @@ describe('FmDocumentRow', () => {
         expect(link).not.toHaveTextContent('20/10/2020');
         // Nor the arrow a row without anything on the right would get
         expect(link.querySelectorAll('svg')).toHaveLength(1);
+    });
+
+    describe('the ⋯ menu', () => {
+        const props = { document, href: '/documents/5', menu: true };
+        const button = (): HTMLElement =>
+            screen.getByRole('button', {
+                name: 'More actions for «Tessera sanitaria»',
+            });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('has no button without menu', () => {
+            render(FmDocumentRow, {
+                props: { document, href: '/documents/5' },
+            });
+
+            expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        });
+
+        it('sits beside the link, never inside it, and does not open the document', async () => {
+            const visit = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            render(FmDocumentRow, { props });
+
+            expect(button().closest('a')).toBeNull();
+            await userEvent.click(button());
+
+            expect(visit).not.toHaveBeenCalled();
+        });
+
+        it('lists Pin, Download, Open in a new tab and Edit in that order', async () => {
+            render(FmDocumentRow, { props });
+            await userEvent.click(button());
+
+            const items = await screen.findAllByRole('menuitem');
+            expect(items.map((item) => item.textContent?.trim())).toEqual([
+                'Pin at the top',
+                'Download',
+                'Open in a new tab',
+                'Edit',
+            ]);
+            expect(items[1]).toHaveAttribute('href', '/files/5/download');
+            expect(items[1]).toHaveAttribute('download');
+            expect(items[2]).toHaveAttribute('href', '/files/5');
+            expect(items[2]).toHaveAttribute('target', '_blank');
+            expect(items[3]).toHaveAttribute('href', '/documents/5/edit');
+        });
+
+        it('pins with a PUT', async () => {
+            const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+            render(FmDocumentRow, { props });
+            await userEvent.click(button());
+            await userEvent.click(
+                await screen.findByRole('menuitem', { name: 'Pin at the top' }),
+            );
+
+            expect(put).toHaveBeenCalledWith(
+                '/documents/5/pin',
+                {},
+                { preserveScroll: true },
+            );
+        });
+
+        it('unpins a pinned document with a DELETE', async () => {
+            const del = vi.spyOn(router, 'delete').mockImplementation(() => {});
+            render(FmDocumentRow, {
+                props: { ...props, document: { ...document, pinned: true } },
+            });
+            await userEvent.click(button());
+            await userEvent.click(
+                await screen.findByRole('menuitem', { name: 'Unpin' }),
+            );
+
+            expect(del).toHaveBeenCalledWith('/documents/5/pin', {
+                preserveScroll: true,
+            });
+        });
+
+        it('leaves out Pin without can_pin and Edit without can_edit', async () => {
+            render(FmDocumentRow, {
+                props: {
+                    ...props,
+                    document: {
+                        ...document,
+                        can_pin: false,
+                        can_edit: false,
+                    },
+                },
+            });
+            await userEvent.click(button());
+
+            const items = await screen.findAllByRole('menuitem');
+            expect(items.map((item) => item.textContent?.trim())).toEqual([
+                'Download',
+                'Open in a new tab',
+            ]);
+        });
     });
 });
