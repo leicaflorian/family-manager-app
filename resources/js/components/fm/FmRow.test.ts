@@ -136,6 +136,24 @@ describe('FmRow', () => {
         ).not.toHaveAttribute('aria-current');
     });
 
+    it('keeps aria-current but paints no background with highlight off', () => {
+        render(FmRow, {
+            props: {
+                title: 'Electricity bill',
+                href: '/documents?document=1',
+                current: true,
+                highlight: false,
+            },
+        });
+
+        const link = screen.getByRole('link', { current: 'page' });
+        expect(link).not.toHaveClass('bg-action-soft');
+        // nor on hover or focus: the wrapper paints them, under its menu too
+        expect(link).not.toHaveClass('hover:bg-action-soft');
+        expect(link).not.toHaveClass('focus-visible:bg-action-soft');
+        expect(link).toHaveClass('cursor-pointer');
+    });
+
     it('shows the open row on the light blue background, not a transparent one', () => {
         render(FmRow, {
             props: {

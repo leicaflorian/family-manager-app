@@ -359,38 +359,73 @@ describe('ToSort on the computer', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('lists where the files come from in the box beside the list, without Received mail, and how long they stay', () => {
-        renderPage(ToSort, { ...page, filters: filters(5, 0, 2, 3) });
+    it('the sources are behind the Filters button, not beside the list', async () => {
+        renderPage(ToSort, { ...page, filters: filters(5, 1, 2, 2) });
 
-        const panel = screen.getByRole('navigation', {
-            name: 'Where they come from',
-        });
+        expect(screen.queryByText('Where they come from')).toBeNull();
+        expect(screen.queryByRole('region', { name: 'Filters' })).toBeNull();
         expect(
-            within(panel).getByRole('link', { name: 'All 5' }),
-        ).toHaveAttribute('aria-current', 'page');
+            screen.queryByRole('navigation', { name: 'Files to sort' }),
+        ).toBeNull();
+
+        await fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
+        const box = screen.getByRole('region', { name: 'Filters' });
         expect(
-            within(panel).getByRole('link', {
-                name: 'Uploaded from the phone 2',
-            }),
-        ).toHaveAttribute('href', '/to-sort?source=phone');
+            within(box).getByRole('link', { name: /By mail/ }),
+        ).toHaveAttribute('href', '/to-sort?source=mail');
+        expect(within(box).getByRole('link', { name: /All/ })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
+    it('counts the source chosen on the button and shows a pill that goes back to All', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(ToSort, { ...page, source: 'mail' });
+
         expect(
-            within(panel).getByRole('link', { name: 'Uploaded here 3' }),
-        ).toHaveAttribute('href', '/to-sort?source=upload');
+            screen.getByRole('button', { name: 'Filters, 1 on' }),
+        ).toBeInTheDocument();
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Remove the filter By mail' }),
+        );
+
+        expect(visit).toHaveBeenCalledWith('/to-sort');
+        visit.mockRestore();
+    });
+
+    it('keeps the pill of the source while the box is open', async () => {
+        renderPage(ToSort, { ...page, source: 'mail' });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Filters, 1 on' }),
+        );
+
         expect(
-            within(panel).queryByRole('link', { name: /Arrived by mail/ }),
-        ).not.toBeInTheDocument();
-        expect(within(panel).getByText('Arrived by mail')).toBeInTheDocument();
+            screen.getByRole('region', { name: 'Filters' }),
+        ).toBeInTheDocument();
         expect(
-            screen.queryByRole('link', { name: /Received mail/ }),
-        ).not.toBeInTheDocument();
+            screen.getByRole('button', { name: 'Remove the filter By mail' }),
+        ).toBeInTheDocument();
+    });
+
+    it('puts the Filters button before Link the phone, and tells how long the files stay under the list', () => {
+        renderPage(ToSort, page);
+
+        const buttons = screen
+            .getAllByRole('button')
+            .map((button) => button.textContent?.trim());
+        expect(buttons.indexOf('Filters')).toBeGreaterThanOrEqual(0);
+        expect(buttons.indexOf('Filters')).toBeLessThan(
+            buttons.indexOf('Link the phone'),
+        );
         expect(
             screen.getByText(
                 'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
             ),
         ).toBeInTheDocument();
-        expect(
-            screen.queryByRole('navigation', { name: 'Files to sort' }),
-        ).not.toBeInTheDocument();
     });
 
     it('keeps the files dropped in the zone among those to sort', async () => {
@@ -618,12 +653,15 @@ describe('ToSort on the computer', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('marks the filter chosen', () => {
+    it('marks the filter chosen', async () => {
         renderPage(ToSort, { ...page, source: 'mail', files: [hera] });
 
-        expect(
-            screen.getByRole('link', { name: 'Arrived by mail 1' }),
-        ).toHaveAttribute('aria-current', 'page');
+        await fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+
+        expect(screen.getByRole('link', { name: 'By mail 1' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
     });
 
     it('asks for the state of the files every 2 seconds while one is read, and stops after', async () => {

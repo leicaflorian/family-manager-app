@@ -273,8 +273,8 @@ describe('Movements', () => {
             '/budget/movements/expense/40?from=%2Fbudget%2Fmovements%3Fmonth%3D2026-10',
         );
         expect(
-            screen.getByRole('complementary', { name: 'Filters' }),
-        ).toBeInTheDocument();
+            screen.queryByRole('complementary', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
         expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
     });
 
@@ -323,24 +323,46 @@ describe('Movements', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('on the computer has the filters in a column, and no kind or account beside the month', () => {
+    it('the filters open in a box under the search, never beside the list', async () => {
         screenWidth(true);
         renderPage(Movements, props);
 
-        const column = screen.getByRole('complementary', { name: 'Filters' });
         expect(
-            within(column).getByRole('button', { name: 'Expenses' }),
+            screen.queryByRole('complementary', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('region', { name: 'Filters' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('button', { name: 'Expenses' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
+        const box = screen.getByRole('region', { name: 'Filters' });
+        expect(
+            within(box).getByRole('button', { name: 'Expenses' }),
+        ).toBeInTheDocument();
+        expect(within(box).getByLabelText('Bank account')).toBeInTheDocument();
+        expect(within(box).getByLabelText('At least')).toBeInTheDocument();
+        expect(
+            screen.queryByRole('heading', { level: 2, name: 'Filter' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('counts the filters on in the labelled button, and keeps the pills with the box shut', () => {
+        screenWidth(true);
+        renderPage(Movements, { ...props, filters: allFilters });
+
+        expect(
+            screen.getByRole('button', { name: 'Filters, 4 on' }),
         ).toBeInTheDocument();
         expect(
-            screen.getAllByRole('button', { name: 'Expenses' }),
-        ).toHaveLength(1);
-        expect(
-            screen.getAllByRole('button', { name: /Bank account/ }),
-        ).toHaveLength(1);
-        expect(within(column).getByLabelText('At least')).toBeInTheDocument();
-        expect(
-            screen.queryByRole('button', { name: /^Filters/ }),
+            screen.queryByRole('region', { name: 'Filters' }),
         ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        ).toBeInTheDocument();
     });
 
     it('on the phone opens the filters in a panel and keeps the kind on the page', async () => {
@@ -468,15 +490,6 @@ describe('Movements', () => {
         ).toHaveAttribute('aria-live', 'polite');
     });
 
-    it('names the column of the filters with a heading', () => {
-        screenWidth(true);
-        renderPage(Movements, props);
-
-        expect(
-            screen.getByRole('heading', { level: 2, name: 'Filter' }),
-        ).toBeInTheDocument();
-    });
-
     it('says on the phone whether the panel of the filters is open', async () => {
         screenWidth(390);
         renderPage(Movements, props);
@@ -509,7 +522,8 @@ describe('Movements', () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Movements, searching);
 
-        const column = screen.getByRole('complementary', { name: 'Filters' });
+        await userEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+        const column = screen.getByRole('region', { name: 'Filters' });
         await userEvent.click(
             within(column).getByRole('button', { name: 'Income' }),
         );
@@ -534,7 +548,8 @@ describe('Movements', () => {
         expect(links[0]).not.toHaveAttribute('aria-current');
     });
 
-    it('offers Planned and spent in the box under the tabs, on every layout', () => {
+    it('on the phone offers Planned and spent in the box under the tabs', () => {
+        screenWidth(390);
         renderPage(Movements, props);
 
         const box = screen.getByRole('navigation', {
@@ -570,9 +585,24 @@ describe('Movements', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('adds the use of electricity, gas and water when the family has a utility with it', () => {
+    it('with the sidebar, on the tablet and the computer, has no box: the sidebar has those pages under Budget', () => {
         shared.has_consumption = true;
-        screenWidth(true);
+        for (const width of [800, 1280]) {
+            screenWidth(width);
+            const view = renderPage(Movements, props);
+
+            expect(
+                screen.queryByRole('navigation', {
+                    name: 'More in the budget',
+                }),
+            ).not.toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
+    it('on the phone adds the use of electricity, gas and water when the family has a utility with it', () => {
+        shared.has_consumption = true;
+        screenWidth(390);
         renderPage(Movements, props);
 
         const box = screen.getByRole('navigation', {

@@ -117,7 +117,7 @@ describe('FmFilePreview', () => {
         );
     });
 
-    it('shows a PNG as it is', () => {
+    it('shows a PNG as it is, which opens the file', () => {
         render(FmFilePreview, {
             props: {
                 url: '/files/2',
@@ -127,9 +127,10 @@ describe('FmFilePreview', () => {
             },
         });
 
-        expect(
-            screen.getByRole('img', { name: 'Receipt.png' }),
-        ).toHaveAttribute('src', '/files/2');
+        const image = screen.getByRole('img', { name: 'Receipt.png' });
+        expect(image).toHaveAttribute('src', '/files/2');
+        expect(image.closest('a')).toHaveAttribute('href', '/files/2');
+        expect(image.closest('a')).toHaveAttribute('target', '_blank');
     });
 
     it('shows the new preview when the props change to another file after a failure', async () => {

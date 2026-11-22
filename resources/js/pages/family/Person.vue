@@ -10,8 +10,16 @@
  * below with a partial reload that keeps the address. An `admin` edits them and
  * deletes a person without an account.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, UserX } from '@lucide/vue';
+import { Head, Link } from '@inertiajs/vue3';
+import {
+    ChevronRight,
+    Palette,
+    Pencil,
+    Pin,
+    Plus,
+    Trash2,
+    UserX,
+} from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
@@ -21,13 +29,18 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmPinnedDocument from '@/components/fm/FmPinnedDocument.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmShowMore from '@/components/fm/FmShowMore.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useDocumentPin } from '@/composables/useDocumentPin';
+import { useMorePages } from '@/composables/useMorePages';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { accountText, personSubtitle } from '@/lib/family';
 import type { Area } from '@/lib/areas';
+import { cn } from '@/lib/utils';
 import { areaIcon, areaOf, areaTile } from '@/lib/areas';
 import { daysFromToday, relativeDays } from '@/lib/format';
 import { showMoreLabel } from '@/lib/showMore';
@@ -45,6 +58,8 @@ const {
     person,
     reminders,
     remindersCount,
+    pinned,
+    canPin,
     personal,
     personalNext = null,
     personalTotal,
@@ -59,7 +74,11 @@ const {
     reminders: App.Data.ReminderData[];
     /** How many open reminders they have: the number beside *To do*. */
     remindersCount: number;
-    /** The pages of their documents linked to no record (such as the identity card) loaded so far, the most recent first. */
+    /** Their documents pinned at the top, the whole list in the order they were pinned. */
+    pinned: App.Data.PinnedDocumentData[];
+    /** Whoever sees the page can pin and unpin documents: the pin of a tile shows. */
+    canPin: boolean;
+    /** The pages of their documents linked to no record and not pinned (such as the identity card) loaded so far, the most recent first. */
     personal: App.Data.DocumentData[];
     /** The number of the next page of `personal`, null at the last one. */
     personalNext?: number | null;
@@ -97,29 +116,29 @@ const late = computed(() =>
 /** How many reminders of *To do* are shown. */
 const shownReminders = ref(REMINDERS_STEP);
 
-/** The lists of documents loading their next page: each on its own, because both can load at the same time. */
-const loading = ref<Record<'personal' | 'documents', boolean>>({
-    personal: false,
-    documents: false,
-});
+/** Each list of documents loads its next page on its own, because both can load at the same time. */
+const { loading, loadMore } = useMorePages(['personal', 'documents']);
+
+const wide = useWideLayout();
+
+/** What a pin or an unpin reloads: the pinned list, the others and their numbers, the others from the first page. */
+const pinReload = {
+    only: ['pinned', 'personal', 'personalNext', 'personalTotal'],
+    reset: ['personal'],
+};
+
+const { togglePin } = useDocumentPin();
 
 /**
- * Adds the next page of a list of documents below the rows already shown,
- * without reloading the rest of the page nor changing the address.
+ * Takes a pinned document off the top. The server answers with the page again:
+ * the document goes back among the others. `pinReload` makes the visit partial,
+ * naming what must refresh (the pinned list, the others and their numbers) and
+ * dropping the pages of the others loaded so far, starting again from the first.
  *
- * @param list - the list: the personal documents or the other ones
- * @param page - the number of the page to add
+ * @param id - the id of the document
  */
-function loadMore(list: 'personal' | 'documents', page: number): void {
-    loading.value[list] = true;
-    router.reload({
-        data: { [`${list}_page`]: page },
-        only: [list, `${list}Next`, `${list}Total`],
-        preserveUrl: true,
-        onFinish: () => {
-            loading.value[list] = false;
-        },
-    });
+function unpinDocument(id: number): void {
+    togglePin({ id, pinned: true }, pinReload);
 }
 
 /**
@@ -271,39 +290,117 @@ usePageTrail(() => [
                 </FmCard>
                 <FmCard
                     :title="$t('Personal documents')"
-                    :count="personalTotal"
-                    :list="personal.length > 0"
+                    :count="pinned.length + personalTotal"
+                    :list="pinned.length === 0 && personal.length > 0"
+                    :bare="pinned.length > 0"
                 >
                     <template #actions>
                         <FmSectionLink :href="upload().url" :icon="Plus">{{
                             $t('Add')
                         }}</FmSectionLink>
                     </template>
-                    <FmDocumentRow
-                        v-for="document in personal"
-                        :key="document.id"
-                        :document="document"
-                        :href="showDocument.url(document.id)"
-                    />
-                    <FmShowMore
-                        v-if="personalNext"
-                        :label="
-                            showMoreLabel(
-                                personalTotal - personal.length,
-                                pageSizes.personal,
-                                'documents',
+                    <template v-if="pinned.length > 0">
+                        <div
+                            class="flex items-baseline justify-between gap-3 text-meta text-ink-soft"
+                        >
+                            <span class="text-meta-strong">{{
+                                $t('Pinned')
+                            }}</span>
+                            <span
+                                v-if="wide && canPin"
+                                class="flex items-center gap-1"
+                            >
+                                <FmIcon :icon="Pin" :size="14" />{{
+                                    $t(
+                                        'Mark a document as favourite from its menu',
+                                    )
+                                }}
+                            </span>
+                        </div>
+                        <div class="grid gap-2.5 wide:grid-cols-2">
+                            <FmPinnedDocument
+                                v-for="item in pinned"
+                                :key="item.document.id"
+                                :pinned="item"
+                                :href="showDocument.url(item.document.id)"
+                                :can-unpin="canPin"
+                                @unpin="unpinDocument(item.document.id)"
+                            />
+                        </div>
+                        <p
+                            v-if="personal.length > 0"
+                            class="m-0 mt-1 text-meta-strong text-ink-soft"
+                        >
+                            {{ $t('The others, most recent first') }}
+                        </p>
+                    </template>
+                    <div
+                        v-if="personal.length > 0"
+                        :class="
+                            cn(
+                                'flex flex-col divide-y divide-divider',
+                                pinned.length > 0 &&
+                                    'overflow-hidden rounded-card bg-card shadow-card',
                             )
                         "
-                        :loading="loading.personal"
-                        @more="loadMore('personal', personalNext)"
-                    />
+                    >
+                        <FmDocumentRow
+                            v-for="document in personal"
+                            :key="document.id"
+                            :document="document"
+                            :href="showDocument.url(document.id)"
+                            menu
+                            :pin-options="pinReload"
+                        />
+                        <FmShowMore
+                            v-if="personalNext"
+                            :label="
+                                showMoreLabel(
+                                    personalTotal - personal.length,
+                                    pageSizes.personal,
+                                    'documents',
+                                )
+                            "
+                            :loading="loading.personal"
+                            @more="loadMore('personal', personalNext)"
+                        />
+                    </div>
                     <p
-                        v-if="personal.length === 0"
+                        v-if="personal.length === 0 && pinned.length === 0"
                         class="m-0 text-body-sm text-ink-soft"
                     >
                         {{ $t('No personal documents yet.') }}
                     </p>
                 </FmCard>
+                <Link
+                    v-if="person.drawings_url"
+                    :href="person.drawings_url"
+                    class="flex items-center gap-3 rounded-card bg-card px-4 py-3 text-ink no-underline shadow-card"
+                >
+                    <span
+                        aria-hidden="true"
+                        class="flex size-[38px] shrink-0 items-center justify-center rounded-md bg-school-soft text-school-text"
+                        ><FmIcon :icon="Palette" :size="20"
+                    /></span>
+                    <span class="flex min-w-0 grow flex-col gap-0.5">
+                        <span class="text-body-strong">{{
+                            $t(":name's drawings", {
+                                name: person.first_name,
+                            })
+                        }}</span>
+                        <span class="text-meta text-ink-soft">{{
+                            $tChoice(
+                                '{1} :count in the drawings gallery|[2,*] :count in the drawings gallery',
+                                person.drawings_count,
+                            )
+                        }}</span>
+                    </span>
+                    <FmIcon
+                        :icon="ChevronRight"
+                        :size="20"
+                        class="text-ink-soft"
+                    />
+                </Link>
                 <FmLinkedRecords :groups="links" />
             </div>
 
@@ -371,6 +468,7 @@ usePageTrail(() => [
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                        menu
                     />
                     <FmShowMore
                         v-if="documentsNext"

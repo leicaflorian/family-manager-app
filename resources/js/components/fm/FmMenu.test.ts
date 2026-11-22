@@ -5,7 +5,7 @@ import type { LucideIcon } from '@lucide/vue';
 import { Plus } from '@lucide/vue';
 import type { PropType } from 'vue';
 import { defineComponent, h } from 'vue';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
 
@@ -19,6 +19,8 @@ const Menu = defineComponent({
         outline: { type: Boolean, default: false },
         control: { type: Boolean, default: false },
         choice: { type: Boolean, default: false },
+        row: { type: Boolean, default: false },
+        primary: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
@@ -32,6 +34,8 @@ const Menu = defineComponent({
                 outline: props.outline,
                 control: props.control,
                 choice: props.choice,
+                row: props.row,
+                primary: props.primary,
                 icon: props.icon,
             },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
@@ -74,6 +78,17 @@ describe('FmMenu', () => {
         const button = screen.getByRole('button', { name: 'More actions' });
         expect(button).toHaveClass('bg-transparent', 'hover:text-action-dark');
         expect(button).not.toHaveClass('bg-canvas');
+    });
+
+    it('row, the ⋮ button is a 32 px square that announces a menu', () => {
+        renderPage(Menu, { row: true });
+
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(button).toHaveClass('size-8');
+        expect(button).toHaveAttribute('aria-haspopup', 'menu');
+        expect(
+            button.querySelector('.lucide-ellipsis-vertical'),
+        ).not.toBeNull();
     });
 
     it('takes its own icon in place of the ⋯', () => {
@@ -147,6 +162,42 @@ describe('FmMenu', () => {
         expect(chevron).toHaveClass('lucide-chevron-down', 'text-ink-soft');
         // The chevron comes after the words
         expect(button.lastElementChild).toBe(chevron);
+        await userEvent.click(button);
+        expect(
+            await screen.findByRole('menuitem', { name: 'Rename' }),
+        ).toBeInTheDocument();
+    });
+
+    it('primary is a blue square with only the icon on the phone', async () => {
+        screenWidth(false);
+        renderPage(Menu, { primary: true, label: 'Add', icon: Plus });
+
+        const button = screen.getByRole('button', { name: 'Add' });
+        expect(button).toHaveClass('size-control-md', 'bg-action');
+        expect(button).not.toHaveTextContent('Add');
+        expect(button.querySelectorAll('svg')).toHaveLength(1);
+        expect(button.querySelector('svg')).toHaveClass('lucide-plus');
+        await userEvent.click(button);
+        expect(
+            await screen.findByRole('menuitem', { name: 'Rename' }),
+        ).toBeInTheDocument();
+    });
+
+    it('primary shows its label and a chevron in a blue button', async () => {
+        screenWidth(true);
+        renderPage(Menu, { primary: true, label: 'Add', icon: Plus });
+
+        const button = screen.getByRole('button', { name: 'Add' });
+        expect(button).toHaveTextContent('Add');
+        expect(button).toHaveClass(
+            'h-control',
+            'rounded-control',
+            'bg-action',
+            'text-on-action',
+        );
+        const chevron = button.querySelector('svg:last-of-type');
+        expect(chevron).toHaveClass('lucide-chevron-down');
+        expect(button.querySelector('svg')).toHaveClass('lucide-plus');
         await userEvent.click(button);
         expect(
             await screen.findByRole('menuitem', { name: 'Rename' }),

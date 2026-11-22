@@ -31,6 +31,8 @@ final class PersonDetailData extends Data
      * @param  bool  $is_me  it is the person of whoever is looking
      * @param  bool  $can_edit  whoever is looking can change them
      * @param  bool  $can_delete  whoever is looking can delete them: an `admin`, and the person has no account
+     * @param  string|null  $drawings_url  the gallery of their drawings, or null when they have none
+     * @param  int  $drawings_count  how many drawings of theirs are in the gallery
      */
     public function __construct(
         public readonly int $id,
@@ -48,6 +50,8 @@ final class PersonDetailData extends Data
         public readonly bool $is_me,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
+        public readonly ?string $drawings_url = null,
+        public readonly int $drawings_count = 0,
     ) {}
 
     /**
@@ -55,8 +59,9 @@ final class PersonDetailData extends Data
      *
      * @param  Person  $person  the person
      * @param  User  $viewer  whoever is looking
+     * @param  int  $drawingsCount  how many drawings of the person are in the gallery
      */
-    public static function fromPerson(Person $person, User $viewer): self
+    public static function fromPerson(Person $person, User $viewer, int $drawingsCount = 0): self
     {
         return new self(
             id: $person->id,
@@ -74,6 +79,8 @@ final class PersonDetailData extends Data
             is_me: $person->user_id === $viewer->id,
             can_edit: $viewer->can('update', $person),
             can_delete: $person->user_id === null && $viewer->can('delete', $person),
+            drawings_url: $drawingsCount > 0 ? route('documents.gallery', ['person' => $person->id]) : null,
+            drawings_count: $drawingsCount,
         );
     }
 }

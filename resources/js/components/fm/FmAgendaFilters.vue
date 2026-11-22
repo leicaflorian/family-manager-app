@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * The filters of the *Agenda*: the period (the months the server offers), the
- * person and the areas. On the computer (`toolbar`) they are a bar above the
- * list, as the board *Agenda-pc* draws it: the period as a segmented control,
- * the people as round buttons and, on the right, *All areas*, which opens the
- * menu of the areas. On the phone (`sheet`) three buttons say what is chosen
+ * person and the areas. On the wide layout (`box`) they are in the box that the
+ * *Filters* button opens under the title, as the board *Agenda-filtri-aperti-pc*
+ * draws it: *Period* as a segmented control, *Of whom* as round buttons and
+ * *Areas* as a button that opens the menu of the areas, in one row (one column
+ * under the computer width). On the phone (`sheet`) three buttons say what is chosen
  * («1 month», «Everyone», «All areas») and each opens the panel from below with
  * all the filters, which ends with *Show 10 entries*. An area is a button that
  * turns it off: its name is struck through and its number stays, so the
@@ -38,7 +39,7 @@ import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 
 /** Where the filters are shown. */
-export type AgendaFiltersVariant = 'sheet' | 'toolbar';
+export type AgendaFiltersVariant = 'sheet' | 'box';
 
 /** The filters in use: the period only where there is one. */
 export type AgendaFilterState = Pick<
@@ -53,7 +54,7 @@ export type AgendaFilterPerson = Pick<
 >;
 
 const {
-    variant = 'toolbar',
+    variant = 'box',
     filters,
     people,
     periods = [],
@@ -61,7 +62,7 @@ const {
     counts,
     familyHidden = [],
 } = defineProps<{
-    /** A bar above the list on the computer, buttons and a panel from below on the phone. */
+    /** A row of fields in the box of the wide layout, buttons and a panel from below on the phone. */
     variant?: AgendaFiltersVariant;
     /** The filters in use. */
     filters: AgendaFilterState;
@@ -98,15 +99,15 @@ const hasPeriod = computed(
     () => periods.length > 0 && filters.months !== undefined,
 );
 
-/** Makes the radio groups of this instance its own: a toolbar and a sheet may both be on the page. */
+/** Makes the radio groups of this instance its own: a box and a sheet may both be on the page. */
 const id = useId();
 
 const [DefinePeriod, ReusePeriod] = createReusableTemplate();
 const [DefinePeople, ReusePeople] = createReusableTemplate();
 const [DefineAreas, ReuseAreas] = createReusableTemplate();
 
-/** The toolbar is smaller than the panel of the phone. */
-const compact = computed(() => variant === 'toolbar');
+/** The box is smaller than the panel of the phone. */
+const compact = computed(() => variant === 'box');
 
 /**
  * The length of a period, as the person reads it.
@@ -342,32 +343,41 @@ const chip = cn(
     </DefineAreas>
 
     <div
-        v-if="variant === 'toolbar'"
-        class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card bg-card px-3 py-2.5 shadow-card"
+        v-if="variant === 'box'"
+        class="grid grid-cols-1 items-start gap-x-6 gap-y-4 computer:grid-cols-3"
     >
-        <ReusePeriod v-if="hasPeriod" />
-        <span
-            v-if="hasPeriod"
-            aria-hidden="true"
-            class="h-6 w-px bg-edge-soft"
-        />
-        <ReusePeople />
-        <span class="grow" />
-        <PopoverRoot>
-            <PopoverTrigger :class="cn(chip, 'gap-2 rounded-md px-3')">
-                {{ areasText }}
-                <FmIcon class="text-ink-soft" :icon="ChevronDown" :size="18" />
-            </PopoverTrigger>
-            <PopoverPortal>
-                <PopoverContent
-                    align="end"
-                    :side-offset="6"
-                    class="z-30 w-80 rounded-xl bg-card p-4 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+        <div v-if="hasPeriod" class="flex flex-col gap-2">
+            <span class="text-label text-ink-soft">{{ $t('Period') }}</span>
+            <ReusePeriod />
+        </div>
+        <div class="flex flex-col gap-2">
+            <span class="text-label text-ink-soft">{{ $t('Of whom') }}</span>
+            <ReusePeople />
+        </div>
+        <div class="flex flex-col gap-2">
+            <span class="text-label text-ink-soft">{{ $t('Areas') }}</span>
+            <PopoverRoot>
+                <PopoverTrigger
+                    :class="cn(chip, 'w-fit gap-2 rounded-md px-3')"
                 >
-                    <ReuseAreas />
-                </PopoverContent>
-            </PopoverPortal>
-        </PopoverRoot>
+                    {{ areasText }}
+                    <FmIcon
+                        class="text-ink-soft"
+                        :icon="ChevronDown"
+                        :size="18"
+                    />
+                </PopoverTrigger>
+                <PopoverPortal>
+                    <PopoverContent
+                        align="start"
+                        :side-offset="6"
+                        class="z-30 w-80 rounded-xl bg-card p-4 text-ink shadow-menu duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 motion-reduce:animate-none"
+                    >
+                        <ReuseAreas />
+                    </PopoverContent>
+                </PopoverPortal>
+            </PopoverRoot>
+        </div>
     </div>
 
     <template v-else>

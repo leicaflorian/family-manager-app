@@ -8,6 +8,7 @@ use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\Expense;
 use App\Models\Home;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
@@ -238,4 +239,172 @@ test('it filters the documents of one record', function (): void {
     });
 
     expect($titles)->toBe(['Polizza RC auto 2026']);
+});
+
+test('it tells whether a document can be pinned', function (): void {
+    $person = Person::factory()->for($this->marco->family)->create();
+    $personal = Document::factory()->for($this->marco->family)->create(['person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked = Document::factory()->for($this->marco->family)->create(['person_id' => $person->id]);
+    $linked->employments()->attach($this->employment);
+    $nobody = Document::factory()->for($this->marco->family)->create(['person_id' => null]);
+
+    $check = fn (Document $document, bool $canPin, bool $pinned) => $this->get(route('documents.show', $document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.can_pin', $canPin)
+        ->where('document.pinned', $pinned));
+
+    $check($personal, true, true);
+    $check($linked, false, false);
+    $check($nobody, false, false);
+});
+
+/**
+ * Marks "Drawings and crafts" as the gallery and puts one drawing in it, next to an uncategorised document.
+ *
+ * @return array{drawing: Document, plain: Document}
+ */
+function documentsGallerySetup(User $user): array
+{
+    $gallery = DocumentCategory::query()->where('name', 'Drawings and crafts')->sole();
+    $gallery->update(['gallery' => true]);
+
+    return [
+        'drawing' => Document::factory()->for($user->family)->create(['title' => 'Sun and house', 'category_id' => $gallery->id, 'date' => '2026-10-30']),
+        'plain' => Document::factory()->for($user->family)->create(['title' => 'No category', 'category_id' => null, 'date' => '2026-10-01']),
+    ];
+}
+
+test('the list leaves out the gallery documents', function (): void {
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('total', 2)
+        ->where('documents', fn ($documents): bool => ! collect($documents)->pluck('title')->contains('Sun and house')
+            && collect($documents)->pluck('title')->contains('No category')));
+});
+
+test('the category filter does not list them', function (): void {
+    $gallery = DocumentCategory::query()->where('name', 'Drawings and crafts')->sole();
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index', ['category' => $gallery->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 0)
+        ->where('total', 0));
+});
+
+test('with the gallery switched off they are back', function (): void {
+    documentsGallerySetup($this->marco);
+    DocumentCategory::query()->update(['gallery' => false]);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('total', 3)
+        ->where('documents', fn ($documents): bool => collect($documents)->pluck('title')->contains('Sun and house')));
+});
+
+test('the filter keeps only the gallery documents with gallery true', function (): void {
+    $set = documentsGallerySetup($this->marco);
+
+    $ids = resolve(FilterDocuments::class)->apply(Document::query(), ['gallery' => true])->pluck('id')->all();
+
+    expect($ids)->toBe([$set['drawing']->id]);
+});
+
+test('the page has the gallery card only with a gallery category, empty without drawings', function (): void {
+    DocumentCategory::query()->update(['gallery' => false]);
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('gallery', null));
+
+    DocumentCategory::query()->where('name', 'Drawings and crafts')->update(['gallery' => true]);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('gallery.count', 0)
+        ->where('gallery.url', route('documents.gallery'))
+        ->has('gallery.thumbnails', 0));
+
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('gallery.count', 1)
+        ->where('gallery.url', route('documents.gallery'))
+        ->has('gallery.thumbnails', 1));
+});
+
+test('it sends what the row menu needs', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $personal = Document::factory()->for($family)->create(['title' => 'Personal one', 'person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked = Document::factory()->for($family)->create(['title' => 'Linked one', 'person_id' => $person->id]);
+    $linked->employments()->attach($this->employment);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', function ($documents) use ($personal, $linked): bool {
+            $rows = collect($documents)->keyBy('title');
+
+            return $rows['Personal one']['pinned'] === true
+                && $rows['Personal one']['can_pin'] === true
+                && $rows['Personal one']['can_edit'] === true
+                && $rows['Personal one']['download_url'] === route('files.download', $personal->file)
+                && $rows['Linked one']['pinned'] === false
+                && $rows['Linked one']['can_pin'] === false
+                && $rows['Linked one']['can_edit'] === true
+                && $rows['Linked one']['download_url'] === route('files.download', $linked->file);
+        }));
+});
+
+test('a linked document that still has pinned_at does not look pinned', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $linked = Document::factory()->for($family)->create(['title' => 'Linked pinned', 'person_id' => $person->id, 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+    $linked->employments()->attach($this->employment);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', fn ($documents): bool => collect($documents)->firstWhere('title', 'Linked pinned')['pinned'] === false));
+
+    $this->get(route('documents.show', $linked))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('document.pinned', false)
+        ->where('document.can_pin', false));
+});
+
+test('it reads whether documents are personal without a query per row', function (): void {
+    $family = $this->marco->family;
+    $person = Person::factory()->for($family)->create();
+    $this->get(route('documents.index'))->assertOk(); // the first visit also records the account's language and last visit
+    $count = function (): int {
+        DB::enableQueryLog();
+        $this->get(route('documents.index'))->assertOk();
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+
+        return $queries;
+    };
+
+    Document::factory()->for($family)->count(2)->create(['person_id' => $person->id]);
+    $few = $count();
+    Document::factory()->for($family)->count(11)->create(['person_id' => $person->id]);
+    expect($count())->toBe($few);
+});
+
+test('a document marked as linked can still be changed and saved', function (): void {
+    $documents = Document::query()->whereKey($this->document->id)->get();
+    Document::markLinked($documents);
+    $document = $documents->first();
+    $document->setLinked(true);
+
+    $document->title = 'Renamed';
+    $document->save();
+
+    expect($document->fresh()->title)->toBe('Renamed')
+        ->and($document->isDirty())->toBeFalse();
+});
+
+test('markLinked leaves no dirty attribute behind', function (): void {
+    $documents = Document::query()->whereKey($this->document->id)->get();
+    Document::markLinked($documents);
+    $document = $documents->first();
+
+    expect($document->isDirty('is_linked'))->toBeFalse();
+
+    $document->title = 'Renamed again';
+    $document->save();
+
+    expect($this->document->fresh()->title)->toBe('Renamed again');
 });

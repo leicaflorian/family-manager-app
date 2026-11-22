@@ -30,7 +30,7 @@ it('builds on serversideup/php with nginx and PHP-FPM', function (): void {
 
 it('installs the tools of the previews', function (string $package): void {
     expect(repositoryFile('Dockerfile'))->toMatch('/^\s*(&& )?apt-get install .*\b'.preg_quote($package, '/').'\b/m');
-})->with(['poppler-utils', 'libheif-examples', 'libheif-plugin-libde265']);
+})->with(['ghostscript', 'poppler-utils', 'libheif-examples', 'libheif-plugin-libde265']);
 
 it('installs the PHP extensions of the app', function (string $extension): void {
     expect(repositoryFile('Dockerfile'))->toMatch('/^RUN install-php-extensions [^\n]*(?<=\s)'.$extension.'(?=\s|$)/m');

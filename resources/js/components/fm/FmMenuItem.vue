@@ -18,6 +18,7 @@ const {
     external = false,
     download = false,
     danger = false,
+    iconClass,
 } = defineProps<{
     /** The icon before the text. */
     icon?: LucideIcon;
@@ -29,6 +30,8 @@ const {
     download?: boolean;
     /** Red, for the entry that deletes. */
     danger?: boolean;
+    /** Classes of the icon alone, for a colour of its own (the text keeps its ink). */
+    iconClass?: string;
 }>();
 
 defineEmits<{
@@ -57,15 +60,15 @@ const classes = cn(
             :download="download ? '' : undefined"
             :class="classes"
         >
-            <FmIcon v-if="icon" :icon="icon" :size="20" />
+            <FmIcon v-if="icon" :icon="icon" :size="20" :class="iconClass" />
             <slot />
         </a>
         <Link v-else-if="href" :href="href" :class="classes">
-            <FmIcon v-if="icon" :icon="icon" :size="20" />
+            <FmIcon v-if="icon" :icon="icon" :size="20" :class="iconClass" />
             <slot />
         </Link>
         <button v-else type="button" :class="classes">
-            <FmIcon v-if="icon" :icon="icon" :size="20" />
+            <FmIcon v-if="icon" :icon="icon" :size="20" :class="iconClass" />
             <slot />
         </button>
     </DropdownMenuItem>

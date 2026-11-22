@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A document with its file, linked to the records through `documentables`.
@@ -39,6 +41,9 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $pinned_at
+ * @property int|null $pinned_by
+ * @property bool $is_favorite Whether it is a favourite in the drawings gallery
  * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
@@ -69,6 +74,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  * @property-read int|null $maintenance_records_count
  * @property-read Organization|null $organization
  * @property-read Person|null $person
+ * @property-read User|null $pinner
  * @property-read PlannedExpense|null $plannedExpense
  * @property-read Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
@@ -90,6 +96,19 @@ final class Document extends FamilyModel
 {
     /** @use HasFactory<DocumentFactory> */
     use HasFactory;
+
+    /**
+     * Pinning follows the person: when the document moves to another person it is no longer pinned.
+     */
+    protected static function booted(): void
+    {
+        self::updating(static function (self $document): void {
+            if ($document->isDirty('person_id')) {
+                $document->pinned_at = null;
+                $document->pinned_by = null;
+            }
+        });
+    }
 
     /**
      * The file of the document.
@@ -129,6 +148,87 @@ final class Document extends FamilyModel
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * The account that pinned it at the top of the person.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function pinner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pinned_by');
+    }
+
+    /**
+     * Whether it belongs only to its person: it has a person and is not linked to any record.
+     *
+     * Reads the `is_linked` attribute when `withLinked()` or `markLinked()` put it there
+     * (lists must not ask once per row), and asks the database otherwise.
+     */
+    public function isPersonal(): bool
+    {
+        if ($this->person_id === null) {
+            return false;
+        }
+
+        if (array_key_exists('is_linked', $this->attributes)) {
+            return ! (bool) $this->attributes['is_linked'];
+        }
+
+        return ! DB::table('documentables')->where('document_id', $this->id)->exists();
+    }
+
+    /**
+     * Whether it counts as pinned at the top of its person: pinned and still personal.
+     *
+     * `pinned_at` stays on a document that gets linked to a record (it is only hidden from
+     * the pinned list until unlinked), so a linked one must not look pinned.
+     */
+    public function isPinned(): bool
+    {
+        return $this->pinned_at !== null && $this->isPersonal();
+    }
+
+    /**
+     * Adds `is_linked`: whether the document is linked to any record, in the same query.
+     *
+     * @param  Builder<Document>  $query  the query
+     */
+    #[Scope]
+    protected function withLinked(Builder $query): void
+    {
+        $query->addSelect('documents.*')
+            ->selectRaw('exists (select 1 from documentables where documentables.document_id = documents.id) as is_linked');
+    }
+
+    /**
+     * Sets `is_linked` on documents already found, with one query for all of them.
+     *
+     * @param  Collection<int, Document>  $documents  the documents
+     */
+    public static function markLinked(Collection $documents): void
+    {
+        $documents = $documents->reject(static fn (self $document): bool => array_key_exists('is_linked', $document->attributes));
+        if ($documents->isEmpty()) {
+            return;
+        }
+
+        $linked = DB::table('documentables')->whereIn('document_id', $documents->pluck('id'))->distinct()->pluck('document_id')->flip();
+        foreach ($documents as $document) {
+            $document->setLinked($linked->has($document->id));
+        }
+    }
+
+    /**
+     * Sets `is_linked` as read-only information: it is not a column, so it must never count as a change to save.
+     *
+     * @param  bool  $linked  whether the document is linked to any record
+     */
+    public function setLinked(bool $linked): void
+    {
+        $this->setAttribute('is_linked', $linked);
+        $this->syncOriginalAttribute('is_linked');
     }
 
     /**
@@ -331,6 +431,8 @@ final class Document extends FamilyModel
             'date' => 'date',
             'expiry_date' => 'date',
             'tags' => 'array',
+            'is_favorite' => 'boolean',
+            'pinned_at' => 'immutable_datetime',
         ];
     }
 }

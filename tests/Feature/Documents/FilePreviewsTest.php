@@ -9,6 +9,7 @@ use Carbon\CarbonInterval;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -83,12 +84,89 @@ test('a PDF that cannot be read is marked and not tried again', function (): voi
     expect(Storage::disk('local')->allFiles("families/{$good->family_id}/previews"))->toBe([]);
 });
 
-test('a PNG has no preview', function (): void {
-    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.png'));
+test('a JPEG wider than the preview gets a JPEG 1200 px wide', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.jpg', 2400, 1600));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->toBe(resolve(FilePreviews::class)->previewPathOf($file))
+        ->and($file->fresh()->preview_path)->toBe($path)
+        ->and($file->hasPreview())->toBeTrue()
+        ->and($file->imageUrl())->toBe(route('files.preview', $file));
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(1200)->and($size[1])->toBe(800)->and($size[2])->toBe(IMAGETYPE_JPEG);
+});
+
+test('a small JPEG keeps its size in the preview', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.jpg', 600, 400));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(600)->and($size[1])->toBe(400)->and($size[2])->toBe(IMAGETYPE_JPEG);
+});
+
+test('a PNG or a WebP has no preview and is shown as it is', function (string $name): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image($name, 2400, 1600));
 
     expect(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->hasPreview())->toBeFalse()
+        ->and($file->imageUrl())->toBe(route('files.show', $file))
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+})->with(['drawing.png', 'logo.webp']);
+
+test('a photo that cannot be read is marked and leaves nothing', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('broken.jpg', 'not an image')->mimeType('image/jpeg'));
+
+    expect(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
 });
+
+test('a photo that does not fit in memory is marked and leaves nothing', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('big.jpg', 8000, 6000));
+    gc_collect_cycles();
+    gc_mem_caches();
+    $limit = ini_get('memory_limit');
+    ini_set('memory_limit', (string) max(memory_get_usage() + 6 * 1024 * 1024, memory_get_usage(true) + 2 * 1024 * 1024));
+
+    try {
+        $path = resolve(FilePreviews::class)->path($file);
+    } finally {
+        ini_set('memory_limit', (string) $limit);
+    }
+
+    expect($path)->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeTrue()
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+});
+
+test('a JPEG turned by its EXIF is turned the right way up in the preview', function (): void {
+    // 40 × 20 pixels with orientation 6: shown 20 wide and 40 tall.
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('turned.jpg', filePreviewsTurnedJpeg())->mimeType('image/jpeg'));
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    $size = getimagesize(Storage::disk('local')->path((string) $path));
+    expect($size[0])->toBe(20)->and($size[1])->toBe(40);
+});
+
+/**
+ * A 40 × 20 JPEG with the EXIF orientation 6 (turned a quarter to the right).
+ */
+function filePreviewsTurnedJpeg(): string
+{
+    $image = imagecreatetruecolor(40, 20);
+    ob_start();
+    imagejpeg($image);
+    $jpeg = (string) ob_get_clean();
+
+    // An APP1 segment with a little-endian TIFF header and one IFD entry: Orientation (0x0112), SHORT, 1, value 6.
+    $tiff = "II*\x00\x08\x00\x00\x00"."\x01\x00"."\x12\x01\x03\x00\x01\x00\x00\x00\x06\x00\x00\x00"."\x00\x00\x00\x00";
+    $app1 = "Exif\x00\x00".$tiff;
+
+    return substr($jpeg, 0, 2)."\xFF\xE1".pack('n', strlen($app1) + 2).$app1.substr($jpeg, 2);
+}
 
 test('a HEIC photo gets a JPEG at most 1200 px wide', function (): void {
     $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
@@ -226,15 +304,14 @@ test('a big HEIC photo that does not fit in memory is marked and leaves nothing'
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
 });
 
-test('a failure is logged with the exit code and the message of the tool', function (): void {
+test('a failure is logged', function (): void {
     Log::spy();
     $broken = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
 
     resolve(FilePreviews::class)->path($broken);
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[file-preview] conversion failed'
-        && is_int($context['exit_code'])
-        && $context['exit_code'] > 0
+        && $context['file'] === $broken->id
         && is_string($context['error']))->once();
 });
 
@@ -251,4 +328,136 @@ test('a missing tool does not mark the file as failed', function (): void {
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
     Log::shouldHaveReceived('error')->twice();
     expect(resolve(FilePreviews::class)->path($file->fresh()))->not->toBeNull();
+});
+
+test('it saves the page count when it makes the preview of a PDF', function (): void {
+    Process::fake(fn ($process) => Process::result(str_contains((string) (is_array($process->command) ? $process->command[0] : $process->command), 'pdfinfo') ? "Title:  x\nPages:          2\nEncrypted:      no\n" : ''));
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    resolve(FilePreviews::class)->path($file);
+
+    expect($file->fresh()->page_count)->toBe(2);
+});
+
+test('it leaves page_count empty when pdfinfo fails, and the preview is still made', function (): void {
+    Log::spy();
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    $path = new FilePreviews(pdfInfoTool: 'no-such-info-tool')->path($file);
+
+    expect($path)->not->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeFalse();
+    Log::shouldHaveReceived('error')->once();
+});
+
+test('it leaves page_count empty for a broken PDF', function (): void {
+    $file = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull();
+});
+
+test('it leaves page_count empty when pdfinfo says no pages', function (): void {
+    Process::fake(['*' => Process::result("Pages:          0\n")]);
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull();
+});
+
+test('it does not run pdfinfo for a photo', function (): void {
+    Process::fake();
+    $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
+
+    resolve(FilePreviews::class)->path($file);
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull();
+    Process::assertNotRan(fn ($process): bool => str_contains(implode(' ', (array) $process->command), 'pdfinfo'));
+});
+
+test('it leaves page_count empty when pdfinfo says more pages than the column holds', function (): void {
+    Process::fake(['*' => Process::result("Pages:          70000\n")]);
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull()
+        ->and(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull();
+});
+
+/**
+ * A one-page PDF that is a white image in a CalGray colour space with the D65 white point, like the pages a scanner makes.
+ */
+function previewsCalGrayPdf(): string
+{
+    return previewsPdf('/MediaBox [0 0 200 200]', "q 200 0 0 200 0 0 cm /Im0 Do Q\n");
+}
+
+/**
+ * A one-page PDF with the given page entries and content, and the CalGray image as /Im0.
+ */
+function previewsPdf(string $pageEntries, string $content): string
+{
+    $objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        "<< /Type /Page /Parent 2 0 R {$pageEntries} /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>",
+        '<< /Length '.strlen($content)." >>\nstream\n{$content}endstream",
+        "<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /BitsPerComponent 8 /Filter /ASCIIHexDecode /ColorSpace [/CalGray << /WhitePoint [0.950455 1 1.08905] /Gamma 2.2 >>] /Length 9 >>\nstream\nFFFFFFFF>\nendstream",
+    ];
+
+    $pdf = "%PDF-1.5\n";
+    $offsets = [];
+
+    foreach ($objects as $index => $object) {
+        $offsets[] = strlen($pdf);
+        $pdf .= ($index + 1)." 0 obj\n{$object}\nendobj\n";
+    }
+
+    $xref = strlen($pdf);
+    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+
+    foreach ($offsets as $offset) {
+        $pdf .= sprintf("%010d 00000 n \n", $offset);
+    }
+
+    return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF\n";
+}
+
+test('the white of a scanned page stays white, not pink', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('scan.pdf', previewsCalGrayPdf()));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $image = imagecreatefromjpeg(Storage::disk('local')->path((string) $path));
+    $color = imagecolorat($image, 5, 5);
+    $channels = [($color >> 16) & 0xFF, ($color >> 8) & 0xFF, $color & 0xFF];
+    expect(min($channels))->toBeGreaterThanOrEqual(250)
+        ->and(max($channels) - min($channels))->toBeLessThanOrEqual(3);
+});
+
+test('a page rotated by 90 degrees is drawn the right way up', function (): void {
+    // 200x100 page with a blue strip on its left; turned 90 degrees clockwise the strip is at the top.
+    $pdf = previewsPdf('/MediaBox [0 0 200 100] /Rotate 90', "0 0 1 rg 0 0 40 100 re f\n");
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('turned.pdf', $pdf));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $disk = Storage::disk('local')->path((string) $path);
+    $image = imagecreatefromjpeg($disk);
+    $top = imagecolorat($image, 600, 5);
+    $bottom = imagecolorat($image, 600, imagesy($image) - 5);
+    expect(getimagesize($disk)[0])->toBe(1200)
+        ->and($top & 0xFF)->toBeGreaterThan(200)
+        ->and(($top >> 16) & 0xFF)->toBeLessThan(60)
+        ->and(($bottom >> 16) & 0xFF)->toBeGreaterThan(200);
+});
+
+test('the lock covers both passes of a conversion', function (): void {
+    $lockSeconds = new ReflectionMethod(FilePreviews::class, 'lockSeconds');
+
+    expect($lockSeconds->invoke(new FilePreviews(20)))->toBe(50);
 });

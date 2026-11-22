@@ -278,6 +278,7 @@ readonly parent_id: number | null,
 readonly icon: string | null,
 readonly color: string | null,
 readonly card_type: string | null,
+readonly gallery: boolean,
 readonly inherited_card_type: string | null,
 readonly documents_count: number,
 readonly children: App.Data.CategoryData[],
@@ -331,6 +332,10 @@ readonly expiry_date: string | null,
 readonly status: string,
 readonly mime_type: string,
 readonly file_url: string,
+readonly download_url: string,
+readonly pinned: boolean,
+readonly can_edit: boolean,
+readonly can_pin: boolean,
 };
 export type DocumentDetailData = {
 readonly id: number,
@@ -353,6 +358,8 @@ readonly file: App.Data.FileData,
 readonly links: App.Data.DocumentLinkData[],
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly pinned: boolean,
+readonly can_pin: boolean,
 };
 export type DocumentLinkData = {
 readonly type: string,
@@ -368,6 +375,27 @@ readonly error: string | null,
 readonly proposal: App.Data.Reading.DocumentProposalData | null,
 readonly can_read: boolean,
 readonly unavailable: string | null,
+};
+export type DrawingData = {
+readonly id: number,
+readonly title: string,
+readonly notes: string | null,
+readonly person_id: number | null,
+readonly person_name: string | null,
+readonly age: number | null,
+readonly uploaded_on: string,
+readonly pages: number | null,
+readonly is_favorite: boolean,
+readonly image_url: string,
+readonly file_url: string,
+readonly download_url: string,
+readonly document_url: string,
+readonly can_favorite: boolean,
+};
+export type DrawingYearData = {
+readonly year: number,
+readonly count: number,
+readonly drawings: App.Data.DrawingData[],
 };
 export type ExceptionData = {
 readonly id: number,
@@ -403,6 +431,13 @@ readonly size: number,
 readonly url: string,
 readonly download_url: string,
 readonly preview_url: string | null,
+};
+export type GalleryTeaserData = {
+readonly count: number,
+readonly people: string[],
+readonly last_uploaded_on: string | null,
+readonly thumbnails: string[],
+readonly url: string,
 };
 export type HomeData = {
 readonly first_name: string,
@@ -653,6 +688,8 @@ readonly account_label: string | null,
 readonly is_me: boolean,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly drawings_url: string | null,
+readonly drawings_count: number,
 };
 export type PersonSummaryData = {
 readonly id: number,
@@ -668,6 +705,11 @@ readonly expires_at: string | null,
 readonly person: string,
 readonly family: string,
 readonly devices: App.Data.LinkedDeviceData[],
+};
+export type PinnedDocumentData = {
+readonly document: App.Data.DocumentData,
+readonly area: string | null,
+readonly pinned_by: string | null,
 };
 export type PlannedChoiceData = {
 readonly kind: string,

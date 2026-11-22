@@ -6,13 +6,14 @@
  * the most recent, with a button to add one. With a text, an amount or a day
  * the page searches every month: the list is grouped by month, with how many
  * were found and their total instead of the month and its figures. On the
- * computer the filters are a column on the left; on the phone they are in the
- * panel from below. Under the tabs, while no search or filter is on, a box leads
- * to the other pages of the Budget: *Planned and spent* and, with a utility with
- * consumption, *Usage*. A row, and *New expense or income*, always open the page of
+ * wide layout the filters open in a box under the search; on the phone they
+ * are in the panel from below. On the phone, under the tabs, while no search or filter is on,
+ * a box leads to the other pages of the Budget: *Planned and spent* and, with a utility with
+ * consumption, *Usage*; on the tablet and the computer the sidebar has them under *Budget*. A row, and *New expense or income*, always open the page of
  * the movement, which brings back to this list (`?from=`).
  */
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { useLayoutMode } from '@/composables/useLayoutMode';
 import {
     ChartColumn,
     ChartPie,
@@ -30,7 +31,7 @@ import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmFilterAside from '@/components/fm/FmFilterAside.vue';
+import FmFilterBox from '@/components/fm/FmFilterBox.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -83,14 +84,18 @@ const { euro } = useFormat();
 const bankFeed = useBankFeed();
 const page = usePage();
 
+/** The layout of the screen: the box of the other pages shows only on the phone, which has no sidebar. */
+const layout = useLayoutMode();
+
 /** The family has an electricity, gas or water utility: *Usage* is offered too. */
 const hasConsumption = computed(
     (): boolean => page.props.has_consumption ?? false,
 );
 
-/** The search box, the visits with other filters and the column of the filters. */
+/** The search box, the visits with other filters and the box of the filters. */
 const {
-    desktop,
+    wide,
+    boxOpen,
     searchText,
     submitSearch,
     go,
@@ -98,7 +103,6 @@ const {
     removeAll,
     filterCount,
     filterErrors,
-    layout,
 } = useListFilters<App.Data.MovementFiltersData, MovementsQuery>({
     filters: () => props.filters,
     pills: () => pills.value,
@@ -328,11 +332,10 @@ function subtitle(movement: App.Data.MovementData): string {
             :label="$t('Budget')"
         />
 
-        <!-- The other pages of the Budget: they have no tab, the sidebar has them on the computer too -->
+        <!-- The other pages of the Budget: they have no tab; on the tablet and the computer the sidebar has them under Budget -->
         <nav
-            v-if="pills.length === 0"
+            v-if="pills.length === 0 && layout === 'phone'"
             :aria-label="$t('More in the budget')"
-            class="wide:max-w-130"
         >
             <FmCard list>
                 <FmRow
@@ -369,7 +372,7 @@ function subtitle(movement: App.Data.MovementData): string {
             </FmCard>
         </nav>
 
-        <div class="flex w-full max-w-105 gap-2.5">
+        <div class="flex w-full gap-2.5">
             <form
                 role="search"
                 class="min-w-0 grow"
@@ -381,183 +384,175 @@ function subtitle(movement: App.Data.MovementData): string {
                 />
             </form>
             <FmFilterButton
-                v-if="!desktop"
+                v-if="wide"
+                labelled
+                controls="movement-filters"
+                :count="filterCount"
+                :expanded="boxOpen"
+                @click="boxOpen = !boxOpen"
+            />
+            <FmFilterButton
+                v-else
                 :count="filterCount"
                 :expanded="filtersOpen"
                 @click="filtersOpen = true"
             />
         </div>
 
-        <div :class="layout">
-            <FmFilterAside v-if="desktop" :detail="false">
-                <template #filters>
-                    <div class="flex flex-col gap-4">
-                        <h2 class="text-amount">{{ $t('Filter') }}</h2>
-                        <FmMovementFilters
-                            :filters="filters"
-                            :accounts="accountOptions"
-                            :errors="filterErrors"
-                            @change="go"
-                        />
-                    </div>
-                </template>
-            </FmFilterAside>
+        <FmFilterBox v-if="wide && boxOpen" id="movement-filters">
+            <FmMovementFilters
+                columns
+                :filters="filters"
+                :accounts="accountOptions"
+                :errors="filterErrors"
+                @change="go"
+            />
+        </FmFilterBox>
 
-            <div class="flex min-w-0 flex-col gap-4">
-                <template v-if="search === null">
-                    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
-                        <FmMonthSwitch
-                            :month="summary.month"
-                            @change="(month) => go({ month })"
-                        />
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2.5">
-                        <div
-                            class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
-                        >
-                            <span class="text-meta text-ink-soft">{{
-                                $t('Money in')
-                            }}</span>
-                            <span class="text-subtitle computer:text-stat">{{
-                                euro(summary.incomes)
-                            }}</span>
-                            <span
-                                v-if="salaries"
-                                class="text-meta text-ink-soft"
-                                >{{ salaries }}</span
-                            >
-                        </div>
-                        <div
-                            class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
-                        >
-                            <span class="text-meta text-ink-soft">{{
-                                $t('Money out')
-                            }}</span>
-                            <span class="text-subtitle computer:text-stat">{{
-                                euro(summary.expenses)
-                            }}</span>
-                            <span class="text-meta text-ink-soft">{{
-                                payments
-                            }}</span>
-                        </div>
-                        <div
-                            class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
-                        >
-                            <span class="text-meta text-ink-soft">{{
-                                $t('So far')
-                            }}</span>
-                            <span class="text-subtitle computer:text-stat">
-                                <FmAmount
-                                    v-if="summary.balance >= 0"
-                                    :amount="summary.balance"
-                                    income
-                                />
-                                <template v-else>{{
-                                    euro(summary.balance)
-                                }}</template>
-                            </span>
-                            <span class="text-meta text-ink-soft">{{
-                                $t('incomes minus expenses')
-                            }}</span>
-                        </div>
-                    </div>
-                </template>
-
-                <FmFilterPills
-                    v-if="pills.length > 0"
-                    :pills="pills"
-                    :found="found"
-                    @remove="removePill"
-                    @remove-all="removeAll"
-                />
-
-                <div
-                    v-if="!desktop"
-                    class="flex flex-wrap items-center gap-2.5"
-                >
-                    <div class="flex gap-1 rounded-md bg-segment p-1">
-                        <button
-                            v-for="choice in kinds"
-                            :key="choice.value ?? 'all'"
-                            type="button"
-                            :aria-pressed="kind === choice.value"
-                            class="h-tab cursor-pointer rounded-tag border-0 bg-transparent px-3.5 text-body-sm text-ink-soft aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised"
-                            @click="go({ kind: choice.value })"
-                        >
-                            {{ choice.label }}
-                        </button>
-                    </div>
-                    <div class="min-w-48">
-                        <FormKit
-                            v-model="accountChoice"
-                            type="dropdown"
-                            :label="$t('Bank account')"
-                            name="account"
-                            :options="accounts"
-                            :classes="{ label: 'sr-only', outer: 'mb-0!' }"
-                        />
-                    </div>
+        <div class="flex min-w-0 flex-col gap-4">
+            <template v-if="search === null">
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+                    <FmMonthSwitch
+                        :month="summary.month"
+                        @change="(month) => go({ month })"
+                    />
                 </div>
 
-                <template v-if="search !== null">
-                    <FmCard v-if="search.months.length > 0" list>
-                        <template
-                            v-for="group in search.months"
-                            :key="group.month"
-                        >
-                            <div
-                                class="flex justify-between gap-3 bg-card-sunken px-4 py-2.5 text-meta-strong text-ink-soft"
-                            >
-                                <span>{{ monthName(group.month) }}</span>
-                                <span class="whitespace-nowrap">{{
-                                    euro(group.total)
-                                }}</span>
-                            </div>
-                            <ReuseRow
-                                v-for="movement in group.movements"
-                                :key="`${movement.kind}:${movement.id}`"
-                                :movement="movement"
-                            />
-                        </template>
-                    </FmCard>
-                    <p
-                        v-if="cutNote !== ''"
-                        class="mx-1 my-0 text-body-sm text-ink-soft"
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
                     >
-                        {{ cutNote }}
-                    </p>
-                    <FmEmpty
-                        v-if="search.months.length === 0"
-                        :icon="Search"
-                        :title="$t('No movement matches the filters')"
-                        :text="$t('Remove a filter or change the search.')"
+                        <span class="text-meta text-ink-soft">{{
+                            $t('Money in')
+                        }}</span>
+                        <span class="text-subtitle computer:text-stat">{{
+                            euro(summary.incomes)
+                        }}</span>
+                        <span v-if="salaries" class="text-meta text-ink-soft">{{
+                            salaries
+                        }}</span>
+                    </div>
+                    <div
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
+                    >
+                        <span class="text-meta text-ink-soft">{{
+                            $t('Money out')
+                        }}</span>
+                        <span class="text-subtitle computer:text-stat">{{
+                            euro(summary.expenses)
+                        }}</span>
+                        <span class="text-meta text-ink-soft">{{
+                            payments
+                        }}</span>
+                    </div>
+                    <div
+                        class="flex flex-col gap-0.5 rounded-card bg-card p-3.5 shadow-card computer:p-4"
+                    >
+                        <span class="text-meta text-ink-soft">{{
+                            $t('So far')
+                        }}</span>
+                        <span class="text-subtitle computer:text-stat">
+                            <FmAmount
+                                v-if="summary.balance >= 0"
+                                :amount="summary.balance"
+                                income
+                            />
+                            <template v-else>{{
+                                euro(summary.balance)
+                            }}</template>
+                        </span>
+                        <span class="text-meta text-ink-soft">{{
+                            $t('incomes minus expenses')
+                        }}</span>
+                    </div>
+                </div>
+            </template>
+
+            <FmFilterPills
+                v-if="pills.length > 0"
+                :pills="pills"
+                :found="found"
+                @remove="removePill"
+                @remove-all="removeAll"
+            />
+
+            <div v-if="!wide" class="flex flex-wrap items-center gap-2.5">
+                <div class="flex gap-1 rounded-md bg-segment p-1">
+                    <button
+                        v-for="choice in kinds"
+                        :key="choice.value ?? 'all'"
+                        type="button"
+                        :aria-pressed="kind === choice.value"
+                        class="h-tab cursor-pointer rounded-tag border-0 bg-transparent px-3.5 text-body-sm text-ink-soft aria-pressed:bg-card aria-pressed:text-ink aria-pressed:shadow-raised"
+                        @click="go({ kind: choice.value })"
+                    >
+                        {{ choice.label }}
+                    </button>
+                </div>
+                <div class="min-w-48">
+                    <FormKit
+                        v-model="accountChoice"
+                        type="dropdown"
+                        :label="$t('Bank account')"
+                        name="account"
+                        :options="accounts"
+                        :classes="{ label: 'sr-only', outer: 'mb-0!' }"
                     />
-                </template>
-                <template v-else>
-                    <FmCard v-if="movements.length > 0" list>
+                </div>
+            </div>
+
+            <template v-if="search !== null">
+                <FmCard v-if="search.months.length > 0" list>
+                    <template v-for="group in search.months" :key="group.month">
+                        <div
+                            class="flex justify-between gap-3 bg-card-sunken px-4 py-2.5 text-meta-strong text-ink-soft"
+                        >
+                            <span>{{ monthName(group.month) }}</span>
+                            <span class="whitespace-nowrap">{{
+                                euro(group.total)
+                            }}</span>
+                        </div>
                         <ReuseRow
-                            v-for="movement in movements"
+                            v-for="movement in group.movements"
                             :key="`${movement.kind}:${movement.id}`"
                             :movement="movement"
                         />
-                    </FmCard>
-                    <FmEmpty
-                        v-else
-                        :icon="Receipt"
-                        :title="$t('No movements this month')"
-                        :text="
-                            $t(
-                                'The expenses and incomes you add will appear here.',
-                            )
-                        "
+                    </template>
+                </FmCard>
+                <p
+                    v-if="cutNote !== ''"
+                    class="mx-1 my-0 text-body-sm text-ink-soft"
+                >
+                    {{ cutNote }}
+                </p>
+                <FmEmpty
+                    v-if="search.months.length === 0"
+                    :icon="Search"
+                    :title="$t('No movement matches the filters')"
+                    :text="$t('Remove a filter or change the search.')"
+                />
+            </template>
+            <template v-else>
+                <FmCard v-if="movements.length > 0" list>
+                    <ReuseRow
+                        v-for="movement in movements"
+                        :key="`${movement.kind}:${movement.id}`"
+                        :movement="movement"
                     />
-                </template>
-            </div>
+                </FmCard>
+                <FmEmpty
+                    v-else
+                    :icon="Receipt"
+                    :title="$t('No movements this month')"
+                    :text="
+                        $t('The expenses and incomes you add will appear here.')
+                    "
+                />
+            </template>
         </div>
 
         <FmBottomSheet
-            v-if="!desktop"
+            v-if="!wide"
             v-model:open="filtersOpen"
             :title="$t('Filters')"
         >

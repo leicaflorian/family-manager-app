@@ -38,6 +38,8 @@ const payslip = {
     mime_type: 'application/pdf',
 };
 
+const threeDocuments = [5, 6, 7].map((id) => ({ ...payslip, id }));
+
 const props = {
     documents: [payslip],
     total: 18,
@@ -47,6 +49,7 @@ const props = {
     hasDocuments: true,
     options: documentFilterOptions,
     selected: null,
+    gallery: null,
 };
 
 afterEach(() => {
@@ -57,6 +60,77 @@ afterEach(() => {
 });
 
 describe('Documents', () => {
+    it('shows the gallery card with count, people and date', () => {
+        vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            gallery: {
+                count: 48,
+                people: ['Giulia'],
+                last_uploaded_on: '2026-11-14',
+                thumbnails: ['/a.jpg', '/b.jpg', '/c.jpg', '/d.jpg'],
+                url: '/documents/gallery',
+            },
+        });
+
+        const card = screen.getByRole('link', { name: /Drawings and crafts/ });
+        expect(card).toHaveAttribute('href', '/documents/gallery');
+        expect(
+            within(card).getByText('48 by Giulia · the last on 14/11/2026'),
+        ).toBeInTheDocument();
+        expect(card.querySelectorAll('img')).toHaveLength(4);
+        expect(within(card).getByText('+44')).toBeInTheDocument();
+    });
+
+    it('shows the empty gallery card, without pictures, when there are no drawings yet', () => {
+        renderPage(Documents, {
+            ...props,
+            gallery: {
+                count: 0,
+                people: [],
+                last_uploaded_on: null,
+                thumbnails: [],
+                url: '/documents/gallery',
+            },
+        });
+
+        const card = screen.getByRole('link', { name: /Drawings and crafts/ });
+        expect(card).toHaveAttribute('href', '/documents/gallery');
+        expect(
+            within(card).getByText('No drawings yet · add the first one'),
+        ).toBeInTheDocument();
+        expect(card.querySelectorAll('img')).toHaveLength(0);
+    });
+
+    it('shows the gallery card also when the family has no other documents', () => {
+        renderPage(Documents, {
+            ...props,
+            documents: [],
+            total: 0,
+            hasDocuments: false,
+            gallery: {
+                count: 0,
+                people: [],
+                last_uploaded_on: null,
+                thumbnails: [],
+                url: '/documents/gallery',
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Drawings and crafts/ }),
+        ).toHaveAttribute('href', '/documents/gallery');
+        expect(screen.getByText('No documents, for now')).toBeInTheDocument();
+    });
+
+    it('hides it when gallery is null', () => {
+        renderPage(Documents, props);
+
+        expect(
+            screen.queryByRole('link', { name: /Drawings and crafts/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('leads to the files to sort when there are some', () => {
         shared.to_sort_count = 3;
         renderPage(Documents, props);
@@ -94,11 +168,22 @@ describe('Documents', () => {
         );
     });
 
+    it('gives each document row its ⋯ menu', () => {
+        renderPage(Documents, props);
+
+        expect(
+            screen.getByRole('button', {
+                name: 'More actions for «Busta paga di ottobre»',
+            }),
+        ).toBeInTheDocument();
+    });
+
     it('a filter narrows the list', async () => {
         screenWidth(1280);
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Documents, props);
 
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
         await choose('Person', 'Laura Bianchi');
 
         expect(get).toHaveBeenCalledWith(
@@ -174,48 +259,83 @@ describe('Documents', () => {
         ).toHaveAttribute('href', '/upload');
     });
 
-    it('on the computer shows the filters in a column from 1280 px, not only from 1440', () => {
+    it('the filters open in a box under the search', async () => {
         screenWidth(1280);
         renderPage(Documents, props);
 
-        const aside = screen.getByRole('complementary', { name: 'Filters' });
-        expect(aside).toHaveClass('sticky', 'top-(--app-header)');
+        await userEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
         expect(
-            screen.queryByRole('button', { name: /Filters/ }),
+            screen.getByRole('region', { name: 'Filters' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', { name: 'Filters' }),
         ).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('on the computer shows the chosen document in the left column in place of the filters', () => {
+    it('the chosen document opens in the column on the right', async () => {
         screenWidth(1280);
-        renderPage(Documents, { ...props, selected: documentDetail });
-
-        const aside = screen.getByRole('complementary', {
-            name: 'Busta paga di ottobre',
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            documents: threeDocuments,
+            total: 3,
+            selected: { ...documentDetail, id: 6, title: 'Bolletta' },
         });
+
+        const aside = screen.getByRole('complementary', { name: 'Bolletta' });
+        expect(within(aside).getByText('2 of 3')).toBeInTheDocument();
+        await userEvent.click(
+            within(aside).getByRole('button', { name: 'More actions' }),
+        );
         expect(
-            within(aside).getByRole('heading', {
-                name: 'Busta paga di ottobre',
-                level: 2,
-            }),
-        ).toBeInTheDocument();
-        expect(
-            within(aside).getByRole('button', { name: 'Back to the filters' }),
-        ).toBeInTheDocument();
-        expect(
-            within(aside).getByRole('link', {
+            await screen.findByRole('menuitem', {
                 name: 'Open the page of the document',
             }),
-        ).toBeInTheDocument();
-        expect(screen.queryByLabelText('Person')).not.toBeInTheDocument();
-        // no third column and no floating panel
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        ).toHaveAttribute('href', '/documents/6');
         expect(screen.getAllByRole('complementary')).toHaveLength(1);
-        expect(screen.getByRole('link', { current: 'page' })).toHaveTextContent(
-            'Busta paga di ottobre',
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        await fireEvent.click(
+            within(aside).getByRole('button', { name: 'Next document' }),
+        );
+
+        expect(visit).toHaveBeenCalledWith(
+            expect.stringContaining('document=7'),
+            expect.objectContaining({ preserveScroll: true }),
         );
     });
 
-    it('Back to the filters and the × leave the document, keeping filters and page', async () => {
+    it('with a chosen document the search sits in the left column beside the column on the right', () => {
+        screenWidth(1280);
+        renderPage(Documents, { ...props, selected: documentDetail });
+
+        const grid = screen.getByRole('complementary', {
+            name: 'Busta paga di ottobre',
+        }).parentElement!;
+        expect(grid.firstElementChild).toContainElement(
+            screen.getByRole('search'),
+        );
+        expect(grid.firstElementChild).toContainElement(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        );
+    });
+
+    it('a chosen document that left the list still shows', () => {
+        screenWidth(1280);
+        renderPage(Documents, {
+            ...props,
+            documents: threeDocuments,
+            total: 3,
+            selected: { ...documentDetail, id: 99, title: 'Vecchia' },
+        });
+
+        const aside = screen.getByRole('complementary', { name: 'Vecchia' });
+        expect(within(aside).getByText('– of 3')).toBeInTheDocument();
+    });
+
+    it('the × leaves the document, keeping filters and page', async () => {
         screenWidth(1280);
         address.url = '/documents?person=3&page=2&document=5';
         const visit = vi.spyOn(router, 'get').mockImplementation(() => {});
@@ -225,14 +345,9 @@ describe('Documents', () => {
             selected: documentDetail,
         });
 
-        await fireEvent.click(
-            screen.getByRole('button', { name: 'Back to the filters' }),
-        );
         await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
-        expect(visit).toHaveBeenCalledTimes(2);
-        expect(visit).toHaveBeenNthCalledWith(
-            1,
+        expect(visit).toHaveBeenCalledWith(
             '/documents?person=3&page=2',
             {},
             expect.objectContaining({

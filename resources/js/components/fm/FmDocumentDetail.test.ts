@@ -228,16 +228,22 @@ describe('FmDocumentDetail', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('embedded in the filters column: no card of its own and a link to the page of the document', () => {
+    it('embedded in the filters column: no card of its own and no buttons, they are in the menu at the top', () => {
         const { container } = render(FmDocumentDetail, {
             props: { document: documentDetail, compact: true, embedded: true },
             global: { plugins: formPlugins },
         });
 
         expect(container.querySelector('[data-card]')).toBeNull();
-        expect(
-            screen.getByRole('link', { name: 'Open the page of the document' }),
-        ).toHaveAttribute('href', `/documents/${documentDetail.id}`);
+        for (const name of [
+            'Open the page of the document',
+            'Download',
+            'Edit',
+        ]) {
+            expect(
+                screen.queryByRole('link', { name }),
+            ).not.toBeInTheDocument();
+        }
     });
 
     it('beside the list, on its own card, has no link to the page at the bottom', () => {
@@ -253,7 +259,7 @@ describe('FmDocumentDetail', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('embedded: the title is in a heading of its own, with Download and Edit as two equal buttons under it', () => {
+    it('embedded: the title is in a heading of its own, with no menu of its own', () => {
         render(FmDocumentDetail, {
             props: { document: documentDetail, compact: true, embedded: true },
             global: { plugins: formPlugins },
@@ -264,20 +270,6 @@ describe('FmDocumentDetail', () => {
         });
         expect(heading.parentElement).not.toHaveClass('justify-between');
         expect(heading.querySelector('a')).toBeNull();
-        const download = screen.getByRole('link', { name: 'Download' });
-        const edit = screen.getByRole('link', { name: 'Edit' });
-        expect(download).toHaveClass('h-control', 'w-full');
-        expect(edit).toHaveClass('h-control', 'w-full');
-        for (const button of [download, edit]) {
-            expect(button.parentElement).toHaveClass(
-                'flex-1',
-                'basis-0',
-                'min-w-0',
-            );
-        }
-        const row = download.parentElement?.parentElement;
-        expect(row).toBe(edit.parentElement?.parentElement);
-        expect(row?.children).toHaveLength(2);
         expect(
             screen.queryByRole('button', { name: 'More actions' }),
         ).not.toBeInTheDocument();

@@ -3,7 +3,8 @@
  * The sidebar of the tablet and of the computer: the bar of its head (the same box as the top bar, white) with the
  * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
- * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, Documents, Family). Areas and Budget are accordions: a
+ * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, Documents, Family). Areas, Budget and, with a
+ * drawings gallery, Documents (*Drawings and crafts*) are accordions: a
  * button with a chevron next to the link opens the list under it (the areas; *Planned and spent* and *Usage*, the
  * latter when the family has a utility with consumption), and the list opens by itself while the page is one of
  * theirs; while a page under Budget is the open one, Budget is drawn plain),
@@ -30,12 +31,13 @@ import {
 } from 'reka-ui';
 import type { ClassValue } from 'clsx';
 import type { Ref } from 'vue';
-import { computed, ref, useAttrs, watch } from 'vue';
+import { computed, reactive, ref, useAttrs, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
 import { getInitials } from '@/composables/useInitials';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
 import { comparison, consumption } from '@/routes/budget';
+import { gallery } from '@/routes/documents';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
@@ -56,6 +58,7 @@ const {
     uploadCount = 0,
     collapsed = false,
     hasConsumption = false,
+    hasGallery = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -75,6 +78,8 @@ const {
     collapsed?: boolean;
     /** The family has an electricity, gas or water utility: *Usage* shows under *Budget*. */
     hasConsumption?: boolean;
+    /** The family has a gallery category: *Drawings and crafts* shows under *Documents*, which then opens like *Budget*. */
+    hasGallery?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -271,53 +276,119 @@ const onConsumption = computed((): boolean => path === consumptionUrl);
 /** Whether the page is *Planned and spent*. */
 const onComparison = computed((): boolean => path === comparisonUrl);
 
-/** Whether one of the pages under *Budget* is open, so *Budget* is drawn plain. */
-const onBudgetChild = computed(
-    (): boolean => onConsumption.value || onComparison.value,
+/** The pages under *Budget*: *Planned and spent*, and *Usage* when the family has a utility with consumption. */
+const budgetChildren = computed((): SubPage[] => [
+    {
+        label: trans('Planned and spent'),
+        href: comparisonUrl,
+        current: onComparison.value,
+    },
+    ...(hasConsumption
+        ? [
+              {
+                  label: trans('Usage'),
+                  href: consumptionUrl,
+                  current: onConsumption.value,
+              },
+          ]
+        : []),
+]);
+
+/** Whether the list under *Documents* is open: it opens by itself on any page of the Documents. */
+const documentsOpen = useAccordion((): boolean => active === 'documents');
+
+/** The address of the drawings gallery, under *Documents*. */
+const galleryUrl = gallery().url;
+
+/** A page in the list under a section. */
+type SubPage = { label: string; href: string; current: boolean };
+
+/** The pages under *Documents*: *Drawings and crafts*, the gallery, when the family has one. */
+const documentChildren = computed((): SubPage[] =>
+    hasGallery
+        ? [
+              {
+                  label: trans('Drawings and crafts'),
+                  href: galleryUrl,
+                  current: path === galleryUrl,
+              },
+          ]
+        : [],
 );
 
-/** The pages under *Budget*: *Planned and spent*, and *Usage* when the family has a utility with consumption. */
-const budgetChildren = computed(
-    (): { label: string; href: string; current: boolean }[] => [
-        {
-            label: trans('Planned and spent'),
-            href: comparisonUrl,
-            current: onComparison.value,
-        },
-        ...(hasConsumption
-            ? [
-                  {
-                      label: trans('Usage'),
-                      href: consumptionUrl,
-                      current: onConsumption.value,
-                  },
-              ]
-            : []),
-    ],
-);
+/** The sections with a list of pages under them, each with its pages, its open state and the name of its arrow. */
+const subLists = reactive({
+    budget: {
+        pages: budgetChildren,
+        open: budgetOpen,
+        toggle: trans('Show the budget pages'),
+    },
+    documents: {
+        pages: documentChildren,
+        open: documentsOpen,
+        toggle: trans('Show the documents pages'),
+    },
+});
 
 /**
- * Whether a section is drawn as the one of the page, in blue: not *Budget*
+ * The list under a section, when it has pages.
+ *
+ * @param section - the section of the item
+ * @returns its list, or null for a section without pages under it
+ */
+function subListOf(section: Section): (typeof subLists)['budget'] | null {
+    if (section !== 'budget' && section !== 'documents') {
+        return null;
+    }
+
+    return subLists[section].pages.length > 0 ? subLists[section] : null;
+}
+
+/**
+ * Opens or closes the list under a section.
+ *
+ * @param section - the section of the item
+ */
+function toggleList(section: Section): void {
+    const list = subListOf(section);
+
+    if (list) {
+        list.open = !list.open;
+    }
+}
+
+/**
+ * Whether one of the pages under a section is the page, so the section is drawn plain.
+ *
+ * @param section - the section of the item
+ * @returns true while a page of its list is open
+ */
+function onChild(section: Section): boolean {
+    return subListOf(section)?.pages.some((page) => page.current) ?? false;
+}
+
+/**
+ * Whether a section is drawn as the one of the page, in blue: not a section
  * while one of the pages under it is open.
  *
  * @param section - the section of the item
  * @returns true for the section of the page
  */
 function isActive(section: Section): boolean {
-    return section === active && !(section === 'budget' && onBudgetChild.value);
+    return section === active && !onChild(section);
 }
 
 /**
  * Whether a section is the page that is open.
  *
  * @param section - the section of the item
- * @returns true for the open section, unless one of its areas or a page under *Budget* is the page
+ * @returns true for the open section, unless one of its areas or a page under it is the page
  */
 function isPage(section: Section): boolean {
     return (
         section === active &&
         !(section === 'areas' && onAreaLink.value) &&
-        !(section === 'budget' && onBudgetChild.value)
+        !onChild(section)
     );
 }
 </script>
@@ -413,7 +484,7 @@ function isPage(section: Section): boolean {
                                       ? 'text-label text-action-dark hover:bg-canvas'
                                       : 'text-ink hover:bg-canvas',
                                 (item.section === 'areas' ||
-                                    item.section === 'budget') &&
+                                    subListOf(item.section)) &&
                                     !small &&
                                     'pr-12',
                             ]"
@@ -464,29 +535,33 @@ function isPage(section: Section): boolean {
                             />
                         </button>
                         <button
-                            v-else-if="item.section === 'budget' && !small"
+                            v-else-if="subListOf(item.section) && !small"
                             type="button"
-                            :aria-label="$t('Show the budget pages')"
-                            :aria-expanded="budgetOpen"
-                            aria-controls="sidebar-budget"
+                            :aria-label="subListOf(item.section)?.toggle"
+                            :aria-expanded="subListOf(item.section)?.open"
+                            :aria-controls="`sidebar-${item.section}`"
                             class="absolute right-1 flex size-9 items-center justify-center rounded-tag text-ink-soft hover:bg-card/70 hover:text-ink"
-                            @click="budgetOpen = !budgetOpen"
+                            @click="toggleList(item.section)"
                         >
                             <FmIcon
-                                :icon="budgetOpen ? ChevronUp : ChevronDown"
+                                :icon="
+                                    subListOf(item.section)?.open
+                                        ? ChevronUp
+                                        : ChevronDown
+                                "
                                 :size="18"
                             />
                         </button>
                     </div>
-                    <div v-if="item.section === 'budget'" v-auto-animate>
+                    <div v-if="subListOf(item.section)" v-auto-animate>
                         <ul
-                            v-if="budgetOpen && !small"
-                            id="sidebar-budget"
+                            v-if="subListOf(item.section)?.open && !small"
+                            :id="`sidebar-${item.section}`"
                             :aria-label="item.label"
                             class="mt-0 mb-1.5 ml-[23px] flex flex-col gap-px border-l-[1.5px] border-edge-soft pl-2.5"
                         >
                             <li
-                                v-for="child in budgetChildren"
+                                v-for="child in subListOf(item.section)?.pages"
                                 :key="child.href"
                             >
                                 <Link

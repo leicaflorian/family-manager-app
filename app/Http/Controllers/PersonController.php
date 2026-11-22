@@ -11,10 +11,13 @@ use App\Data\OptionData;
 use App\Data\PersonData;
 use App\Data\PersonDetailData;
 use App\Enums\PersonRole;
+use App\Http\Controllers\Concerns\PagesDocuments;
 use App\Http\Requests\Family\SavePersonRequest;
+use App\Models\Document;
 use App\Models\Person;
 use App\Models\User;
 use App\Queries\DocumentRows;
+use App\Queries\GalleryTeaser;
 use App\Services\LinkedRecords;
 use App\Services\Reminders\ReminderList;
 use Carbon\CarbonImmutable;
@@ -24,7 +27,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
-use Inertia\Support\Header;
 
 /**
  * *People*, *A person* and their form: everyone sees them, only an `admin`
@@ -32,13 +34,15 @@ use Inertia\Support\Header;
  */
 final class PersonController extends Controller
 {
+    use PagesDocuments;
+
     /** How many personal documents a page of *A person* holds. */
     public const int PERSONAL_PER_PAGE = 5;
 
     /** How many other documents a page of *A person* holds. */
     public const int DOCUMENTS_PER_PAGE = 10;
 
-    public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders) {}
+    public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders, private readonly GalleryTeaser $gallery) {}
 
     /**
      * *People*: the people of the family, in the order they were added.
@@ -75,7 +79,7 @@ final class PersonController extends Controller
 
     /**
      * *A person*: their open reminders, their personal documents (linked to no
-     * record) and the records that name them; on the side the other
+     * record, the pinned ones apart) and the records that name them; on the side the other
      * documents. The two lists of documents come a page at a time: a partial
      * reload with `personal_page` or `documents_page` adds the next page below.
      */
@@ -87,43 +91,18 @@ final class PersonController extends Controller
         $reminders = function () use (&$reminderList, $person): array {
             return $reminderList ??= $this->reminders->for(CarbonImmutable::today('Europe/Rome'), $person->id)['open'];
         };
-        $personalPage = null;
-        $personal = function () use (&$personalPage, $rows, $theirs, $request): array {
-            return $personalPage ??= $rows->page([...$theirs, 'linked' => false], $this->pageAsked($request, 'personal'), self::PERSONAL_PER_PAGE);
-        };
-        $documentsPage = null;
-        $documents = function () use (&$documentsPage, $rows, $theirs, $request): array {
-            return $documentsPage ??= $rows->page([...$theirs, 'linked' => true], $this->pageAsked($request, 'documents'), self::DOCUMENTS_PER_PAGE);
-        };
 
         return Inertia::render('family/Person', [
-            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user),
-            'personal' => Inertia::merge(fn (): array => $personal()['documents'])->matchOn('id'),
-            'personalNext' => fn (): ?int => $personal()['next'],
-            'personalTotal' => fn (): int => $personal()['total'],
-            'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
-            'documentsNext' => fn (): ?int => $documents()['next'],
-            'documentsTotal' => fn (): int => $documents()['total'],
+            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user, $this->gallery->personDrawingsCount($person->id)),
+            'pinned' => fn (): array => $rows->pinned($person->id),
+            'canPin' => $user->can('create', Document::class),
+            ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false, 'gallery' => false], self::PERSONAL_PER_PAGE),
+            ...$this->documentPages($request, $rows, 'documents', [...$theirs, 'linked' => true], self::DOCUMENTS_PER_PAGE),
             'pageSizes' => ['personal' => self::PERSONAL_PER_PAGE, 'documents' => self::DOCUMENTS_PER_PAGE],
             'links' => fn (): array => $this->records->ofPerson($person),
             'reminders' => $reminders,
             'remindersCount' => fn (): int => count($reminders()),
         ]);
-    }
-
-    /**
-     * The page of a list of documents to send: the one in the request only on
-     * the partial reload of *Show more*, which asks for that list; a full visit
-     * always starts from the first, even with a number left in the address.
-     *
-     * @param  Request  $request  the request
-     * @param  'personal'|'documents'  $list  the list, also the name of its prop and of its parameter (`personal_page`)
-     */
-    private function pageAsked(Request $request, string $list): int
-    {
-        $asked = explode(',', (string) $request->header(Header::PARTIAL_ONLY, ''));
-
-        return in_array($list, $asked, true) ? max(1, $request->integer($list.'_page')) : 1;
     }
 
     /**

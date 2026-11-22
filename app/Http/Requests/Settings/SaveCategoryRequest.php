@@ -14,7 +14,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * A document category, new or changed: the name, where it sits and the card its documents go with.
+ * A document category, new or changed: the name, where it sits and the card its documents go with and whether it is the drawings gallery.
  */
 final class SaveCategoryRequest extends FormRequest
 {
@@ -41,6 +41,7 @@ final class SaveCategoryRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', new OfFamily('document_categories'), $this->notUnderItself(...)],
             'card_type' => ['nullable', 'string', Rule::in(CardTypes::types())],
+            'gallery' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -51,7 +52,7 @@ final class SaveCategoryRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => __('name'), 'parent_id' => __('inside'), 'card_type' => __('Card')];
+        return ['name' => __('name'), 'parent_id' => __('inside'), 'card_type' => __('Card'), 'gallery' => __('Show in a gallery')];
     }
 
     /**

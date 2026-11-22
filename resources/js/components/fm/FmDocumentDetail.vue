@@ -10,7 +10,7 @@
  * @group sections
  */
 import { Link } from '@inertiajs/vue3';
-import { Download, Pencil, Plus } from '@lucide/vue';
+import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
@@ -34,8 +34,8 @@ const {
      */
     compact?: boolean;
     /**
-     * Inside the left column of *Documents* (`FmFilterAside` is the card):
-     * no card of its own, and a link to the page of the document at the bottom.
+     * Inside the column beside the list of *Documents*: no card of its own
+     * and no buttons, which are all in the ⋮ menu at the top of the column.
      */
     embedded?: boolean;
 }>();
@@ -105,43 +105,11 @@ const shownGroup = computed(
             )
         "
     >
-        <div v-if="embedded" class="flex flex-col gap-3">
-            <div class="flex min-w-0 flex-col gap-1">
-                <h2 class="m-0 text-stat">{{ document.title }}</h2>
-                <span v-if="subtitle" class="text-body-sm text-ink-soft">{{
-                    subtitle
-                }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div data-equal class="min-w-0 flex-1 basis-0">
-                    <FmButton
-                        :href="document.file.download_url"
-                        download
-                        :icon="Download"
-                        variant="neutral"
-                        wide
-                        class="h-control min-w-0 gap-2 px-3.5! text-action"
-                        ><span class="truncate">{{
-                            $t('Download')
-                        }}</span></FmButton
-                    >
-                </div>
-                <div
-                    v-if="document.can_edit"
-                    data-equal
-                    class="min-w-0 flex-1 basis-0"
-                >
-                    <FmButton
-                        :href="edit.url(document.id)"
-                        :icon="Pencil"
-                        wide
-                        class="h-control min-w-0 gap-2 px-3.5!"
-                        ><span class="truncate">{{
-                            $t('Edit')
-                        }}</span></FmButton
-                    >
-                </div>
-            </div>
+        <div v-if="embedded" class="flex min-w-0 flex-col gap-1">
+            <h2 class="m-0 text-stat">{{ document.title }}</h2>
+            <span v-if="subtitle" class="text-body-sm text-ink-soft">{{
+                subtitle
+            }}</span>
         </div>
 
         <div
@@ -339,13 +307,5 @@ const shownGroup = computed(
                 </section>
             </div>
         </div>
-
-        <FmButton
-            v-if="embedded"
-            :href="show.url(document.id)"
-            variant="soft"
-            wide
-            >{{ $t('Open the page of the document') }}</FmButton
-        >
     </div>
 </template>

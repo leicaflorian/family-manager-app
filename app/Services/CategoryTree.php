@@ -19,11 +19,15 @@ final class CategoryTree
     /**
      * The tree, from the main categories, with the number of documents of each.
      *
+     * @param  bool  $withoutGallery  leaves out the gallery category and its subcategories (the filters of *Documents*,
+     *                                whose list does not show the drawings)
      * @return list<CategoryData>
      */
-    public function tree(): array
+    public function tree(bool $withoutGallery = false): array
     {
-        $categories = DocumentCategory::query()->withCount('documents')->orderBy('sort')->orderBy('name')->get();
+        $categories = DocumentCategory::query()->withCount('documents')
+            ->when($withoutGallery, fn ($query) => $query->whereKeyNot($this->galleryIds()))
+            ->orderBy('sort')->orderBy('name')->get();
 
         return $this->branches($categories->toBase()->groupBy('parent_id'), null, null, null);
     }
@@ -55,6 +59,31 @@ final class CategoryTree
     }
 
     /**
+     * The card type of every category: its own, else the one of the nearest category above with one.
+     *
+     * @return array<int, string> the type of the morph map by id of the category; categories with none up the tree are missing
+     */
+    public function cardTypes(): array
+    {
+        $categories = DocumentCategory::query()->get(['id', 'parent_id', 'card_type'])->keyBy('id');
+        $types = [];
+
+        foreach ($categories as $id => $category) {
+            // The visited ids stop a loop, should the data have one.
+            for ($current = $category, $seen = []; $current !== null && ! isset($seen[$current->id]); $current = $categories->get($current->parent_id ?? 0)) {
+                $seen[$current->id] = true;
+                if ($current->card_type !== null) {
+                    $types[$id] = $current->card_type;
+
+                    break;
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    /**
      * The ids of a category and of all those below it, at every level.
      *
      * @param  int  $id  the category to start from
@@ -76,6 +105,26 @@ final class CategoryTree
     }
 
     /**
+     * The ids of the gallery category and of all its subcategories.
+     *
+     * @return list<int> empty when no category of the family is the gallery
+     */
+    public function galleryIds(): array
+    {
+        $gallery = $this->galleryCategory();
+
+        return $gallery instanceof DocumentCategory ? $this->withDescendants($gallery->id) : [];
+    }
+
+    /**
+     * The category shown as the drawings gallery, if the family has one.
+     */
+    public function galleryCategory(): ?DocumentCategory
+    {
+        return DocumentCategory::query()->where('gallery', true)->first();
+    }
+
+    /**
      * The categories below `$parent`, each with its children.
      *
      * @param  Collection<int|string, Collection<int, DocumentCategory>>  $byParent  the categories grouped by `parent_id`
@@ -93,6 +142,7 @@ final class CategoryTree
             icon: $category->icon,
             color: $category->color ?? $color,
             card_type: $category->card_type,
+            gallery: $category->gallery,
             inherited_card_type: $cardType,
             documents_count: (int) $category->documents_count,
             children: $this->branches($byParent, $category->id, $category->color ?? $color, $category->card_type ?? $cardType),

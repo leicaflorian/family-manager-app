@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { router } from '@inertiajs/vue3';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { documentDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
 import { renderPage } from '@/test/page';
@@ -77,6 +78,37 @@ describe('FmDocumentActions', () => {
         ).toHaveClass('size-10');
     });
 
+    it('in the column beside the list has every action in a ⋮ menu, Download first', async () => {
+        renderPage(FmDocumentActions, {
+            document: documentDetail,
+            compact: true,
+            menuOnly: true,
+        });
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(
+            button.querySelector('.lucide-ellipsis-vertical'),
+        ).not.toBeNull();
+        await userEvent.click(button);
+
+        const items = await screen.findAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'Download',
+            'Edit',
+            'Open in a new tab',
+            'Open the page of the document',
+            'Delete',
+        ]);
+        expect(items[0]).toHaveAttribute('download');
+        expect(items[0]).toHaveAttribute(
+            'href',
+            documentDetail.file.download_url,
+        );
+        expect(items[1]).toHaveAttribute('href', '/documents/5/edit');
+        expect(items[3]).toHaveAttribute('href', '/documents/5');
+    });
+
     it('on its own page the ⋯ button is as tall as the others', () => {
         renderPage(FmDocumentActions, { document: documentDetail });
 
@@ -103,5 +135,117 @@ describe('FmDocumentActions', () => {
         expect(
             screen.getByRole('menuitem', { name: 'Open in a new tab' }),
         ).toBeInTheDocument();
+    });
+    describe('pinning', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+            vi.unstubAllGlobals();
+        });
+
+        const open = async (): Promise<void> => {
+            await userEvent.click(
+                screen.getByRole('button', { name: 'More actions' }),
+            );
+        };
+
+        it('has no pin item without can_pin', async () => {
+            renderPage(FmDocumentActions, { document: documentDetail });
+            await open();
+
+            expect(
+                screen.queryByRole('menuitem', { name: 'Mark as favourite' }),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.queryByRole('menuitem', {
+                    name: 'Remove from favourites',
+                }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('the page menu reads Open, Share, Pin and shows only Unpin when pinned', async () => {
+            vi.stubGlobal('navigator', {
+                share: () => {},
+                canShare: () => true,
+            });
+            renderPage(FmDocumentActions, {
+                document: { ...documentDetail, can_pin: true },
+            });
+            await open();
+            await screen.findByRole('menuitem', { name: 'Mark as favourite' });
+
+            expect(
+                screen
+                    .getAllByRole('menuitem')
+                    .map((item) => item.textContent?.trim()),
+            ).toEqual(['Open in a new tab', 'Share', 'Mark as favourite']);
+        });
+
+        it('shows only Unpin when it is pinned', async () => {
+            renderPage(FmDocumentActions, {
+                document: { ...documentDetail, can_pin: true, pinned: true },
+            });
+            await open();
+
+            expect(
+                await screen.findByRole('menuitem', {
+                    name: 'Remove from favourites',
+                }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('menuitem', { name: 'Mark as favourite' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it.each([false, true])(
+            'on its own page pins with a PUT (compact: %s)',
+            async (compact) => {
+                const put = vi
+                    .spyOn(router, 'put')
+                    .mockImplementation(() => {});
+                renderPage(FmDocumentActions, {
+                    document: { ...documentDetail, can_pin: true },
+                    compact,
+                });
+                await open();
+                await userEvent.click(
+                    await screen.findByRole('menuitem', {
+                        name: 'Mark as favourite',
+                    }),
+                );
+
+                expect(put).toHaveBeenCalledWith(
+                    '/documents/5/pin',
+                    {},
+                    { preserveScroll: true },
+                );
+            },
+        );
+
+        it.each([false, true])(
+            'unpins with a DELETE when it is pinned (compact: %s)',
+            async (compact) => {
+                const del = vi
+                    .spyOn(router, 'delete')
+                    .mockImplementation(() => {});
+                renderPage(FmDocumentActions, {
+                    document: {
+                        ...documentDetail,
+                        can_pin: true,
+                        pinned: true,
+                    },
+                    compact,
+                });
+                await open();
+                await userEvent.click(
+                    await screen.findByRole('menuitem', {
+                        name: 'Remove from favourites',
+                    }),
+                );
+
+                expect(del).toHaveBeenCalledWith('/documents/5/pin', {
+                    preserveScroll: true,
+                });
+            },
+        );
     });
 });

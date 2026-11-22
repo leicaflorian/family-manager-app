@@ -40,4 +40,24 @@ describe('FmFilterButton', () => {
         await view.rerender({ count: 0, expanded: true });
         expect(button).toHaveAttribute('aria-expanded', 'true');
     });
+
+    it('labelled shows the word Filters and the count', () => {
+        render(FmFilterButton, {
+            props: { count: 2, labelled: true, controls: 'filters' },
+        });
+        const button = screen.getByRole('button', { name: 'Filters, 2 on' });
+
+        expect(button).toHaveTextContent('Filters');
+        expect(button).toHaveAttribute('aria-controls', 'filters');
+        expect(button).not.toHaveAttribute('aria-haspopup');
+    });
+
+    it('labelled without filters has no badge', () => {
+        render(FmFilterButton, { props: { count: 0, labelled: true } });
+
+        expect(
+            screen.getByRole('button', { name: 'Filters' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('0')).not.toBeInTheDocument();
+    });
 });

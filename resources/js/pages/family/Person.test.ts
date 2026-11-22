@@ -16,7 +16,7 @@ import {
     plumberReminder,
 } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
-import { renderPage, withTrail } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Person from './Person.vue';
 
 const links: App.Data.LinkGroupData[] = [
@@ -40,6 +40,8 @@ function documentProps(
     ],
 ): Record<string, unknown> {
     return {
+        pinned: [],
+        canPin: true,
         personal,
         personalNext: null,
         personalTotal: personal.length,
@@ -79,6 +81,29 @@ function sevenReminders(): App.Data.ReminderData[] {
 }
 
 describe('A person', () => {
+    it('links the drawings of the person', () => {
+        renderGiulia({
+            ...personDetail,
+            drawings_url: '/documents/gallery?person=3',
+            drawings_count: 12,
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Giulia's drawings/ }),
+        ).toHaveAttribute('href', '/documents/gallery?person=3');
+        expect(
+            screen.getByText('12 in the drawings gallery'),
+        ).toBeInTheDocument();
+    });
+
+    it('has no drawings link without a gallery', () => {
+        renderGiulia();
+
+        expect(
+            screen.queryByRole('link', { name: /drawings/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('writes the trail Family > the person into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(
@@ -106,6 +131,8 @@ describe('A person', () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
         vi.useRealTimers();
     });
 
@@ -302,7 +329,6 @@ describe('A person', () => {
                 preserveUrl: true,
             }),
         );
-        reload.mockRestore();
     });
 
     it('promises as many personal documents as a page of the server holds', () => {
@@ -345,7 +371,6 @@ describe('A person', () => {
                 preserveUrl: true,
             }),
         );
-        reload.mockRestore();
     });
 
     it('keeps Show more of a list disabled while its page loads, also when the other list asks for its own', async () => {
@@ -370,7 +395,6 @@ describe('A person', () => {
 
         expect(personal).toBeDisabled();
         expect(reload).toHaveBeenCalledTimes(2);
-        reload.mockRestore();
     });
 
     it('says when there are no personal documents, without a number', () => {
@@ -382,5 +406,222 @@ describe('A person', () => {
         expect(
             screen.getByText('No personal documents yet.'),
         ).toBeInTheDocument();
+    });
+
+    describe('with pinned documents', () => {
+        /** A pinned document of Giulia. */
+        function pinnedDocument(
+            id: number,
+            title: string,
+            pinnedBy: string | null = 'Marco',
+        ): App.Data.PinnedDocumentData {
+            return {
+                document: { ...healthCard, id, title, expiry_date: null },
+                area: 'health',
+                pinned_by: pinnedBy,
+            };
+        }
+
+        /** Six pinned documents and 36 others, five shown. */
+        function withPinned(
+            extra: Record<string, unknown> = {},
+        ): Record<string, unknown> {
+            return {
+                ...documentProps(
+                    Array.from({ length: 5 }, (_, index) => ({
+                        ...healthCard,
+                        id: 50 + index,
+                        title: `Other ${index + 1}`,
+                    })),
+                ),
+                pinned: [
+                    pinnedDocument(1, 'Identity card'),
+                    pinnedDocument(2, 'Driving licence'),
+                    pinnedDocument(3, 'Health card'),
+                ],
+                personalNext: 2,
+                personalTotal: 36,
+                ...extra,
+            };
+        }
+
+        it('shows the pinned tiles above the others, with the number of both', () => {
+            renderGiulia(personDetail, [], withPinned());
+
+            const box = screen.getByRole('region', {
+                name: 'Personal documents',
+            });
+            expect(
+                within(box).getByRole('heading', {
+                    name: 'Personal documents 39',
+                }),
+            ).toBeInTheDocument();
+            expect(within(box).getByText('Pinned')).toBeInTheDocument();
+            expect(
+                within(box).getByText('The others, most recent first'),
+            ).toBeInTheDocument();
+            const tiles = within(box)
+                .getAllByRole('link')
+                .map((link) => link.textContent ?? '')
+                .filter((text) =>
+                    /Identity card|Driving licence|Health card/.test(text),
+                );
+            expect(tiles.map((text) => text.slice(0, 8))).toEqual([
+                'Identity',
+                'Driving ',
+                'Health c',
+            ]);
+            expect(
+                within(box).getByRole('button', {
+                    name: 'Show 5 more documents · 31 left',
+                }),
+            ).toBeInTheDocument();
+        });
+
+        it('has no hint on a phone', () => {
+            screenWidth(false);
+            renderGiulia(personDetail, [], withPinned());
+            expect(
+                screen.queryByText(
+                    'Mark a document as favourite from its menu',
+                ),
+            ).not.toBeInTheDocument();
+        });
+
+        it('has the hint and two columns on a computer', () => {
+            screenWidth(true);
+            const { container } = renderPageGiulia();
+            expect(
+                screen.getByText('Mark a document as favourite from its menu'),
+            ).toBeInTheDocument();
+            expect(container.querySelector('.grid.gap-2\\.5')).toHaveClass(
+                'wide:grid-cols-2',
+            );
+        });
+
+        /** Renders *A person* with pinned documents. */
+        function renderPageGiulia(): ReturnType<typeof renderPage> {
+            return renderPage(Person, {
+                person: personDetail,
+                reminders: [],
+                remindersCount: 0,
+                ...withPinned(),
+                links,
+            });
+        }
+
+        it('takes a document off the top from its pin, reloading the others from the first page', async () => {
+            const remove = vi
+                .spyOn(router, 'delete')
+                .mockImplementation(() => {});
+            renderGiulia(personDetail, [], withPinned());
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'Remove from favourites «Driving licence»',
+                }),
+            );
+
+            expect(remove).toHaveBeenCalledWith(
+                '/documents/2/pin',
+                expect.objectContaining({
+                    preserveScroll: true,
+                    only: [
+                        'pinned',
+                        'personal',
+                        'personalNext',
+                        'personalTotal',
+                    ],
+                    reset: ['personal'],
+                }),
+            );
+        });
+
+        it('pins a document of the others from the menu of its row, reloading the same props as the tiles', async () => {
+            const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+            renderGiulia(personDetail, [], withPinned());
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'More actions for «Other 1»',
+                }),
+            );
+            await userEvent.click(
+                await screen.findByRole('menuitem', {
+                    name: 'Mark as favourite',
+                }),
+            );
+
+            expect(put).toHaveBeenCalledWith(
+                '/documents/50/pin',
+                {},
+                expect.objectContaining({
+                    preserveScroll: true,
+                    only: [
+                        'pinned',
+                        'personal',
+                        'personalNext',
+                        'personalTotal',
+                    ],
+                    reset: ['personal'],
+                }),
+            );
+        });
+
+        it('has a ⋯ menu on the rows but not on the tiles', () => {
+            renderGiulia(personDetail, [], withPinned());
+
+            expect(
+                screen.getByRole('button', {
+                    name: 'More actions for «Other 1»',
+                }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', {
+                    name: 'More actions for «Identity card»',
+                }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('shows no pin to someone who cannot change documents', () => {
+            renderGiulia(personDetail, [], withPinned({ canPin: false }));
+
+            expect(
+                screen.queryByRole('button', {
+                    name: /^Remove from favourites/,
+                }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('keeps the list as it was without pinned documents', () => {
+            renderGiulia();
+
+            expect(screen.queryByText('Pinned')).not.toBeInTheDocument();
+            expect(
+                screen.queryByText('The others, most recent first'),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: /Tessera sanitaria/ }),
+            ).toBeInTheDocument();
+        });
+
+        it('shows the pinned ones also when there are no others', () => {
+            renderGiulia(
+                personDetail,
+                [],
+                withPinned({
+                    personal: [],
+                    personalNext: null,
+                    personalTotal: 0,
+                }),
+            );
+
+            expect(
+                screen.getByRole('heading', { name: 'Personal documents 3' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByText('No personal documents yet.'),
+            ).not.toBeInTheDocument();
+        });
     });
 });

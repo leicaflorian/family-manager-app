@@ -172,3 +172,23 @@ it('matches a date word as the date of the document and the other words as text'
     expect(documentTitles($this->family, 'bollo 23/09/2026'))->toBe(['Perché il bollo'])
         ->and(documentTitles($this->family, '23/09/2026 bollo'))->toBe(['Perché il bollo']);
 });
+
+it('a drawing of the gallery opens in the gallery', function (): void {
+    $gallery = CurrentFamily::using($this->family->id, fn (): DocumentCategory => DocumentCategory::query()->where('gallery', true)->sole());
+    $drawing = searchDocument($this->family, 'Il drago della nonna', ['category_id' => $gallery->id]);
+
+    $results = documentResults($this->family, 'drago');
+
+    expect($results)->toHaveCount(1)
+        ->and($results[0]->href)->toBe(route('documents.gallery', ['drawing' => $drawing->id]))
+        ->and($results[0]->icon)->toBe('palette');
+});
+
+it('other documents still open their page', function (): void {
+    $document = searchDocument($this->family, 'Zeta normale');
+
+    $results = documentResults($this->family, 'Zeta normale');
+
+    expect($results[0]->href)->toBe(route('documents.show', $document->id))
+        ->and($results[0]->icon)->toBe('file-text');
+});

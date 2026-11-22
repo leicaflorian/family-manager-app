@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Queries;
 
+use App\Cards\CardTypes;
 use App\Data\DocumentData;
+use App\Data\PinnedDocumentData;
 use App\Models\Document;
 use App\Services\CategoryTree;
 use Illuminate\Database\Eloquent\Collection;
@@ -28,7 +30,7 @@ final readonly class DocumentRows
      */
     public function of(array $filters): array
     {
-        return $this->rows($this->filter->apply(Document::query()->with(self::RELATIONS), $filters)->get());
+        return $this->rows($this->filter->apply(Document::query()->withLinked()->with(self::RELATIONS), $filters)->get());
     }
 
     /**
@@ -41,7 +43,7 @@ final readonly class DocumentRows
      */
     public function page(array $filters, int $page, int $perPage): array
     {
-        $paginator = $this->filter->apply(Document::query()->with(self::RELATIONS), $filters)
+        $paginator = $this->filter->apply(Document::query()->withLinked()->with(self::RELATIONS), $filters)
             ->paginate($perPage, page: $page);
 
         return [
@@ -49,6 +51,45 @@ final readonly class DocumentRows
             'next' => $paginator->hasMorePages() ? $page + 1 : null,
             'total' => $paginator->total(),
         ];
+    }
+
+    /**
+     * The personal documents of a person that are pinned, in the order they were
+     * pinned, with the area of their card type and who pinned them.
+     *
+     * @param  int  $personId  the person
+     * @return list<PinnedDocumentData>
+     */
+    public function pinned(int $personId): array
+    {
+        $documents = $this->filter->apply(Document::query()->withLinked()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true, 'gallery' => false])->get();
+        $paths = $this->categories->paths();
+        $areas = $this->areas();
+
+        return array_values($documents->map(static fn (Document $document): PinnedDocumentData => PinnedDocumentData::fromDocument(
+            $document,
+            $paths,
+            $areas[$document->category_id ?? 0] ?? null,
+        ))->all());
+    }
+
+    /**
+     * The area of the card type of every category, from its own type or the nearest one up the tree.
+     *
+     * @return array<int, string> the area value by category id; categories with no card type up the tree are missing
+     */
+    private function areas(): array
+    {
+        $areas = [];
+
+        foreach ($this->categories->cardTypes() as $id => $type) {
+            $area = CardTypes::find($type)?->area()->value;
+            if ($area !== null) {
+                $areas[$id] = $area;
+            }
+        }
+
+        return $areas;
     }
 
     /**
@@ -69,7 +110,7 @@ final readonly class DocumentRows
      */
     public function latest(int $count): array
     {
-        return $this->rows(Document::query()->with(self::RELATIONS)->latest()->orderByDesc('id')->limit($count)->get());
+        return $this->rows(Document::query()->withLinked()->with(self::RELATIONS)->latest()->orderByDesc('id')->limit($count)->get());
     }
 
     /**
@@ -92,6 +133,7 @@ final readonly class DocumentRows
     private function rows(Collection $documents): array
     {
         $paths = $this->categories->paths();
+        Document::markLinked($documents);
 
         return array_values($documents->map(static fn (Document $document): DocumentData => DocumentData::fromDocument($document, $paths))->all());
     }

@@ -20,6 +20,7 @@ import {
     CalendarClock,
     ChevronRight,
     FileText,
+    Palette,
     Receipt,
     User,
 } from '@lucide/vue';
@@ -60,6 +61,7 @@ const icons: Record<string, LucideIcon> = {
     'calendar-clock': CalendarClock,
     'building-2': Building2,
     user: User,
+    palette: Palette,
 };
 
 /** The colours of a tile by tone. */

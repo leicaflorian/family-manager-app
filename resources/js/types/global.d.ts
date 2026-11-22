@@ -35,6 +35,8 @@ declare module '@inertiajs/core' {
             bank_feed?: { unsorted: number } | null;
             /** Whether the family has an electricity, gas or water utility, so the Consumption page exists; missing on a phone linked with a code. */
             has_consumption?: boolean;
+            /** Whether the family has a gallery category, so *Drawings and crafts* shows under *Documents* in the sidebar; missing on a phone linked with a code. */
+            has_gallery?: boolean;
             locale: string;
             /** The name of the account the owner looks as during a visit (*Enter as…*); null otherwise. */
             impersonating?: string | null;

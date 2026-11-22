@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
- * *An organization*: the records that name it and its documents; on the side
+ * *An organization*: the records that name it and its documents, ten at a
+ * time (a partial reload adds the next page below, keeping the address) with
+ * the link to the Archive filtered on it; on the side
  * its contacts (phone, website, email) and the notes, such as the customer
  * code. An `admin` edits and deletes it: its documents and records stay.
  */
@@ -14,22 +16,44 @@ import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmLinkedRecords from '@/components/fm/FmLinkedRecords.vue';
+import FmSectionLink from '@/components/fm/FmSectionLink.vue';
+import FmShowMore from '@/components/fm/FmShowMore.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useMorePages } from '@/composables/useMorePages';
 import { websiteHref } from '@/lib/family';
-import { show as showDocument } from '@/routes/documents';
+import { showMoreLabel } from '@/lib/showMore';
+import {
+    index as documentsIndex,
+    show as showDocument,
+} from '@/routes/documents';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/organizations';
 import { usePageTrail } from '@/composables/usePageTrail';
 import { family } from '@/routes';
 
-const { organization, links, documents } = defineProps<{
+const {
+    organization,
+    links,
+    documents,
+    documentsNext = null,
+    documentsTotal,
+    pageSizes,
+} = defineProps<{
     /** The organization. */
     organization: App.Data.OrganizationDetailData;
     /** The records that name it, by type. */
     links: App.Data.LinkGroupData[];
-    /** Its documents, the most recent first. */
+    /** The pages of its documents loaded so far, the most recent first. */
     documents: App.Data.DocumentData[];
+    /** The number of the next page of `documents`, null at the last one. */
+    documentsNext?: number | null;
+    /** How many documents it has in all. */
+    documentsTotal: number;
+    /** How many documents a page holds, as the server sends them: what *Show more* promises. */
+    pageSizes: { documents: number };
 }>();
+
+const { loading, loadMore } = useMorePages(['documents']);
 
 /** The ways to reach it, as links. */
 const contacts = computed(() =>
@@ -123,12 +147,39 @@ usePageTrail(() => [
         >
             <div class="flex min-w-0 flex-col gap-5">
                 <FmLinkedRecords :groups="links" />
-                <FmCard :title="$t('Documents')" :list="documents.length > 0">
+                <FmCard
+                    :title="$t('Documents')"
+                    :count="documentsTotal"
+                    :list="documents.length > 0"
+                >
+                    <template v-if="documents.length > 0" #actions>
+                        <FmSectionLink
+                            :href="
+                                documentsIndex({
+                                    query: { organization: organization.id },
+                                }).url
+                            "
+                            >{{ $t('Open in the Archive') }}</FmSectionLink
+                        >
+                    </template>
                     <FmDocumentRow
                         v-for="document in documents"
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                        menu
+                    />
+                    <FmShowMore
+                        v-if="documentsNext"
+                        :label="
+                            showMoreLabel(
+                                documentsTotal - documents.length,
+                                pageSizes.documents,
+                                'documents',
+                            )
+                        "
+                        :loading="loading.documents"
+                        @more="loadMore('documents', documentsNext)"
                     />
                     <p
                         v-if="documents.length === 0"

@@ -7,11 +7,13 @@ namespace App\Http\Middleware;
 use App\Data\FamilyData;
 use App\Enums\Theme;
 use App\Models\BankTransaction;
+use App\Models\DocumentCategory;
 use App\Models\File;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\Banks\BankFeedAvailability;
 use App\Services\CardSummaries;
+use App\Services\CategoryTree;
 use App\Services\ConsumptionPage;
 use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
@@ -34,8 +36,9 @@ class HandleInertiaRequests extends Middleware
     /**
      * @param  CardSummaries  $summaries  the cards of the family, for the counts of the sidebar
      * @param  NoticeList  $notices  the notices of the bell
+     * @param  CategoryTree  $categories  the categories, for the gallery under *Documents* in the sidebar
      */
-    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices) {}
+    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices, private readonly CategoryTree $categories) {}
 
     /**
      * Determines the current asset version.
@@ -81,6 +84,8 @@ class HandleInertiaRequests extends Middleware
             'bank_feed' => fn (): ?array => $request->user() instanceof User && BankFeedAvailability::on() ? ['unsorted' => BankTransaction::query()->unsorted()->count()] : null,
             // Whether the family has an electricity, gas or water utility: the Consumption page exists only then
             'has_consumption' => fn (): bool => $request->user() instanceof User && ConsumptionPage::available(),
+            // Whether the family has a gallery category: the sidebar shows *Drawings and crafts* under *Documents*
+            'has_gallery' => fn (): bool => $request->user() instanceof User && $this->categories->galleryCategory() instanceof DocumentCategory,
             'locale' => app()->getLocale(),
             // The name of the account the owner looks as during a visit (*Enter as…*), for the strip of the layout
             'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,

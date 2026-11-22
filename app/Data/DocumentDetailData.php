@@ -37,6 +37,8 @@ final class DocumentDetailData extends Data
      * @param  list<DocumentLinkData>  $links  the linked records
      * @param  bool  $can_edit  the person may change it
      * @param  bool  $can_delete  the person may delete it (an `admin`)
+     * @param  bool  $pinned  it is pinned at the top of its person (and still personal)
+     * @param  bool  $can_pin  it can be pinned (it is personal) and the person may change it
      */
     public function __construct(
         public readonly int $id,
@@ -59,6 +61,8 @@ final class DocumentDetailData extends Data
         public readonly array $links,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
+        public readonly bool $pinned,
+        public readonly bool $can_pin,
     ) {}
 
     /**
@@ -92,6 +96,8 @@ final class DocumentDetailData extends Data
             links: $links,
             can_edit: $user->can('update', $document),
             can_delete: $user->can('delete', $document),
+            pinned: $document->isPinned(),
+            can_pin: $user->can('update', $document) && $document->isPersonal(),
         );
     }
 }

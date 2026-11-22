@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/vue';
+import { router } from '@inertiajs/vue3';
+import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
 import { renderPage, withTrail } from '@/test/page';
@@ -20,12 +21,34 @@ const bill = {
     expiry_date: null,
 };
 
+/** The document props of *An organization* as the controller sends them: one page, nothing more to load. */
+function documentProps(
+    documents: App.Data.DocumentData[],
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return {
+        documents,
+        documentsNext: null,
+        documentsTotal: documents.length,
+        pageSizes: { documents: 10 },
+        ...extra,
+    };
+}
+
 describe('An organization', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('writes the trail Family > Organizations > the organization into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(
             Organization,
-            { organization: organizationDetail, links, documents: [bill] },
+            {
+                organization: organizationDetail,
+                links,
+                ...documentProps([bill]),
+            },
             provide,
         );
 
@@ -40,7 +63,7 @@ describe('An organization', () => {
         renderPage(Organization, {
             organization: organizationDetail,
             links,
-            documents: [bill],
+            ...documentProps([bill]),
         });
 
         expect(
@@ -78,7 +101,7 @@ describe('An organization', () => {
                 can_delete: false,
             },
             links: [],
-            documents: [],
+            ...documentProps([]),
         });
 
         expect(screen.getByText('No contacts yet.')).toBeInTheDocument();
@@ -91,12 +114,26 @@ describe('An organization', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('gives each document row its ⋯ menu', () => {
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            ...documentProps([bill]),
+        });
+
+        expect(
+            screen.getByRole('button', {
+                name: `More actions for «${bill.title}»`,
+            }),
+        ).toBeInTheDocument();
+    });
+
     it('puts Edit and Delete in the menu when there is no room for them', async () => {
         watchLayout();
         renderPage(Organization, {
             organization: organizationDetail,
             links,
-            documents: [bill],
+            ...documentProps([bill]),
         });
 
         await layOut(100);
@@ -120,7 +157,7 @@ describe('An organization', () => {
         renderPage(Organization, {
             organization: { ...organizationDetail, logo: '/files/41' },
             links,
-            documents: [bill],
+            ...documentProps([bill]),
         });
 
         const title = screen.getByRole('heading', { level: 1 });
@@ -138,12 +175,66 @@ describe('An organization', () => {
         renderPage(Organization, {
             organization: { ...organizationDetail, logo: '/files/41' },
             links,
-            documents: [bill],
+            ...documentProps([bill]),
         });
 
         expect(screen.getByRole('img', { name: 'Edison' })).toHaveAttribute(
             'src',
             '/files/41',
         );
+    });
+
+    it('shows how many documents it has and leads to the Archive filtered on it', () => {
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            ...documentProps([bill], { documentsTotal: 14 }),
+        });
+
+        const box = screen.getByRole('region', { name: 'Documents' });
+        expect(
+            within(box).getByRole('heading', { name: 'Documents 14' }),
+        ).toBeInTheDocument();
+        expect(
+            within(box).getByRole('link', { name: 'Open in the Archive' }),
+        ).toHaveAttribute('href', '/documents?organization=1');
+    });
+
+    it('asks the server for the next documents, keeping the address', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            ...documentProps([bill], { documentsNext: 2, documentsTotal: 12 }),
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'Show 10 more documents · 11 left',
+            }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { documents_page: 2 },
+                only: ['documents', 'documentsNext', 'documentsTotal'],
+                preserveUrl: true,
+            }),
+        );
+    });
+
+    it('has no link to the Archive and no count without documents', () => {
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            ...documentProps([]),
+        });
+
+        expect(
+            screen.queryByRole('link', { name: 'Open in the Archive' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('heading', { name: 'Documents' }),
+        ).toBeInTheDocument();
     });
 });

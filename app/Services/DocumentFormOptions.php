@@ -16,8 +16,8 @@ use App\Models\Person;
 /**
  * The choices of the document form, the same in *Upload* and in *Edit a
  * document*: categories, people, organizations, links, statuses and the tags
- * already used. The filters of *Documents* use the same, without the links and
- * the tags.
+ * already used. The filters of *Documents* use the same, without the links,
+ * the tags and the gallery categories.
  */
 final readonly class DocumentFormOptions
 {
@@ -30,7 +30,7 @@ final readonly class DocumentFormOptions
      */
     public function all(): array
     {
-        return [...$this->filters(), 'links' => $this->links->groups(), 'tags' => $this->tags()];
+        return [...$this->filters(), 'categories' => $this->categories->tree(), 'links' => $this->links->groups(), 'tags' => $this->tags()];
     }
 
     /**
@@ -50,14 +50,15 @@ final readonly class DocumentFormOptions
     }
 
     /**
-     * The choices of the filters of *Documents*.
+     * The choices of the filters of *Documents*: the gallery category and its subcategories are not among them,
+     * because the list leaves the drawings out.
      *
      * @return array{categories: list<CategoryData>, people: list<OptionData>, organizations: list<OrganizationOptionData>, statuses: list<OptionData>}
      */
     public function filters(): array
     {
         return [
-            'categories' => $this->categories->tree(),
+            'categories' => $this->categories->tree(withoutGallery: true),
             'people' => array_values(Person::query()->orderBy('first_name')->orderBy('last_name')->get()
                 ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}"))
                 ->all()),

@@ -4,16 +4,28 @@
  * *Edit* (light blue) and *Delete* (red, for an `admin`, after asking) as
  * buttons while they fit, and *Open in a new tab* and *Share* in the ⋯ menu.
  * In the panel beside the list *Download* is an icon and the rest is in the
- * menu.
+ * menu; in the column beside the list (`menuOnly`) every action, *Download*
+ * and *Open the page of the document* too, is in a ⋮ menu beside the ×.
  *
  * @group files
  */
-import { Download, ExternalLink, Pencil, Share2, Trash2 } from '@lucide/vue';
+import {
+    Download,
+    EllipsisVertical,
+    ExternalLink,
+    FileText,
+    Pencil,
+    Pin,
+    PinOff,
+    Share2,
+    Trash2,
+} from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { useDocumentPin } from '@/composables/useDocumentPin';
 import { useShare } from '@/composables/useShare';
 import type { Action } from '@/lib/actions';
-import { destroy, edit } from '@/routes/documents';
+import { destroy, edit, show } from '@/routes/documents';
 import FmActions from './FmActions.vue';
 import FmButton from './FmButton.vue';
 import FmConfirmDelete from './FmConfirmDelete.vue';
@@ -29,7 +41,7 @@ const {
     document: App.Data.DocumentDetailData;
     /** The panel beside the list: *Download* as an icon, *Edit* in the menu. */
     compact?: boolean;
-    /** With `compact`: only the ⋯ menu, for a layout that shows *Download* and *Edit* as buttons of its own. */
+    /** With `compact`: only a ⋮ menu with every action, *Download* first, for the column beside the list. */
     menuOnly?: boolean;
 }>();
 
@@ -37,6 +49,8 @@ const { canShare, shareFile } = useShare();
 
 /** The panel that asks before deleting, opened from the ⋯ menu. */
 const confirmingDelete = ref(false);
+
+const { togglePin, pinLabel } = useDocumentPin();
 
 /** The actions of the document on its own page, the most frequent first. */
 const actions = computed((): Action[] => [
@@ -91,6 +105,16 @@ const actions = computed((): Action[] => [
               } satisfies Action,
           ]
         : []),
+    ...(document.can_pin
+        ? [
+              {
+                  label: pinLabel(document.pinned),
+                  icon: document.pinned ? PinOff : Pin,
+                  onSelect: () => togglePin(document),
+                  menuOnly: true,
+              } satisfies Action,
+          ]
+        : []),
 ]);
 </script>
 
@@ -106,9 +130,36 @@ const actions = computed((): Action[] => [
             :href="document.file.download_url"
             download
         />
-        <FmMenu :small="!menuOnly" :plain="menuOnly">
+        <FmMenu
+            :small="!menuOnly"
+            :plain="menuOnly"
+            :icon="menuOnly ? EllipsisVertical : undefined"
+        >
+            <template v-if="menuOnly">
+                <FmMenuItem
+                    :icon="Download"
+                    :href="document.file.download_url"
+                    download
+                >
+                    {{ $t('Download') }}
+                </FmMenuItem>
+                <FmMenuItem
+                    v-if="document.can_edit"
+                    :icon="Pencil"
+                    :href="edit.url(document.id)"
+                >
+                    {{ $t('Edit') }}
+                </FmMenuItem>
+            </template>
             <FmMenuItem :icon="ExternalLink" :href="document.file.url" external>
                 {{ $t('Open in a new tab') }}
+            </FmMenuItem>
+            <FmMenuItem
+                v-if="menuOnly"
+                :icon="FileText"
+                :href="show.url(document.id)"
+            >
+                {{ $t('Open the page of the document') }}
             </FmMenuItem>
             <FmMenuItem
                 v-if="canShare"
@@ -123,6 +174,13 @@ const actions = computed((): Action[] => [
                 :href="edit.url(document.id)"
             >
                 {{ $t('Edit') }}
+            </FmMenuItem>
+            <FmMenuItem
+                v-if="document.can_pin"
+                :icon="document.pinned ? PinOff : Pin"
+                @select="togglePin(document)"
+            >
+                {{ pinLabel(document.pinned) }}
             </FmMenuItem>
             <FmMenuItem
                 v-if="document.can_delete"

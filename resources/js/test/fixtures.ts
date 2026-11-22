@@ -94,6 +94,8 @@ export const documentDetail: App.Data.DocumentDetailData = {
     ],
     can_edit: true,
     can_delete: true,
+    pinned: false,
+    can_pin: false,
 };
 
 /**
@@ -118,6 +120,7 @@ function category(
         icon: null,
         color: null,
         card_type: null,
+        gallery: false,
         inherited_card_type: null,
         documents_count: 0,
         children,
@@ -220,6 +223,8 @@ export const personDetail: App.Data.PersonDetailData = {
     is_me: false,
     can_edit: true,
     can_delete: true,
+    drawings_url: null,
+    drawings_count: 0,
 };
 
 /** A document of Giulia, as the rows of the lists show it. */
@@ -234,6 +239,10 @@ export const healthCard: App.Data.DocumentData = {
     status: 'active',
     mime_type: 'application/pdf',
     file_url: '/files/21',
+    download_url: '/files/21/download',
+    pinned: false,
+    can_edit: true,
+    can_pin: true,
 };
 
 /** Three organizations of the Bianchis, by name. */

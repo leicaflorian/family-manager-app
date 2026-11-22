@@ -42,9 +42,9 @@ test('an admin adds a person with a photo, shown on their page and in People', f
     Storage::disk('local')->assertExists((string) $photo?->path);
 
     $this->get(route('people.show', $rosa))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('person.photo', route('files.show', $photo)));
+        ->where('person.photo', route('files.preview', $photo)));
     $this->get(route('people.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('people.3.photo', route('files.show', $photo))
+        ->where('people.3.photo', route('files.preview', $photo))
         ->where('people.0.photo', null));
 });
 
@@ -141,5 +141,5 @@ test('the person of a document shows their photo', function (): void {
     $document = insideBianchi(fn (): int => $giulia->documents()->value('id'));
 
     $this->get(route('documents.show', $document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('document.person_photo', route('files.show', $photo)));
+        ->where('document.person_photo', route('files.preview', $photo)));
 });

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { router } from '@inertiajs/vue3';
+import { describe, expect, it, vi } from 'vite-plus/test';
 import FmChip from './FmChip.vue';
 
 describe('FmChip', () => {
@@ -94,5 +95,28 @@ describe('FmChip', () => {
         expect(screen.getByRole('button', { name: 'All' })).not.toHaveClass(
             'bg-action',
         );
+    });
+
+    it('hands preserveState and preserveScroll to the visit of the link', async () => {
+        const visit = vi.spyOn(router, 'visit').mockImplementation(() => {});
+        render(FmChip, {
+            props: {
+                label: 'Favourites',
+                href: '/gallery?filter=favorites',
+                preserveState: true,
+                preserveScroll: true,
+            },
+        });
+
+        await userEvent.click(screen.getByRole('link', { name: 'Favourites' }));
+
+        expect(visit).toHaveBeenCalledWith(
+            '/gallery?filter=favorites',
+            expect.objectContaining({
+                preserveState: true,
+                preserveScroll: true,
+            }),
+        );
+        visit.mockRestore();
     });
 });

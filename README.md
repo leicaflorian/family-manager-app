@@ -23,7 +23,7 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 
 The form fields come from FormKit Pro: its key goes in `VITE_FORMKIT_PRO_KEY` in `.env` before `npm run dev` or `npm run build`.
 
-For the document previews the app uses `pdftoppm` (`poppler-utils`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04) and the production `Dockerfile` (serversideup/php on Debian 13) install them, both with `libheif-plugin-libde265` to read HEIC files, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`.
+For the document previews the app uses Ghostscript (`gs`, package `ghostscript`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension, and `pdfinfo` (`poppler-utils`) to count the pages of a PDF for the drawings gallery. The Sail image (`docker/8.5/`, Ubuntu 24.04) and the production `Dockerfile` (serversideup/php on Debian 13) install them, both with `libheif-plugin-libde265` to read HEIC files, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`. After the switch from `pdftoppm` to Ghostscript (22/11/2026) the PDF previews already made are reset once with `./vendor/bin/sail artisan files:previews --reset-pdf`, and are made again on the first view. After the release that adds the drawings gallery, the page count of the PDFs already uploaded is written once with `./vendor/bin/sail artisan files:page-counts`.
 
 Then, every time:
 
@@ -117,6 +117,7 @@ The full list of commands, with the code rules, is in `AGENTS.md`. The most used
 | `./vendor/bin/sail artisan directus:copy --family="Leica"` | Copies a family from Directus |
 | `./vendor/bin/sail artisan owner:create` | Creates the owner account of the panel (`/admin`, or `ADMIN_DOMAIN`) |
 | `./vendor/bin/sail artisan files:backup` | Copies the family files to the Space (the `backup` disk, `BACKUP_S3_*`) and keeps the deleted ones 30 days; it stops if the local disk looks empty or much shorter, `--force` goes on anyway |
+| `./vendor/bin/sail artisan files:page-counts` | Writes the page count of the PDFs that have none (once, after the release with the drawings gallery; safe to run again) |
 | `./vendor/bin/sail artisan loans:refresh` | Works out again the instalments paid of the active loans of every family (the scheduler runs it every night) |
 | `./vendor/bin/sail npm run tokens` | Rewrites `resources/css/tokens.css` from `resources/design/tokens.json` |
 

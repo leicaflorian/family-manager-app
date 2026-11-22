@@ -20,6 +20,18 @@ const none = {
     search: null,
 };
 
+/** Whether every element follows the one before it in the page. */
+function inOrder(elements: HTMLElement[]): boolean {
+    return elements.every(
+        (element, index) =>
+            index === 0 ||
+            Boolean(
+                elements[index - 1].compareDocumentPosition(element) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+            ),
+    );
+}
+
 describe('FmDocumentFilters', () => {
     it('sends the filters with the person chosen', async () => {
         const view = renderPage(FmDocumentFilters, {
@@ -146,5 +158,71 @@ describe('FmDocumentFilters', () => {
         expect(view.emitted('change')?.at(-1)).toEqual([
             { ...none, expiring: true },
         ]);
+    });
+
+    it('in columns every field is a cell of the grid', () => {
+        const { container } = renderPage(FmDocumentFilters, {
+            filters: { ...none, expiring: true },
+            options: documentFilterOptions,
+            columns: true,
+        });
+
+        const root = container.firstElementChild;
+        expect(root).toHaveClass('grid-cols-2', 'computer:grid-cols-4');
+        expect(
+            inOrder([
+                screen.getAllByText('Category')[0],
+                screen.getAllByText('Person')[0],
+                screen.getAllByText('Organization')[0],
+                screen.getAllByText('Status')[0],
+                screen.getByText('Expiring within 60 days'),
+                screen.getByRole('button', { name: 'Remove the filters' }),
+            ]),
+        ).toBe(true);
+    });
+
+    it('in columns the filters are removed from the row below, only when one is on', async () => {
+        const empty = renderPage(FmDocumentFilters, {
+            filters: none,
+            options: documentFilterOptions,
+            columns: true,
+        });
+        expect(
+            screen.queryByRole('button', { name: 'Remove the filters' }),
+        ).not.toBeInTheDocument();
+        empty.unmount();
+
+        const view = renderPage(FmDocumentFilters, {
+            filters: { ...none, person: 7, search: 'luce' },
+            options: documentFilterOptions,
+            columns: true,
+        });
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Remove the filters' }),
+        );
+
+        expect(view.emitted('change')?.at(-1)).toEqual([
+            {
+                category: null,
+                person: null,
+                organization: null,
+                status: null,
+                expiring: false,
+                search: null,
+            },
+        ]);
+    });
+
+    it('without columns the form stays a stack without the remove button', () => {
+        const { container } = renderPage(FmDocumentFilters, {
+            filters: { ...none, person: 7 },
+            options: documentFilterOptions,
+        });
+
+        expect(container.firstElementChild).toHaveClass('flex-col');
+        expect(container.firstElementChild).not.toHaveClass('grid-cols-2');
+        expect(
+            screen.queryByRole('button', { name: 'Remove the filters' }),
+        ).not.toBeInTheDocument();
     });
 });

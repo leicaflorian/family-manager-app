@@ -1,0 +1,159 @@
+import { userEvent } from '@testing-library/user-event';
+import { render, screen } from '@testing-library/vue';
+import { describe, expect, it } from 'vite-plus/test';
+import FmPinnedDocument from './FmPinnedDocument.vue';
+
+const pinned = (
+    overrides: Partial<App.Data.DocumentData> = {},
+    rest: Partial<App.Data.PinnedDocumentData> = {},
+): App.Data.PinnedDocumentData => ({
+    document: {
+        id: 7,
+        title: 'Patente B',
+        category: null,
+        person: null,
+        organization: null,
+        date: null,
+        expiry_date: null,
+        status: 'active',
+        mime_type: 'application/pdf',
+        file_url: '/files/7',
+        download_url: '/files/7/download',
+        pinned: false,
+        can_edit: true,
+        can_pin: true,
+        ...overrides,
+    },
+    area: null,
+    pinned_by: 'Laura',
+    ...rest,
+});
+
+describe('FmPinnedDocument', () => {
+    it('leads to the document with its title', () => {
+        render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/documents/7' },
+        });
+
+        const link = screen.getByRole('link', { name: /Patente B/ });
+        expect(link).toHaveAttribute('href', '/documents/7');
+    });
+
+    it('shows an expiry passed in red', () => {
+        render(FmPinnedDocument, {
+            props: {
+                pinned: pinned({ expiry_date: '2026-11-03' }),
+                href: '/documents/7',
+                today: '2026-11-22',
+            },
+        });
+
+        expect(screen.getByText('Expired on 03/11/2026')).toHaveClass(
+            'text-overdue',
+        );
+    });
+
+    it('shows an expiry ahead in grey', () => {
+        render(FmPinnedDocument, {
+            props: {
+                pinned: pinned({ expiry_date: '2029-05-24' }),
+                href: '/documents/7',
+                today: '2026-11-22',
+            },
+        });
+
+        const line = screen.getByText('Expires on 24/05/2029');
+        expect(line).toHaveClass('text-ink-soft');
+        expect(line).not.toHaveClass('text-warning');
+    });
+
+    it('without an expiry shows what it is and its date', () => {
+        render(FmPinnedDocument, {
+            props: {
+                pinned: pinned({
+                    organization: 'Rossi Impianti',
+                    date: '2024-02-02',
+                }),
+                href: '/documents/7',
+            },
+        });
+
+        expect(
+            screen.getByText('Rossi Impianti · 02/02/2024'),
+        ).toBeInTheDocument();
+    });
+
+    it('renders no line when there is no category, person, organization or date', () => {
+        render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/documents/7' },
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'Patente B' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link').querySelectorAll('.text-meta'),
+        ).toHaveLength(0);
+    });
+
+    it('colours the icon with its area, neutral without one', () => {
+        const first = render(FmPinnedDocument, {
+            props: { pinned: pinned({}, { area: 'work' }), href: '/d' },
+        });
+        expect(screen.getByTestId('pinned-icon')).toHaveClass(
+            'bg-work-soft',
+            'text-work-text',
+        );
+        first.unmount();
+
+        render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/d' },
+        });
+        expect(screen.getByTestId('pinned-icon')).toHaveClass(
+            'bg-canvas',
+            'text-ink-soft',
+        );
+    });
+
+    it('with canUnpin has a pressed button that emits unpin', async () => {
+        const view = render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/d', canUnpin: true },
+        });
+
+        const button = screen.getByRole('button', {
+            name: 'Remove from favourites «Patente B»',
+        });
+        expect(button).toHaveAttribute('aria-pressed', 'true');
+        expect(button).toHaveAttribute(
+            'title',
+            'Marked by Laura · remove from favourites',
+        );
+
+        await userEvent.click(button);
+        expect(view.emitted().unpin).toHaveLength(1);
+    });
+
+    it('without the name of who pinned it the title says only pinned', () => {
+        render(FmPinnedDocument, {
+            props: {
+                pinned: pinned({}, { pinned_by: null }),
+                href: '/d',
+                canUnpin: true,
+            },
+        });
+
+        expect(
+            screen.getByRole('button', {
+                name: 'Remove from favourites «Patente B»',
+            }),
+        ).toHaveAttribute('title', 'Favourite · remove from favourites');
+    });
+
+    it('without canUnpin has no button', () => {
+        render(FmPinnedDocument, {
+            props: { pinned: pinned(), href: '/d' },
+        });
+
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+});

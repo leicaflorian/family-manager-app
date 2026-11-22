@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { documentDetail } from '@/test/fixtures';
 import {
+    documentLine,
     documentSubtitle,
     documentValues,
     filterQuery,
@@ -189,5 +190,72 @@ describe('proposalOf', () => {
         expect(proposalOf('failed', proposal)).toBeUndefined();
         expect(proposalOf('done', null)).toBeUndefined();
         expect(proposalOf(null, undefined)).toBeUndefined();
+    });
+});
+
+describe('documentLine', () => {
+    const doc = {
+        category: 'Anagrafica',
+        person: null,
+        organization: null,
+        expiry_date: '2026-10-20',
+    };
+
+    it('without expiry is the subtitle of the document, normal', () => {
+        expect(documentLine(doc, { today: '2026-10-27' })).toEqual({
+            text: 'Anagrafica',
+            tone: 'normal',
+        });
+    });
+
+    it('withDate adds the date after the subtitle when there is no expiry to show', () => {
+        const dated = { ...doc, date: '2024-02-02' };
+
+        expect(
+            documentLine(dated, { withDate: true, today: '2026-10-27' }),
+        ).toEqual({ text: 'Anagrafica · 02/02/2024', tone: 'normal' });
+        expect(
+            documentLine(
+                { ...dated, category: null, expiry_date: null },
+                { expiry: true, withDate: true, today: '2026-10-27' },
+            ),
+        ).toEqual({ text: '02/02/2024', tone: 'normal' });
+        expect(
+            documentLine(dated, {
+                expiry: true,
+                withDate: true,
+                today: '2026-10-27',
+            }).text,
+        ).toBe('Expired on 20/10/2026');
+    });
+
+    it('with expiry and no date to show falls back on the subtitle', () => {
+        expect(
+            documentLine(
+                { ...doc, expiry_date: null },
+                { expiry: true, today: '2026-10-27' },
+            ),
+        ).toEqual({ text: 'Anagrafica', tone: 'normal' });
+    });
+
+    it('with expiry, a passed date is overdue', () => {
+        expect(
+            documentLine(doc, { expiry: true, today: '2026-10-27' }),
+        ).toEqual({ text: 'Expired on 20/10/2026', tone: 'overdue' });
+    });
+
+    it('with expiry, a date ahead is a warning unless told otherwise', () => {
+        const ahead = { ...doc, expiry_date: '2026-12-11' };
+
+        expect(
+            documentLine(ahead, { expiry: true, today: '2026-10-27' }),
+        ).toEqual({ text: 'Expires on 11/12/2026', tone: 'warning' });
+        expect(
+            documentLine(ahead, {
+                expiry: true,
+                today: '2026-10-27',
+                aheadTone: 'normal',
+            }),
+        ).toEqual({ text: 'Expires on 11/12/2026', tone: 'normal' });
     });
 });

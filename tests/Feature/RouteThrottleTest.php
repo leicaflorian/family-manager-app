@@ -17,6 +17,10 @@ const ROUTE_THROTTLE_SHARED = [
     'bank-sync' => ['banks.sync', 'budget.bank.sync'],
     // Adding, correcting and deleting a consumption by hand are the same panel of the Consumption page.
     'consumption-save' => ['budget.consumption.destroy', 'budget.consumption.store', 'budget.consumption.update'],
+    // Marking and unmarking a favourite drawing are the same button.
+    'document-favorite' => ['documents.favorite', 'documents.unfavorite'],
+    // Pinning and unpinning a document are the same button.
+    'document-pin' => ['documents.pin', 'documents.unpin'],
     // Fortify gives one throttle to the email confirmation link and to sending it again (config/fortify.php).
     'verification' => ['verification.send', 'verification.verify'],
 ];

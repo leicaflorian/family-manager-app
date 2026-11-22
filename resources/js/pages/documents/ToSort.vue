@@ -9,9 +9,11 @@
  *   file is chosen, the bar at the bottom with the bin and *Check N files*.
  * - Tablet: the long count, *Choose the files* and *Take a photo* beside the
  *   title, the chips, and the list with its bar at the top.
- * - Computer: *Link the phone* and *Scan* (only where the scanner of the house
- *   is driven) beside the title, the box *Where they come from* beside the
- *   list, and the zone where files are dropped above it: they stay here.
+ * - Computer: *Filters*, *Link the phone* and *Scan* (only where the scanner
+ *   of the house is driven) beside the title; *Filters* opens a box under it
+ *   with the same chips as the tablet, and with the box shut the one source
+ *   chosen is a pill above the list. The zone where files are dropped is above
+ *   the list (they stay here) and a note on how long they stay is under it.
  * The bar of the list chooses all the files (a copy is left out), counts the
  * chosen ones, deletes them (only who can delete many files, after asking) and
  * has *Check N files* read them, then opens the import. While a file is queued
@@ -30,23 +32,26 @@ import {
 import { computed, ref } from 'vue';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSelectionBar from '@/components/documents/ToSortSelectionBar.vue';
-import ToSortSources from '@/components/documents/ToSortSources.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmChip from '@/components/fm/FmChip.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmFileDrop from '@/components/fm/FmFileDrop.vue';
+import FmFilterBox from '@/components/fm/FmFilterBox.vue';
+import FmFilterButton from '@/components/fm/FmFilterButton.vue';
+import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useFilterBox } from '@/composables/useFilterBox';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { desktopSystem } from '@/lib/devices';
 import { anyFileReading } from '@/lib/reading';
 import { filterLinks } from '@/lib/toSort';
 import type { FilterLink } from '@/lib/toSort';
-import { scan, scanner, upload as uploadPage } from '@/routes';
+import { scan, scanner, toSort, upload as uploadPage } from '@/routes';
 import { destroy, read } from '@/routes/to-sort';
 
 const props = defineProps<{
@@ -76,6 +81,21 @@ const waiting = computed(
 const chips = computed((): FilterLink[] =>
     filterLinks(props.filters, props.source),
 );
+
+/** The box of the sources is open (computer only); it shuts when the layout is not the computer. */
+const { boxOpen } = useFilterBox(() => mode.value === 'computer');
+
+/** The chip of the filter chosen, or `undefined` for *All*. */
+const chosenChip = computed((): FilterLink | undefined =>
+    props.source === null
+        ? undefined
+        : chips.value.find((chip) => chip.current),
+);
+
+/** Goes back to *All*, the × of the pill. */
+function showAll(): void {
+    router.visit(toSort().url);
+}
 
 // The files dropped here stay among those to sort, instead of opening Import
 const upload = useFileUpload(() => undefined, { stay: true });
@@ -209,6 +229,13 @@ function confirmDelete(): void {
                 }}</FmButton>
             </template>
             <template v-else-if="mode === 'computer'" #actions>
+                <FmFilterButton
+                    labelled
+                    controls="to-sort-filters"
+                    :count="source === null ? 0 : 1"
+                    :expanded="boxOpen"
+                    @click="boxOpen = !boxOpen"
+                />
                 <!-- Linking the phone is done from the computer: the phone itself has no use for it -->
                 <FmButton
                     variant="neutral"
@@ -225,6 +252,21 @@ function confirmDelete(): void {
                 >
             </template>
         </FmTitle>
+
+        <FmFilterBox v-if="mode === 'computer' && boxOpen" id="to-sort-filters">
+            <nav :aria-label="$t('Files to sort')" class="flex flex-wrap gap-2">
+                <FmChip
+                    v-for="chip in chips"
+                    :key="chip.value ?? 'all'"
+                    :label="chip.label"
+                    :count="chip.count"
+                    :href="chip.href"
+                    :pressed="chip.current"
+                    :disabled="chip.disabled"
+                    variant="solid"
+                />
+            </nav>
+        </FmFilterBox>
 
         <nav
             v-if="mode !== 'computer'"
@@ -243,20 +285,14 @@ function confirmDelete(): void {
             />
         </nav>
 
-        <div
-            :class="
-                mode === 'computer'
-                    ? 'grid grid-cols-[290px_minmax(0,1fr)] items-start gap-7'
-                    : 'flex flex-col gap-4'
-            "
-        >
-            <ToSortSources
-                v-if="mode === 'computer'"
-                :filters="filters"
-                :source="source"
-            />
-
+        <div class="flex flex-col gap-4">
             <div class="flex min-w-0 flex-col gap-4">
+                <FmFilterPills
+                    v-if="mode === 'computer' && chosenChip"
+                    :pills="[{ key: 'source', label: chosenChip.label }]"
+                    @remove="showAll"
+                    @remove-all="showAll"
+                />
                 <FmFileDrop
                     v-if="mode === 'computer'"
                     compact
@@ -343,6 +379,17 @@ function confirmDelete(): void {
                         />
                     </ul>
                 </div>
+
+                <p
+                    v-if="mode === 'computer'"
+                    class="m-0 text-body-sm text-ink-soft"
+                >
+                    {{
+                        $t(
+                            'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
+                        )
+                    }}
+                </p>
             </div>
         </div>
 

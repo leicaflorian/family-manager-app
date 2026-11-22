@@ -25,6 +25,8 @@ const {
     href,
     variant = 'soft',
     disabled = false,
+    preserveState = false,
+    preserveScroll = false,
 } = defineProps<{
     /** What the chip filters. */
     label: string;
@@ -38,6 +40,10 @@ const {
     variant?: 'soft' | 'solid';
     /** With `href`: a dimmed chip that is not a link. */
     disabled?: boolean;
+    /** With `href`: the visit keeps the state of the page (inputs, panels). */
+    preserveState?: boolean;
+    /** With `href`: the visit keeps the scroll position. */
+    preserveScroll?: boolean;
 }>();
 
 defineEmits<{
@@ -77,6 +83,8 @@ const countClasses = computed((): string =>
     <Link
         v-else-if="href"
         :href="href"
+        :preserve-state="preserveState"
+        :preserve-scroll="preserveScroll"
         :aria-current="pressed ? 'page' : undefined"
         :class="classes"
     >

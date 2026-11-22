@@ -1,8 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Enrollment;
 use App\Models\Organization;
 use App\Models\Person;
@@ -11,6 +13,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -300,4 +303,231 @@ test('an admin edits an organization', function (): void {
         ->assertSessionHasNoErrors()->assertRedirect(route('organizations.show', $edison));
 
     expect($edison->fresh())->name->toBe('Edison Energia')->phone->toBe('800 031 141');
+});
+
+/**
+ * A person of the Bianchis with three personal documents, A, B and C, all in the same family.
+ *
+ * @return array{person: Person, a: Document, b: Document, c: Document}
+ */
+function peoplePinnedSetup(): array
+{
+    return insideBianchi(function (): array {
+        $family = Person::query()->where('first_name', 'Giulia')->sole()->family_id;
+        $person = Person::factory()->create(['family_id' => $family]);
+        $make = fn (string $title, ?int $category = null): Document => Document::factory()->create(['family_id' => $family, 'person_id' => $person->id, 'title' => $title, 'category_id' => $category]);
+        $withCard = DocumentCategory::query()->whereNotNull('card_type')->orderBy('id')->firstOrFail();
+        $without = DocumentCategory::query()->whereNull('card_type')->whereNull('parent_id')->orderBy('id')->firstOrFail();
+
+        return ['person' => $person, 'a' => $make('A', $withCard->id), 'b' => $make('B', $without->id), 'c' => $make('C')];
+    });
+}
+
+test('it sends the pinned personal documents apart, in the order they were pinned', function (): void {
+    ['person' => $person, 'a' => $a, 'b' => $b, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(function () use ($a, $b): void {
+        $b->forceFill(['pinned_at' => now()->subMinutes(5), 'pinned_by' => $this->marco->id])->save();
+        $a->forceFill(['pinned_at' => now()->subMinute(), 'pinned_by' => $this->marco->id])->save();
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 2)
+        ->where('pinned.0.document.title', 'B')
+        ->where('pinned.1.document.title', 'A')
+        ->where('pinned.0.pinned_by', $this->marco->name)
+        ->where('pinned.0.area', null)
+        ->where('pinned.1.area', fn ($area): bool => is_string($area))
+        ->where('personal', fn ($documents): bool => collect($documents)->pluck('id')->all() === [$c->id])
+        ->where('personalTotal', 1)
+        ->where('canPin', true));
+});
+
+test('it leaves a pinned document linked to a record out of both lists', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    insideBianchi(function () use ($a): void {
+        $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save();
+        DB::table('documentables')->insert(['document_id' => $a->id, 'documentable_type' => 'vehicle', 'documentable_id' => Vehicle::query()->firstOrFail()->id]);
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0)
+        ->where('personal', fn ($documents): bool => ! collect($documents)->pluck('id')->contains($a->id))
+        ->where('personalTotal', 2));
+});
+
+test('it shows it pinned again once unlinked', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    insideBianchi(function () use ($a): void {
+        $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save();
+        DB::table('documentables')->insert(['document_id' => $a->id, 'documentable_type' => 'vehicle', 'documentable_id' => Vehicle::query()->firstOrFail()->id]);
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0));
+
+    insideBianchi(fn (): int => DB::table('documentables')->where('document_id', $a->id)->delete());
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 1)
+        ->where('personalTotal', 2));
+});
+
+test('the page of a person tells whether the account may pin documents', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
+});
+
+test('a member may pin documents too', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+    $member = User::factory()->for($this->marco->family)->create(['role' => Role::Member, 'email_verified_at' => now()]);
+    $this->actingAs($member);
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
+});
+
+test('the partial reload after an unpin sends page one of the personal documents and the updated pinned list', function (): void {
+    ['person' => $person, 'a' => $a, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(fn () => $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save());
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+    $headers = [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'pinned,personal,personalNext,personalTotal',
+    ];
+
+    $this->withHeaders($headers)->get(route('people.show', $person))
+        ->assertOk()
+        ->assertJsonCount(1, 'props.pinned')
+        ->assertJsonCount(2, 'props.personal');
+
+    $this->delete(route('documents.unpin', $a))->assertRedirect();
+
+    $this->withHeaders($headers)->get(route('people.show', $person))
+        ->assertOk()
+        ->assertJsonCount(0, 'props.pinned')
+        ->assertJsonCount(3, 'props.personal')
+        ->assertJsonPath('props.personalTotal', 3)
+        ->assertJsonPath('props.personalNext', null)
+        ->assertJsonMissingPath('props.documents');
+    expect(collect($this->withHeaders($headers)->get(route('people.show', $person))->json('props.personal'))->pluck('id'))->toContain($c->id, $a->id);
+});
+
+/**
+ * Gives Edison enough documents for 12 in all (it has 3).
+ */
+function peopleGiveEdisonDocuments(): Organization
+{
+    $edison = bianchiOrganization('Edison');
+    insideBianchi(fn () => Document::factory()->count(9)->create(['family_id' => $edison->family_id, 'organization_id' => $edison->id]));
+
+    return $edison;
+}
+
+test('it sends the documents of an organization ten at a time', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+    // The usual order of the list: the most recent date first
+    $firstPage = insideBianchi(fn (): array => Document::query()->where('organization_id', $edison->id)
+        ->orderByDesc('date')->latest()->orderByDesc('id')->limit(10)->pluck('id')->all());
+
+    $this->get(route('organizations.show', $edison))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 10)
+        ->where('documents', fn ($documents): bool => collect($documents)->pluck('id')->all() === $firstPage)
+        ->where('documentsNext', 2)
+        ->where('documentsTotal', 12)
+        ->where('pageSizes', ['documents' => 10]));
+});
+
+test('it adds the second page on the partial reload', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Organization',
+        'X-Inertia-Partial-Data' => 'documents,documentsNext,documentsTotal',
+    ])->get(route('organizations.show', ['organization' => $edison, 'documents_page' => 2]))->assertOk()
+        ->assertJsonCount(2, 'props.documents')
+        ->assertJsonPath('props.documentsNext', null)
+        ->assertJsonPath('matchPropsOn', ['documents.id']);
+});
+
+test('it starts from the first page on a full visit even with documents_page in the address', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+
+    $this->get(route('organizations.show', ['organization' => $edison, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 10)
+        ->where('documentsNext', 2));
+});
+
+test('personal and pinned documents leave out the drawings', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+    insideBianchi(function () use ($person): void {
+        $gallery = DocumentCategory::query()->where('gallery', true)->sole();
+        Document::factory()->create(['family_id' => $person->family_id, 'person_id' => $person->id, 'category_id' => $gallery->id, 'title' => 'Sun', 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+        Document::factory()->create(['family_id' => $person->family_id, 'person_id' => $person->id, 'category_id' => $gallery->id, 'title' => 'House']);
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0)
+        ->where('personal', fn ($documents): bool => collect($documents)->pluck('title')->sort()->values()->all() === ['A', 'B', 'C'])
+        ->where('personalTotal', 3));
+});
+
+test('drawings_url and drawings_count are set only for a person with drawings', function (): void {
+    $giulia = bianchi('Giulia');
+    $gallery = insideBianchi(fn (): DocumentCategory => DocumentCategory::query()->where('gallery', true)->sole());
+
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null)->where('person.drawings_count', 0));
+
+    insideBianchi(fn (): Collection => Document::factory()->count(2)->create(['family_id' => $this->marco->family_id, 'category_id' => $gallery->id, 'person_id' => $giulia->id]));
+
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('person.drawings_url', route('documents.gallery', ['person' => $giulia->id]))
+        ->where('person.drawings_count', 2));
+    $this->get(route('people.show', bianchi('Laura')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null));
+});
+
+test('the rows of a person carry what the row menu needs', function (): void {
+    ['person' => $person, 'a' => $a, 'c' => $c] = peoplePinnedSetup();
+    insideBianchi(fn () => $a->forceFill(['pinned_at' => now(), 'pinned_by' => $this->marco->id])->save());
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('pinned.0.document.pinned', true)
+        ->where('pinned.0.document.can_pin', true)
+        ->where('personal', fn ($documents): bool => collect($documents)->every(fn (array $row): bool => $row['can_pin'] === true
+            && $row['pinned'] === false
+            && $row['can_edit'] === true
+            && str_contains((string) $row['download_url'], '/download'))
+            && collect($documents)->pluck('id')->contains($c->id)));
+});
+
+test('the partial reload after a pin sends the document in pinned and no longer among the others', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+    $headers = [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'pinned,personal,personalNext,personalTotal',
+    ];
+
+    $this->put(route('documents.pin', $a))->assertRedirect();
+
+    $response = $this->withHeaders($headers)->get(route('people.show', $person))->assertOk();
+    expect(collect($response->json('props.pinned'))->pluck('document.id')->all())->toBe([$a->id])
+        ->and(collect($response->json('props.personal'))->pluck('id'))->not->toContain($a->id);
+});
+
+test('the rows of an organization carry what the row menu needs', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+
+    $this->get(route('organizations.show', $edison))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', fn ($documents): bool => collect($documents)->isNotEmpty()
+            && collect($documents)->every(fn (array $row): bool => $row['can_edit'] === true
+                && $row['pinned'] === false
+                && array_key_exists('can_pin', $row)
+                && str_contains((string) $row['download_url'], '/download'))));
 });

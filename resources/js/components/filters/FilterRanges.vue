@@ -6,8 +6,10 @@
  * typing). Shared by `FmMovementFilters` and `FmPlannedFilters`, which add
  * their own fields above it.
  */
+import { computed } from 'vue';
 import { errors as fieldErrors } from '@/lib/errors';
 import { formatAmount, parseAmount, textOrNull } from '@/lib/forms';
+import { cn } from '@/lib/utils';
 
 /** The ranges this part of the filters holds. */
 type Ranges = {
@@ -27,6 +29,7 @@ const {
     help,
     removable = false,
     errors = {},
+    columns = false,
 } = defineProps<{
     /** The ranges in use (the other filters of the list are left alone). */
     filters: Ranges;
@@ -38,6 +41,8 @@ const {
     removable?: boolean;
     /** What the server found wrong, by filter (an amount *to* under the *from*). */
     errors?: Partial<Record<string, string>>;
+    /** Each range is a cell of the grid of the form: the two fields stack, and *Remove the filters* takes the row below. */
+    columns?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -46,6 +51,19 @@ const emit = defineEmits<{
     /** *Remove the filters* was pressed. */
     remove: [];
 }>();
+
+/** The two fields of a range: side by side when there is room, stacked in a column cell. */
+const pair = computed(() =>
+    cn('grid gap-3', columns ? 'grid-cols-1' : '@xs:grid-cols-2'),
+);
+
+/** *Remove the filters*: under the cells, at the end of the row, in columns. */
+const removeClass = computed(() =>
+    cn(
+        'cursor-pointer border-0 bg-transparent p-0 text-row text-action',
+        columns ? 'col-span-full justify-self-end' : 'self-start',
+    ),
+);
 
 /**
  * Sends a value, unless it is the one already in use.
@@ -65,7 +83,7 @@ function change<K extends keyof Ranges>(key: K, value: Ranges[K]): void {
         <legend class="mb-2 p-0 text-label text-ink-soft">
             {{ $t('Amount') }}
         </legend>
-        <div class="grid gap-3 @xs:grid-cols-2">
+        <div :class="pair">
             <FormKit
                 type="currency"
                 :label="$t('At least')"
@@ -95,7 +113,7 @@ function change<K extends keyof Ranges>(key: K, value: Ranges[K]): void {
             {{ dateLabel }}
         </legend>
         <!-- A datepicker does not empty itself when its value goes back to null: the key starts it again -->
-        <div class="grid gap-3 @xs:grid-cols-2">
+        <div :class="pair">
             <FormKit
                 :key="`from:${filters.from}`"
                 type="datepicker"
@@ -124,7 +142,7 @@ function change<K extends keyof Ranges>(key: K, value: Ranges[K]): void {
     <button
         v-if="removable"
         type="button"
-        class="cursor-pointer self-start border-0 bg-transparent p-0 text-row text-action"
+        :class="removeClass"
         @click="emit('remove')"
     >
         {{ $t('Remove the filters') }}
