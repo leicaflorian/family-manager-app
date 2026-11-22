@@ -2,6 +2,31 @@
 
 All notable changes to Fameja.app.
 
+## [2.6.0] - 2026-11-22
+
+### Documents
+- Drawings gallery: a category can be the gallery; drawings leave the document list and personal documents, with a gallery page, tiles, a viewer (previous/next, share) and an Add drawing sheet (starts on the filtered child or the only person).
+- Favourites: a personal document can be marked as favourite and appears at the top of the person's page, apart from the others (replaces the earlier pin wording).
+- ⋮ menu on every document row (actions, Download on the cards); the hover/focus highlight covers the whole row.
+- Documents page: filters in a box under the search, the open document in a column on the right (`FmDetailColumn`); category filter leaves out gallery categories.
+- Gallery card, category switch and a link to a person's drawings (with the count) on Documents and People; search shows drawings with the palette.
+- An organization's documents load ten at a time with "show more".
+
+### Sidebar and filters
+- Sidebar: with a drawings gallery, Documents opens like Budget with the gallery category under it.
+- Filters in a labelled button and a box under the search on Planned, Movements, Agenda, To sort and Documents; `FmFilterAside` removed; Budget box of Planned/spent and Usage only on the phone.
+
+### Files
+- PDF previews are rendered with Ghostscript (scanner whites no longer pink); `files:previews --reset-pdf` rebuilds them.
+- PDFs remember their page count (`files:page-counts`, run once after this release).
+- JPEG photos get a smaller preview; PNG and WebP are left as they are.
+
+### Database
+- Two migrations: documents get a favourite flag, categories and files get the gallery and page-count columns (additive, compatible with the previous code).
+
+### Docs
+- README, AGENTS and learnings updated (Ghostscript previews, page counts, Inertia reset).
+
 ## [2.5.1] - 2026-11-21
 
 ### Charts

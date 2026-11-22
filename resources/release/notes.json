@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.6.0",
+        "date": "2026-11-22",
+        "notes": {
+            "it": [
+                "Nuova galleria dei disegni: li trovi sotto Documenti, con una pagina tutta loro, un visualizzatore per sfogliarli e condividerli e un modo semplice per aggiungerne di nuovi.",
+                "Puoi segnare un documento personale come preferito: lo ritrovi in cima alla pagina della persona.",
+                "Ogni documento ha un menu ⋮ con le azioni che servono, e il colore al passaggio copre tutta la riga.",
+                "Nella pagina Documenti i filtri stanno in un riquadro sotto la ricerca e il documento si apre in una colonna a destra.",
+                "I filtri di Piano, Movimenti, Agenda e Da smistare hanno lo stesso aspetto, con un tasto Filtri chiaro.",
+                "Le anteprime dei PDF scansionati ora hanno il bianco giusto, non più rosato.",
+                "Le pagine di una persona dicono quanti disegni ci sono, e la ricerca trova anche i disegni.",
+                "Nella pagina di un ente i documenti si caricano dieci alla volta."
+            ],
+            "en": [
+                "New drawings gallery: you find it under Documents, with its own page, a viewer to browse and share drawings, and an easy way to add new ones.",
+                "You can mark a personal document as a favourite: you will find it at the top of the person's page.",
+                "Every document has a ⋮ menu with the actions you need, and the highlight on hover now covers the whole row.",
+                "On the Documents page the filters are in a box under the search and the document opens in a column on the right.",
+                "The filters of Planned, Movements, Agenda and To sort look the same, with a clear Filters button.",
+                "Previews of scanned PDFs now have the right white, no longer pinkish.",
+                "A person's page tells you how many drawings there are, and search finds drawings too.",
+                "On an organization's page the documents load ten at a time."
+            ]
+        }
+    },
+    {
         "version": "2.5.1",
         "date": "2026-11-21",
         "notes": {
