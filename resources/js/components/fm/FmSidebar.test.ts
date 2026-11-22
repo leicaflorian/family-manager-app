@@ -276,6 +276,69 @@ describe('FmSidebar', () => {
         );
     });
 
+    it('with a gallery has its category under Documents, closed outside the Documents and opened with the arrow', async () => {
+        render(FmSidebar, {
+            props: {
+                active: 'home',
+                path: '/dashboard',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                galleryName: 'Disegni e lavoretti',
+            },
+        });
+
+        const toggle = screen.getByRole('button', {
+            name: 'Show the documents pages',
+        });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(toggle).toHaveAttribute('aria-controls', 'sidebar-documents');
+        expect(
+            screen.queryByRole('list', { name: 'Documents' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(toggle);
+
+        const list = screen.getByRole('list', { name: 'Documents' });
+        expect(
+            within(list).getByRole('link', { name: 'Disegni e lavoretti' }),
+        ).toHaveAttribute('href', '/documents/gallery');
+    });
+
+    it('on the gallery opens the list by itself, the gallery marked and Documents plain', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'documents',
+                path: '/documents/gallery',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                galleryName: 'Disegni e lavoretti',
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'Disegni e lavoretti' }),
+        ).toHaveAttribute('aria-current', 'page');
+        const documents = screen.getByRole('link', { name: 'Documents' });
+        expect(documents).not.toHaveAttribute('aria-current');
+        expect(documents).toHaveClass('text-ink');
+    });
+
+    it('without a gallery, Documents is a plain link with no arrow', () => {
+        bar('documents', '/documents');
+
+        expect(
+            screen.queryByRole('button', { name: 'Show the documents pages' }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+    });
+
     it('keeps the pages under Budget closed outside the Budget, and opens them with the arrow', async () => {
         bar('documents', '/documents');
 
