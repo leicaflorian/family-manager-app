@@ -126,6 +126,39 @@ describe('FmDocumentActions', () => {
             ).not.toBeInTheDocument();
         });
 
+        it('the page menu reads Open, Share, Pin and shows only Unpin when pinned', async () => {
+            vi.stubGlobal('navigator', {
+                share: () => {},
+                canShare: () => true,
+            });
+            renderPage(FmDocumentActions, {
+                document: { ...documentDetail, can_pin: true },
+            });
+            await open();
+            await screen.findByRole('menuitem', { name: 'Pin at the top' });
+
+            expect(
+                screen
+                    .getAllByRole('menuitem')
+                    .map((item) => item.textContent?.trim()),
+            ).toEqual(['Open in a new tab', 'Share', 'Pin at the top']);
+            vi.unstubAllGlobals();
+        });
+
+        it('shows only Unpin when it is pinned', async () => {
+            renderPage(FmDocumentActions, {
+                document: { ...documentDetail, can_pin: true, pinned: true },
+            });
+            await open();
+
+            expect(
+                await screen.findByRole('menuitem', { name: 'Unpin' }),
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('menuitem', { name: 'Pin at the top' }),
+            ).not.toBeInTheDocument();
+        });
+
         it.each([false, true])(
             'on its own page pins with a PUT (compact: %s)',
             async (compact) => {

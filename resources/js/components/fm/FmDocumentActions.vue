@@ -80,16 +80,6 @@ const actions = computed((): Action[] => [
               } satisfies Action,
           ]
         : []),
-    ...(document.can_pin
-        ? [
-              {
-                  label: pinLabel.value,
-                  icon: document.pinned ? PinOff : Pin,
-                  onSelect: togglePin,
-                  menuOnly: true,
-              } satisfies Action,
-          ]
-        : []),
     ...(document.can_delete
         ? [
               {
@@ -120,6 +110,16 @@ const actions = computed((): Action[] => [
                   label: trans('Share'),
                   icon: Share2,
                   onSelect: () => void shareFile(document.file),
+                  menuOnly: true,
+              } satisfies Action,
+          ]
+        : []),
+    ...(document.can_pin
+        ? [
+              {
+                  label: pinLabel.value,
+                  icon: document.pinned ? PinOff : Pin,
+                  onSelect: togglePin,
                   menuOnly: true,
               } satisfies Action,
           ]
