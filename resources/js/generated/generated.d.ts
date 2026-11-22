@@ -685,6 +685,7 @@ readonly is_me: boolean,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly drawings_url: string | null,
+readonly drawings_count: number,
 };
 export type PersonSummaryData = {
 readonly id: number,

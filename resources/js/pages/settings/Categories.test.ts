@@ -350,10 +350,11 @@ describe('Changes not saved', () => {
         ).toBeInTheDocument();
     });
 
-    it('a member does not see the toggle', async () => {
+    it('does not make the category rows editable for a member, so the toggle is out of reach', async () => {
         renderPage(Categories, { categories, cardTypes, canEdit: false });
 
         expect(screen.queryByRole('button', { name: /^Work/ })).toBeNull();
+        expect(screen.queryByRole('dialog')).toBeNull();
         expect(
             screen.queryByRole('switch', { name: 'Show in a gallery' }),
         ).toBeNull();

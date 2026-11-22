@@ -85,11 +85,15 @@ describe('A person', () => {
         renderGiulia({
             ...personDetail,
             drawings_url: '/documents/gallery?person=3',
+            drawings_count: 12,
         });
 
         expect(
             screen.getByRole('link', { name: /Giulia's drawings/ }),
         ).toHaveAttribute('href', '/documents/gallery?person=3');
+        expect(
+            screen.getByText('12 in the drawings gallery'),
+        ).toBeInTheDocument();
     });
 
     it('has no drawings link without a gallery', () => {

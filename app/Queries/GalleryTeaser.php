@@ -52,12 +52,12 @@ final readonly class GalleryTeaser
     }
 
     /**
-     * Whether a person has a drawing in the gallery.
+     * How many drawings of a person are in the gallery.
      *
      * @param  int  $personId  the person
      */
-    public function personHasDrawings(int $personId): bool
+    public function personDrawingsCount(int $personId): int
     {
-        return $this->drawings->query($personId)->exists();
+        return $this->drawings->query($personId)->count();
     }
 }

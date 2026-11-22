@@ -384,7 +384,10 @@ usePageTrail(() => [
                             })
                         }}</span>
                         <span class="text-meta text-ink-soft">{{
-                            $t('In the drawings gallery')
+                            $tChoice(
+                                '{1} :count in the drawings gallery|[2,*] :count in the drawings gallery',
+                                person.drawings_count,
+                            )
                         }}</span>
                     </span>
                     <FmIcon

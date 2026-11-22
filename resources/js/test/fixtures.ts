@@ -224,6 +224,7 @@ export const personDetail: App.Data.PersonDetailData = {
     can_edit: true,
     can_delete: true,
     drawings_url: null,
+    drawings_count: 0,
 };
 
 /** A document of Giulia, as the rows of the lists show it. */

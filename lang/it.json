@@ -2381,5 +2381,5 @@
     "Show in a gallery": "Mostra in una galleria",
     "Its documents leave Documents and go to the drawings gallery.": "I suoi documenti escono da Documenti e vanno nella galleria dei disegni.",
     ":name's drawings": "I disegni di :name",
-    "In the drawings gallery": "Nella galleria dei disegni"
+    "{1} :count in the drawings gallery|[2,*] :count in the drawings gallery": "{1} :count nella galleria dei disegni|[2,*] :count nella galleria dei disegni"
 }

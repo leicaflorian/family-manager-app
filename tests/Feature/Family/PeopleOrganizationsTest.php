@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -475,15 +476,16 @@ test('personal and pinned documents leave out the drawings', function (): void {
         ->where('personalTotal', 3));
 });
 
-test('drawings_url is set only for a person with drawings', function (): void {
+test('drawings_url and drawings_count are set only for a person with drawings', function (): void {
     $giulia = bianchi('Giulia');
     $gallery = insideBianchi(fn (): DocumentCategory => DocumentCategory::query()->where('gallery', true)->sole());
 
-    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null));
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null)->where('person.drawings_count', 0));
 
-    insideBianchi(fn (): Document => Document::factory()->create(['family_id' => $this->marco->family_id, 'category_id' => $gallery->id, 'person_id' => $giulia->id]));
+    insideBianchi(fn (): Collection => Document::factory()->count(2)->create(['family_id' => $this->marco->family_id, 'category_id' => $gallery->id, 'person_id' => $giulia->id]));
 
     $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('person.drawings_url', route('documents.gallery', ['person' => $giulia->id])));
+        ->where('person.drawings_url', route('documents.gallery', ['person' => $giulia->id]))
+        ->where('person.drawings_count', 2));
     $this->get(route('people.show', bianchi('Laura')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null));
 });

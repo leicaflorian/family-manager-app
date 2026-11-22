@@ -93,7 +93,7 @@ final class PersonController extends Controller
         };
 
         return Inertia::render('family/Person', [
-            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user, $this->gallery->personHasDrawings($person->id)),
+            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user, $this->gallery->personDrawingsCount($person->id)),
             'pinned' => fn (): array => $rows->pinned($person->id),
             'canPin' => $user->can('create', Document::class),
             ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false, 'gallery' => false], self::PERSONAL_PER_PAGE),

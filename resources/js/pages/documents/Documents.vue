@@ -18,10 +18,10 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmDocumentActions from '@/components/fm/FmDocumentActions.vue';
 import FmDocumentDetail from '@/components/fm/FmDocumentDetail.vue';
 import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
+import FmIcon from '@/components/fm/FmIcon.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmPager from '@/components/fm/FmPager.vue';
@@ -358,12 +358,12 @@ function rowHref(document: App.Data.DocumentData): string {
                             :key="thumbnail"
                             :src="thumbnail"
                             alt=""
-                            class="size-[58px] shrink-0 rounded-md bg-segment object-cover"
+                            class="size-[58px] shrink-0 rounded-md bg-segment object-cover wide:size-14"
                         />
                         <span
                             v-if="galleryMore > 0"
                             aria-hidden="true"
-                            class="flex size-[58px] shrink-0 items-center justify-center rounded-md bg-segment text-label text-ink-soft"
+                            class="flex size-[58px] shrink-0 items-center justify-center rounded-md bg-segment text-label text-ink-soft wide:size-14"
                             >+{{ galleryMore }}</span
                         >
                     </span>
