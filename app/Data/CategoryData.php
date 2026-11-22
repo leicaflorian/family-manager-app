@@ -20,6 +20,7 @@ final class CategoryData extends Data
      * @param  string|null  $icon  the icon, a Lucide name
      * @param  string|null  $color  the colour, an area; a subcategory takes the one of its main category
      * @param  string|null  $card_type  the card its documents go with, as in the morph map; its own, not inherited
+     * @param  bool  $gallery  whether it is the drawings gallery
      * @param  string|null  $inherited_card_type  the card of its main category, null for a main one
      * @param  int  $documents_count  how many documents it holds, without those of the subcategories
      * @param  list<CategoryData>  $children  the subcategories, in order
@@ -31,6 +32,7 @@ final class CategoryData extends Data
         public readonly ?string $icon,
         public readonly ?string $color,
         public readonly ?string $card_type,
+        public readonly bool $gallery,
         public readonly ?string $inherited_card_type,
         public readonly int $documents_count,
         public readonly array $children,

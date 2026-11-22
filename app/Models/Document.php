@@ -42,6 +42,7 @@ use Illuminate\Support\Facades\DB;
  * @property CarbonImmutable|null $updated_at
  * @property CarbonImmutable|null $pinned_at
  * @property int|null $pinned_by
+ * @property bool $is_favorite Whether it is a favourite in the drawings gallery
  * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
@@ -88,7 +89,7 @@ use Illuminate\Support\Facades\DB;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes'])]
+#[Fillable(['title', 'file_id', 'category_id', 'status', 'person_id', 'organization_id', 'planned_expense_id', 'date', 'expiry_date', 'tags', 'notes', 'is_favorite'])]
 #[ObservedBy(DeadlineObserver::class)]
 final class Document extends FamilyModel
 {
@@ -367,6 +368,7 @@ final class Document extends FamilyModel
             'date' => 'date',
             'expiry_date' => 'date',
             'tags' => 'array',
+            'is_favorite' => 'boolean',
             'pinned_at' => 'immutable_datetime',
         ];
     }

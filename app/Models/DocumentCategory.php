@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $icon
  * @property string|null $color
  * @property string|null $card_type The type of card the documents of the category go with
+ * @property bool $gallery Whether the category (with its subcategories) is shown as the drawings gallery
  * @property int|null $sort
  * @property int|null $created_by
  * @property int|null $updated_by
@@ -43,7 +44,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type'])]
+#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type', 'gallery'])]
 final class DocumentCategory extends FamilyModel
 {
     /** @use HasFactory<DocumentCategoryFactory> */
@@ -100,6 +101,7 @@ final class DocumentCategory extends FamilyModel
     {
         return [
             'sort' => 'integer',
+            'gallery' => 'boolean',
         ];
     }
 }

@@ -120,6 +120,7 @@ function category(
         icon: null,
         color: null,
         card_type: null,
+        gallery: false,
         inherited_card_type: null,
         documents_count: 0,
         children,

@@ -30,7 +30,7 @@ final class DefaultCategories
             'Taxes and social security' => ['Tax return (730)', 'ISEE', 'Allowances and bonuses', 'Maternity and leave'],
             'Work' => ['Payslips', 'Annual income statement (CU)', 'VAT number'],
             'Health' => ['Visits and tests', 'Prescriptions', 'Vaccinations', 'Eyecare', 'Medical invoices'],
-            'School and activities' => [],
+            'School and activities' => ['Drawings and crafts'],
         ];
     }
 
@@ -75,6 +75,16 @@ final class DefaultCategories
             'Health' => 'health_event',
             'School and activities' => 'enrollment',
         ];
+    }
+
+    /**
+     * The starter document categories shown as the drawings gallery, by name; a family has only one.
+     *
+     * @return list<string>
+     */
+    public static function documentGalleries(): array
+    {
+        return ['Drawings and crafts'];
     }
 
     /**

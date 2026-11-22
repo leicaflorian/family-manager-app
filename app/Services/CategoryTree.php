@@ -101,6 +101,26 @@ final class CategoryTree
     }
 
     /**
+     * The ids of the gallery category and of all its subcategories.
+     *
+     * @return list<int> empty when no category of the family is the gallery
+     */
+    public function galleryIds(): array
+    {
+        $gallery = $this->galleryCategory();
+
+        return $gallery instanceof DocumentCategory ? $this->withDescendants($gallery->id) : [];
+    }
+
+    /**
+     * The category shown as the drawings gallery, if the family has one.
+     */
+    public function galleryCategory(): ?DocumentCategory
+    {
+        return DocumentCategory::query()->where('gallery', true)->first();
+    }
+
+    /**
      * The categories below `$parent`, each with its children.
      *
      * @param  Collection<int|string, Collection<int, DocumentCategory>>  $byParent  the categories grouped by `parent_id`
@@ -118,6 +138,7 @@ final class CategoryTree
             icon: $category->icon,
             color: $category->color ?? $color,
             card_type: $category->card_type,
+            gallery: $category->gallery,
             inherited_card_type: $cardType,
             documents_count: (int) $category->documents_count,
             children: $this->branches($byParent, $category->id, $category->color ?? $color, $category->card_type ?? $cardType),

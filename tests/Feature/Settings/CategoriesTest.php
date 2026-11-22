@@ -26,6 +26,9 @@ test('the page shows the tree, with the number of documents of each category', f
         ->where('categories.1.icon', 'house')
         ->where('categories.1.children.0.name', 'Electricity')
         ->where('categories.1.children.0.documents_count', 2)
+        ->where('categories.1.children.0.gallery', false)
+        ->where('categories.9.children.0.name', 'Drawings and crafts')
+        ->where('categories.9.children.0.gallery', true)
         ->where('canEdit', true));
 });
 

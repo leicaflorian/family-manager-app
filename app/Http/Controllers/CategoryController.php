@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\CategoryTree;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -42,27 +43,43 @@ final class CategoryController extends Controller
         $parent = $request->integer('parent_id') ?: null;
         $last = DocumentCategory::query()->where('parent_id', $parent)->orderByDesc('sort')->first();
 
-        DocumentCategory::query()->create([
-            'name' => $request->string('name')->toString(),
-            'parent_id' => $parent,
-            'sort' => ($last->sort ?? 0) + 1,
-            'card_type' => $request->validated('card_type'),
-        ]);
+        DB::transaction(function () use ($request, $parent, $last): void {
+            // A new gallery takes the place of the one the family had
+            if ($request->boolean('gallery')) {
+                DocumentCategory::query()->where('gallery', true)->update(['gallery' => false]);
+            }
+
+            DocumentCategory::query()->create([
+                'name' => $request->string('name')->toString(),
+                'parent_id' => $parent,
+                'sort' => ($last->sort ?? 0) + 1,
+                'card_type' => $request->validated('card_type'),
+                'gallery' => $request->boolean('gallery'),
+            ]);
+        });
 
         return to_route('categories.index');
     }
 
     /**
-     * The new name, the new place in the tree, and the card.
+     * The new name, the new place in the tree, the card and whether it is the gallery.
      */
     public function update(SaveCategoryRequest $request, DocumentCategory $category): RedirectResponse
     {
-        $category->update([
-            'name' => $request->string('name')->toString(),
-            'parent_id' => $request->integer('parent_id') ?: null,
-            // A request without the field leaves the card as it is
-            ...$request->has('card_type') ? ['card_type' => $request->validated('card_type')] : [],
-        ]);
+        DB::transaction(function () use ($request, $category): void {
+            // A family has a single gallery: marking this one switches the other off
+            if ($request->boolean('gallery')) {
+                DocumentCategory::query()->where('gallery', true)->whereKeyNot($category->id)->update(['gallery' => false]);
+            }
+
+            $category->update([
+                'name' => $request->string('name')->toString(),
+                'parent_id' => $request->integer('parent_id') ?: null,
+                // A request without the field leaves the card and the gallery as they are
+                ...$request->has('card_type') ? ['card_type' => $request->validated('card_type')] : [],
+                ...$request->has('gallery') ? ['gallery' => $request->boolean('gallery')] : [],
+            ]);
+        });
 
         return to_route('categories.index');
     }

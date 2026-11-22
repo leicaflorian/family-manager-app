@@ -34,6 +34,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * @property int|null $link_id The id of the card the file was uploaded from, while it waits for its document
  * @property string|null $preview_path The JPEG of the preview, made the first time it is asked
  * @property bool $preview_failed The preview could not be made: it is not tried again
+ * @property int|null $page_count The pages of a PDF, null when unknown
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -233,6 +234,7 @@ final class File extends FamilyModel
         return [
             'size' => 'integer',
             'to_sort' => 'boolean',
+            'page_count' => 'integer',
             'link_id' => 'integer',
             'preview_failed' => 'boolean',
             'reading_status' => ReadingStatus::class,
