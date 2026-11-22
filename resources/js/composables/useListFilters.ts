@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
 import { useComputerLayout } from '@/composables/useLayoutMode';
+import { useWideLayout } from '@/composables/useWideLayout';
 import type { FilterPill } from '@/lib/filters';
 import { withoutFilters } from '@/lib/filters';
 import { cn } from '@/lib/utils';
@@ -10,6 +11,10 @@ import { cn } from '@/lib/utils';
 export type ListFilters<F, E> = {
     /** The computer layout: the filters in a column, else in the panel from below. */
     desktop: Ref<boolean>;
+    /** The wide layout (tablet or computer): the filters live in a box under the search bar. */
+    wide: Ref<boolean>;
+    /** Whether the box of the filters is open; shut when the window stops being wide. */
+    boxOpen: Ref<boolean>;
     /** The text in the search box, sent with Enter. */
     searchText: Ref<string>;
     /** Sends the text of the box; only spaces is no search. */
@@ -48,7 +53,15 @@ export function useListFilters<
     url: (query: F & Partial<E>) => string;
 }): ListFilters<F, E> {
     const desktop = useComputerLayout();
+    const wide = useWideLayout();
+    const boxOpen = ref(false);
     const page = usePage();
+
+    watch(wide, (isWide) => {
+        if (!isWide) {
+            boxOpen.value = false;
+        }
+    });
     const searchText = ref(options.filters().search ?? '');
 
     watch(
@@ -71,6 +84,8 @@ export function useListFilters<
 
     return {
         desktop,
+        wide,
+        boxOpen,
         searchText,
         submitSearch: (): void =>
             go({ search: searchText.value.trim() || null } as Partial<F & E>),

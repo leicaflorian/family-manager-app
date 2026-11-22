@@ -123,4 +123,33 @@ describe('useListFilters', () => {
         screenWidth(390);
         expect(setup().list.layout.value).toContain('flex-col');
     });
+
+    it('opens the box only on a wide window', () => {
+        screenWidth(1000);
+        const { list } = setup();
+
+        expect(list.wide.value).toBe(true);
+        expect(list.boxOpen.value).toBe(false);
+    });
+
+    it('closes the box when the window narrows', async () => {
+        const listeners = new Set<(event: { matches: boolean }) => void>();
+        const media = {
+            matches: true,
+            addEventListener: (
+                _: string,
+                listener: (event: { matches: boolean }) => void,
+            ) => listeners.add(listener),
+            removeEventListener: () => {},
+        };
+        window.matchMedia = (() =>
+            media) as unknown as typeof window.matchMedia;
+        const { list } = setup();
+
+        list.boxOpen.value = true;
+        listeners.forEach((listener) => listener({ matches: false }));
+        await nextTick();
+
+        expect(list.boxOpen.value).toBe(false);
+    });
 });
