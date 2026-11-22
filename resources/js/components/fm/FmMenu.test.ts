@@ -78,12 +78,15 @@ describe('FmMenu', () => {
         expect(button).not.toHaveClass('bg-canvas');
     });
 
-    it('row, the ⋯ button is a 32 px square that announces a menu', () => {
+    it('row, the ⋮ button is a 32 px square that announces a menu', () => {
         renderPage(Menu, { row: true });
 
         const button = screen.getByRole('button', { name: 'More actions' });
         expect(button).toHaveClass('size-8');
         expect(button).toHaveAttribute('aria-haspopup', 'menu');
+        expect(
+            button.querySelector('.lucide-ellipsis-vertical'),
+        ).not.toBeNull();
     });
 
     it('takes its own icon in place of the ⋯', () => {

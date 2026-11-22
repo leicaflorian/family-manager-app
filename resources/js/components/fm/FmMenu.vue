@@ -14,7 +14,7 @@
  * @group navigation
  */
 import type { LucideIcon } from '@lucide/vue';
-import { ChevronDown, Ellipsis } from '@lucide/vue';
+import { ChevronDown, Ellipsis, EllipsisVertical } from '@lucide/vue';
 import {
     DropdownMenuContent,
     DropdownMenuPortal,
@@ -52,7 +52,7 @@ const {
     control?: boolean;
     /** The label of the thing chosen, in ink and bold, with a chevron after it (`icon` replaces it): the utility of *Usage*. */
     choice?: boolean;
-    /** The 32 px ⋯ at the right of a list row, outside its link; `label` is the name for screen readers. */
+    /** The 32 px vertical ⋮ at the right of a list row, outside its link; `label` is the name for screen readers. */
     row?: boolean;
 }>();
 
@@ -82,7 +82,7 @@ defineSlots<{
                 :title="label ?? $t('More actions')"
                 class="mr-3 flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-ink-soft hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action data-[state=open]:bg-canvas"
             >
-                <FmIcon :icon="icon ?? Ellipsis" :size="18" />
+                <FmIcon :icon="icon ?? EllipsisVertical" :size="18" />
             </button>
             <button
                 v-else-if="choice"
