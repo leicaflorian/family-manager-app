@@ -7,8 +7,6 @@ namespace App\Queries;
 use App\Data\GalleryTeaserData;
 use App\Models\Document;
 use App\Models\Person;
-use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 
 /**
  * What the card of the gallery on *Documents* shows, read from the drawings of the family.
@@ -18,7 +16,7 @@ final readonly class GalleryTeaser
     /** How many pictures the card shows. */
     public const int THUMBNAILS = 4;
 
-    public function __construct(private FilterDocuments $filter) {}
+    public function __construct(private GalleryDrawings $drawings) {}
 
     /**
      * The card of the gallery.
@@ -27,25 +25,19 @@ final readonly class GalleryTeaser
      */
     public function for(): ?GalleryTeaserData
     {
-        $count = $this->drawings()->count();
+        $drawings = $this->drawings->query();
+        $count = (clone $drawings)->count();
 
         if ($count === 0) {
             return null;
         }
 
-        $newest = $this->drawings()
-            ->join('files', 'files.id', '=', 'documents.file_id')
-            ->with('file')
-            ->reorder()
-            ->orderByDesc('files.created_at')
-            ->orderByDesc('documents.id')
-            ->limit(self::THUMBNAILS)
-            ->get();
-        $last = $newest->first()?->file->created_at;
+        $newest = (clone $drawings)->limit(self::THUMBNAILS)->get();
+        $last = $newest->first()?->file->uploadedAt();
 
         /** @var list<string> $names */
         $names = Person::query()
-            ->whereIn('id', $this->drawings()->whereNotNull('person_id')->reorder()->distinct()->select('person_id'))
+            ->whereIn('id', (clone $drawings)->whereNotNull('person_id')->reorder()->distinct()->select('person_id'))
             ->orderBy('first_name')
             ->pluck('first_name')
             ->all();
@@ -53,7 +45,7 @@ final readonly class GalleryTeaser
         return new GalleryTeaserData(
             count: $count,
             people: $names,
-            last_uploaded_on: $last === null ? null : CarbonImmutable::parse($last)->setTimezone('Europe/Rome')->toDateString(),
+            last_uploaded_on: $last?->toDateString(),
             thumbnails: array_values($newest->map(static fn (Document $document): string => $document->file->imageUrl())->all()),
             url: route('documents.gallery'),
         );
@@ -66,16 +58,6 @@ final readonly class GalleryTeaser
      */
     public function personHasDrawings(int $personId): bool
     {
-        return $this->drawings()->where('person_id', $personId)->exists();
-    }
-
-    /**
-     * The documents of the gallery.
-     *
-     * @return Builder<Document>
-     */
-    private function drawings(): Builder
-    {
-        return $this->filter->apply(Document::query()->select('documents.*'), ['gallery' => true]);
+        return $this->drawings->query($personId)->exists();
     }
 }

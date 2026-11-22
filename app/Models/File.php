@@ -121,6 +121,14 @@ final class File extends FamilyModel
     }
 
     /**
+     * The moment the file was uploaded, in Rome: the day and the year the drawings gallery goes by.
+     */
+    public function uploadedAt(): CarbonImmutable
+    {
+        return CarbonImmutable::parse($this->created_at)->setTimezone('Europe/Rome');
+    }
+
+    /**
      * The address that shows the file as an image: its preview for a HEIC,
      * which most browsers do not open, the file itself otherwise.
      */

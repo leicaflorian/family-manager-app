@@ -14,6 +14,7 @@ use App\Models\DocumentCategory;
 use App\Models\Person;
 use App\Models\User;
 use App\Queries\FilterDocuments;
+use App\Queries\GalleryDrawings;
 use App\Services\CategoryTree;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,7 @@ use Inertia\Response;
  */
 final class GalleryController extends Controller
 {
-    public function __construct(private readonly FilterDocuments $filter, private readonly CategoryTree $categories) {}
+    public function __construct(private readonly FilterDocuments $filter, private readonly CategoryTree $categories, private readonly GalleryDrawings $drawings) {}
 
     /**
      * *Drawings*: the pictures by year with the filters, the children that have drawings and the drawing opened.
@@ -36,16 +37,12 @@ final class GalleryController extends Controller
     {
         $hasGallery = $this->categories->galleryCategory() instanceof DocumentCategory;
 
-        $drawings = $this->filter->apply(Document::query()->with(['person', 'file']), [
-            'gallery' => true,
-            'person' => $request->person(),
-        ])
-            ->when($request->filter() === 'favorites', fn ($query) => $query->where('is_favorite', true))
+        $drawings = $this->drawings->query($request->person(), ['person'])
+            ->when($request->filter() === 'favorites', fn ($query) => $query->where('documents.is_favorite', true))
             ->get();
 
         $years = $drawings
-            ->sortByDesc(fn (Document $document): array => [$document->file->created_at?->getTimestamp() ?? 0, $document->id])
-            ->groupBy(fn (Document $document): int => (int) $document->file->created_at?->setTimezone('Europe/Rome')->year)
+            ->groupBy(fn (Document $document): int => $document->file->uploadedAt()->year)
             ->map(fn (Collection $group, int $year): DrawingYearData => new DrawingYearData(
                 $year,
                 $group->count(),
@@ -56,9 +53,7 @@ final class GalleryController extends Controller
             ->all();
 
         $selectedId = $request->drawing();
-        $selected = $selectedId === null ? null : $this->filter
-            ->apply(Document::query()->with(['person', 'file']), ['gallery' => true])
-            ->find($selectedId);
+        $selected = $selectedId === null ? null : $this->drawings->query(null, ['person'])->where('documents.id', $selectedId)->first();
 
         return Inertia::render('documents/Gallery', [
             'years' => $years,

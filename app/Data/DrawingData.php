@@ -6,7 +6,6 @@ namespace App\Data;
 
 use App\Models\Document;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -58,7 +57,7 @@ final class DrawingData extends Data
     public static function fromDocument(Document $document, User $user): self
     {
         $file = $document->file;
-        $uploaded = CarbonImmutable::parse($file->created_at)->setTimezone('Europe/Rome');
+        $uploaded = $file->uploadedAt();
         $birth = $document->person?->birth_date;
 
         return new self(
