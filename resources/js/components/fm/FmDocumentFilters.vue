@@ -138,17 +138,7 @@ function id(value: unknown): number | null {
                     change({ status: value ? String(value) : null })
             "
         />
-        <FormKit
-            v-if="!columns"
-            type="toggle"
-            :label="$t('Expiring within 60 days')"
-            name="expiring"
-            :model-value="filters.expiring"
-            @update:model-value="
-                (value: unknown) => change({ expiring: value === true })
-            "
-        />
-        <div v-if="columns" class="col-span-full flex justify-between">
+        <div :class="cn(columns && 'col-span-full flex justify-between')">
             <FormKit
                 type="toggle"
                 :label="$t('Expiring within 60 days')"
@@ -159,7 +149,7 @@ function id(value: unknown): number | null {
                 "
             />
             <button
-                v-if="anyOn"
+                v-if="columns && anyOn"
                 type="button"
                 class="cursor-pointer self-center border-0 bg-transparent p-0 text-row text-action"
                 @click="remove"

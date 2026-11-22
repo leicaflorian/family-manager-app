@@ -4,8 +4,8 @@
  * date from / to, with *Remove the filters* when one is on. Every change is
  * sent at once (the amounts after a short pause in typing); the page reloads
  * the list. The text searched is not here: it is in the box above the list,
- * and is kept as it is when another filter changes. Used in the column on the
- * left on the computer and in the panel from below on the phone.
+ * and is kept as it is when another filter changes. Used in the box under
+ * the search on the wide layout and in the panel from below on the phone.
  *
  * @group forms
  */

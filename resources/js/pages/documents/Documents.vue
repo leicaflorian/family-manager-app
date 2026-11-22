@@ -58,7 +58,7 @@ const props = defineProps<{
 
 const page = usePage();
 
-/** Closes the document in the left column: the same list, filters and page, without the chosen document. */
+/** Closes the document in the column on the right: the same list, filters and page, without the chosen document. */
 function closeSelected(): void {
     const address = new URL(page.url, window.location.origin);
     address.searchParams.delete('document');
@@ -147,7 +147,7 @@ const pills = computed(() => {
     return list;
 });
 
-/** The search box, the visits with other filters, the pills and the layout. */
+/** The search box, the visits with other filters, the pills and whether the filter box is open. */
 const {
     wide,
     boxOpen,

@@ -171,7 +171,7 @@ const showLabel = computed(() =>
         </FmEmpty>
 
         <template v-else>
-            <div class="flex w-full max-w-105 gap-2.5">
+            <div class="flex w-full gap-2.5">
                 <form
                     role="search"
                     class="min-w-0 grow"

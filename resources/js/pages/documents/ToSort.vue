@@ -44,6 +44,7 @@ import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useFilterBox } from '@/composables/useFilterBox';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { desktopSystem } from '@/lib/devices';
@@ -81,8 +82,8 @@ const chips = computed((): FilterLink[] =>
     filterLinks(props.filters, props.source),
 );
 
-/** The box of the sources is open (computer only). */
-const boxOpen = ref(false);
+/** The box of the sources is open (computer only); it shuts when the layout is not the computer. */
+const { boxOpen } = useFilterBox(() => mode.value === 'computer');
 
 /** The chip of the filter chosen, or `undefined` for *All*. */
 const chosenChip = computed((): FilterLink | undefined =>
@@ -287,7 +288,7 @@ function confirmDelete(): void {
         <div class="flex flex-col gap-4">
             <div class="flex min-w-0 flex-col gap-4">
                 <FmFilterPills
-                    v-if="mode === 'computer' && !boxOpen && chosenChip"
+                    v-if="mode === 'computer' && chosenChip"
                     :pills="[{ key: 'source', label: chosenChip.label }]"
                     @remove="showAll"
                     @remove-all="showAll"

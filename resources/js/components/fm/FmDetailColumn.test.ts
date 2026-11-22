@@ -78,6 +78,29 @@ describe('FmDetailColumn', () => {
         expect(view.emitted().close).toHaveLength(2);
     });
 
+    it('does not close when Escape is meant for an open menu, list or question', async () => {
+        const view = render(FmDetailColumn, {
+            props: base,
+            slots: {
+                actions:
+                    '<div role="menu"><button type="button">Delete</button></div><div role="listbox"><span>Option</span></div><div role="alertdialog"><button type="button">Cancel</button></div>',
+            },
+        });
+
+        for (const name of ['Delete', 'Cancel']) {
+            await fireEvent.keyDown(screen.getByRole('button', { name }), {
+                key: 'Escape',
+            });
+        }
+        await fireEvent.keyDown(screen.getByText('Option'), { key: 'Escape' });
+
+        expect(view.emitted().close).toBeUndefined();
+
+        await fireEvent.keyDown(document.body, { key: 'Escape' });
+
+        expect(view.emitted().close).toHaveLength(1);
+    });
+
     it('puts the actions before the ×', () => {
         render(FmDetailColumn, {
             props: base,

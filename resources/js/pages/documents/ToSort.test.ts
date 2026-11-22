@@ -396,6 +396,21 @@ describe('ToSort on the computer', () => {
         visit.mockRestore();
     });
 
+    it('keeps the pill of the source while the box is open', async () => {
+        renderPage(ToSort, { ...page, source: 'mail' });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Filters, 1 on' }),
+        );
+
+        expect(
+            screen.getByRole('region', { name: 'Filters' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Remove the filter By mail' }),
+        ).toBeInTheDocument();
+    });
+
     it('puts the Filters button before Link the phone, and tells how long the files stay under the list', () => {
         renderPage(ToSort, page);
 

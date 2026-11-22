@@ -4,13 +4,14 @@
  * chosen row, sticky under the top bar and never taller than the window below
  * it (it scrolls inside). The header has ‹ › to walk the rows of the list,
  * «N of M», the `actions` slot and a ×. Escape closes it, unless something
- * already took the key.
+ * already took the key or an open menu, list or question has it.
  *
  * @group panels
  */
 import { ChevronLeft, ChevronRight, X } from '@lucide/vue';
-import { onBeforeUnmount, onMounted } from 'vue';
 import { trans } from 'laravel-vue-i18n';
+import { useEscapeClose } from '@/composables/useEscapeClose';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 const { position, total } = defineProps<{
@@ -42,28 +43,23 @@ defineSlots<{
     actions?(): unknown;
 }>();
 
-/**
- * Closes the column on Escape, unless another part of the page used the key.
- *
- * @param event - the key pressed
- */
-function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && !event.defaultPrevented) {
-        emit('close');
-    }
-}
+// Escape closes the column, but not when it is meant for an open menu, a list of the
+// filters beside it or a question (the delete confirm) of the actions
+useEscapeClose(
+    () => emit('close'),
+    ['[role="dialog"]', '[role="alertdialog"]'],
+);
 
-onMounted(() => document.addEventListener('keydown', onKeydown));
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
-
-const step =
-    'flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-[10px] border-0 bg-canvas text-ink disabled:cursor-default disabled:opacity-40';
+/** The ‹ and › buttons of the header. */
+const step = cn(
+    'flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-canvas text-ink disabled:cursor-default disabled:opacity-40',
+);
 </script>
 
 <template>
     <aside
         :aria-label="label"
-        class="sticky top-(--app-header) flex max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(6)))] w-[380px] shrink-0 flex-col gap-3.5 self-start overflow-y-auto rounded-[20px] bg-card px-5 pt-4.5 pb-5.5 shadow-card computer:w-[400px]"
+        class="sticky top-(--app-header) flex max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(6)))] w-[380px] shrink-0 flex-col gap-3.5 self-start overflow-y-auto rounded-card-lg bg-card px-5 pt-4.5 pb-5.5 shadow-card computer:w-[400px]"
     >
         <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">

@@ -1,14 +1,14 @@
 import { router, usePage } from '@inertiajs/vue3';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
-import { useWideLayout } from '@/composables/useWideLayout';
+import { useFilterBox } from '@/composables/useFilterBox';
 import type { FilterPill } from '@/lib/filters';
 import { withoutFilters } from '@/lib/filters';
 
 /** What a list with a search box and filters gives its page. */
 export type ListFilters<F, E> = {
     /** The wide layout (tablet or computer): the filters live in a box under the search bar. */
-    wide: Ref<boolean>;
+    wide: Readonly<Ref<boolean>>;
     /** Whether the box of the filters is open; shut when the window stops being wide. */
     boxOpen: Ref<boolean>;
     /** The text in the search box, sent with Enter. */
@@ -45,15 +45,9 @@ export function useListFilters<
     pills: () => FilterPill<F>[];
     url: (query: F & Partial<E>) => string;
 }): ListFilters<F, E> {
-    const wide = useWideLayout();
-    const boxOpen = ref(false);
+    const { wide, boxOpen } = useFilterBox();
     const page = usePage();
 
-    watch(wide, (isWide) => {
-        if (!isWide) {
-            boxOpen.value = false;
-        }
-    });
     const searchText = ref(options.filters().search ?? '');
 
     watch(

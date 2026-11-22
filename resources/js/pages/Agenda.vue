@@ -53,9 +53,12 @@ import FmSidePanel from '@/components/fm/FmSidePanel.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useAgendaFilters } from '@/composables/useAgendaFilters';
+import {
+    defaults as defaultFilters,
+    useAgendaFilters,
+} from '@/composables/useAgendaFilters';
 import { useComputerLayout } from '@/composables/useLayoutMode';
-import { useWideLayout } from '@/composables/useWideLayout';
+import { useFilterBox } from '@/composables/useFilterBox';
 import {
     areaCounts,
     doneByMonth,
@@ -132,22 +135,15 @@ const { filters, toggleArea, choosePerson, chooseMonths, reset } =
 /** The phone panel of the filters is open. */
 const sheetOpen = ref(false);
 
-/** The wide layout (900 px): the filters are in a box under the title, not in the panel from below. */
-const wide = useWideLayout();
-
-/** The box of the filters is open; it shuts when the window stops being wide. */
-const boxOpen = ref(false);
-
-watch(wide, (isWide) => {
-    if (!isWide) {
-        boxOpen.value = false;
-    }
-});
+/** The wide layout (900 px): the filters are in a box under the title, not in the panel from below; the box shuts when the window stops being wide. */
+const { wide, boxOpen } = useFilterBox();
 
 /** How many filters are away from the defaults: the months (where there is a period), a person, each area turned off. */
 const filterCount = computed(
     (): number =>
-        (hasPeriod.value && filters.value.months !== 1 ? 1 : 0) +
+        (hasPeriod.value && filters.value.months !== defaultFilters.months
+            ? 1
+            : 0) +
         (filters.value.person_id === null ? 0 : 1) +
         filters.value.hidden_areas.length,
 );
