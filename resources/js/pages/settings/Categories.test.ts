@@ -328,6 +328,37 @@ describe('Changes not saved', () => {
         );
     });
 
+    it('sends gallery when the toggle changes', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Categories, { categories, cardTypes, canEdit: true });
+        await fireEvent.click(screen.getByRole('button', { name: /^Work/ }));
+        const sheet = await screen.findByRole('dialog');
+
+        await fireEvent.click(
+            within(sheet).getByRole('switch', { name: 'Show in a gallery' }),
+        );
+        await settle();
+        await fireEvent.click(
+            within(sheet).getByRole('button', { name: 'Save' }),
+        );
+
+        expect(put.mock.calls.at(-1)?.[1]).toMatchObject({ gallery: true });
+        expect(
+            within(sheet).getByText(
+                'Its documents leave Documents and go to the drawings gallery.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('a member does not see the toggle', async () => {
+        renderPage(Categories, { categories, cardTypes, canEdit: false });
+
+        expect(screen.queryByRole('button', { name: /^Work/ })).toBeNull();
+        expect(
+            screen.queryByRole('switch', { name: 'Show in a gallery' }),
+        ).toBeNull();
+    });
+
     it('saves the chosen card', async () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
         renderPage(Categories, { categories, cardTypes, canEdit: true });

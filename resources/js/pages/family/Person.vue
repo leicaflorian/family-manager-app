@@ -11,7 +11,15 @@
  * deletes a person without an account.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Pencil, Pin, Plus, Trash2, UserX } from '@lucide/vue';
+import {
+    ChevronRight,
+    Palette,
+    Pencil,
+    Pin,
+    Plus,
+    Trash2,
+    UserX,
+} from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
@@ -359,6 +367,32 @@ usePageTrail(() => [
                         {{ $t('No personal documents yet.') }}
                     </p>
                 </FmCard>
+                <Link
+                    v-if="person.drawings_url"
+                    :href="person.drawings_url"
+                    class="flex items-center gap-3 rounded-card bg-card px-4 py-3 text-ink no-underline shadow-card"
+                >
+                    <span
+                        aria-hidden="true"
+                        class="flex size-[38px] shrink-0 items-center justify-center rounded-md bg-school-soft text-school-text"
+                        ><FmIcon :icon="Palette" :size="20"
+                    /></span>
+                    <span class="flex min-w-0 grow flex-col gap-0.5">
+                        <span class="text-body-strong">{{
+                            $t(":name's drawings", {
+                                name: person.first_name,
+                            })
+                        }}</span>
+                        <span class="text-meta text-ink-soft">{{
+                            $t('In the drawings gallery')
+                        }}</span>
+                    </span>
+                    <FmIcon
+                        :icon="ChevronRight"
+                        :size="20"
+                        class="text-ink-soft"
+                    />
+                </Link>
                 <FmLinkedRecords :groups="links" />
             </div>
 

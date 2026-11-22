@@ -81,6 +81,25 @@ function sevenReminders(): App.Data.ReminderData[] {
 }
 
 describe('A person', () => {
+    it('links the drawings of the person', () => {
+        renderGiulia({
+            ...personDetail,
+            drawings_url: '/documents/gallery?person=3',
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Giulia's drawings/ }),
+        ).toHaveAttribute('href', '/documents/gallery?person=3');
+    });
+
+    it('has no drawings link without a gallery', () => {
+        renderGiulia();
+
+        expect(
+            screen.queryByRole('link', { name: /drawings/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('writes the trail Family > the person into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(

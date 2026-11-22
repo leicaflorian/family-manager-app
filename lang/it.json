@@ -2374,5 +2374,12 @@
     "{1} :count drawing|[2,*] :count drawings": "{1} :count disegno|[2,*] :count disegni",
     "{1} :count drawing or craft|[2,*] :count drawings and crafts": "{1} :count disegno o lavoretto|[2,*] :count disegni e lavoretti",
     "{1} :count drawing or craft of :name|[2,*] :count drawings and crafts of :name": "{1} :count disegno o lavoretto di :name|[2,*] :count disegni e lavoretti di :name",
-    "Where they made it, with what…": "Dove l'ha fatto, con cosa…"
+    "Where they made it, with what…": "Dove l'ha fatto, con cosa…",
+    ":count by :people · the last on :date": ":count di :people · l'ultimo il :date",
+    ":count by :people": ":count di :people",
+    ":count · the last on :date": ":count · l'ultimo il :date",
+    "Show in a gallery": "Mostra in una galleria",
+    "Its documents leave Documents and go to the drawings gallery.": "I suoi documenti escono da Documenti e vanno nella galleria dei disegni.",
+    ":name's drawings": "I disegni di :name",
+    "In the drawings gallery": "Nella galleria dei disegni"
 }

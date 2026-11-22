@@ -47,6 +47,7 @@ const props = {
     hasDocuments: true,
     options: documentFilterOptions,
     selected: null,
+    gallery: null,
 };
 
 afterEach(() => {
@@ -57,6 +58,36 @@ afterEach(() => {
 });
 
 describe('Documents', () => {
+    it('shows the gallery card with count, people and date', () => {
+        vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            gallery: {
+                count: 48,
+                people: ['Giulia'],
+                last_uploaded_on: '2026-11-14',
+                thumbnails: ['/a.jpg', '/b.jpg', '/c.jpg', '/d.jpg'],
+                url: '/documents/gallery',
+            },
+        });
+
+        const card = screen.getByRole('link', { name: /Drawings and crafts/ });
+        expect(card).toHaveAttribute('href', '/documents/gallery');
+        expect(
+            within(card).getByText('48 by Giulia · the last on 14/11/2026'),
+        ).toBeInTheDocument();
+        expect(card.querySelectorAll('img')).toHaveLength(4);
+        expect(within(card).getByText('+44')).toBeInTheDocument();
+    });
+
+    it('hides it when gallery is null', () => {
+        renderPage(Documents, props);
+
+        expect(
+            screen.queryByRole('link', { name: /Drawings and crafts/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('leads to the files to sort when there are some', () => {
         shared.to_sort_count = 3;
         renderPage(Documents, props);

@@ -35,7 +35,12 @@ const { categories, cardTypes, canEdit } = defineProps<{
 /** The category in the panel: null for a new one. */
 const selected = ref<App.Data.CategoryData | null>(null);
 const open = ref(false);
-const form = useForm({ name: '', parent_id: '', card_type: '' });
+const form = useForm({
+    name: '',
+    parent_id: '',
+    card_type: '',
+    gallery: false,
+});
 
 /** Closing the panel with the × asks first once something changed. */
 const changes = useUnsavedChanges(() => form.data(), {
@@ -168,6 +173,7 @@ function openSheet(category: App.Data.CategoryData | null): void {
     form.name = category?.name ?? '';
     form.parent_id = category?.parent_id ? String(category.parent_id) : '';
     form.card_type = category?.card_type ?? '';
+    form.gallery = category?.gallery ?? false;
     changes.reset();
     open.value = true;
 }
@@ -277,6 +283,18 @@ usePageTrail(() => [
                         ><template v-else>{{ piece }}</template></template
                     >
                 </p>
+                <FormKit
+                    v-model="form.gallery"
+                    type="toggle"
+                    :label="$t('Show in a gallery')"
+                    name="gallery"
+                    :help="
+                        $t(
+                            'Its documents leave Documents and go to the drawings gallery.',
+                        )
+                    "
+                    :errors="errors(form.errors.gallery)"
+                />
                 <p v-if="note" class="m-0 text-meta text-ink-soft">
                     {{ note }}
                 </p>
