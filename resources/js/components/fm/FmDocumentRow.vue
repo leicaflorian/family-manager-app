@@ -5,7 +5,8 @@
  * the expiry instead, red once passed and orange while it is ahead, as at the
  * top of *A person*. With `menu` the row has a ⋯ button beside its link with
  * the actions of the document; the parent's attributes and class then go on the
- * row, not on the wrapper.
+ * row, not on the wrapper, and a `current` highlight covers the whole wrapper,
+ * under the ⋯ too. A pinned document shows a pin before its date.
  *
  * @group rows
  */
@@ -16,6 +17,7 @@ import { Download, ExternalLink, Pencil, Pin, PinOff } from '@lucide/vue';
 import { useDocumentPin } from '@/composables/useDocumentPin';
 import type { PinVisitOptions } from '@/composables/useDocumentPin';
 import { useFormat } from '@/composables/useFormat';
+import { cn } from '@/lib/utils';
 import { documentLine } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
 import { edit } from '@/routes/documents';
@@ -82,7 +84,9 @@ const when = computed(() => {
     <DefineRow>
         <FmRow
             v-bind="$attrs"
-            :class="menu && 'min-w-0 grow pr-2'"
+            :class="
+                menu && cn('min-w-0 grow pr-2', current && 'bg-transparent!')
+            "
             :title="document.title"
             :subtitle="line.text"
             :tone="line.tone"
@@ -94,12 +98,31 @@ const when = computed(() => {
             <template #before>
                 <FmFileTile />
             </template>
-            <template v-if="!expiry && !dateless" #after>
-                <span class="text-meta text-ink-soft">{{ when }}</span>
+            <template v-if="(!expiry && !dateless) || document.pinned" #after>
+                <span class="inline-flex shrink-0 items-center gap-1.5">
+                    <template v-if="document.pinned">
+                        <Pin
+                            :size="14"
+                            class="text-action"
+                            aria-hidden="true"
+                        />
+                        <span class="sr-only">{{
+                            $t('Pinned at the top')
+                        }}</span>
+                    </template>
+                    <span
+                        v-if="!expiry && !dateless"
+                        class="text-meta text-ink-soft"
+                        >{{ when }}</span
+                    >
+                </span>
             </template>
         </FmRow>
     </DefineRow>
-    <div v-if="menu" class="flex items-center">
+    <div
+        v-if="menu"
+        :class="cn('flex items-center', current && 'bg-action-soft')"
+    >
         <UseRow />
         <FmMenu
             row

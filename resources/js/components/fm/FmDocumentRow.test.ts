@@ -96,6 +96,38 @@ describe('FmDocumentRow', () => {
         expect(link.querySelectorAll('svg')).toHaveLength(1);
     });
 
+    it('marks a pinned document with a pin and a text for screen readers', () => {
+        render(FmDocumentRow, {
+            props: { document: { ...document, pinned: true }, href: '/d' },
+        });
+
+        expect(screen.getByText('Pinned at the top')).toHaveClass('sr-only');
+    });
+
+    it('has no pin marker when not pinned', () => {
+        render(FmDocumentRow, { props: { document, href: '/d' } });
+
+        expect(screen.queryByText('Pinned at the top')).toBeNull();
+    });
+
+    it('with the menu, highlights the whole wrapper when current', () => {
+        const { container } = render(FmDocumentRow, {
+            props: { document, href: '/d', menu: true, current: true },
+        });
+
+        const wrapper = container.firstElementChild as HTMLElement;
+        expect(wrapper).toHaveClass('bg-action-soft');
+        expect(screen.getByRole('link')).toHaveClass('bg-transparent!');
+    });
+
+    it('with the menu, does not highlight the wrapper when not current', () => {
+        const { container } = render(FmDocumentRow, {
+            props: { document, href: '/d', menu: true },
+        });
+
+        expect(container.firstElementChild).not.toHaveClass('bg-action-soft');
+    });
+
     describe('the ⋯ menu', () => {
         const props = { document, href: '/documents/5', menu: true };
         const button = (): HTMLElement =>
