@@ -90,6 +90,8 @@
         "FmCategoryBar": "Cifre-e-file",
         "FmDateTile": "Cifre-e-file",
         "FmDocumentActions": "Cifre-e-file",
+        "FmDrawingTile": "Cifre-e-file",
+        "FmDrawingViewer": "Cifre-e-file",
         "FmFilePreview": "Cifre-e-file",
         "FmFileTile": "Cifre-e-file",
         "FmLoanFigures": "Cifre-e-file",

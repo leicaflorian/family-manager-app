@@ -2344,5 +2344,16 @@
     "Drawing": "Disegno",
     "Only a drawing of the gallery can be a favourite.": "Solo un disegno della galleria può essere un preferito.",
     "Choose a gallery category in Categories first.": "Scegli prima una categoria da mostrare come galleria in Categorie.",
-    "Only PDF, JPG, PNG, HEIC and WEBP files can be uploaded.": "Si possono caricare solo file PDF, JPG, PNG, HEIC e WEBP."
+    "Only PDF, JPG, PNG, HEIC and WEBP files can be uploaded.": "Si possono caricare solo file PDF, JPG, PNG, HEIC e WEBP.",
+    "Favourite": "Preferito",
+    "Add to favourites": "Aggiungi ai preferiti",
+    "Remove from favourites": "Togli dai preferiti",
+    "Previous drawing": "Disegno prima",
+    "Next drawing": "Disegno dopo",
+    ":position of :total": ":position di :total",
+    "Uploaded on :date": "Caricato il :date",
+    ":name · uploaded on :date": ":name · caricato il :date",
+    ":name, :age years · uploaded on :date": ":name, :age anni · caricato il :date",
+    "{1} :count page · open the PDF to see it|[2,*] :count pages · open the PDF to see them": "{1} :count pagina · apri il PDF per vederla|[2,*] :count pagine · apri il PDF per vederle",
+    "Open as a document": "Apri come documento"
 }
