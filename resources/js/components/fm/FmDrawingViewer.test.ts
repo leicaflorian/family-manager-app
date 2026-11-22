@@ -328,6 +328,29 @@ describe('FmDrawingViewer', () => {
         expect(items[2]).toHaveAttribute('href', '/documents/7');
     });
 
+    it('in the panel puts the title and the line under it above the picture, as the column of a document', () => {
+        viewerOf({}, 'panel');
+
+        const heading = screen.getByRole('heading', { name: 'The dragon' });
+        const picture = screen.getByRole('img', { name: 'The dragon' });
+        expect(
+            heading.compareDocumentPosition(picture) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(screen.getAllByRole('heading')).toHaveLength(1);
+    });
+
+    it('on the phone keeps the title under the picture, in the sheet', () => {
+        viewerOf({}, 'screen');
+
+        const heading = screen.getByRole('heading', { name: 'The dragon' });
+        const picture = screen.getByRole('img', { name: 'The dragon' });
+        expect(
+            picture.compareDocumentPosition(heading) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
+
     it('in the panel the picture opens the file in a new tab', () => {
         viewerOf({}, 'panel');
 

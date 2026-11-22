@@ -7,7 +7,8 @@
  * the arrow keys or a drag to the side (the arrow at an end of the gallery is dimmed and does nothing); on the computer (`panel`) it is the
  * column beside the grid, on the card background, with ‹ › and the place on
  * the left and the × on the right, as the column of a document, and the
- * picture opens the file in a new tab.
+ * picture opens the file in a new tab. In the panel the title and the line
+ * under it sit above the picture, as in the column of a document.
  *
  * It shows the title, who drew it with the age and the date, the notes, the
  * link to the PDF when the file has more pages, and *Download*, *Share* (only
@@ -38,6 +39,7 @@ import {
     watch,
 } from 'vue';
 import { trans } from 'laravel-vue-i18n';
+import { createReusableTemplate } from '@vueuse/core';
 import { useFormat } from '@/composables/useFormat';
 import { extensionOf } from '@/lib/files';
 import { detailStep } from '@/lib/detail';
@@ -81,6 +83,9 @@ const placed = computed(() => position >= 1);
 
 /** True on the phone. */
 const isScreen = computed(() => variant === 'screen');
+
+/** The title and the line under it: above the picture in the panel, in the sheet under it on the phone. */
+const [DefineTitle, UseTitle] = createReusableTemplate();
 
 /** Who drew it, with the age and when it was uploaded, in a line. */
 const byline = computed(() => {
@@ -265,6 +270,22 @@ const actionTile = cn(
 </script>
 
 <template>
+    <DefineTitle>
+        <div :class="cn('flex min-w-0 flex-col', !isScreen && 'gap-1')">
+            <h2 :class="cn('m-0', isScreen ? 'text-sheet-title' : 'text-stat')">
+                {{ drawing.title }}
+            </h2>
+            <span
+                :class="
+                    cn(
+                        'text-body-sm',
+                        isScreen ? 'text-on-hero-soft' : 'text-ink-soft',
+                    )
+                "
+                >{{ byline }}</span
+            >
+        </div>
+    </DefineTitle>
     <div
         :role="isScreen ? 'dialog' : undefined"
         :aria-modal="isScreen ? 'true' : undefined"
@@ -381,6 +402,8 @@ const actionTile = cn(
             </template>
         </div>
 
+        <UseTitle v-if="!isScreen" />
+
         <div
             :class="
                 cn(
@@ -492,6 +515,7 @@ const actionTile = cn(
         </div>
 
         <div
+            v-if="isScreen || drawing.notes || manyPages"
             :class="
                 cn(
                     'flex flex-col gap-2.5',
@@ -500,20 +524,7 @@ const actionTile = cn(
                 )
             "
         >
-            <div :class="cn('flex flex-col', !isScreen && 'gap-1')">
-                <h2 class="m-0 text-sheet-title">
-                    {{ drawing.title }}
-                </h2>
-                <span
-                    :class="
-                        cn(
-                            'text-body-sm',
-                            isScreen ? 'text-on-hero-soft' : 'text-ink-soft',
-                        )
-                    "
-                    >{{ byline }}</span
-                >
-            </div>
+            <UseTitle v-if="isScreen" />
             <p v-if="drawing.notes" class="m-0 text-body">
                 {{ drawing.notes }}
             </p>
