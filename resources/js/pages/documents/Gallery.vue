@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * *Drawings and crafts*: the documents of the gallery category as square pictures, by upload year,
- * with the filters *All* and *Favourites* and one chip per child when there is more than one (or
+ * with the filters *All* (no filter: it takes the others away) and *Favourites* and one chip per child when there is more than one (or
  * one child is filtered, so that her chip clears the filter). A
  * picture opens the drawing: on the phone it covers the page (`screen`), on the computer it sits in
  * the column beside the grid (`panel`); the arrows and the heart work on both. The drawing open is
@@ -95,8 +95,8 @@ const personChips = computed(
 );
 
 /**
- * The child kept by *All* and *Favourites*: the one filtered, unless she has no chip (no drawings
- * left), when *All* and *Favourites* take the filter away.
+ * The child kept by *Favourites*: the one filtered, unless she has no chip (no drawings left), when
+ * *Favourites* takes the filter away. *All* always takes every filter away.
  */
 const keptPerson = computed((): number | null =>
     filteredPerson.value === undefined ? null : props.filters.person,
@@ -256,8 +256,8 @@ function setFavorite(value: boolean): void {
                     <nav :aria-label="$t('Show')" class="flex flex-wrap gap-2">
                         <FmChip
                             :label="$t('All')"
-                            :pressed="filters.filter !== 'favorites'"
-                            :href="address('all', keptPerson)"
+                            :pressed="!filtered"
+                            :href="address('all', null)"
                             preserve-state
                             preserve-scroll
                         />

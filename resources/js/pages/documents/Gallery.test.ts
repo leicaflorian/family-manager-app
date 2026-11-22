@@ -115,6 +115,25 @@ describe('Gallery', () => {
         );
     });
 
+    it('All takes every filter away, and is on only with no filter', () => {
+        const two = [
+            { id: 1, name: 'Giulia' },
+            { id: 2, name: 'Marco' },
+        ];
+        renderPage(Gallery, {
+            ...base,
+            people: two,
+            filters: { filter: 'all', person: 2 },
+        });
+
+        const all = screen.getByRole('link', { name: 'All' });
+        expect(all).toHaveAttribute('href', '/documents/gallery');
+        expect(all).not.toHaveAttribute('aria-current');
+        expect(screen.getByRole('link', { name: 'Marco' })).toHaveAttribute(
+            'aria-current',
+        );
+    });
+
     it('a gallery filtered by a child without drawings can still be cleared from All', () => {
         renderPage(Gallery, {
             ...base,
