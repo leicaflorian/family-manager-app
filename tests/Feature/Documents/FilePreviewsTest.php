@@ -9,6 +9,7 @@ use Carbon\CarbonInterval;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
@@ -251,4 +252,49 @@ test('a missing tool does not mark the file as failed', function (): void {
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
     Log::shouldHaveReceived('error')->twice();
     expect(resolve(FilePreviews::class)->path($file->fresh()))->not->toBeNull();
+});
+
+test('it saves the page count when it makes the preview of a PDF', function (): void {
+    Process::fake(fn ($process) => Process::result(str_contains((string) (is_array($process->command) ? $process->command[0] : $process->command), 'pdfinfo') ? "Title:  x\nPages:          2\nEncrypted:      no\n" : ''));
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    resolve(FilePreviews::class)->path($file);
+
+    expect($file->fresh()->page_count)->toBe(2);
+});
+
+test('it leaves page_count empty when pdfinfo fails, and the preview is still made', function (): void {
+    Log::spy();
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    $path = new FilePreviews(pdfInfoTool: 'no-such-info-tool')->path($file);
+
+    expect($path)->not->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull()
+        ->and($file->fresh()->preview_failed)->toBeFalse();
+    Log::shouldHaveReceived('error')->once();
+});
+
+test('it leaves page_count empty for a broken PDF', function (): void {
+    $file = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull();
+});
+
+test('it leaves page_count empty when pdfinfo says no pages', function (): void {
+    Process::fake(['*' => Process::result("Pages:          0\n")]);
+    $file = storeFixture('one-page.pdf', 'bill.pdf', 'application/pdf');
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull();
+});
+
+test('it does not run pdfinfo for a photo', function (): void {
+    Process::fake();
+    $file = storeFixture('photo.heic', 'photo.heic', 'image/heic');
+
+    resolve(FilePreviews::class)->path($file);
+
+    expect(resolve(FilePreviews::class)->pageCount($file))->toBeNull()
+        ->and($file->fresh()->page_count)->toBeNull();
+    Process::assertNotRan(fn ($process): bool => str_contains(implode(' ', (array) $process->command), 'pdfinfo'));
 });

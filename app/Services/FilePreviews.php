@@ -52,11 +52,13 @@ final readonly class FilePreviews
      * @param  CarbonInterval|int  $timeout  how long a conversion may take; a number is in seconds
      * @param  string  $pdfTool  the tool that makes the image of a PDF
      * @param  string  $heicTool  the tool that makes a JPEG of a HEIC photo
+     * @param  string  $pdfInfoTool  the tool that tells how many pages a PDF has
      */
     public function __construct(
         private CarbonInterval|int $timeout = self::TIMEOUT,
         private string $pdfTool = 'pdftoppm',
         string $heicTool = 'heif-convert',
+        private string $pdfInfoTool = 'pdfinfo',
     ) {
         $this->heic = new HeicConverter($timeout, $heicTool);
     }
@@ -138,6 +140,14 @@ final readonly class FilePreviews
 
         $context = ['file' => $file->id];
 
+        if ($file->mime_type === 'application/pdf') {
+            $pages = $this->pageCount($file);
+
+            if ($pages !== null) {
+                $file->forceFill(['page_count' => $pages])->saveQuietly();
+            }
+        }
+
         try {
             $made = $file->mime_type === 'application/pdf'
                 ? $this->fromPdf($disk->path($file->path), $output)
@@ -174,6 +184,38 @@ final readonly class FilePreviews
         }
 
         return $relative;
+    }
+
+    /**
+     * How many pages a PDF has, read with `pdfinfo`. A tool that is missing is logged; a broken PDF, a timeout or an
+     * answer without pages is just no number.
+     *
+     * @param  File  $file  the file
+     * @return int|null the pages; null for a file that is not a PDF, or when the tool fails or finds none
+     */
+    public function pageCount(File $file): ?int
+    {
+        if ($file->mime_type !== 'application/pdf') {
+            return null;
+        }
+
+        try {
+            $result = Process::timeout($this->timeout)
+                ->run([$this->pdfInfoTool, Storage::disk($file->disk)->path($file->path)])
+                ->throw();
+        } catch (ProcessTimedOutException) {
+            return null;
+        } catch (ProcessFailedException $exception) {
+            if (in_array($exception->result->exitCode(), self::TOOL_MISSING, true)) {
+                Log::error('[file-preview] tool missing or not executable', ['file' => $file->id, ...$this->describe($exception)]);
+            }
+
+            return null;
+        }
+
+        $pages = preg_match('/^Pages:\s+(\d+)\s*$/m', $result->output(), $match) === 1 ? (int) $match[1] : 0;
+
+        return $pages > 0 ? $pages : null;
     }
 
     /**
