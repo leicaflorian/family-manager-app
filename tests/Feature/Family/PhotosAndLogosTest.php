@@ -100,9 +100,9 @@ test('an admin adds an organization with a logo, shown on its page and in Organi
     expect($logo?->original_name)->toBe('coop.png');
 
     $this->get(route('organizations.show', $coop))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('organization.logo', route('files.preview', $logo)));
+        ->where('organization.logo', route('files.show', $logo)));
     $this->get(route('organizations.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Conad')['logo'] === route('files.preview', $logo)));
+        ->where('organizations', fn ($organizations): bool => collect($organizations)->firstWhere('name', 'Conad')['logo'] === route('files.show', $logo)));
 });
 
 test('a new logo replaces the previous one, and removing it deletes the file', function (): void {

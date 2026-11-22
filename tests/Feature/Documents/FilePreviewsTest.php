@@ -84,30 +84,36 @@ test('a PDF that cannot be read is marked and not tried again', function (): voi
     expect(Storage::disk('local')->allFiles("families/{$good->family_id}/previews"))->toBe([]);
 });
 
-test('a photo wider than the preview gets a JPEG 1200 px wide', function (string $name, string $mime): void {
-    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image($name, 2400, 1600)->mimeType($mime));
+test('a JPEG wider than the preview gets a JPEG 1200 px wide', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.jpg', 2400, 1600));
 
     $path = resolve(FilePreviews::class)->path($file);
 
     expect($path)->toBe(resolve(FilePreviews::class)->previewPathOf($file))
         ->and($file->fresh()->preview_path)->toBe($path)
-        ->and($file->hasPreview())->toBeTrue();
+        ->and($file->hasPreview())->toBeTrue()
+        ->and($file->imageUrl())->toBe(route('files.preview', $file));
     $size = getimagesize(Storage::disk('local')->path((string) $path));
     expect($size[0])->toBe(1200)->and($size[1])->toBe(800)->and($size[2])->toBe(IMAGETYPE_JPEG);
-})->with([
-    'JPEG' => ['photo.jpg', 'image/jpeg'],
-    'PNG' => ['drawing.png', 'image/png'],
-    'WebP' => ['drawing.webp', 'image/webp'],
-]);
+});
 
-test('a small photo keeps its size in the preview', function (): void {
-    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('drawing.png', 600, 400));
+test('a small JPEG keeps its size in the preview', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('photo.jpg', 600, 400));
 
     $path = resolve(FilePreviews::class)->path($file);
 
     $size = getimagesize(Storage::disk('local')->path((string) $path));
     expect($size[0])->toBe(600)->and($size[1])->toBe(400)->and($size[2])->toBe(IMAGETYPE_JPEG);
 });
+
+test('a PNG or a WebP has no preview and is shown as it is', function (string $name): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image($name, 2400, 1600));
+
+    expect(resolve(FilePreviews::class)->path($file))->toBeNull()
+        ->and($file->hasPreview())->toBeFalse()
+        ->and($file->imageUrl())->toBe(route('files.show', $file))
+        ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
+})->with(['drawing.png', 'logo.webp']);
 
 test('a photo that cannot be read is marked and leaves nothing', function (): void {
     $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('broken.jpg', 'not an image')->mimeType('image/jpeg'));
@@ -118,7 +124,7 @@ test('a photo that cannot be read is marked and leaves nothing', function (): vo
 });
 
 test('a photo that does not fit in memory is marked and leaves nothing', function (): void {
-    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('big.png', 8000, 6000));
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->image('big.jpg', 8000, 6000));
     gc_collect_cycles();
     gc_mem_caches();
     $limit = ini_get('memory_limit');
@@ -198,8 +204,8 @@ test('a file with a HEIC mime type reports a preview, a failed one does not', fu
     $file->forceFill(['preview_failed' => true]);
     expect($file->hasPreview())->toBeFalse();
 
-    $text = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('a.txt', 'hello')->mimeType('text/plain'));
-    expect($text->hasPreview())->toBeFalse();
+    $png = resolve(FileStore::class)->store(UploadedFile::fake()->image('a.png'));
+    expect($png->hasPreview())->toBeFalse();
 });
 
 test('a conversion that takes too long marks the file as failed and leaves nothing', function (): void {

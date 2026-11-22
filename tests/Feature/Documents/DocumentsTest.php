@@ -219,7 +219,7 @@ test('the file of a document has a preview address only when it has a preview', 
     $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('document.file.preview_url', null));
 
-    $file->forceFill(['preview_failed' => false, 'mime_type' => 'text/plain'])->save();
+    $file->forceFill(['preview_failed' => false, 'mime_type' => 'image/png'])->save();
     $this->get(route('documents.show', $this->document))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('document.file.preview_url', null));
 });

@@ -130,7 +130,7 @@ final class File extends FamilyModel
 
     /**
      * The address that shows the file as an image: its JPEG preview when it has one (a HEIC, which most browsers
-     * do not open, a PDF, a photo made smaller), the file itself otherwise.
+     * do not open, a PDF, a JPEG made smaller), the file itself otherwise.
      */
     public function imageUrl(): string
     {

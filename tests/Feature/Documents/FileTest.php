@@ -80,20 +80,12 @@ test('a PDF without preview answers 404', function (): void {
     $this->get(route('files.preview', $broken))->assertNotFound();
 });
 
-test('a text file answers 404', function (): void {
-    $this->actingAs($this->marco);
-    $text = CurrentFamily::using($this->marco->family_id, fn () => resolve(FileStore::class)
-        ->store(UploadedFile::fake()->createWithContent('notes.txt', 'hello')->mimeType('text/plain')));
-
-    $this->get(route('files.preview', $text))->assertNotFound();
-});
-
-test('a PNG answers with its JPEG preview', function (): void {
+test('a PNG answers 404', function (): void {
     $this->actingAs($this->marco);
     $png = CurrentFamily::using($this->marco->family_id, fn () => resolve(FileStore::class)
         ->store(UploadedFile::fake()->image('photo.png')));
 
-    $this->get(route('files.preview', $png))->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+    $this->get(route('files.preview', $png))->assertNotFound();
 });
 
 test('signed in as a Rossi the preview of the Bianchis answers 404', function (): void {

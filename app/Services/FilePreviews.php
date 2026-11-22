@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * The preview of a file: a JPEG of the first page of a PDF, of a HEIC photo, or of a JPEG, PNG or WebP photo made
- * smaller, so that a grid of pictures does not download every photo whole.
+ * The preview of a file: a JPEG of the first page of a PDF, of a HEIC photo, or of a JPEG photo made smaller, so
+ * that a grid of pictures does not download every photo whole. A PNG or a WebP is shown as it is: it may be
+ * transparent (a logo, a drawing on no background), and a JPEG has no transparency.
  *
  * It is made the first time it is asked, with `pdftoppm`, `heif-convert` and GD,
  * and kept next to the file in `families/<family_id>/previews/`. A file that
@@ -29,8 +30,8 @@ final readonly class FilePreviews
     /** Makes the JPEG of a HEIC photo. */
     private HeicConverter $heic;
 
-    /** The photos the browser opens, made smaller with GD. */
-    private const array PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    /** The photos the browser opens, made smaller with GD: only JPEG, which has no transparency to lose. */
+    private const array PHOTO_TYPES = ['image/jpeg'];
 
     /** The mime types a preview can be made for. */
     public const array TYPES = ['application/pdf', 'image/heic', 'image/heif', ...self::PHOTO_TYPES];
@@ -309,8 +310,8 @@ final readonly class FilePreviews
     }
 
     /**
-     * Writes a JPEG, PNG or WebP photo as a JPEG at most 1200 px wide, the right way up, on white where it is
-     * transparent. The photo is decoded by GD only if it fits in the memory left to PHP.
+     * Writes a JPEG photo as a JPEG at most 1200 px wide, the right way up. The photo is decoded by GD only if it fits
+     * in the memory left to PHP.
      *
      * @param  string  $source  the photo
      * @param  string  $output  where the JPEG goes
@@ -326,28 +327,14 @@ final readonly class FilePreviews
         }
 
         $image = @imagecreatefromstring($bytes);
-        unset($bytes);
 
         if ($image === false) {
             return false;
         }
 
-        $orientation = $size['mime'] === 'image/jpeg' ? PhotoOrientation::of((string) file_get_contents($source)) : 1;
-        $image = PhotoOrientation::upright($image, $orientation, self::WIDTH);
+        $orientation = PhotoOrientation::of($bytes);
+        unset($bytes);
 
-        // A JPEG has no transparency: without a white background a transparent drawing would come out black.
-        $width = imagesx($image);
-        $height = imagesy($image);
-        $flat = imagecreatetruecolor($width, $height);
-        $white = imagecolorallocate($flat, 255, 255, 255);
-
-        if ($white === false) {
-            return false;
-        }
-
-        imagefill($flat, 0, 0, $white);
-        imagecopy($flat, $image, 0, 0, 0, 0, $width, $height);
-
-        return imagejpeg($flat, $output, self::QUALITY);
+        return imagejpeg(PhotoOrientation::upright($image, $orientation, self::WIDTH), $output, self::QUALITY);
     }
 }
