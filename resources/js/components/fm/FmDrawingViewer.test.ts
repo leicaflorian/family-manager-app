@@ -144,6 +144,26 @@ describe('FmDrawingViewer', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('draws a window of at most five dots, hidden from screen readers', () => {
+        const { container } = viewerOf();
+
+        const dots = container.querySelectorAll('[aria-hidden="true"] > span');
+        expect(dots).toHaveLength(5);
+        expect(dots[2]).toHaveClass('w-[18px]');
+    });
+
+    it('moves the focus to the close button of the phone', async () => {
+        viewerOf();
+
+        await vi.waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus(),
+        );
+        expect(screen.getByRole('dialog')).toHaveAttribute(
+            'aria-modal',
+            'true',
+        );
+    });
+
     it('emits close and links download and the document', async () => {
         const view = viewerOf();
 
@@ -154,9 +174,10 @@ describe('FmDrawingViewer', () => {
             'href',
             '/files/7/download',
         );
-        expect(
-            screen.getByRole('link', { name: 'Open as a document' }),
-        ).toHaveAttribute('href', '/documents/7');
+        expect(screen.getByRole('link', { name: 'Document' })).toHaveAttribute(
+            'href',
+            '/documents/7',
+        );
     });
 
     it('in the panel does not listen to the arrow keys of the whole window', async () => {

@@ -26,7 +26,7 @@ const emit = defineEmits<{
     <button
         type="button"
         :aria-current="selected ? 'true' : undefined"
-        class="relative block w-full cursor-pointer rounded-tag border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+        class="relative block w-full cursor-pointer rounded-md border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
         :class="selected && 'outline-3 outline-offset-2 outline-action'"
         @click="emit('open', drawing.id)"
     >
@@ -34,12 +34,12 @@ const emit = defineEmits<{
             :src="drawing.image_url"
             :alt="drawing.title"
             loading="lazy"
-            class="aspect-square w-full rounded-tag bg-canvas object-cover"
+            class="aspect-square w-full rounded-md bg-canvas object-cover"
         />
         <span
             v-if="drawing.pages !== null && drawing.pages > 1"
             data-pages
-            class="absolute right-1.5 bottom-1.5 inline-flex h-[22px] items-center gap-[3px] rounded-full bg-card px-[7px] text-caption text-ink shadow-raised"
+            class="absolute right-1.5 bottom-1.5 inline-flex h-[22px] items-center gap-[3px] rounded-full bg-card px-[7px] text-badge text-ink shadow-raised"
         >
             <FmIcon :icon="Copy" :size="12" :stroke="2.5" />
             <span aria-hidden="true">{{ drawing.pages }}</span>

@@ -2,8 +2,8 @@
 /**
  * A drawing open: on the phone (`screen`) it covers the page on the dark
  * background of the camera, with the close button, the place in the gallery
- * and the heart on top, the arrows on the sides, the dots under the picture
- * and the details in a sheet at the bottom, and it moves to the next one with
+ * and the heart on top, the arrows on the sides, a window of dots (at most
+ * five, for decoration) under the picture and the details in a sheet at the bottom, and it moves to the next one with
  * the arrow keys or a drag to the side; on the computer (`panel`) it is the
  * column beside the grid, on the card background.
  *
@@ -19,12 +19,13 @@ import {
     ChevronRight,
     Copy,
     Download,
-    FileText,
+    ExternalLink,
     Heart,
+    Info,
     Share2,
     X,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { trans } from 'laravel-vue-i18n';
 import { useFormat } from '@/composables/useFormat';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,26 @@ const byline = computed(() => {
 
 /** The file has more than one page: the PDF is the way to see them. */
 const manyPages = computed(() => drawing.pages !== null && drawing.pages > 1);
+
+/** The dots under the picture: at most five around the place, from 0. */
+const dots = computed(() => {
+    const shown = Math.min(5, total);
+    const first = Math.max(
+        0,
+        Math.min(position - 1 - Math.floor(shown / 2), total - shown),
+    );
+
+    return Array.from({ length: shown }, (_, index) => ({
+        key: first + index,
+        current: first + index === position - 1,
+    }));
+});
+
+/** The close button of the phone, where the focus goes. */
+const closeButton = ref<HTMLButtonElement | null>(null);
+
+/** What had the focus before the viewer opened. */
+let opener: HTMLElement | null = null;
 
 /** The browser can share a file; known after the page is on screen. */
 const canShareFile = ref(false);
@@ -155,9 +176,16 @@ function endDrag(x: number): void {
 
 onMounted(() => {
     probeShare();
+    if (isScreen.value) {
+        opener = document.activeElement as HTMLElement | null;
+        void nextTick(() => closeButton.value?.focus());
+    }
     window.addEventListener('keydown', onKey);
 });
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKey);
+    opener?.focus?.();
+});
 
 /** The round buttons on the dark background. */
 const roundButton =
@@ -165,7 +193,7 @@ const roundButton =
 
 /** The square action buttons of the phone. */
 const actionTile = cn(
-    'flex min-h-[60px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-0 bg-camera-raised text-meta-strong text-on-hero no-underline',
+    'flex min-h-[60px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-0 bg-camera-raised text-meta-strong text-on-hero no-underline',
 );
 
 /** The buttons of the panel. */
@@ -177,12 +205,13 @@ const panelButton = cn(
 <template>
     <div
         :role="isScreen ? 'dialog' : undefined"
+        :aria-modal="isScreen ? 'true' : undefined"
         :aria-label="drawing.title"
         :class="
             cn(
                 isScreen
                     ? 'fixed inset-0 z-50 flex flex-col overflow-hidden bg-camera-bg text-on-hero'
-                    : 'flex flex-col gap-3.5 rounded-lg border border-edge-soft bg-card p-3.5 text-ink',
+                    : 'flex w-[400px] max-w-full flex-col gap-3.5 rounded-card bg-card p-5 text-ink shadow-card',
             )
         "
     >
@@ -196,6 +225,7 @@ const panelButton = cn(
         >
             <button
                 v-if="isScreen"
+                ref="closeButton"
                 type="button"
                 :aria-label="$t('Close')"
                 :class="roundButton"
@@ -206,7 +236,7 @@ const panelButton = cn(
             <span
                 :class="
                     isScreen
-                        ? 'text-label text-on-hero-soft'
+                        ? 'text-row text-on-hero-soft'
                         : 'text-meta text-ink-soft'
                 "
                 >{{
@@ -280,7 +310,8 @@ const panelButton = cn(
                 draggable="false"
                 :class="
                     cn(
-                        'rounded-tag object-contain select-none',
+                        'object-contain select-none',
+                        isScreen ? 'rounded-tag' : 'rounded-lg',
                         isScreen
                             ? 'max-h-full max-w-full'
                             : 'aspect-square w-full bg-canvas',
@@ -335,6 +366,25 @@ const panelButton = cn(
         </div>
 
         <div
+            v-if="isScreen"
+            aria-hidden="true"
+            class="flex justify-center gap-1.5 py-2.5"
+        >
+            <span
+                v-for="dot in dots"
+                :key="dot.key"
+                :class="
+                    cn(
+                        'h-1.5 rounded-full',
+                        dot.current
+                            ? 'w-[18px] bg-on-hero'
+                            : 'w-1.5 bg-on-hero-soft',
+                    )
+                "
+            />
+        </div>
+
+        <div
             :class="
                 cn(
                     'flex flex-col gap-2.5',
@@ -343,18 +393,20 @@ const panelButton = cn(
                 )
             "
         >
-            <h2 class="m-0 text-sheet-title">
-                {{ drawing.title }}
-            </h2>
-            <span
-                :class="
-                    cn(
-                        'text-body-sm',
-                        isScreen ? 'text-on-hero-soft' : 'text-ink-soft',
-                    )
-                "
-                >{{ byline }}</span
-            >
+            <div :class="cn('flex flex-col', !isScreen && 'gap-1')">
+                <h2 class="m-0 text-sheet-title">
+                    {{ drawing.title }}
+                </h2>
+                <span
+                    :class="
+                        cn(
+                            'text-body-sm',
+                            isScreen ? 'text-on-hero-soft' : 'text-ink-soft',
+                        )
+                    "
+                    >{{ byline }}</span
+                >
+            </div>
             <p v-if="drawing.notes" class="m-0 text-body">
                 {{ drawing.notes }}
             </p>
@@ -388,16 +440,6 @@ const panelButton = cn(
                     )
                 "
             >
-                <button
-                    v-if="canShareFile"
-                    type="button"
-                    :class="isScreen ? actionTile : panelButton"
-                    @click="share"
-                >
-                    <FmIcon :icon="Share2" :size="isScreen ? 22 : 20" />{{
-                        $t('Share')
-                    }}
-                </button>
                 <a
                     :href="drawing.download_url"
                     :class="
@@ -413,6 +455,16 @@ const panelButton = cn(
                         $t('Download')
                     }}
                 </a>
+                <button
+                    v-if="canShareFile"
+                    type="button"
+                    :class="isScreen ? actionTile : panelButton"
+                    @click="share"
+                >
+                    <FmIcon :icon="Share2" :size="isScreen ? 22 : 20" />{{
+                        $t('Share')
+                    }}
+                </button>
                 <a
                     :href="drawing.document_url"
                     :class="
@@ -424,9 +476,10 @@ const panelButton = cn(
                               )
                     "
                 >
-                    <FmIcon :icon="FileText" :size="isScreen ? 22 : 20" />{{
-                        $t('Open as a document')
-                    }}
+                    <FmIcon
+                        :icon="isScreen ? Info : ExternalLink"
+                        :size="isScreen ? 22 : 20"
+                    />{{ isScreen ? $t('Document') : $t('Open as a document') }}
                 </a>
             </div>
         </div>
