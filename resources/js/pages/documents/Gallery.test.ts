@@ -149,6 +149,28 @@ describe('Gallery', () => {
         expect(screen.queryByText(/of Giulia/)).toBeNull();
     });
 
+    it('Add starts on the child the gallery is filtered by', async () => {
+        vi.spyOn(router, 'visit').mockImplementation(() => {});
+        const two = [
+            { id: 1, name: 'Giulia' },
+            { id: 2, name: 'Marco' },
+        ];
+        renderPage(Gallery, {
+            ...base,
+            people: two,
+            addOptions: { people: two },
+            filters: { filter: 'all', person: 2 },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+        await screen.findByRole('dialog', { name: 'Add a drawing' });
+
+        expect(screen.getByLabelText(/Title/)).toHaveAttribute(
+            'placeholder',
+            'Drawing by Marco',
+        );
+    });
+
     it('opening a tile asks only selected', async () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Gallery, base);

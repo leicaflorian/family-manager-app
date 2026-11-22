@@ -71,6 +71,51 @@ describe('AddDrawingSheet', () => {
         expect(options).toMatchObject({ forceFormData: true });
     });
 
+    it('starts on the only person, without counting it as a change', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(AddDrawingSheet, { people: [people[0]!], open: true });
+        await screen.findByRole('dialog', { name: 'Add a drawing' });
+        await settle();
+
+        expect(screen.getByLabelText(/Title/)).toHaveAttribute(
+            'placeholder',
+            'Drawing by Giulia',
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+        expect(leaveQuestion.open).toBe(false);
+        expect(post).not.toHaveBeenCalled();
+    });
+
+    it('starts on the child the gallery is filtered by', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(AddDrawingSheet, { people, person: 2, open: true });
+        await screen.findByRole('dialog', { name: 'Add a drawing' });
+        await settle();
+
+        expect(screen.getByLabelText(/Title/)).toHaveAttribute(
+            'placeholder',
+            'Drawing by Marco',
+        );
+        await pickFile(
+            'Photo or PDF of the drawing',
+            new File(['x'], 'drago.jpg', { type: 'image/jpeg' }),
+        );
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post.mock.calls[0]![1]).toMatchObject({ person_id: '2' });
+    });
+
+    it('starts on nobody with more people and no filter', async () => {
+        await open();
+
+        expect(screen.getByLabelText(/Title/)).toHaveAttribute(
+            'placeholder',
+            'Drawing',
+        );
+    });
+
     it('does not send without a file', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         await open();

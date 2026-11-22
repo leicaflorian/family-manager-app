@@ -2,7 +2,8 @@
 /**
  * *Add a drawing*: the panel of the gallery that takes one photo or PDF, the
  * child it belongs to and, if the person wants, a title and a description, and
- * sends them to the gallery. The file goes straight to the gallery, without
+ * sends them to the gallery. The child starts on the one the gallery is filtered by, or on the
+ * only person of the family. The file goes straight to the gallery, without
  * being read by the AI. Closing with something chosen or written asks first.
  *
  * @group forms
@@ -19,10 +20,21 @@ import { errors } from '@/lib/errors';
 import { withNone } from '@/lib/forms';
 import { store } from '@/routes/documents/gallery';
 
-const { people } = defineProps<{
+const { people, person = null } = defineProps<{
     /** The children (and the other people) a drawing can be of. */
     people: { id: number; name: string }[];
+    /** The child the gallery is filtered by, chosen when the panel opens. */
+    person?: number | null;
 }>();
+
+/** The child chosen when the panel opens: the one of the filter, else the only person there is, else nobody. */
+const startPerson = computed((): string => {
+    const filtered = people.find((candidate) => candidate.id === person);
+    const only = people.length === 1 ? people[0] : undefined;
+    const chosen = filtered ?? only;
+
+    return chosen === undefined ? '' : String(chosen.id);
+});
 
 /** The panel is open. */
 const open = defineModel<boolean>('open', { default: false });
@@ -62,17 +74,21 @@ const changes = useUnsavedChanges(
     { active: () => open.value },
 );
 
-// Opened again, it starts empty
-watch(open, (isOpen) => {
-    if (isOpen) {
-        values.file = null;
-        values.person_id = '';
-        values.title = '';
-        values.notes = '';
-        problems.value = {};
-        changes.reset();
-    }
-});
+// Opened (again), it starts empty, on the child of the filter or the only person: that is not a change
+watch(
+    open,
+    (isOpen) => {
+        if (isOpen) {
+            values.file = null;
+            values.person_id = startPerson.value;
+            values.title = '';
+            values.notes = '';
+            problems.value = {};
+            changes.reset();
+        }
+    },
+    { immediate: true },
+);
 
 /** The suggestion in the title field: the child chosen, or a plain one. */
 const titleHint = computed((): string => {

@@ -350,6 +350,10 @@ function setFavorite(value: boolean): void {
             @favorite="setFavorite"
         />
 
-        <AddDrawingSheet v-model:open="adding" :people="addOptions.people" />
+        <AddDrawingSheet
+            v-model:open="adding"
+            :people="addOptions.people"
+            :person="filters.person"
+        />
     </div>
 </template>
