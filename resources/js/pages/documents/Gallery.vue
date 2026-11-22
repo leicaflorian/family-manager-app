@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * *Drawings and crafts*: the documents of the gallery category as square pictures, by upload year,
- * with the filters *All* and *Favourites* and one chip per child when there is more than one. A
+ * with the filters *All* and *Favourites* and one chip per child when there is more than one (or
+ * one child is filtered, so that her chip clears the filter). A
  * picture opens the drawing: on the phone it covers the page (`screen`), on the computer it sits in
  * the column beside the grid (`panel`); the arrows and the heart work on both. The drawing open is
  * in the address (`drawing`), so a link opens it. *Add* opens the panel that takes a photo or PDF.
@@ -79,14 +80,37 @@ const filtered = computed(
         props.filters.filter === 'favorites' || props.filters.person !== null,
 );
 
-/** The sentence under the title: how many pictures, and of whom when it is one child. */
-const subtitle = computed((): string => {
-    const only =
-        props.people.length === 1
-            ? props.people[0]
-            : props.people.find((person) => person.id === props.filters.person);
+/** The child the gallery is filtered by, when she is among the children with drawings. */
+const filteredPerson = computed(() =>
+    props.people.find((person) => person.id === props.filters.person),
+);
 
-    return only
+/**
+ * The person chips show with more than one child, and whenever a child is filtered, so that the
+ * filter can always be taken away by pressing her chip again.
+ */
+const personChips = computed(
+    (): boolean =>
+        props.people.length > 1 || filteredPerson.value !== undefined,
+);
+
+/**
+ * The child kept by *All* and *Favourites*: the one filtered, unless she has no chip (no drawings
+ * left), when *All* and *Favourites* take the filter away.
+ */
+const keptPerson = computed((): number | null =>
+    filteredPerson.value === undefined ? null : props.filters.person,
+);
+
+/** The sentence under the title: how many pictures, and of whom when every one is of the same child. */
+const subtitle = computed((): string => {
+    const only = filteredPerson.value ?? props.people[0];
+    const ofOne =
+        only !== undefined &&
+        order.value.length > 0 &&
+        order.value.every((drawing) => drawing.person_id === only.id);
+
+    return ofOne
         ? transChoice(
               '{1} :count drawing or craft of :name|[2,*] :count drawings and crafts of :name',
               props.total,
@@ -233,18 +257,18 @@ function setFavorite(value: boolean): void {
                         <FmChip
                             :label="$t('All')"
                             :pressed="filters.filter !== 'favorites'"
-                            :href="address('all', filters.person)"
+                            :href="address('all', keptPerson)"
                             preserve-state
                             preserve-scroll
                         />
                         <FmChip
                             :label="$t('Favourites')"
                             :pressed="filters.filter === 'favorites'"
-                            :href="address('favorites', filters.person)"
+                            :href="address('favorites', keptPerson)"
                             preserve-state
                             preserve-scroll
                         />
-                        <template v-if="people.length > 1">
+                        <template v-if="personChips">
                             <FmChip
                                 v-for="person in people"
                                 :key="person.id"

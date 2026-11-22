@@ -101,6 +101,54 @@ describe('Gallery', () => {
         );
     });
 
+    it('a gallery filtered by its only child shows her chip, which clears the filter', () => {
+        vi.spyOn(router, 'visit').mockImplementation(() => {});
+        renderPage(Gallery, { ...base, filters: { filter: 'all', person: 1 } });
+
+        const chip = screen.getByRole('link', { name: 'Giulia' });
+        expect(chip).toHaveAttribute('href', '/documents/gallery');
+        expect(
+            screen.getByRole('link', { name: 'Favourites' }),
+        ).toHaveAttribute(
+            'href',
+            '/documents/gallery?filter=favorites&person=1',
+        );
+    });
+
+    it('a gallery filtered by a child without drawings can still be cleared from All', () => {
+        renderPage(Gallery, {
+            ...base,
+            years: [],
+            total: 0,
+            filters: { filter: 'favorites', person: 7 },
+        });
+
+        expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute(
+            'href',
+            '/documents/gallery',
+        );
+    });
+
+    it('says whose the drawings are only when every drawing is of that child', () => {
+        renderPage(Gallery, {
+            ...base,
+            years: [
+                {
+                    year: 2026,
+                    count: 2,
+                    drawings: [
+                        drawing(1),
+                        drawing(2, { person_id: null, person_name: null }),
+                    ],
+                },
+            ],
+            total: 2,
+        });
+
+        expect(screen.getByText('2 drawings and crafts')).toBeInTheDocument();
+        expect(screen.queryByText(/of Giulia/)).toBeNull();
+    });
+
     it('opening a tile asks only selected', async () => {
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
         renderPage(Gallery, base);
