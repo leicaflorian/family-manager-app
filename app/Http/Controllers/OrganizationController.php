@@ -11,6 +11,7 @@ use App\Data\OptionData;
 use App\Data\OrganizationData;
 use App\Data\OrganizationDetailData;
 use App\Enums\OrganizationType;
+use App\Http\Controllers\Concerns\PagesDocuments;
 use App\Http\Requests\Family\SaveOrganizationRequest;
 use App\Models\Organization;
 use App\Models\User;
@@ -18,6 +19,7 @@ use App\Queries\DocumentRows;
 use App\Services\LinkedRecords;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -29,6 +31,11 @@ use Inertia\Response;
  */
 final class OrganizationController extends Controller
 {
+    use PagesDocuments;
+
+    /** How many documents a page of *An organization* holds. */
+    public const int DOCUMENTS_PER_PAGE = 10;
+
     public function __construct(private readonly LinkedRecords $records) {}
 
     /**
@@ -71,13 +78,23 @@ final class OrganizationController extends Controller
 
     /**
      * *An organization*: the records that name it, its documents and its contacts.
+     * The documents come a page at a time: a partial reload with `documents_page`
+     * adds the next page below.
      */
-    public function show(Organization $organization, DocumentRows $rows, #[CurrentUser] User $user): Response
+    public function show(Request $request, Organization $organization, DocumentRows $rows, #[CurrentUser] User $user): Response
     {
+        $documentsPage = null;
+        $documents = function () use (&$documentsPage, $rows, $organization, $request): array {
+            return $documentsPage ??= $rows->page(['organization' => $organization->id], $this->pageAsked($request, 'documents'), self::DOCUMENTS_PER_PAGE);
+        };
+
         return Inertia::render('family/Organization', [
             'organization' => OrganizationDetailData::fromOrganization($organization, $user),
             'links' => $this->records->ofOrganization($organization),
-            'documents' => $rows->of(['organization' => $organization->id]),
+            'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
+            'documentsNext' => fn (): ?int => $documents()['next'],
+            'documentsTotal' => fn (): int => $documents()['total'],
+            'pageSizes' => ['documents' => self::DOCUMENTS_PER_PAGE],
         ]);
     }
 

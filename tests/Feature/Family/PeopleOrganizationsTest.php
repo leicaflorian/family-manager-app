@@ -371,3 +371,47 @@ test('the page of a person tells whether the account may pin documents', functio
 
     $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('canPin', true));
 });
+
+/**
+ * Gives Edison enough documents for 12 in all (it has 3).
+ */
+function peopleGiveEdisonDocuments(): Organization
+{
+    $edison = bianchiOrganization('Edison');
+    insideBianchi(fn () => Document::factory()->count(9)->create(['family_id' => $edison->family_id, 'organization_id' => $edison->id]));
+
+    return $edison;
+}
+
+test('it sends the documents of an organization ten at a time', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+
+    $this->get(route('organizations.show', $edison))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 10)
+        ->where('documentsNext', 2)
+        ->where('documentsTotal', 12)
+        ->where('pageSizes', ['documents' => 10]));
+});
+
+test('it adds the second page on the partial reload', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Organization',
+        'X-Inertia-Partial-Data' => 'documents,documentsNext,documentsTotal',
+    ])->get(route('organizations.show', ['organization' => $edison, 'documents_page' => 2]))->assertOk()
+        ->assertJsonCount(2, 'props.documents')
+        ->assertJsonPath('props.documentsNext', null)
+        ->assertJsonPath('matchPropsOn', ['documents.id']);
+});
+
+test('it starts from the first page on a full visit even with documents_page in the address', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+
+    $this->get(route('organizations.show', ['organization' => $edison, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 10)
+        ->where('documentsNext', 2));
+});

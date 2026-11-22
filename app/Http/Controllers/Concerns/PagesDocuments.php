@@ -18,7 +18,7 @@ trait PagesDocuments
      * always starts from the first, even with a number left in the address.
      *
      * @param  Request  $request  the request
-     * @param  'personal'|'documents'  $list  the list, also the name of its prop and of its parameter (`personal_page`)
+     * @param  string  $list  the list, also the name of its prop and of its parameter (`personal_page`)
      */
     private function pageAsked(Request $request, string $list): int
     {
