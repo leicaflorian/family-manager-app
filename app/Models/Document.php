@@ -204,8 +204,19 @@ final class Document extends FamilyModel
 
         $linked = DB::table('documentables')->whereIn('document_id', $documents->pluck('id'))->distinct()->pluck('document_id')->flip();
         foreach ($documents as $document) {
-            $document->setAttribute('is_linked', $linked->has($document->id));
+            $document->setLinked($linked->has($document->id));
         }
+    }
+
+    /**
+     * Sets `is_linked` as read-only information: it is not a column, so it must never count as a change to save.
+     *
+     * @param  bool  $linked  whether the document is linked to any record
+     */
+    public function setLinked(bool $linked): void
+    {
+        $this->setAttribute('is_linked', $linked);
+        $this->syncOriginalAttribute('is_linked');
     }
 
     /**

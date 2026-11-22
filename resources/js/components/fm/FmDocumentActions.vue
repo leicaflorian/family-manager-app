@@ -47,15 +47,7 @@ const { canShare, shareFile } = useShare();
 /** The panel that asks before deleting, opened from the ⋯ menu. */
 const confirmingDelete = ref(false);
 
-const { togglePin: visitPin, pinLabel: pinText } = useDocumentPin();
-
-/** Pins the document at the top of its person, or takes it off. */
-function togglePin(): void {
-    visitPin(document);
-}
-
-/** The label of the pin item, which follows the state. */
-const pinLabel = computed((): string => pinText(document.pinned));
+const { togglePin, pinLabel } = useDocumentPin();
 
 /** The actions of the document on its own page, the most frequent first. */
 const actions = computed((): Action[] => [
@@ -113,9 +105,9 @@ const actions = computed((): Action[] => [
     ...(document.can_pin
         ? [
               {
-                  label: pinLabel.value,
+                  label: pinLabel(document.pinned),
                   icon: document.pinned ? PinOff : Pin,
-                  onSelect: togglePin,
+                  onSelect: () => togglePin(document),
                   menuOnly: true,
               } satisfies Action,
           ]
@@ -156,9 +148,9 @@ const actions = computed((): Action[] => [
             <FmMenuItem
                 v-if="document.can_pin"
                 :icon="document.pinned ? PinOff : Pin"
-                @select="togglePin"
+                @select="togglePin(document)"
             >
-                {{ pinLabel }}
+                {{ pinLabel(document.pinned) }}
             </FmMenuItem>
             <FmMenuItem
                 v-if="document.can_delete"

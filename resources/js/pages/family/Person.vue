@@ -10,7 +10,7 @@
  * below with a partial reload that keeps the address. An `admin` edits them and
  * deletes a person without an account.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Pencil, Pin, Plus, Trash2, UserX } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -27,6 +27,7 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmShowMore from '@/components/fm/FmShowMore.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useDocumentPin } from '@/composables/useDocumentPin';
 import { useMorePages } from '@/composables/useMorePages';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { accountText, personSubtitle } from '@/lib/family';
@@ -38,7 +39,6 @@ import { showMoreLabel } from '@/lib/showMore';
 import {
     index as documentsIndex,
     show as showDocument,
-    unpin,
 } from '@/routes/documents';
 import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
@@ -119,17 +119,18 @@ const pinReload = {
     reset: ['personal'],
 };
 
+const { togglePin } = useDocumentPin();
+
 /**
  * Takes a pinned document off the top. The server answers with the page again:
- * the document goes back among the others. `reset` makes the visit partial, so
- * `only` names what must refresh (the pinned list, the others and their
- * numbers) and the pages of the others loaded so far are dropped, starting
- * again from the first; the other documents on the side are left as they are.
+ * the document goes back among the others. `pinReload` makes the visit partial,
+ * naming what must refresh (the pinned list, the others and their numbers) and
+ * dropping the pages of the others loaded so far, starting again from the first.
  *
  * @param id - the id of the document
  */
 function unpinDocument(id: number): void {
-    router.delete(unpin.url(id), { preserveScroll: true, ...pinReload });
+    togglePin({ id, pinned: true }, pinReload);
 }
 
 /**

@@ -298,3 +298,29 @@ test('it reads whether documents are personal without a query per row', function
     Document::factory()->for($family)->count(11)->create(['person_id' => $person->id]);
     expect($count())->toBe($few);
 });
+
+test('a document marked as linked can still be changed and saved', function (): void {
+    $documents = Document::query()->whereKey($this->document->id)->get();
+    Document::markLinked($documents);
+    $document = $documents->first();
+    $document->setLinked(true);
+
+    $document->title = 'Renamed';
+    $document->save();
+
+    expect($document->fresh()->title)->toBe('Renamed')
+        ->and($document->isDirty())->toBeFalse();
+});
+
+test('markLinked leaves no dirty attribute behind', function (): void {
+    $documents = Document::query()->whereKey($this->document->id)->get();
+    Document::markLinked($documents);
+    $document = $documents->first();
+
+    expect($document->isDirty('is_linked'))->toBeFalse();
+
+    $document->title = 'Renamed again';
+    $document->save();
+
+    expect($this->document->fresh()->title)->toBe('Renamed again');
+});

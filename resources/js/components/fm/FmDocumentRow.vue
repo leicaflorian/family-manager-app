@@ -4,15 +4,17 @@
  * and on the right its date (or its expiry). With `expiry` the line below is
  * the expiry instead, red once passed and orange while it is ahead, as at the
  * top of *A person*. With `menu` the row has a ⋯ button beside its link with
- * the actions of the document.
+ * the actions of the document; the parent's attributes and class then go on the
+ * row, not on the wrapper.
  *
  * @group rows
  */
 import { trans } from 'laravel-vue-i18n';
+import { createReusableTemplate } from '@vueuse/core';
 import { computed } from 'vue';
 import { Download, ExternalLink, Pencil, Pin, PinOff } from '@lucide/vue';
-import type { PinVisitOptions } from '@/composables/useDocumentPin';
 import { useDocumentPin } from '@/composables/useDocumentPin';
+import type { PinVisitOptions } from '@/composables/useDocumentPin';
 import { useFormat } from '@/composables/useFormat';
 import { documentLine } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
@@ -58,6 +60,9 @@ const {
 const { date } = useFormat();
 const { togglePin, pinLabel } = useDocumentPin();
 
+/** The row, written once for both layouts (with the menu beside it or alone). */
+const [DefineRow, UseRow] = createReusableTemplate();
+
 /** The line below the title and its colour. */
 const line = computed(() => documentLine(document, { expiry, today }));
 
@@ -74,17 +79,17 @@ const when = computed(() => {
 </script>
 
 <template>
-    <div v-if="menu" class="flex items-center">
+    <DefineRow>
         <FmRow
             v-bind="$attrs"
-            class="min-w-0 grow pr-2"
+            :class="menu && 'min-w-0 grow pr-2'"
             :title="document.title"
             :subtitle="line.text"
             :tone="line.tone"
             :href="href"
             :external="external"
             :current="current"
-            :arrow="false"
+            :arrow="!menu && !dateless"
         >
             <template #before>
                 <FmFileTile />
@@ -93,6 +98,9 @@ const when = computed(() => {
                 <span class="text-meta text-ink-soft">{{ when }}</span>
             </template>
         </FmRow>
+    </DefineRow>
+    <div v-if="menu" class="flex items-center">
+        <UseRow />
         <FmMenu
             row
             :label="$t('More actions for «:title»', { title: document.title })"
@@ -119,22 +127,5 @@ const when = computed(() => {
             </FmMenuItem>
         </FmMenu>
     </div>
-    <FmRow
-        v-else
-        v-bind="$attrs"
-        :title="document.title"
-        :subtitle="line.text"
-        :tone="line.tone"
-        :href="href"
-        :external="external"
-        :current="current"
-        :arrow="!dateless"
-    >
-        <template #before>
-            <FmFileTile />
-        </template>
-        <template v-if="!expiry && !dateless" #after>
-            <span class="text-meta text-ink-soft">{{ when }}</span>
-        </template>
-    </FmRow>
+    <UseRow v-else />
 </template>

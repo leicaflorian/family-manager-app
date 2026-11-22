@@ -87,7 +87,7 @@ final class MovementData extends Data
         $income = $movement instanceof Income ? $movement : null;
         $documents = $withDocuments ? $movement->documents : collect();
         // Linked to this movement, so never personal: no query per document.
-        $documents->each(static fn (Document $document) => $document->setAttribute('is_linked', true));
+        $documents->each(static fn (Document $document) => $document->setLinked(true));
         $paths ??= $documents->isEmpty() ? [] : resolve(CategoryTree::class)->paths();
 
         return new self(
