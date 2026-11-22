@@ -78,10 +78,8 @@ const hasConsumption = computed(
     (): boolean => page.props.has_consumption ?? false,
 );
 
-/** The name of the gallery category, for the list under *Documents* in the sidebar. */
-const galleryName = computed(
-    (): string | null => page.props.gallery_name ?? null,
-);
+/** The family has a gallery category: *Drawings and crafts* shows under *Documents* in the sidebar. */
+const hasGallery = computed((): boolean => page.props.has_gallery ?? false);
 const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
 // A release while the page is open: a message with Reload, in the toaster below
 useNewVersion();
@@ -229,7 +227,7 @@ useSearchShortcut(focusSearch);
             :user="user"
             :upload-count="toSort"
             :has-consumption="hasConsumption"
-            :gallery-name="galleryName"
+            :has-gallery="hasGallery"
             @report="openFeedback"
         />
         <div class="flex min-w-0 grow flex-col">
@@ -316,7 +314,7 @@ useSearchShortcut(focusSearch);
                         :user="user"
                         :upload-count="toSort"
                         :has-consumption="hasConsumption"
-                        :gallery-name="galleryName"
+                        :has-gallery="hasGallery"
                         @report="openFeedback"
                     />
                 </DialogContent>

@@ -276,7 +276,7 @@ describe('FmSidebar', () => {
         );
     });
 
-    it('with a gallery has its category under Documents, closed outside the Documents and opened with the arrow', async () => {
+    it('with a gallery has Drawings and crafts under Documents, closed outside the Documents and opened with the arrow', async () => {
         render(FmSidebar, {
             props: {
                 active: 'home',
@@ -285,7 +285,7 @@ describe('FmSidebar', () => {
                 areas: areaCounts,
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
-                galleryName: 'Disegni e lavoretti',
+                hasGallery: true,
             },
         });
 
@@ -302,7 +302,7 @@ describe('FmSidebar', () => {
 
         const list = screen.getByRole('list', { name: 'Documents' });
         expect(
-            within(list).getByRole('link', { name: 'Disegni e lavoretti' }),
+            within(list).getByRole('link', { name: 'Drawings and crafts' }),
         ).toHaveAttribute('href', '/documents/gallery');
     });
 
@@ -315,12 +315,12 @@ describe('FmSidebar', () => {
                 areas: areaCounts,
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
-                galleryName: 'Disegni e lavoretti',
+                hasGallery: true,
             },
         });
 
         expect(
-            screen.getByRole('link', { name: 'Disegni e lavoretti' }),
+            screen.getByRole('link', { name: 'Drawings and crafts' }),
         ).toHaveAttribute('aria-current', 'page');
         const documents = screen.getByRole('link', { name: 'Documents' });
         expect(documents).not.toHaveAttribute('aria-current');

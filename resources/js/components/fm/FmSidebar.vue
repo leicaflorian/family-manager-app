@@ -4,7 +4,7 @@
  * logo and the family; Upload (which only uploads), Home and the
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
  * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, Documents, Family). Areas, Budget and, with a
- * drawings gallery, Documents (its gallery category) are accordions: a
+ * drawings gallery, Documents (*Drawings and crafts*) are accordions: a
  * button with a chevron next to the link opens the list under it (the areas; *Planned and spent* and *Usage*, the
  * latter when the family has a utility with consumption), and the list opens by itself while the page is one of
  * theirs; while a page under Budget is the open one, Budget is drawn plain),
@@ -58,7 +58,7 @@ const {
     uploadCount = 0,
     collapsed = false,
     hasConsumption = false,
-    galleryName = null,
+    hasGallery = false,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -78,8 +78,8 @@ const {
     collapsed?: boolean;
     /** The family has an electricity, gas or water utility: *Usage* shows under *Budget*. */
     hasConsumption?: boolean;
-    /** The name of the gallery category: it shows under *Documents*, which then opens like *Budget*; null without a gallery. */
-    galleryName?: string | null;
+    /** The family has a gallery category: *Drawings and crafts* shows under *Documents*, which then opens like *Budget*. */
+    hasGallery?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -303,12 +303,12 @@ const galleryUrl = gallery().url;
 /** A page in the list under a section. */
 type SubPage = { label: string; href: string; current: boolean };
 
-/** The pages under *Documents*: the gallery category, when the family has one. */
+/** The pages under *Documents*: *Drawings and crafts*, the gallery, when the family has one. */
 const documentChildren = computed((): SubPage[] =>
-    galleryName
+    hasGallery
         ? [
               {
-                  label: galleryName,
+                  label: trans('Drawings and crafts'),
                   href: galleryUrl,
                   current: path === galleryUrl,
               },

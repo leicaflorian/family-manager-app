@@ -256,12 +256,12 @@ it('answers 404 for the favourite of another family', function (): void {
     $this->delete(route('documents.unfavorite', $foreign))->assertNotFound();
 });
 
-it('shares the name of the gallery category for the sidebar, null without one', function (): void {
+it('shares whether the family has a gallery, for the sidebar', function (): void {
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('gallery_name', 'Drawings and crafts'));
+        ->where('has_gallery', true));
 
     $this->galleryCategory->update(['gallery' => false]);
 
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('gallery_name', null));
+        ->where('has_gallery', false));
 });
