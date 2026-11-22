@@ -93,4 +93,17 @@ describe('FmCard', () => {
             result.container.querySelector('[data-card]'),
         ).not.toContainElement(note);
     });
+
+    it('can be bare: the content sits on the page, with no surface of its own', () => {
+        const result = render(FmCard, {
+            props: { title: 'Personal documents', bare: true },
+            slots: { default: '<p>Tiles</p>' },
+        });
+
+        const content = result.container.querySelector('[data-card]');
+        expect(content).toContainElement(screen.getByText('Tiles'));
+        expect(content).not.toHaveClass('bg-card');
+        expect(content).not.toHaveClass('shadow-card');
+        expect(content).not.toHaveClass('p-5');
+    });
 });

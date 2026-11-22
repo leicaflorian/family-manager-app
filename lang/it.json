@@ -2332,5 +2332,8 @@
     "Only a personal document can be pinned.": "Si può fissare solo un documento personale.",
     "Unpin «:title»": "Togli «:title» dalla cima",
     "Pinned by :name · unpin": "Fissato da :name · togli dalla cima",
-    "Pinned · unpin": "Fissato · togli dalla cima"
+    "Pinned · unpin": "Fissato · togli dalla cima",
+    "Pinned": "In primo piano",
+    "The others, most recent first": "Gli altri, dal più recente",
+    "Pin a document at the top from its menu": "Fissa in cima un documento dal suo menu"
 }

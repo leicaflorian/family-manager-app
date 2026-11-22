@@ -18,6 +18,7 @@ const {
     title,
     count,
     list = false,
+    bare = false,
     tone = 'default',
 } = defineProps<{
     /** The title of the section, above the content. */
@@ -26,6 +27,8 @@ const {
     count?: number;
     /** It holds a list of rows. */
     list?: boolean;
+    /** No surface of its own: the content (tiles, labels, cards of its own) sits on the page under the title. */
+    bare?: boolean;
     /** The colour of the title and of the ring: `overdue` is red, for what is late. */
     tone?: 'default' | 'overdue';
 }>();
@@ -75,11 +78,13 @@ defineSlots<{
             v-auto-animate
             data-card
             :data-tone="tone"
-            class="flex flex-col overflow-hidden bg-card shadow-card"
+            class="flex flex-col"
             :class="[
-                list
+                !bare && 'overflow-hidden bg-card shadow-card',
+                bare && 'gap-2.5',
+                !bare && list
                     ? 'divide-y divide-divider rounded-card'
-                    : 'gap-3.5 rounded-card-lg p-5',
+                    : !bare && 'gap-3.5 rounded-card-lg p-5',
                 tone === 'overdue' &&
                     'inset-ring-[1.5px] inset-ring-overdue-edge',
             ]"
