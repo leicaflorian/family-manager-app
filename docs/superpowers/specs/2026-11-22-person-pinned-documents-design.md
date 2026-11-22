@@ -1,7 +1,8 @@
-# A person: documents pinned at the top of the personal documents
+# A person: documents pinned at the top; an organization: documents a page at a time
 
 Date: 22/11/2026. Short design (a small change). ToDo item *Persona - documenti
-in primo piano*.
+in primo piano*; the paging of *An organization* added by the owner the same
+day, in the same work.
 
 ## Why
 
@@ -33,6 +34,16 @@ top of *Personal documents*; the work of 19/11/2026 left it out (spec
   it (so a `member` too, `DocumentPolicy`).
 - Pinned is a fact of the document, the same for the whole family; the
   document remembers who pinned it and when.
+- **Documents of *An organization*** (`family/Organization.vue`, today every
+  document at once: Agenzia Entrate of the Leicas has dozens) work as *Other
+  documents* of *A person*: the number beside the title (`FmCard` `count`),
+  *Open in the Archive* beside it (`/documents?organization=`, the filter
+  exists in `FilterDocuments`), the first 10, the most recent first, and
+  under them *Show 10 more · N left* (`FmShowMore`), loading the next page
+  from the server (`DocumentRows::page()`, `Inertia::merge`, partial reload
+  with `preserveUrl: true`, as in `PersonController`). Phone and wide layout
+  alike. The boards *Ente* and *Ente-pc* draw a case with many documents
+  first (both versions), then the code follows them.
 
 ## Non-goals
 
@@ -45,6 +56,12 @@ top of *Personal documents*; the work of 19/11/2026 left it out (spec
 - No pinning of documents linked to a record, nor elsewhere than *A person*.
 
 ## Approaches
+
+For the organization there is one sensible way, the one *A person* already
+uses (the same paging, the same components); a list revealed in the browser
+would load every document each time, which is what the paging avoids.
+
+For the pinned documents:
 
 1. **Two columns on `documents`, `pinned_at` and `pinned_by`** (chosen): a
    document has a single `person_id`, so pinned is a property of the
@@ -71,5 +88,10 @@ top of *Personal documents*; the work of 19/11/2026 left it out (spec
   reason in the *Decisions taken*.
 - How the server sends the pinned list (a prop of its own, whole, beside the
   pages of the others) and the names of props, route and action.
-- The board update (the four tiles above) published before the commit of the
+- The same paging code shared between `PersonController` and
+  `OrganizationController` (the page asked, the merge, the counts) and
+  between the two pages (the `loadMore` of `Person.vue`): one place only, a
+  composable and a trait or service.
+- The board update (the four tiles above, the organization with many
+  documents) published before the commit of the
   code that changes the look.
