@@ -124,8 +124,9 @@ function address(
  * Opens a drawing, or closes the one open with `null`: only the open drawing is asked of the server.
  *
  * @param id - the drawing, or none
+ * @param replace - takes the place of the current entry of the history, so that Back does not step through drawings
  */
-function open(id: number | null): void {
+function open(id: number | null, replace = false): void {
     router.get(
         address(props.filters.filter, props.filters.person, id),
         {},
@@ -133,6 +134,7 @@ function open(id: number | null): void {
             only: ['selected'],
             preserveState: true,
             preserveScroll: true,
+            replace,
         },
     );
 }
@@ -147,7 +149,7 @@ function move(step: 1 | -1): void {
     const target = order.value[position.value - 1 + step];
 
     if (position.value >= 1 && target) {
-        open(target.id);
+        open(target.id, true);
     }
 }
 
@@ -291,7 +293,7 @@ function setFavorite(value: boolean): void {
                                 :key="drawing.id"
                                 :drawing="drawing"
                                 :selected="wide && selected?.id === drawing.id"
-                                @open="open"
+                                @open="open($event)"
                             />
                         </div>
                     </section>

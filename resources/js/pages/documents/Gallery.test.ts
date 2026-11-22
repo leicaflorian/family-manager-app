@@ -118,6 +118,7 @@ describe('Gallery', () => {
                 preserveScroll: true,
             }),
         );
+        expect(get.mock.calls[0]![2]?.replace).not.toBe(true);
     });
 
     it('next and previous follow the order of the gallery', async () => {
@@ -128,6 +129,10 @@ describe('Gallery', () => {
             screen.getByRole('button', { name: 'Next drawing' }),
         );
         expect(get.mock.calls[0]![0]).toBe('/documents/gallery?drawing=3');
+        // Back closes the viewer instead of stepping back through the drawings.
+        expect(get.mock.calls[0]![2]).toEqual(
+            expect.objectContaining({ replace: true }),
+        );
 
         await userEvent.click(
             screen.getByRole('button', { name: 'Previous drawing' }),
