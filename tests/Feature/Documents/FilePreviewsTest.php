@@ -233,7 +233,8 @@ test('a failure is logged', function (): void {
     resolve(FilePreviews::class)->path($broken);
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[file-preview] conversion failed'
-        && $context['file'] === $broken->id)->once();
+        && $context['file'] === $broken->id
+        && is_string($context['error']))->once();
 });
 
 test('a missing tool does not mark the file as failed', function (): void {
@@ -256,11 +257,18 @@ test('a missing tool does not mark the file as failed', function (): void {
  */
 function previewsCalGrayPdf(): string
 {
-    $content = "q 200 0 0 200 0 0 cm /Im0 Do Q\n";
+    return previewsPdf('/MediaBox [0 0 200 200]', "q 200 0 0 200 0 0 cm /Im0 Do Q\n");
+}
+
+/**
+ * A one-page PDF with the given page entries and content, and the CalGray image as /Im0.
+ */
+function previewsPdf(string $pageEntries, string $content): string
+{
     $objects = [
         '<< /Type /Catalog /Pages 2 0 R >>',
         '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>',
+        "<< /Type /Page /Parent 2 0 R {$pageEntries} /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>",
         '<< /Length '.strlen($content)." >>\nstream\n{$content}endstream",
         "<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /BitsPerComponent 8 /Filter /ASCIIHexDecode /ColorSpace [/CalGray << /WhitePoint [0.950455 1 1.08905] /Gamma 2.2 >>] /Length 9 >>\nstream\nFFFFFFFF>\nendstream",
     ];
@@ -295,4 +303,29 @@ test('the white of a scanned page stays white, not pink', function (): void {
     $channels = [($color >> 16) & 0xFF, ($color >> 8) & 0xFF, $color & 0xFF];
     expect(min($channels))->toBeGreaterThanOrEqual(250)
         ->and(max($channels) - min($channels))->toBeLessThanOrEqual(3);
+});
+
+test('a page rotated by 90 degrees is drawn the right way up', function (): void {
+    // 200x100 page with a blue strip on its left; turned 90 degrees clockwise the strip is at the top.
+    $pdf = previewsPdf('/MediaBox [0 0 200 100] /Rotate 90', "0 0 1 rg 0 0 40 100 re f\n");
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('turned.pdf', $pdf));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $disk = Storage::disk('local')->path((string) $path);
+    $image = imagecreatefromjpeg($disk);
+    $top = imagecolorat($image, 600, 5);
+    $bottom = imagecolorat($image, 600, imagesy($image) - 5);
+    expect(getimagesize($disk)[0])->toBe(1200)
+        ->and($top & 0xFF)->toBeGreaterThan(200)
+        ->and(($top >> 16) & 0xFF)->toBeLessThan(60)
+        ->and(($bottom >> 16) & 0xFF)->toBeGreaterThan(200);
+});
+
+test('the lock covers both passes of a conversion', function (): void {
+    $lockSeconds = new ReflectionMethod(FilePreviews::class, 'lockSeconds');
+
+    expect($lockSeconds->invoke(new FilePreviews(20)))->toBe(50);
 });

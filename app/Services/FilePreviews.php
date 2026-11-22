@@ -40,6 +40,9 @@ final readonly class FilePreviews
     /** The seconds a conversion may take, unless the constructor says otherwise. */
     public const int TIMEOUT = 20;
 
+    /** The most conversions one preview runs one after the other (a PDF: the size probe and the render). */
+    private const int PASSES = 2;
+
     /** The seconds the lock of a file lasts beyond the timeout of a conversion. */
     private const int LOCK_MARGIN = 10;
 
@@ -141,7 +144,7 @@ final readonly class FilePreviews
 
         try {
             $made = $file->mime_type === 'application/pdf'
-                ? $this->fromPdf($disk->path($file->path), $output)
+                ? $this->fromPdf($disk->path($file->path), $output, $context)
                 : $this->heic->toJpeg($disk->path($file->path), $output, self::WIDTH, self::QUALITY);
         } catch (ProcessTimedOutException) {
             $made = false;
@@ -227,30 +230,32 @@ final readonly class FilePreviews
     }
 
     /**
-     * The seconds the lock of a file lasts: the timeout of a conversion and some more.
+     * The seconds the lock of a file lasts: the timeout of every pass of a conversion and some more.
      */
     private function lockSeconds(): int
     {
         $seconds = $this->timeout instanceof CarbonInterval ? (int) ceil($this->timeout->totalSeconds) : $this->timeout;
 
-        return $seconds + self::LOCK_MARGIN;
+        return $seconds * self::PASSES + self::LOCK_MARGIN;
     }
 
     /**
-     * Writes the first page of a PDF as a JPEG, exactly `WIDTH` px wide.
+     * Writes the first page of a PDF as a JPEG, `WIDTH` px wide.
      *
      * Ghostscript is used because poppler draws the white of a scanner page (a CalGray image with a D65 white
      * point) pinkish. The page size is read first with a 72 dpi render (one pixel per point, crop box and rotation
-     * included), then the page is drawn fitted to the final width: the resolution never has to be guessed.
+     * included), then the page is drawn at the resolution that makes it `WIDTH` wide. Fit-to-page options are not
+     * used: they ignore `/Rotate` for 90 and 180 degrees.
      *
      * @param  string  $source  the PDF
      * @param  string  $output  where the JPEG goes
+     * @param  array<string, mixed>  $context  the log context, to which the reason of a failure without an exit code is added
      * @return bool whether the tool finished well
      *
      * @throws ProcessTimedOutException if the tool takes too long
      * @throws ProcessFailedException if the tool fails
      */
-    private function fromPdf(string $source, string $output): bool
+    private function fromPdf(string $source, string $output, array &$context): bool
     {
         $probe = $output.'-probe.jpg';
         $options = [
@@ -259,7 +264,7 @@ final readonly class FilePreviews
         ];
 
         try {
-            Process::timeout($this->timeout)->run([...$options, '-r72', '-sOutputFile='.$probe, $source])->throw();
+            $result = Process::timeout($this->timeout)->run([...$options, '-r72', '-sOutputFile='.$probe, $source])->throw();
             $size = is_file($probe) ? getimagesize($probe) : false;
         } finally {
             if (is_file($probe)) {
@@ -268,14 +273,13 @@ final readonly class FilePreviews
         }
 
         if ($size === false || $size[0] < 1) {
+            $context['error'] = mb_substr(trim($result->errorOutput().' '.$result->output()), 0, 500);
+
             return false;
         }
 
-        $height = max(1, (int) round($size[1] * self::WIDTH / $size[0]));
-
         Process::timeout($this->timeout)->run([
-            ...$options, '-dJPEGQ='.self::QUALITY, '-dPDFFitPage', '-dFIXEDMEDIA', '-g'.self::WIDTH.'x'.$height,
-            '-sOutputFile='.$output, $source,
+            ...$options, '-dJPEGQ='.self::QUALITY, '-r'.round(72 * self::WIDTH / $size[0], 3), '-sOutputFile='.$output, $source,
         ])->throw();
 
         return true;
