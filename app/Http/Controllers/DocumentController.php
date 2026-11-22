@@ -16,6 +16,7 @@ use App\Http\Requests\Documents\SaveDocumentRequest;
 use App\Models\Document;
 use App\Models\User;
 use App\Queries\FilterDocuments;
+use App\Queries\GalleryTeaser;
 use App\Services\CategoryTree;
 use App\Services\DocumentFormOptions;
 use App\Services\DocumentLinks;
@@ -46,7 +47,7 @@ final class DocumentController extends Controller
      * *Documents*: the filtered list, 30 at a time, the choices of the filters
      * and, on the computer, the document chosen on the right.
      */
-    public function index(DocumentIndexRequest $request, FilterDocuments $filter, DocumentFormOptions $options, #[CurrentUser] User $user): Response
+    public function index(DocumentIndexRequest $request, FilterDocuments $filter, DocumentFormOptions $options, GalleryTeaser $teaser, #[CurrentUser] User $user): Response
     {
         $filters = $request->filters();
         $page = $filter->apply(Document::query()->with(['person.photo', 'organization', 'file']), [...$filters, 'gallery' => false])
@@ -64,6 +65,7 @@ final class DocumentController extends Controller
             'hasDocuments' => $page->total() > 0 || $filter->apply(Document::query()->select('id'), ['gallery' => false])->exists(),
             'options' => $options->filters(),
             'selected' => $selected === null ? null : $this->detail($selected, $user),
+            'gallery' => $teaser->for(...),
         ]);
     }
 

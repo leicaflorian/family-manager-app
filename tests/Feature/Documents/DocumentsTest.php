@@ -307,3 +307,14 @@ test('the filter keeps only the gallery documents with gallery true', function (
 
     expect($ids)->toBe([$set['drawing']->id]);
 });
+
+test('the page has the gallery card only with drawings', function (): void {
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('gallery', null));
+
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('gallery.count', 1)
+        ->where('gallery.url', route('documents.gallery'))
+        ->has('gallery.thumbnails', 1));
+});

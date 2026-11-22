@@ -428,6 +428,13 @@ readonly url: string,
 readonly download_url: string,
 readonly preview_url: string | null,
 };
+export type GalleryTeaserData = {
+readonly count: number,
+readonly people: string[],
+readonly last_uploaded_on: string | null,
+readonly thumbnails: string[],
+readonly url: string,
+};
 export type HomeData = {
 readonly first_name: string,
 readonly today: string,
@@ -677,6 +684,7 @@ readonly account_label: string | null,
 readonly is_me: boolean,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
+readonly drawings_url: string | null,
 };
 export type PersonSummaryData = {
 readonly id: number,

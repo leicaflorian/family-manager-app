@@ -8,6 +8,7 @@ use App\Data\Search\SearchResultData;
 use App\Enums\DocumentStatus;
 use App\Enums\SearchGroup;
 use App\Models\Document;
+use App\Services\CategoryTree;
 use App\Support\SearchTerms;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,6 +30,8 @@ final readonly class DocumentResults implements GroupResults
      * collation of the text columns, which ignores case and accents.
      */
     private const string SUMMARY_LIKE = "convert(json_unquote(json_extract(reading, '$.summary')) using utf8mb4) collate utf8mb4_unicode_ci like ?";
+
+    public function __construct(private CategoryTree $categories) {}
 
     /**
      * {@inheritDoc}
@@ -60,17 +63,22 @@ final readonly class DocumentResults implements GroupResults
             ->orderByDesc('id')
             ->limit(max(0, $limit))
             ->get();
+        // Read once per search, not per row
+        $gallery = $this->categories->galleryIds();
 
-        return array_values($documents->map(fn (Document $document): SearchResultData => $this->result($document))->all());
+        return array_values($documents->map(fn (Document $document): SearchResultData => $this->result($document, $gallery))->all());
     }
 
     /**
      * The result row of one document.
      *
      * @param  Document  $document  the document, with its organization and category loaded
+     * @param  list<int>  $gallery  the categories of the drawings gallery: a drawing opens in the gallery
      */
-    private function result(Document $document): SearchResultData
+    private function result(Document $document, array $gallery): SearchResultData
     {
+        $drawing = $document->category_id !== null && in_array($document->category_id, $gallery, true);
+
         return new SearchResultData(
             key: 'document-'.$document->id,
             group: SearchGroup::Documents,
@@ -78,9 +86,9 @@ final readonly class DocumentResults implements GroupResults
             subtitle: $document->organization->name ?? $document->category?->name,
             date: $document->date?->toDateString(),
             amount: null,
-            href: route('documents.show', $document->id),
+            href: $drawing ? route('documents.gallery', ['drawing' => $document->id]) : route('documents.show', $document->id),
             area: null,
-            icon: 'file-text',
+            icon: $drawing ? 'palette' : 'file-text',
             tone: 'neutral',
             flag: $document->status === DocumentStatus::Archived ? (string) __('Archived') : null,
             due_in: null,

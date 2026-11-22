@@ -474,3 +474,16 @@ test('personal and pinned documents leave out the drawings', function (): void {
         ->where('personal', fn ($documents): bool => collect($documents)->pluck('title')->sort()->values()->all() === ['A', 'B', 'C'])
         ->where('personalTotal', 3));
 });
+
+test('drawings_url is set only for a person with drawings', function (): void {
+    $giulia = bianchi('Giulia');
+    $gallery = insideBianchi(fn (): DocumentCategory => DocumentCategory::query()->where('gallery', true)->sole());
+
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null));
+
+    insideBianchi(fn (): Document => Document::factory()->create(['family_id' => $this->marco->family_id, 'category_id' => $gallery->id, 'person_id' => $giulia->id]));
+
+    $this->get(route('people.show', $giulia))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('person.drawings_url', route('documents.gallery', ['person' => $giulia->id])));
+    $this->get(route('people.show', bianchi('Laura')))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('person.drawings_url', null));
+});

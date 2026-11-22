@@ -17,6 +17,7 @@ use App\Models\Document;
 use App\Models\Person;
 use App\Models\User;
 use App\Queries\DocumentRows;
+use App\Queries\GalleryTeaser;
 use App\Services\LinkedRecords;
 use App\Services\Reminders\ReminderList;
 use Carbon\CarbonImmutable;
@@ -41,7 +42,7 @@ final class PersonController extends Controller
     /** How many other documents a page of *A person* holds. */
     public const int DOCUMENTS_PER_PAGE = 10;
 
-    public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders) {}
+    public function __construct(private readonly LinkedRecords $records, private readonly ReminderList $reminders, private readonly GalleryTeaser $gallery) {}
 
     /**
      * *People*: the people of the family, in the order they were added.
@@ -92,7 +93,7 @@ final class PersonController extends Controller
         };
 
         return Inertia::render('family/Person', [
-            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user),
+            'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user, $this->gallery->personHasDrawings($person->id)),
             'pinned' => fn (): array => $rows->pinned($person->id),
             'canPin' => $user->can('create', Document::class),
             ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false, 'gallery' => false], self::PERSONAL_PER_PAGE),
