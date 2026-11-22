@@ -3,10 +3,10 @@
  * A document in a list: the icon of the file, the title, what it is and whose,
  * and on the right its date (or its expiry). With `expiry` the line below is
  * the expiry instead, red once passed and orange while it is ahead, as at the
- * top of *A person*. With `menu` the row has a ⋯ button beside its link with
+ * top of *A person*. With `menu` the row has a ⋮ button beside its link with
  * the actions of the document; the parent's attributes and class then go on the
  * row, not on the wrapper, and a `current` highlight covers the whole wrapper,
- * under the ⋯ too. A pinned document shows a pin before its date.
+ * under the ⋮ too. A pinned document shows a pin before its date.
  *
  * @group rows
  */
@@ -61,7 +61,7 @@ const {
     today?: string;
     /** The document is the one open beside the list. */
     current?: boolean;
-    /** A ⋯ menu beside the row, outside its link, in place of the arrow: Pin, Download, Open in a new tab, Edit. */
+    /** A ⋮ menu beside the row, outside its link, in place of the arrow: Pin, Download, Open in a new tab, Edit. */
     menu?: boolean;
     /** With `menu`: what the pin visit adds, where the page must reload more than the default (the pinned and the others of a person). */
     pinOptions?: PinVisitOptions;

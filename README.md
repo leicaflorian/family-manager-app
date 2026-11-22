@@ -23,7 +23,7 @@ docker run --rm -v "$PWD":/app -w /app composer:2 composer install
 
 The form fields come from FormKit Pro: its key goes in `VITE_FORMKIT_PRO_KEY` in `.env` before `npm run dev` or `npm run build`.
 
-For the document previews the app uses `pdftoppm` (`poppler-utils`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04) and the production `Dockerfile` (serversideup/php on Debian 13) install them, both with `libheif-plugin-libde265` to read HEIC files, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`.
+For the document previews the app uses Ghostscript (`gs`, package `ghostscript`), `heif-convert` (`libheif-examples`) and PHP's `ext-gd` extension. The Sail image (`docker/8.5/`, Ubuntu 24.04) and the production `Dockerfile` (serversideup/php on Debian 13) install them, both with `libheif-plugin-libde265` to read HEIC files, so there is nothing to add. If a preview does not show up locally after an update, rebuild the image with `./vendor/bin/sail build --no-cache`. After the switch from `pdftoppm` to Ghostscript (22/11/2026) the PDF previews already made are reset once with `./vendor/bin/sail artisan files:previews --reset-pdf`, and are made again on the first view.
 
 Then, every time:
 
