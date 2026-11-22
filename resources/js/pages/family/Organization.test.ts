@@ -114,6 +114,20 @@ describe('An organization', () => {
         ).not.toBeInTheDocument();
     });
 
+    it('gives each document row its ⋯ menu', () => {
+        renderPage(Organization, {
+            organization: organizationDetail,
+            links,
+            ...documentProps([bill]),
+        });
+
+        expect(
+            screen.getByRole('button', {
+                name: `More actions for «${bill.title}»`,
+            }),
+        ).toBeInTheDocument();
+    });
+
     it('puts Edit and Delete in the menu when there is no room for them', async () => {
         watchLayout();
         renderPage(Organization, {

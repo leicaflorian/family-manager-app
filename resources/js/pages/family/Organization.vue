@@ -167,6 +167,7 @@ usePageTrail(() => [
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                        menu
                     />
                     <FmShowMore
                         v-if="documentsNext"

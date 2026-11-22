@@ -11,6 +11,7 @@
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { Download, ExternalLink, Pencil, Pin, PinOff } from '@lucide/vue';
+import type { PinVisitOptions } from '@/composables/useDocumentPin';
 import { useDocumentPin } from '@/composables/useDocumentPin';
 import { useFormat } from '@/composables/useFormat';
 import { documentLine } from '@/lib/documents';
@@ -21,6 +22,8 @@ import FmMenu from './FmMenu.vue';
 import FmMenuItem from './FmMenuItem.vue';
 import FmRow from './FmRow.vue';
 
+defineOptions({ inheritAttrs: false });
+
 const {
     document,
     href,
@@ -30,6 +33,7 @@ const {
     today = isoDate(),
     current = false,
     menu = false,
+    pinOptions = undefined,
 } = defineProps<{
     /** The document. */
     document: App.Data.DocumentData;
@@ -47,6 +51,8 @@ const {
     current?: boolean;
     /** A ⋯ menu beside the row, outside its link, in place of the arrow: Pin, Download, Open in a new tab, Edit. */
     menu?: boolean;
+    /** With `menu`: what the pin visit adds, where the page must reload more than the default (the pinned and the others of a person). */
+    pinOptions?: PinVisitOptions;
 }>();
 
 const { date } = useFormat();
@@ -70,6 +76,7 @@ const when = computed(() => {
 <template>
     <div v-if="menu" class="flex items-center">
         <FmRow
+            v-bind="$attrs"
             class="min-w-0 grow pr-2"
             :title="document.title"
             :subtitle="line.text"
@@ -93,7 +100,7 @@ const when = computed(() => {
             <FmMenuItem
                 v-if="document.can_pin"
                 :icon="document.pinned ? PinOff : Pin"
-                @select="togglePin(document)"
+                @select="togglePin(document, pinOptions)"
             >
                 {{ pinLabel(document.pinned) }}
             </FmMenuItem>
@@ -114,6 +121,7 @@ const when = computed(() => {
     </div>
     <FmRow
         v-else
+        v-bind="$attrs"
         :title="document.title"
         :subtitle="line.text"
         :tone="line.tone"

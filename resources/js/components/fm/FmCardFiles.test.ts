@@ -109,6 +109,14 @@ describe('FmCardFiles', () => {
         expect(before(chosen, linked)).toBe(true);
     });
 
+    it('has no ⋯ menu of a document row on the linked documents', () => {
+        box({ documents: [booklet], canDelete: true });
+
+        expect(
+            screen.queryByRole('button', { name: /^More actions for/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('opens the file of a linked document in a new tab, with only the menu beside it', () => {
         box({ documents: [healthCard], canDelete: true });
 

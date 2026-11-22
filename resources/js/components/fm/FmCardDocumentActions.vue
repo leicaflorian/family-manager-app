@@ -2,17 +2,18 @@
 /**
  * The buttons beside a document on the page of a card, or in the form of a
  * card or of a movement: *Open in a new tab*,
- * always in sight, and the ⋮ menu with *Edit* (the page of the document, as
+ * always in sight, and the ⋮ menu with *Download* first, *Edit* (the page of the document, as
  * its row), *Unlink* and *Delete* (for an `admin`), each after asking. The
  * page keeps its state, so in the form of the card what is written stays.
  * In the form (`inForm`) only the menu is left, where the room is short, with
- * *Open the file* first, and the links open in a new tab, so the form stays;
+ * *Open the file* first (then *Download*), and the links open in a new tab, so the form stays;
  * there *Unlink* asks nothing and sends nothing, the form unlinks when saved.
  *
  * @group sections
  */
 import { router } from '@inertiajs/vue3';
 import {
+    Download,
     EllipsisVertical,
     Eye,
     FileText,
@@ -95,6 +96,9 @@ function unlink(): void {
                 external
             >
                 {{ $t('Open the file') }}
+            </FmMenuItem>
+            <FmMenuItem :icon="Download" :href="document.download_url" download>
+                {{ $t('Download') }}
             </FmMenuItem>
             <FmMenuItem
                 :icon="Pencil"

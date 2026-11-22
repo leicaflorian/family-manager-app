@@ -113,6 +113,12 @@ const { loading, loadMore } = useMorePages(['personal', 'documents']);
 
 const wide = useWideLayout();
 
+/** What a pin or an unpin reloads: the pinned list, the others and their numbers, the others from the first page. */
+const pinReload = {
+    only: ['pinned', 'personal', 'personalNext', 'personalTotal'],
+    reset: ['personal'],
+};
+
 /**
  * Takes a pinned document off the top. The server answers with the page again:
  * the document goes back among the others. `reset` makes the visit partial, so
@@ -123,11 +129,7 @@ const wide = useWideLayout();
  * @param id - the id of the document
  */
 function unpinDocument(id: number): void {
-    router.delete(unpin.url(id), {
-        preserveScroll: true,
-        only: ['pinned', 'personal', 'personalNext', 'personalTotal'],
-        reset: ['personal'],
-    });
+    router.delete(unpin.url(id), { preserveScroll: true, ...pinReload });
 }
 
 /**
@@ -338,6 +340,8 @@ usePageTrail(() => [
                             :key="document.id"
                             :document="document"
                             :href="showDocument.url(document.id)"
+                            menu
+                            :pin-options="pinReload"
                         />
                         <FmShowMore
                             v-if="personalNext"
@@ -426,6 +430,7 @@ usePageTrail(() => [
                         :key="document.id"
                         :document="document"
                         :href="showDocument.url(document.id)"
+                        menu
                     />
                     <FmShowMore
                         v-if="documentsNext"

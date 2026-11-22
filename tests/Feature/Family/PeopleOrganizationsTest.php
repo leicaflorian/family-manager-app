@@ -474,3 +474,31 @@ test('the rows of a person carry what the row menu needs', function (): void {
             && str_contains((string) $row['download_url'], '/download'))
             && collect($documents)->pluck('id')->contains($c->id)));
 });
+
+test('the partial reload after a pin sends the document in pinned and no longer among the others', function (): void {
+    ['person' => $person, 'a' => $a] = peoplePinnedSetup();
+    $version = resolve(HandleInertiaRequests::class)->version(request());
+    $headers = [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) $version,
+        'X-Inertia-Partial-Component' => 'family/Person',
+        'X-Inertia-Partial-Data' => 'pinned,personal,personalNext,personalTotal',
+    ];
+
+    $this->put(route('documents.pin', $a))->assertRedirect();
+
+    $response = $this->withHeaders($headers)->get(route('people.show', $person))->assertOk();
+    expect(collect($response->json('props.pinned'))->pluck('document.id')->all())->toBe([$a->id])
+        ->and(collect($response->json('props.personal'))->pluck('id'))->not->toContain($a->id);
+});
+
+test('the rows of an organization carry what the row menu needs', function (): void {
+    $edison = peopleGiveEdisonDocuments();
+
+    $this->get(route('organizations.show', $edison))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('documents', fn ($documents): bool => collect($documents)->isNotEmpty()
+            && collect($documents)->every(fn (array $row): bool => $row['can_edit'] === true
+                && $row['pinned'] === false
+                && array_key_exists('can_pin', $row)
+                && str_contains((string) $row['download_url'], '/download'))));
+});

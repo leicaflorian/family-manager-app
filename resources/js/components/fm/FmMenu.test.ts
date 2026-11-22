@@ -19,6 +19,7 @@ const Menu = defineComponent({
         outline: { type: Boolean, default: false },
         control: { type: Boolean, default: false },
         choice: { type: Boolean, default: false },
+        row: { type: Boolean, default: false },
         icon: { type: Function as PropType<LucideIcon>, default: undefined },
     },
     setup: (props) => () =>
@@ -32,6 +33,7 @@ const Menu = defineComponent({
                 outline: props.outline,
                 control: props.control,
                 choice: props.choice,
+                row: props.row,
                 icon: props.icon,
             },
             { default: () => h(FmMenuItem, null, () => 'Rename') },
@@ -74,6 +76,14 @@ describe('FmMenu', () => {
         const button = screen.getByRole('button', { name: 'More actions' });
         expect(button).toHaveClass('bg-transparent', 'hover:text-action-dark');
         expect(button).not.toHaveClass('bg-canvas');
+    });
+
+    it('row, the ⋯ button is a 32 px square that announces a menu', () => {
+        renderPage(Menu, { row: true });
+
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(button).toHaveClass('size-8');
+        expect(button).toHaveAttribute('aria-haspopup', 'menu');
     });
 
     it('takes its own icon in place of the ⋯', () => {

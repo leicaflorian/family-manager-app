@@ -297,6 +297,7 @@ function rowHref(document: App.Data.DocumentData): string {
                             :href="rowHref(document)"
                             :preserve-scroll="desktop"
                             :current="selected?.id === document.id"
+                            menu
                         />
                     </FmCard>
                     <FmPager :previous="previousPage" :next="nextPage" />

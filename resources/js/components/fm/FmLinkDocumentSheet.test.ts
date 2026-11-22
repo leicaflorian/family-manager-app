@@ -57,6 +57,15 @@ describe('FmLinkDocumentSheet', () => {
         expect(row.querySelectorAll('svg')).toHaveLength(0);
     });
 
+    it('has no ⋯ menu of a document row on the rows that choose a document', async () => {
+        renderPage(FmLinkDocumentSheet, { open: true, linkable: [booklet] });
+
+        await screen.findByText(booklet.title);
+        expect(
+            screen.queryByRole('button', { name: /^More actions for/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('opens each document in a new tab, with the button beside the documents of a card', async () => {
         renderPage(FmLinkDocumentSheet, { open: true, linkable: [booklet] });
 

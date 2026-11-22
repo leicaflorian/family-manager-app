@@ -94,6 +94,16 @@ describe('Documents', () => {
         );
     });
 
+    it('gives each document row its ⋯ menu', () => {
+        renderPage(Documents, props);
+
+        expect(
+            screen.getByRole('button', {
+                name: 'More actions for «Busta paga di ottobre»',
+            }),
+        ).toBeInTheDocument();
+    });
+
     it('a filter narrows the list', async () => {
         screenWidth(1280);
         const get = vi.spyOn(router, 'get').mockImplementation(() => {});
