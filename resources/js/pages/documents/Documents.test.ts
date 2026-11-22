@@ -232,6 +232,21 @@ describe('Documents', () => {
         );
     });
 
+    it('with a chosen document the search sits in the left column beside the column on the right', () => {
+        screenWidth(1280);
+        renderPage(Documents, { ...props, selected: documentDetail });
+
+        const grid = screen.getByRole('complementary', {
+            name: 'Busta paga di ottobre',
+        }).parentElement!;
+        expect(grid.firstElementChild).toContainElement(
+            screen.getByRole('search'),
+        );
+        expect(grid.firstElementChild).toContainElement(
+            screen.getByRole('link', { name: /Busta paga di ottobre/ }),
+        );
+    });
+
     it('a chosen document that left the list still shows', () => {
         screenWidth(1280);
         renderPage(Documents, {

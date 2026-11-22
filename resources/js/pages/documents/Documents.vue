@@ -251,50 +251,6 @@ function rowHref(document: App.Data.DocumentData): string {
         </FmEmpty>
 
         <template v-else>
-            <div class="flex gap-2.5">
-                <form
-                    role="search"
-                    class="min-w-0 grow"
-                    @submit.prevent="submitSearch"
-                >
-                    <FmSearchField
-                        v-model="searchText"
-                        :label="$t('Search a document')"
-                    />
-                </form>
-                <FmFilterButton
-                    v-if="wide"
-                    labelled
-                    controls="document-filters"
-                    :count="filterCount"
-                    :expanded="boxOpen"
-                    @click="boxOpen = !boxOpen"
-                />
-                <FmFilterButton
-                    v-else
-                    :count="filterCount"
-                    :expanded="filtersOpen"
-                    @click="filtersOpen = true"
-                />
-            </div>
-
-            <FmFilterBox v-if="wide && boxOpen" id="document-filters">
-                <FmDocumentFilters
-                    columns
-                    :filters="filters"
-                    :options="options"
-                    @change="go"
-                />
-            </FmFilterBox>
-
-            <FmFilterPills
-                v-if="pills.length > 0"
-                :pills="pills"
-                :found="documents.length > 0 ? count : ''"
-                @remove="removePill"
-                @remove-all="removeAll"
-            />
-
             <div
                 :class="
                     wide && selected
@@ -303,6 +259,50 @@ function rowHref(document: App.Data.DocumentData): string {
                 "
             >
                 <div class="flex min-w-0 flex-col gap-3.5">
+                    <div class="flex gap-2.5">
+                        <form
+                            role="search"
+                            class="min-w-0 grow"
+                            @submit.prevent="submitSearch"
+                        >
+                            <FmSearchField
+                                v-model="searchText"
+                                :label="$t('Search a document')"
+                            />
+                        </form>
+                        <FmFilterButton
+                            v-if="wide"
+                            labelled
+                            controls="document-filters"
+                            :count="filterCount"
+                            :expanded="boxOpen"
+                            @click="boxOpen = !boxOpen"
+                        />
+                        <FmFilterButton
+                            v-else
+                            :count="filterCount"
+                            :expanded="filtersOpen"
+                            @click="filtersOpen = true"
+                        />
+                    </div>
+
+                    <FmFilterBox v-if="wide && boxOpen" id="document-filters">
+                        <FmDocumentFilters
+                            columns
+                            :filters="filters"
+                            :options="options"
+                            @change="go"
+                        />
+                    </FmFilterBox>
+
+                    <FmFilterPills
+                        v-if="pills.length > 0"
+                        :pills="pills"
+                        :found="documents.length > 0 ? count : ''"
+                        @remove="removePill"
+                        @remove-all="removeAll"
+                    />
+
                     <template v-if="documents.length > 0">
                         <span
                             v-if="pills.length === 0"
@@ -334,7 +334,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     v-if="wide && selected"
                     :label="selected.title"
                     :position="position"
-                    :total="total"
+                    :total="documents.length"
                     :previous-label="$t('Previous document')"
                     :next-label="$t('Next document')"
                     @previous="walk(-1)"
