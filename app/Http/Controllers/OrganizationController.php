@@ -89,8 +89,8 @@ final class OrganizationController extends Controller
         };
 
         return Inertia::render('family/Organization', [
-            'organization' => OrganizationDetailData::fromOrganization($organization, $user),
-            'links' => $this->records->ofOrganization($organization),
+            'organization' => fn (): OrganizationDetailData => OrganizationDetailData::fromOrganization($organization, $user),
+            'links' => fn (): array => $this->records->ofOrganization($organization),
             'documents' => Inertia::merge(fn (): array => $documents()['documents'])->matchOn('id'),
             'documentsNext' => fn (): ?int => $documents()['next'],
             'documentsTotal' => fn (): int => $documents()['total'],

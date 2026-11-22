@@ -385,9 +385,13 @@ function peopleGiveEdisonDocuments(): Organization
 
 test('it sends the documents of an organization ten at a time', function (): void {
     $edison = peopleGiveEdisonDocuments();
+    // The usual order of the list: the most recent date first
+    $firstPage = insideBianchi(fn (): array => Document::query()->where('organization_id', $edison->id)
+        ->orderByDesc('date')->latest()->orderByDesc('id')->limit(10)->pluck('id')->all());
 
     $this->get(route('organizations.show', $edison))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->has('documents', 10)
+        ->where('documents', fn ($documents): bool => collect($documents)->pluck('id')->all() === $firstPage)
         ->where('documentsNext', 2)
         ->where('documentsTotal', 12)
         ->where('pageSizes', ['documents' => 10]));
