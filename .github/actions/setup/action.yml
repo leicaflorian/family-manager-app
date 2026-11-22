@@ -3,7 +3,7 @@ description: PHP 8.5, Node 24 and the dependencies of the app (with their caches
 
 inputs:
   system-packages:
-    description: Install poppler-utils and libheif for the PDF and HEIC previews (only Pest needs them)
+    description: Install ghostscript, poppler-utils and libheif for the PDF and HEIC previews (only Pest needs them)
     default: 'false'
 
 runs:
@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install -y poppler-utils libheif-examples libheif-plugin-libde265
+        sudo apt-get install -y ghostscript poppler-utils libheif-examples libheif-plugin-libde265
 
     - name: Get the Composer cache directory
       id: composer-cache
