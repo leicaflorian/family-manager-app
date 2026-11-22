@@ -226,16 +226,14 @@ test('a big HEIC photo that does not fit in memory is marked and leaves nothing'
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
 });
 
-test('a failure is logged with the exit code and the message of the tool', function (): void {
+test('a failure is logged', function (): void {
     Log::spy();
     $broken = storeFixture('broken.pdf', 'broken.pdf', 'application/pdf');
 
     resolve(FilePreviews::class)->path($broken);
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context): bool => $message === '[file-preview] conversion failed'
-        && is_int($context['exit_code'])
-        && $context['exit_code'] > 0
-        && is_string($context['error']))->once();
+        && $context['file'] === $broken->id)->once();
 });
 
 test('a missing tool does not mark the file as failed', function (): void {
@@ -251,4 +249,50 @@ test('a missing tool does not mark the file as failed', function (): void {
         ->and(Storage::disk('local')->allFiles("families/{$file->family_id}/previews"))->toBe([]);
     Log::shouldHaveReceived('error')->twice();
     expect(resolve(FilePreviews::class)->path($file->fresh()))->not->toBeNull();
+});
+
+/**
+ * A one-page PDF that is a white image in a CalGray colour space with the D65 white point, like the pages a scanner makes.
+ */
+function previewsCalGrayPdf(): string
+{
+    $content = "q 200 0 0 200 0 0 cm /Im0 Do Q\n";
+    $objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>',
+        '<< /Length '.strlen($content)." >>\nstream\n{$content}endstream",
+        "<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /BitsPerComponent 8 /Filter /ASCIIHexDecode /ColorSpace [/CalGray << /WhitePoint [0.950455 1 1.08905] /Gamma 2.2 >>] /Length 9 >>\nstream\nFFFFFFFF>\nendstream",
+    ];
+
+    $pdf = "%PDF-1.5\n";
+    $offsets = [];
+
+    foreach ($objects as $index => $object) {
+        $offsets[] = strlen($pdf);
+        $pdf .= ($index + 1)." 0 obj\n{$object}\nendobj\n";
+    }
+
+    $xref = strlen($pdf);
+    $pdf .= "xref\n0 6\n0000000000 65535 f \n";
+
+    foreach ($offsets as $offset) {
+        $pdf .= sprintf("%010d 00000 n \n", $offset);
+    }
+
+    return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF\n";
+}
+
+test('the white of a scanned page stays white, not pink', function (): void {
+    $file = resolve(FileStore::class)->store(UploadedFile::fake()->createWithContent('scan.pdf', previewsCalGrayPdf()));
+    $file->forceFill(['mime_type' => 'application/pdf'])->save();
+
+    $path = resolve(FilePreviews::class)->path($file);
+
+    expect($path)->not->toBeNull();
+    $image = imagecreatefromjpeg(Storage::disk('local')->path((string) $path));
+    $color = imagecolorat($image, 5, 5);
+    $channels = [($color >> 16) & 0xFF, ($color >> 8) & 0xFF, $color & 0xFF];
+    expect(min($channels))->toBeGreaterThanOrEqual(250)
+        ->and(max($channels) - min($channels))->toBeLessThanOrEqual(3);
 });

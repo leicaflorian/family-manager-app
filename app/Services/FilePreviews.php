@@ -11,6 +11,7 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Process\Exceptions\ProcessFailedException;
 use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File as Filesystem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * The preview of a file: a JPEG of the first page of a PDF, or of a HEIC photo.
  *
- * It is made the first time it is asked, with `pdftoppm` and `heif-convert`,
+ * It is made the first time it is asked, with Ghostscript (`gs`) and `heif-convert`,
  * and kept next to the file in `families/<family_id>/previews/`. A file that
  * cannot be converted is marked, so the tools do not run on it again.
  */
@@ -55,7 +56,7 @@ final readonly class FilePreviews
      */
     public function __construct(
         private CarbonInterval|int $timeout = self::TIMEOUT,
-        private string $pdfTool = 'pdftoppm',
+        private string $pdfTool = 'gs',
         string $heicTool = 'heif-convert',
     ) {
         $this->heic = new HeicConverter($timeout, $heicTool);
@@ -236,7 +237,11 @@ final readonly class FilePreviews
     }
 
     /**
-     * Writes the first page of a PDF as a JPEG.
+     * Writes the first page of a PDF as a JPEG, exactly `WIDTH` px wide.
+     *
+     * Ghostscript is used because poppler draws the white of a scanner page (a CalGray image with a D65 white
+     * point) pinkish. The page size is read first with a 72 dpi render (one pixel per point, crop box and rotation
+     * included), then the page is drawn fitted to the final width: the resolution never has to be guessed.
      *
      * @param  string  $source  the PDF
      * @param  string  $output  where the JPEG goes
@@ -247,9 +252,30 @@ final readonly class FilePreviews
      */
     private function fromPdf(string $source, string $output): bool
     {
+        $probe = $output.'-probe.jpg';
+        $options = [
+            $this->pdfTool, '-q', '-dSAFER', '-dBATCH', '-dNOPAUSE', '-dUseCropBox', '-sDEVICE=jpeg',
+            '-dFirstPage=1', '-dLastPage=1',
+        ];
+
+        try {
+            Process::timeout($this->timeout)->run([...$options, '-r72', '-sOutputFile='.$probe, $source])->throw();
+            $size = is_file($probe) ? getimagesize($probe) : false;
+        } finally {
+            if (is_file($probe)) {
+                Filesystem::delete($probe);
+            }
+        }
+
+        if ($size === false || $size[0] < 1) {
+            return false;
+        }
+
+        $height = max(1, (int) round($size[1] * self::WIDTH / $size[0]));
+
         Process::timeout($this->timeout)->run([
-            $this->pdfTool, '-f', '1', '-l', '1', '-singlefile', '-jpeg', '-jpegopt', 'quality='.self::QUALITY,
-            '-scale-to-x', (string) self::WIDTH, '-scale-to-y', '-1', $source, substr($output, 0, -4),
+            ...$options, '-dJPEGQ='.self::QUALITY, '-dPDFFitPage', '-dFIXEDMEDIA', '-g'.self::WIDTH.'x'.$height,
+            '-sOutputFile='.$output, $source,
         ])->throw();
 
         return true;
