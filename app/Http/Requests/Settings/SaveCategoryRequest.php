@@ -52,7 +52,7 @@ final class SaveCategoryRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => __('name'), 'parent_id' => __('inside'), 'card_type' => __('Card'), 'gallery' => __('Show as a gallery')];
+        return ['name' => __('name'), 'parent_id' => __('inside'), 'card_type' => __('Card'), 'gallery' => __('Show in a gallery')];
     }
 
     /**

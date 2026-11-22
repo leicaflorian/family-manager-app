@@ -22,6 +22,11 @@ it('marks a category as the gallery', function (): void {
     expect($this->school->fresh()?->gallery)->toBeTrue();
 });
 
+it('names the switch as the page does in the message of a wrong value', function (): void {
+    $this->put(route('categories.update', $this->school), ['name' => 'School and activities', 'gallery' => 'maybe'])
+        ->assertSessionHasErrors(['gallery' => 'The Show in a gallery field must be true or false.']);
+});
+
 it('keeps a single gallery per family', function (): void {
     $other = User::factory()->create();
     $otherGallery = CurrentFamily::using($other->family_id, fn (): DocumentCategory => DocumentCategory::query()->create(['name' => 'Other', 'gallery' => true]));
