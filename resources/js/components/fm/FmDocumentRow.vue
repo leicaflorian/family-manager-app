@@ -10,11 +10,10 @@
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import { useFormat } from '@/composables/useFormat';
-import { documentSubtitle } from '@/lib/documents';
+import { documentLine } from '@/lib/documents';
 import { isoDate } from '@/lib/format';
 import FmFileTile from './FmFileTile.vue';
 import FmRow from './FmRow.vue';
-import type { RowTone } from './FmRow.vue';
 
 const {
     document,
@@ -43,39 +42,8 @@ const {
 
 const { date } = useFormat();
 
-/**
- * The date of today on this device, ISO.
- *
- * @returns for example `2026-10-27`
- */
-function localToday(): string {
-    const now = new Date();
-    const pad = (n: number): string => String(n).padStart(2, '0');
-
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 /** The line below the title and its colour. */
-const line = computed((): { text?: string; tone: RowTone } => {
-    const expires = document.expiry_date;
-
-    if (!expiry || expires === null) {
-        return {
-            text: documentSubtitle(document) || undefined,
-            tone: 'normal',
-        };
-    }
-
-    return expires < today
-        ? {
-              text: trans('Expired on :date', { date: date(expires) }),
-              tone: 'overdue',
-          }
-        : {
-              text: trans('Expires on :date', { date: date(expires) }),
-              tone: 'warning',
-          };
-});
+const line = computed(() => documentLine(document, { expiry, today }));
 
 /** The date on the right: the date of the document, or else its expiry. */
 const when = computed(() => {

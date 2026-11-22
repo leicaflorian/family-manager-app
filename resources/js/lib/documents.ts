@@ -1,3 +1,6 @@
+import { trans } from 'laravel-vue-i18n';
+import { formatDate } from '@/lib/format';
+
 /**
  * The values of the document form, the same in *Upload* and in *Edit a
  * document*, and what the form sends.
@@ -133,6 +136,50 @@ export function documentValues(
         notes: document.notes ?? '',
         links: document.links.map(({ type, id }) => ({ type, id })),
     };
+}
+
+/** The colour of the line under a document: normal, red once passed, orange for what is near. */
+export type DocumentLineTone = 'normal' | 'overdue' | 'warning';
+
+/**
+ * The line under the title of a document in a row or a tile: what it is, or
+ * with `expiry` its expiry, red once passed.
+ *
+ * @param document - the parts of the document the line reads
+ * @param options - `expiry` shows the expiry when there is one; `today` (ISO) tells a passed one from one ahead; `aheadTone` is the colour of an expiry still ahead (orange by default)
+ * @returns the text, if there is any, and its tone
+ */
+export function documentLine(
+    document: {
+        category: string | null;
+        person: string | null;
+        organization: string | null;
+        expiry_date: string | null;
+    },
+    options: {
+        expiry?: boolean;
+        today: string;
+        aheadTone?: DocumentLineTone;
+    },
+): { text?: string; tone: DocumentLineTone } {
+    const expires = document.expiry_date;
+
+    if (!options.expiry || expires === null) {
+        return {
+            text: documentSubtitle(document) || undefined,
+            tone: 'normal',
+        };
+    }
+
+    return expires < options.today
+        ? {
+              text: trans('Expired on :date', { date: formatDate(expires) }),
+              tone: 'overdue',
+          }
+        : {
+              text: trans('Expires on :date', { date: formatDate(expires) }),
+              tone: options.aheadTone ?? 'warning',
+          };
 }
 
 /**
