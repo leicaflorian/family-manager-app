@@ -460,3 +460,17 @@ test('it starts from the first page on a full visit even with documents_page in 
         ->has('documents', 10)
         ->where('documentsNext', 2));
 });
+
+test('personal and pinned documents leave out the drawings', function (): void {
+    ['person' => $person] = peoplePinnedSetup();
+    insideBianchi(function () use ($person): void {
+        $gallery = DocumentCategory::query()->where('gallery', true)->sole();
+        Document::factory()->create(['family_id' => $person->family_id, 'person_id' => $person->id, 'category_id' => $gallery->id, 'title' => 'Sun', 'pinned_at' => now(), 'pinned_by' => $this->marco->id]);
+        Document::factory()->create(['family_id' => $person->family_id, 'person_id' => $person->id, 'category_id' => $gallery->id, 'title' => 'House']);
+    });
+
+    $this->get(route('people.show', $person))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('pinned', 0)
+        ->where('personal', fn ($documents): bool => collect($documents)->pluck('title')->sort()->values()->all() === ['A', 'B', 'C'])
+        ->where('personalTotal', 3));
+});

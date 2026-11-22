@@ -62,7 +62,7 @@ final readonly class DocumentRows
      */
     public function pinned(int $personId): array
     {
-        $documents = $this->filter->apply(Document::query()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true])->get();
+        $documents = $this->filter->apply(Document::query()->with([...self::RELATIONS, 'pinner']), ['person' => $personId, 'linked' => false, 'pinned' => true, 'gallery' => false])->get();
         $paths = $this->categories->paths();
         $areas = $this->areas();
 

@@ -256,3 +256,54 @@ test('it tells whether a document can be pinned', function (): void {
     $check($linked, false, false);
     $check($nobody, false, false);
 });
+
+/**
+ * Marks "Drawings and crafts" as the gallery and puts one drawing in it, next to an uncategorised document.
+ *
+ * @return array{drawing: Document, plain: Document}
+ */
+function documentsGallerySetup(User $user): array
+{
+    $gallery = DocumentCategory::query()->where('name', 'Drawings and crafts')->sole();
+    $gallery->update(['gallery' => true]);
+
+    return [
+        'drawing' => Document::factory()->for($user->family)->create(['title' => 'Sun and house', 'category_id' => $gallery->id, 'date' => '2026-10-30']),
+        'plain' => Document::factory()->for($user->family)->create(['title' => 'No category', 'category_id' => null, 'date' => '2026-10-01']),
+    ];
+}
+
+test('the list leaves out the gallery documents', function (): void {
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('total', 2)
+        ->where('documents', fn ($documents): bool => ! collect($documents)->pluck('title')->contains('Sun and house')
+            && collect($documents)->pluck('title')->contains('No category')));
+});
+
+test('the category filter does not list them', function (): void {
+    $gallery = DocumentCategory::query()->where('name', 'Drawings and crafts')->sole();
+    documentsGallerySetup($this->marco);
+
+    $this->get(route('documents.index', ['category' => $gallery->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 0)
+        ->where('total', 0));
+});
+
+test('with the gallery switched off they are back', function (): void {
+    documentsGallerySetup($this->marco);
+    DocumentCategory::query()->update(['gallery' => false]);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('total', 3)
+        ->where('documents', fn ($documents): bool => collect($documents)->pluck('title')->contains('Sun and house')));
+});
+
+test('the filter keeps only the gallery documents with gallery true', function (): void {
+    $set = documentsGallerySetup($this->marco);
+
+    $ids = resolve(FilterDocuments::class)->apply(Document::query(), ['gallery' => true])->pluck('id')->all();
+
+    expect($ids)->toBe([$set['drawing']->id]);
+});

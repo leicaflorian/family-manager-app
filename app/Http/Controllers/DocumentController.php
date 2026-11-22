@@ -49,7 +49,7 @@ final class DocumentController extends Controller
     public function index(DocumentIndexRequest $request, FilterDocuments $filter, DocumentFormOptions $options, #[CurrentUser] User $user): Response
     {
         $filters = $request->filters();
-        $page = $filter->apply(Document::query()->with(['person.photo', 'organization', 'file']), $filters)
+        $page = $filter->apply(Document::query()->with(['person.photo', 'organization', 'file']), [...$filters, 'gallery' => false])
             ->paginate(self::PER_PAGE)
             ->withQueryString();
         $paths = $this->categories->paths();
@@ -61,7 +61,7 @@ final class DocumentController extends Controller
             'nextPage' => $page->nextPageUrl(),
             'previousPage' => $page->previousPageUrl(),
             'filters' => $filters,
-            'hasDocuments' => $page->total() > 0 || Document::query()->exists(),
+            'hasDocuments' => $page->total() > 0 || $filter->apply(Document::query()->select('id'), ['gallery' => false])->exists(),
             'options' => $options->filters(),
             'selected' => $selected === null ? null : $this->detail($selected, $user),
         ]);

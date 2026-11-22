@@ -95,7 +95,7 @@ final class PersonController extends Controller
             'person' => fn (): PersonDetailData => PersonDetailData::fromPerson($person, $user),
             'pinned' => fn (): array => $rows->pinned($person->id),
             'canPin' => $user->can('create', Document::class),
-            ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false], self::PERSONAL_PER_PAGE),
+            ...$this->documentPages($request, $rows, 'personal', [...$theirs, 'linked' => false, 'pinned' => false, 'gallery' => false], self::PERSONAL_PER_PAGE),
             ...$this->documentPages($request, $rows, 'documents', [...$theirs, 'linked' => true], self::DOCUMENTS_PER_PAGE),
             'pageSizes' => ['personal' => self::PERSONAL_PER_PAGE, 'documents' => self::DOCUMENTS_PER_PAGE],
             'links' => fn (): array => $this->records->ofPerson($person),

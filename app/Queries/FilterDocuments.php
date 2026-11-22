@@ -34,6 +34,9 @@ final readonly class FilterDocuments
      *   (the personal documents of *A person*);
      * - `pinned`: pinned at the top of the person (in the order they were
      *   pinned, instead of the usual order) or, with `false`, not pinned;
+     * - `gallery`: only the documents of the gallery category and its
+     *   subcategories (none when there is no gallery) or, with `false`, all
+     *   but those (documents with no category stay);
      * - `record`: linked to that record, `['type' => 'vehicle', 'id' => 1]`;
      * - `not_record`: not linked to that record, in the same form;
      * - `search`: in the title and in the notes, ignoring capitals and accents
@@ -80,6 +83,16 @@ final readonly class FilterDocuments
         $pinned = $filters['pinned'] ?? null;
         if (is_bool($pinned)) {
             $pinned ? $query->whereNotNull('pinned_at') : $query->whereNull('pinned_at');
+        }
+
+        $gallery = $filters['gallery'] ?? null;
+        if (is_bool($gallery)) {
+            $galleryIds = $this->categories->galleryIds();
+            if ($gallery) {
+                $query->whereIn('category_id', $galleryIds);
+            } elseif ($galleryIds !== []) {
+                $query->where(fn (Builder $query) => $query->whereNull('category_id')->orWhereNotIn('category_id', $galleryIds));
+            }
         }
 
         $record = $this->record($filters['record'] ?? null);
