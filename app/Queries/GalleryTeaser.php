@@ -6,7 +6,9 @@ namespace App\Queries;
 
 use App\Data\GalleryTeaserData;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Person;
+use App\Services\CategoryTree;
 
 /**
  * What the card of the gallery on *Documents* shows, read from the drawings of the family.
@@ -16,20 +18,24 @@ final readonly class GalleryTeaser
     /** How many pictures the card shows. */
     public const int THUMBNAILS = 4;
 
-    public function __construct(private GalleryDrawings $drawings) {}
+    public function __construct(private GalleryDrawings $drawings, private CategoryTree $categories) {}
 
     /**
      * The card of the gallery.
      *
-     * @return GalleryTeaserData|null null when there is no gallery category or no drawing in it
+     * @return GalleryTeaserData|null null when there is no gallery category; with no drawing yet, a card with count 0
      */
     public function for(): ?GalleryTeaserData
     {
+        if (! $this->categories->galleryCategory() instanceof DocumentCategory) {
+            return null;
+        }
+
         $drawings = $this->drawings->query();
         $count = (clone $drawings)->count();
 
         if ($count === 0) {
-            return null;
+            return new GalleryTeaserData(count: 0, people: [], last_uploaded_on: null, thumbnails: [], url: route('documents.gallery'));
         }
 
         $newest = (clone $drawings)->limit(self::THUMBNAILS)->get();

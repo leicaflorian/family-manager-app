@@ -80,6 +80,47 @@ describe('Documents', () => {
         expect(within(card).getByText('+44')).toBeInTheDocument();
     });
 
+    it('shows the empty gallery card, without pictures, when there are no drawings yet', () => {
+        renderPage(Documents, {
+            ...props,
+            gallery: {
+                count: 0,
+                people: [],
+                last_uploaded_on: null,
+                thumbnails: [],
+                url: '/documents/gallery',
+            },
+        });
+
+        const card = screen.getByRole('link', { name: /Drawings and crafts/ });
+        expect(card).toHaveAttribute('href', '/documents/gallery');
+        expect(
+            within(card).getByText('No drawings yet · add the first one'),
+        ).toBeInTheDocument();
+        expect(card.querySelectorAll('img')).toHaveLength(0);
+    });
+
+    it('shows the gallery card also when the family has no other documents', () => {
+        renderPage(Documents, {
+            ...props,
+            documents: [],
+            total: 0,
+            hasDocuments: false,
+            gallery: {
+                count: 0,
+                people: [],
+                last_uploaded_on: null,
+                thumbnails: [],
+                url: '/documents/gallery',
+            },
+        });
+
+        expect(
+            screen.getByRole('link', { name: /Drawings and crafts/ }),
+        ).toHaveAttribute('href', '/documents/gallery');
+        expect(screen.getByText('No documents, for now')).toBeInTheDocument();
+    });
+
     it('hides it when gallery is null', () => {
         renderPage(Documents, props);
 

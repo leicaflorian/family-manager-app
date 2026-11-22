@@ -308,8 +308,16 @@ test('the filter keeps only the gallery documents with gallery true', function (
     expect($ids)->toBe([$set['drawing']->id]);
 });
 
-test('the page has the gallery card only with drawings', function (): void {
+test('the page has the gallery card only with a gallery category, empty without drawings', function (): void {
+    DocumentCategory::query()->update(['gallery' => false]);
     $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('gallery', null));
+
+    DocumentCategory::query()->where('name', 'Drawings and crafts')->update(['gallery' => true]);
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('gallery.count', 0)
+        ->where('gallery.url', route('documents.gallery'))
+        ->has('gallery.thumbnails', 0));
 
     documentsGallerySetup($this->marco);
 

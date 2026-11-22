@@ -59,11 +59,16 @@ it('sums the drawings, the people and the last upload, with the four newest thum
         ->and($teaser->url)->toBe(route('documents.gallery'));
 });
 
-it('is null without drawings or without a gallery category', function (): void {
-    expect(resolve(GalleryTeaser::class)->for())->toBeNull();
+it('is empty with a gallery category and no drawings, null without a gallery category', function (): void {
+    $teaser = resolve(GalleryTeaser::class)->for();
+    expect($teaser?->count)->toBe(0)
+        ->and($teaser->people)->toBe([])
+        ->and($teaser->last_uploaded_on)->toBeNull()
+        ->and($teaser->thumbnails)->toBe([])
+        ->and($teaser->url)->toBe(route('documents.gallery'));
 
     galleryTeaserDrawing('2026-01-10 10:00:00');
-    expect(resolve(GalleryTeaser::class)->for())->not->toBeNull();
+    expect(resolve(GalleryTeaser::class)->for()?->count)->toBe(1);
 
     DocumentCategory::query()->update(['gallery' => false]);
     expect(resolve(GalleryTeaser::class)->for())->toBeNull();

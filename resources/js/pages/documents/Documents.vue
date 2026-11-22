@@ -6,12 +6,12 @@
  * (`FmFilterAside`), with *Back to the filters*. Without any document, the
  * card that invites to upload the first one.
  */
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ChevronRight, FileText, Palette, Search } from '@lucide/vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { FileText, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-import { useFormat } from '@/composables/useFormat';
 import { useListFilters } from '@/composables/useListFilters';
+import GalleryCard from '@/components/documents/GalleryCard.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -21,7 +21,6 @@ import FmDocumentFilters from '@/components/fm/FmDocumentFilters.vue';
 import FmFilterAside from '@/components/fm/FmFilterAside.vue';
 import FmFilterPills from '@/components/fm/FmFilterPills.vue';
 import FmFilterButton from '@/components/fm/FmFilterButton.vue';
-import FmIcon from '@/components/fm/FmIcon.vue';
 import FmDocumentRow from '@/components/fm/FmDocumentRow.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmPager from '@/components/fm/FmPager.vue';
@@ -58,46 +57,6 @@ const props = defineProps<{
     /** The card of the drawings gallery, null when no category is shown in a gallery. */
     gallery: App.Data.GalleryTeaserData | null;
 }>();
-
-const { date } = useFormat();
-
-/** The line under the title of the gallery card: how many, by whom and the last upload. */
-const gallerySummary = computed((): string => {
-    const gallery = props.gallery;
-
-    if (gallery === null) {
-        return '';
-    }
-
-    const people = gallery.people.join(', ');
-    const count = String(gallery.count);
-    const last = gallery.last_uploaded_on
-        ? date(gallery.last_uploaded_on)
-        : null;
-
-    if (people && last) {
-        return trans(':count by :people · the last on :date', {
-            count,
-            people,
-            date: last,
-        });
-    }
-
-    if (people) {
-        return trans(':count by :people', { count, people });
-    }
-
-    return last
-        ? trans(':count · the last on :date', { count, date: last })
-        : count;
-});
-
-/** How many drawings the thumbnails do not show. */
-const galleryMore = computed(() =>
-    props.gallery
-        ? Math.max(0, props.gallery.count - props.gallery.thumbnails.length)
-        : 0,
-);
 
 const page = usePage();
 
@@ -252,6 +211,8 @@ function rowHref(document: App.Data.DocumentData): string {
             </template>
         </FmTitle>
 
+        <GalleryCard v-if="!hasDocuments && gallery" :gallery="gallery" />
+
         <FmEmpty
             v-if="!hasDocuments"
             :icon="FileText"
@@ -327,52 +288,7 @@ function rowHref(document: App.Data.DocumentData): string {
                     @remove-all="removeAll"
                 />
 
-                <Link
-                    v-if="gallery"
-                    :href="gallery.url"
-                    class="flex flex-col gap-3 rounded-card bg-card px-4 py-3.5 text-ink no-underline shadow-card wide:flex-row wide:items-center wide:gap-4"
-                >
-                    <span class="flex min-w-0 grow items-center gap-3">
-                        <span
-                            aria-hidden="true"
-                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-school-soft text-school-text"
-                            ><FmIcon :icon="Palette" :size="22"
-                        /></span>
-                        <span class="flex min-w-0 grow flex-col gap-0.5">
-                            <span class="text-body-strong">{{
-                                $t('Drawings and crafts')
-                            }}</span>
-                            <span class="text-meta text-ink-soft">{{
-                                gallerySummary
-                            }}</span>
-                        </span>
-                        <FmIcon
-                            :icon="ChevronRight"
-                            :size="20"
-                            class="text-ink-soft wide:hidden"
-                        />
-                    </span>
-                    <span class="flex gap-2">
-                        <img
-                            v-for="thumbnail in gallery.thumbnails"
-                            :key="thumbnail"
-                            :src="thumbnail"
-                            alt=""
-                            class="size-[58px] shrink-0 rounded-md bg-segment object-cover wide:size-14"
-                        />
-                        <span
-                            v-if="galleryMore > 0"
-                            aria-hidden="true"
-                            class="flex size-[58px] shrink-0 items-center justify-center rounded-md bg-segment text-label text-ink-soft wide:size-14"
-                            >+{{ galleryMore }}</span
-                        >
-                    </span>
-                    <FmIcon
-                        :icon="ChevronRight"
-                        :size="20"
-                        class="hidden text-ink-soft wide:block"
-                    />
-                </Link>
+                <GalleryCard v-if="gallery" :gallery="gallery" />
 
                 <template v-if="documents.length > 0">
                     <span
