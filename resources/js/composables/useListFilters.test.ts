@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
+import { render } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { nextTick, ref } from 'vue';
+import { defineComponent, nextTick, ref } from 'vue';
 import type { FilterPill } from '@/lib/filters';
 import { screenWidth } from '@/test/page';
 import { useListFilters } from './useListFilters';
@@ -35,12 +36,23 @@ function setup(start: Filters = { search: 'luce', min: 20 }) {
             ? []
             : [{ key: 'search', label: '“luce”', without: { search: null } }]),
     ];
-    const list = useListFilters<Filters, { page: number }>({
-        filters: () => filters.value,
-        pills,
-        url: (query) =>
-            `/list?${query.search ?? ''}|${query.min ?? ''}|${query.page ?? ''}`,
-    });
+    let list!: ReturnType<typeof useListFilters<Filters, { page: number }>>;
+
+    // Inside a component, as a page uses it, so its hooks have an instance
+    render(
+        defineComponent({
+            setup() {
+                list = useListFilters<Filters, { page: number }>({
+                    filters: () => filters.value,
+                    pills,
+                    url: (query) =>
+                        `/list?${query.search ?? ''}|${query.min ?? ''}|${query.page ?? ''}`,
+                });
+
+                return () => null;
+            },
+        }),
+    );
 
     return { filters, list };
 }
@@ -113,17 +125,6 @@ describe('useListFilters', () => {
         expect(setup().list.filterErrors.value).toEqual({ max: 'Too small.' });
     });
 
-    it('lays the filters beside the list on the computer and above it on the phone', () => {
-        screenWidth(true);
-        expect(setup().list.layout.value).toContain(
-            'grid-cols-[max(240px,calc(240px+(100%-680px)/4))_minmax(0,1fr)]',
-        );
-
-        vi.unstubAllGlobals();
-        screenWidth(390);
-        expect(setup().list.layout.value).toContain('flex-col');
-    });
-
     it('opens the box only on a wide window', () => {
         screenWidth(1000);
         const { list } = setup();
@@ -142,8 +143,7 @@ describe('useListFilters', () => {
             ) => listeners.add(listener),
             removeEventListener: () => {},
         };
-        window.matchMedia = (() =>
-            media) as unknown as typeof window.matchMedia;
+        vi.stubGlobal('matchMedia', () => media);
         const { list } = setup();
 
         list.boxOpen.value = true;

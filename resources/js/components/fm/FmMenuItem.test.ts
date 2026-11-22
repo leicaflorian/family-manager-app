@@ -2,6 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vite-plus/test';
+import { Plus } from '@lucide/vue';
 import { defineComponent, h } from 'vue';
 import { renderPage } from '@/test/page';
 import FmMenu from './FmMenu.vue';
@@ -66,5 +67,12 @@ describe('FmMenuItem', () => {
         expect(entry).toHaveAttribute('href', '/files/12');
         expect(entry).toHaveAttribute('target', '_blank');
         expect(entry).toHaveAttribute('rel', 'noopener');
+    });
+
+    it('colours its icon with iconClass, not its text', async () => {
+        const entry = await openWith({ icon: Plus, iconClass: 'text-income' });
+
+        expect(entry.querySelector('svg')).toHaveClass('text-income');
+        expect(entry).not.toHaveClass('text-income');
     });
 });
