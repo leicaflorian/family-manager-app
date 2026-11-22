@@ -81,10 +81,11 @@ defineSlots<{
             class="flex flex-col"
             :class="[
                 !bare && 'overflow-hidden bg-card shadow-card',
-                bare && 'gap-2.5',
-                !bare && list
-                    ? 'divide-y divide-divider rounded-card'
-                    : !bare && 'gap-3.5 rounded-card-lg p-5',
+                bare
+                    ? 'gap-2.5'
+                    : list
+                      ? 'divide-y divide-divider rounded-card'
+                      : 'gap-3.5 rounded-card-lg p-5',
                 tone === 'overdue' &&
                     'inset-ring-[1.5px] inset-ring-overdue-edge',
             ]"

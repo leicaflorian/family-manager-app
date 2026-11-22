@@ -115,14 +115,17 @@ const wide = useWideLayout();
 
 /**
  * Takes a pinned document off the top. The server answers with the page again:
- * the document goes back among the others, so the pages of the others loaded so
- * far are dropped (`reset`) and start again from the first.
+ * the document goes back among the others. `reset` makes the visit partial, so
+ * `only` names what must refresh (the pinned list, the others and their
+ * numbers) and the pages of the others loaded so far are dropped, starting
+ * again from the first; the other documents on the side are left as they are.
  *
  * @param id - the id of the document
  */
 function unpinDocument(id: number): void {
     router.delete(unpin.url(id), {
         preserveScroll: true,
+        only: ['pinned', 'personal', 'personalNext', 'personalTotal'],
         reset: ['personal'],
     });
 }

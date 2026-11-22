@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { healthCard, organizationDetail } from '@/test/fixtures';
 import { layOut, watchLayout } from '@/test/layout';
 import { renderPage, withTrail } from '@/test/page';
@@ -36,6 +36,10 @@ function documentProps(
 }
 
 describe('An organization', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('writes the trail Family > Organizations > the organization into the top bar', () => {
         const { state, provide } = withTrail();
         renderPage(
@@ -203,7 +207,6 @@ describe('An organization', () => {
                 preserveUrl: true,
             }),
         );
-        reload.mockRestore();
     });
 
     it('has no link to the Archive and no count without documents', () => {

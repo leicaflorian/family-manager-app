@@ -108,6 +108,8 @@ describe('A person', () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
         vi.useRealTimers();
     });
 
@@ -304,7 +306,6 @@ describe('A person', () => {
                 preserveUrl: true,
             }),
         );
-        reload.mockRestore();
     });
 
     it('promises as many personal documents as a page of the server holds', () => {
@@ -347,7 +348,6 @@ describe('A person', () => {
                 preserveUrl: true,
             }),
         );
-        reload.mockRestore();
     });
 
     it('keeps Show more of a list disabled while its page loads, also when the other list asks for its own', async () => {
@@ -372,7 +372,6 @@ describe('A person', () => {
 
         expect(personal).toBeDisabled();
         expect(reload).toHaveBeenCalledTimes(2);
-        reload.mockRestore();
     });
 
     it('says when there are no personal documents, without a number', () => {
@@ -462,7 +461,6 @@ describe('A person', () => {
             expect(
                 screen.queryByText('Pin a document at the top from its menu'),
             ).not.toBeInTheDocument();
-            vi.unstubAllGlobals();
         });
 
         it('has the hint and two columns on a computer', () => {
@@ -474,7 +472,6 @@ describe('A person', () => {
             expect(container.querySelector('.grid.gap-2\\.5')).toHaveClass(
                 'wide:grid-cols-2',
             );
-            vi.unstubAllGlobals();
         });
 
         /** Renders *A person* with pinned documents. */
@@ -504,10 +501,15 @@ describe('A person', () => {
                 '/documents/2/pin',
                 expect.objectContaining({
                     preserveScroll: true,
+                    only: [
+                        'pinned',
+                        'personal',
+                        'personalNext',
+                        'personalTotal',
+                    ],
                     reset: ['personal'],
                 }),
             );
-            remove.mockRestore();
         });
 
         it('shows no pin to someone who cannot change documents', () => {
