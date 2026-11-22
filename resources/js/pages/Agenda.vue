@@ -5,8 +5,9 @@
  * *Agenda*, *Agenda-pc*, *Agenda-fatti* and *Agenda-fatti-pc* draw it. Under
  * the title a switch between *To do* (with the number of the late things in
  * red) and *Done*, and *New task*. In *To do* a red line says how many things
- * are late, the filters (period, person and areas: a bar on the computer,
- * three buttons that open a panel from below on the phone), then the late
+ * are late, the filters (period, person and areas: a box that the *Filters*
+ * button opens under the title from 900 px, three buttons that open a panel
+ * from below under it), then the late
  * things, this week, next week and the rest of the period. In *Done* the
  * things closed, month by month, *Show earlier months* at the end.
  * A row opens its panel (`FmAgendaPanel`): from below on the phone, beside the
@@ -37,6 +38,8 @@ import { computed, ref, shallowRef, watch } from 'vue';
 import AgendaCalendar from '@/components/agenda/AgendaCalendar.vue';
 import AgendaCalendarLinkPanel from '@/components/agenda/AgendaCalendarLinkPanel.vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
+import FmFilterBox from '@/components/fm/FmFilterBox.vue';
+import FmFilterButton from '@/components/fm/FmFilterButton.vue';
 import FmAgendaPanel from '@/components/fm/FmAgendaPanel.vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -52,6 +55,7 @@ import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useAgendaFilters } from '@/composables/useAgendaFilters';
 import { useComputerLayout } from '@/composables/useLayoutMode';
+import { useWideLayout } from '@/composables/useWideLayout';
 import {
     areaCounts,
     doneByMonth,
@@ -127,6 +131,31 @@ const { filters, toggleArea, choosePerson, chooseMonths, reset } =
 
 /** The phone panel of the filters is open. */
 const sheetOpen = ref(false);
+
+/** The wide layout (900 px): the filters are in a box under the title, not in the panel from below. */
+const wide = useWideLayout();
+
+/** The box of the filters is open; it shuts when the window stops being wide. */
+const boxOpen = ref(false);
+
+watch(wide, (isWide) => {
+    if (!isWide) {
+        boxOpen.value = false;
+    }
+});
+
+/** How many filters are away from the defaults: the months (where there is a period), a person, each area turned off. */
+const filterCount = computed(
+    (): number =>
+        (hasPeriod.value && filters.value.months !== 1 ? 1 : 0) +
+        (filters.value.person_id === null ? 0 : 1) +
+        filters.value.hidden_areas.length,
+);
+
+/** The period can be chosen in this view (not in the Done view nor the calendar). */
+const hasPeriod = computed(
+    (): boolean => !doneView.value && month.value === null,
+);
 
 /** The late things to do that the person and the areas chosen show. */
 const late = computed((): number =>
@@ -442,6 +471,14 @@ const payAction = computed((): string =>
                 :label="$t('How to see the Agenda')"
                 :tabs="ways"
             />
+            <FmFilterButton
+                v-if="wide"
+                labelled
+                controls="agenda-filters"
+                :count="filterCount"
+                :expanded="boxOpen"
+                @click="boxOpen = !boxOpen"
+            />
             <FmButton
                 v-if="desktop"
                 variant="neutral"
@@ -460,8 +497,25 @@ const payAction = computed((): string =>
     </FmTitle>
 
     <div class="flex min-w-0 flex-col gap-5">
+        <FmFilterBox v-if="wide && boxOpen" id="agenda-filters">
+            <FmAgendaFilters
+                variant="box"
+                :filters="filters"
+                :people="agenda.people"
+                :areas="agenda.areas"
+                :family-hidden="agenda.family_hidden"
+                :periods="doneView || month ? [] : agenda.periods"
+                :counts="counts"
+                :shown="shown.length"
+                @months="chooseMonths"
+                @person="choosePerson"
+                @area="toggleArea"
+                @reset="reset"
+            />
+        </FmFilterBox>
+
         <FmAgendaFilters
-            v-if="!desktop"
+            v-if="!wide"
             v-model:open="sheetOpen"
             variant="sheet"
             :filters="filters"
@@ -491,22 +545,6 @@ const payAction = computed((): string =>
                 )
             }}
         </div>
-
-        <FmAgendaFilters
-            v-if="desktop"
-            variant="toolbar"
-            :filters="filters"
-            :people="agenda.people"
-            :areas="agenda.areas"
-            :family-hidden="agenda.family_hidden"
-            :periods="doneView || month ? [] : agenda.periods"
-            :counts="counts"
-            :shown="shown.length"
-            @months="chooseMonths"
-            @person="choosePerson"
-            @area="toggleArea"
-            @reset="reset"
-        />
 
         <AgendaCalendar
             v-if="month"
