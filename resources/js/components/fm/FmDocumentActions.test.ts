@@ -78,6 +78,37 @@ describe('FmDocumentActions', () => {
         ).toHaveClass('size-10');
     });
 
+    it('in the column beside the list has every action in a ⋮ menu, Download first', async () => {
+        renderPage(FmDocumentActions, {
+            document: documentDetail,
+            compact: true,
+            menuOnly: true,
+        });
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(
+            button.querySelector('.lucide-ellipsis-vertical'),
+        ).not.toBeNull();
+        await userEvent.click(button);
+
+        const items = await screen.findAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'Download',
+            'Edit',
+            'Open in a new tab',
+            'Open the page of the document',
+            'Delete',
+        ]);
+        expect(items[0]).toHaveAttribute('download');
+        expect(items[0]).toHaveAttribute(
+            'href',
+            documentDetail.file.download_url,
+        );
+        expect(items[1]).toHaveAttribute('href', '/documents/5/edit');
+        expect(items[3]).toHaveAttribute('href', '/documents/5');
+    });
+
     it('on its own page the ⋯ button is as tall as the others', () => {
         renderPage(FmDocumentActions, { document: documentDetail });
 

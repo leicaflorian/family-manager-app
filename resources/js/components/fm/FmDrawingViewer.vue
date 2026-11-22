@@ -10,9 +10,10 @@
  * picture opens the file in a new tab.
  *
  * It shows the title, who drew it with the age and the date, the notes, the
- * link to the PDF when the file has more pages, and *Share* (only when the
- * browser can share a file), *Download* and *Open as a document*. The page
- * decides what the buttons do.
+ * link to the PDF when the file has more pages, and *Download*, *Share* (only
+ * when the browser can share a file) and *Open as a document*: buttons at the
+ * bottom on the phone, a ⋮ menu beside the × in the panel. The page decides
+ * what the buttons do.
  *
  * @group panels
  */
@@ -21,6 +22,7 @@ import {
     ChevronRight,
     Copy,
     Download,
+    EllipsisVertical,
     ExternalLink,
     Heart,
     Info,
@@ -41,6 +43,8 @@ import { extensionOf } from '@/lib/files';
 import { detailStep } from '@/lib/detail';
 import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
+import FmMenu from './FmMenu.vue';
+import FmMenuItem from './FmMenuItem.vue';
 
 const { drawing, position, total, variant } = defineProps<{
     /** The drawing open. */
@@ -258,11 +262,6 @@ const roundButton =
 const actionTile = cn(
     'flex min-h-[60px] flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-0 bg-camera-raised text-meta-strong text-on-hero no-underline',
 );
-
-/** The buttons of the panel. */
-const panelButton = cn(
-    'inline-flex h-control items-center justify-center gap-2 rounded-control border border-edge-soft bg-card px-5 text-body text-ink no-underline',
-);
 </script>
 
 <template>
@@ -347,14 +346,38 @@ const panelButton = cn(
                         })
                     }}</span>
                 </div>
-                <button
-                    type="button"
-                    :aria-label="$t('Close')"
-                    class="-mr-2 flex size-touch shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft"
-                    @click="emit('close')"
-                >
-                    <FmIcon :icon="X" :size="22" />
-                </button>
+                <div class="-mr-2 flex shrink-0 items-center">
+                    <FmMenu plain :icon="EllipsisVertical">
+                        <FmMenuItem
+                            :icon="Download"
+                            :href="drawing.download_url"
+                            download
+                        >
+                            {{ $t('Download') }}
+                        </FmMenuItem>
+                        <FmMenuItem
+                            v-if="shareFile !== null"
+                            :icon="Share2"
+                            @select="share"
+                        >
+                            {{ $t('Share') }}
+                        </FmMenuItem>
+                        <FmMenuItem
+                            :icon="ExternalLink"
+                            :href="drawing.document_url"
+                        >
+                            {{ $t('Open as a document') }}
+                        </FmMenuItem>
+                    </FmMenu>
+                    <button
+                        type="button"
+                        :aria-label="$t('Close')"
+                        class="flex size-touch shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-ink-soft"
+                        @click="emit('close')"
+                    >
+                        <FmIcon :icon="X" :size="22" />
+                    </button>
+                </div>
             </template>
         </div>
 
@@ -514,56 +537,20 @@ const panelButton = cn(
                 }}
             </a>
 
-            <div
-                :class="
-                    cn(
-                        'flex gap-2.5',
-                        isScreen
-                            ? 'mt-1'
-                            : 'flex-wrap gap-2 border-t border-divider pt-3.5',
-                    )
-                "
-            >
-                <a
-                    :href="drawing.download_url"
-                    :class="
-                        isScreen
-                            ? actionTile
-                            : cn(
-                                  panelButton,
-                                  'border-0 bg-action-soft text-action-dark',
-                              )
-                    "
-                >
-                    <FmIcon :icon="Download" :size="isScreen ? 22 : 20" />{{
-                        $t('Download')
-                    }}
+            <div v-if="isScreen" class="mt-1 flex gap-2.5">
+                <a :href="drawing.download_url" :class="actionTile">
+                    <FmIcon :icon="Download" :size="22" />{{ $t('Download') }}
                 </a>
                 <button
                     v-if="shareFile !== null"
                     type="button"
-                    :class="isScreen ? actionTile : panelButton"
+                    :class="actionTile"
                     @click="share"
                 >
-                    <FmIcon :icon="Share2" :size="isScreen ? 22 : 20" />{{
-                        $t('Share')
-                    }}
+                    <FmIcon :icon="Share2" :size="22" />{{ $t('Share') }}
                 </button>
-                <a
-                    :href="drawing.document_url"
-                    :class="
-                        isScreen
-                            ? actionTile
-                            : cn(
-                                  panelButton,
-                                  'border-0 bg-transparent px-3 text-action',
-                              )
-                    "
-                >
-                    <FmIcon
-                        :icon="isScreen ? Info : ExternalLink"
-                        :size="isScreen ? 22 : 20"
-                    />{{ isScreen ? $t('Document') : $t('Open as a document') }}
+                <a :href="drawing.document_url" :class="actionTile">
+                    <FmIcon :icon="Info" :size="22" />{{ $t('Document') }}
                 </a>
             </div>
         </div>

@@ -285,6 +285,49 @@ describe('FmDrawingViewer', () => {
         expect(previous).toHaveClass('size-10', 'bg-canvas');
     });
 
+    it('in the panel has Download, Share and Open as a document in a ⋮ menu beside the close', async () => {
+        vi.stubGlobal('navigator', { canShare: () => true, share: vi.fn() });
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                blob: async () => new Blob(['x'], { type: 'image/png' }),
+            }),
+        );
+        viewerOf({}, 'panel');
+
+        expect(
+            screen.queryByRole('link', { name: 'Download' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('link', { name: 'Open as a document' }),
+        ).not.toBeInTheDocument();
+        const button = screen.getByRole('button', { name: 'More actions' });
+        expect(
+            button.querySelector('.lucide-ellipsis-vertical'),
+        ).not.toBeNull();
+        const follows = Boolean(
+            button.compareDocumentPosition(
+                screen.getByRole('button', { name: 'Close' }),
+            ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+        expect(follows).toBe(true);
+        await vi.waitFor(async () => {
+            await userEvent.click(button);
+            expect(
+                screen.getByRole('menuitem', { name: 'Share' }),
+            ).toBeInTheDocument();
+        });
+
+        const items = screen.getAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'Download',
+            'Share',
+            'Open as a document',
+        ]);
+        expect(items[0]).toHaveAttribute('href', '/files/7/download');
+        expect(items[2]).toHaveAttribute('href', '/documents/7');
+    });
+
     it('in the panel the picture opens the file in a new tab', () => {
         viewerOf({}, 'panel');
 

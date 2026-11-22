@@ -286,11 +286,14 @@ describe('Documents', () => {
 
         const aside = screen.getByRole('complementary', { name: 'Bolletta' });
         expect(within(aside).getByText('2 of 3')).toBeInTheDocument();
+        await userEvent.click(
+            within(aside).getByRole('button', { name: 'More actions' }),
+        );
         expect(
-            within(aside).getByRole('link', {
+            await screen.findByRole('menuitem', {
                 name: 'Open the page of the document',
             }),
-        ).toBeInTheDocument();
+        ).toHaveAttribute('href', '/documents/6');
         expect(screen.getAllByRole('complementary')).toHaveLength(1);
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
