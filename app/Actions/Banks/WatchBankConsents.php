@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Actions\Banks;
 
 use App\Enums\BankConnectionStatus;
-use App\Enums\Role;
 use App\Mail\BankConsentExpiringMail;
 use App\Models\BankConnection;
 use App\Models\ReminderNotice;
@@ -78,7 +77,7 @@ final readonly class WatchBankConsents
         // Only the warning has a date to say: a consent the bank took back has none
         $date = $ended ? '' : ($connection->valid_until?->setTimezone('Europe/Rome')->format('d/m/Y') ?? '');
         $now = CarbonImmutable::now();
-        $admins = User::query()->where('family_id', $connection->family_id)->where('role', Role::Admin)->orderBy('id')->get();
+        $admins = User::query()->inFamily($connection->family_id)->admins()->get();
 
         $mails = DB::transaction(function () use ($connection, $admins, $bank, $date, $ended, $now): array {
             $mails = [];

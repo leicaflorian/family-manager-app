@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Reminders;
 
-use App\Enums\Role;
 use App\Mail\MorningNoticesMail;
 use App\Mail\WeeklySummaryMail;
 use App\Models\Reminder;
@@ -52,7 +51,7 @@ final readonly class SendMorningNotices
      */
     public function handle(CarbonImmutable $today): int
     {
-        $accounts = User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
+        $accounts = User::ofCurrentFamily();
 
         if ($accounts->isEmpty()) {
             return 0;
@@ -132,7 +131,7 @@ final readonly class SendMorningNotices
         // Taken only once the summary exists, so a failed build leaves the Monday to a later run. When a run of the
         // same Monday already took it, the admins get their new notices by the morning mail, so none is lost.
         if ($summaries !== null && Cache::add(sprintf('weekly-summary:%d:%s', CurrentFamily::id(), $today->toDateString()), true, now()->addDays(2))) {
-            $admins = $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin);
+            $admins = $accounts->filter(static fn (User $user): bool => $user->isAdmin());
 
             foreach ($admins as $admin) {
                 $this->queueWeekly($admin, $summaries[$admin->mailLocale()], $emails[$admin->id] ?? [], $today);
@@ -164,7 +163,7 @@ final readonly class SendMorningNotices
             $service = resolve(WeeklySummaries::class);
             $summaries = [];
 
-            foreach ($accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) as $admin) {
+            foreach ($accounts->filter(static fn (User $user): bool => $user->isAdmin()) as $admin) {
                 $locale = $admin->mailLocale();
                 $summaries[$locale] ??= $this->withLocale($locale, static fn (): WeeklySummary => $service->week($today));
             }

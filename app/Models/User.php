@@ -13,6 +13,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -48,6 +49,8 @@ use Illuminate\Support\Str;
  * @property-read Person|null $person
  *
  * @method static UserFactory factory($count = null, $state = [])
+ * @method static Builder<static>|User admins()
+ * @method static Builder<static>|User inFamily(?int $familyId)
  * @method static Builder<static>|User newModelQuery()
  * @method static Builder<static>|User newQuery()
  * @method static Builder<static>|User query()
@@ -96,6 +99,40 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The accounts of a family, by id. Accounts have no family scope, so every query of the accounts of a family
+     * starts here.
+     *
+     * @param  Builder<User>  $query
+     * @param  int|null  $familyId  the family; none gives no account
+     */
+    #[Scope]
+    protected function inFamily(Builder $query, ?int $familyId): void
+    {
+        $query->where('family_id', $familyId)->orderBy('id');
+    }
+
+    /**
+     * Only the accounts that can do everything in their family.
+     *
+     * @param  Builder<User>  $query
+     */
+    #[Scope]
+    protected function admins(Builder $query): void
+    {
+        $query->where('role', Role::Admin);
+    }
+
+    /**
+     * The accounts of the current family with their person, by id: who receives the notices.
+     *
+     * @return Collection<int, User>
+     */
+    public static function ofCurrentFamily(): Collection
+    {
+        return User::query()->inFamily(CurrentFamily::id())->with('person')->get();
+    }
+
+    /**
      * The first name to greet the account with: the person tied to it, or the first word of its name.
      */
     public function firstName(): string
@@ -129,7 +166,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isLastAdmin(): bool
     {
         return $this->isAdmin()
-            && ! self::query()->where('family_id', $this->family_id)->where('role', Role::Admin)->whereKeyNot($this->id)->exists();
+            && ! self::query()->inFamily($this->family_id)->admins()->whereKeyNot($this->id)->exists();
     }
 
     /**

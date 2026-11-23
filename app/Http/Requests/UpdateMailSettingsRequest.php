@@ -54,7 +54,7 @@ final class UpdateMailSettingsRequest extends FormRequest
 
         /** @var User $user */
         $user = $this->user();
-        $all = array_map($toId, User::query()->where('family_id', $user->family_id)->orderBy('id')->pluck('id')->all());
+        $all = array_map($toId, User::query()->inFamily($user->family_id)->pluck('id')->all());
 
         return $chosen === $all ? null : $chosen;
     }

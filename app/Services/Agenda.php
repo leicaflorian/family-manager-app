@@ -20,7 +20,6 @@ use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Queries\CardDeadlines;
 use App\Support\CardDeadline;
-use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
@@ -443,7 +442,7 @@ final readonly class Agenda
      */
     public function accounts(): Collection
     {
-        return User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
+        return User::ofCurrentFamily();
     }
 
     /**

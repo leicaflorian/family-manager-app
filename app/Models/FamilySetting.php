@@ -103,9 +103,8 @@ final class FamilySetting extends FamilyModel
     public function notifyUsers(): Collection
     {
         return User::query()
-            ->where('family_id', $this->family_id)
+            ->inFamily($this->family_id)
             ->when($this->mail_inbox_notify !== null, fn ($query) => $query->whereIn('id', $this->mail_inbox_notify))
-            ->orderBy('id')
             ->get();
     }
 }

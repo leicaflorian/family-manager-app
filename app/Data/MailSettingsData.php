@@ -53,7 +53,7 @@ final class MailSettingsData extends Data
         return new self(
             address: $active ? $settings->mail_inbox_recipient : null,
             senders: self::senders(),
-            accounts: array_values(User::query()->where('family_id', $user->family_id)->orderBy('id')->get()
+            accounts: array_values(User::query()->inFamily($user->family_id)->get()
                 ->map(static fn (User $account): MailAccountData => MailAccountData::fromUser($account, $notify))
                 ->all()),
             people_without_account: array_values(Person::query()->whereNull('user_id')->orderBy('first_name')->get()

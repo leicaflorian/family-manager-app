@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Mail;
 
-use App\Enums\Role;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Support\CurrentFamily;
@@ -45,7 +44,7 @@ final readonly class NotifyMailLimit
 
             $line = NoticeText::translate('More than :count mails arrived today: the others are not saved. If they are spam, change the address.', ['count' => $limit]);
 
-            User::query()->where('family_id', $family)->where('role', Role::Admin)->orderBy('id')->get()
+            User::query()->inFamily($family)->admins()->get()
                 ->each(fn (User $admin): ReminderNotice => ReminderNotice::query()->create([
                     'user_id' => $admin->id,
                     'sent_at' => now(),
