@@ -68,6 +68,14 @@ describe('My account', () => {
         );
     });
 
+    it('leads from the family row to the family name', () => {
+        renderPage(Account, { account, themes, devices: [] });
+
+        expect(
+            screen.getByRole('link', { name: /Bianchi family/ }),
+        ).toHaveAttribute('href', '/settings/family');
+    });
+
     it('tells the last admin why they cannot delete themselves', () => {
         renderPage(Account, { account, themes, devices: [] });
 

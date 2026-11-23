@@ -15,6 +15,7 @@ import {
     Bell,
     CalendarSync,
     FolderTree,
+    House,
     Landmark,
     LayoutGrid,
     LifeBuoy,
@@ -34,6 +35,7 @@ import { index as categories } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mail } from '@/routes/mail-settings';
 import { edit as areas } from '@/routes/settings/areas';
+import { edit as family } from '@/routes/settings/family';
 import { news } from '@/routes/settings';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
@@ -43,6 +45,7 @@ import FmIcon from './FmIcon.vue';
 /** A section of the settings, as the page names itself. */
 type SettingsSection =
     | 'account'
+    | 'family'
     | 'notices'
     | 'mail'
     | 'banks'
@@ -78,6 +81,8 @@ interface SectionLink {
     label: string;
     icon: LucideIcon;
     href: string;
+    /** A short note after the label, on the right: the version that runs, for *What's new*. */
+    note?: string;
 }
 
 /** The sections of the settings in the groups of the index: mine first, without a name. */
@@ -103,6 +108,12 @@ const groups = computed(
         {
             label: trans('The family'),
             sections: [
+                {
+                    key: 'family',
+                    label: trans('Family name'),
+                    icon: House,
+                    href: family().url,
+                },
                 {
                     key: 'notices',
                     label: trans('Notices'),
@@ -159,6 +170,7 @@ const groups = computed(
                     label: trans("What's new"),
                     icon: Sparkles,
                     href: news().url,
+                    note: __APP_BUILD__,
                 },
             ],
         },
@@ -206,6 +218,11 @@ const groups = computed(
                     >
                         <FmIcon :icon="section.icon" :size="20" />
                         {{ section.label }}
+                        <span
+                            v-if="section.note"
+                            class="ml-auto text-meta text-ink-soft"
+                            >{{ section.note }}</span
+                        >
                     </Link>
                 </div>
             </nav>

@@ -11,6 +11,7 @@ import {
     Bell,
     CalendarDays,
     FolderTree,
+    House,
     Inbox,
     Landmark,
     LayoutGrid,
@@ -35,6 +36,7 @@ import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mailSettings } from '@/routes/mail-settings';
 import { news } from '@/routes/settings';
 import { edit as areasSettings } from '@/routes/settings/areas';
+import { edit as familyName } from '@/routes/settings/family';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
 
@@ -128,6 +130,19 @@ watch(
             </FmRow>
         </FmCard>
         <FmCard :title="$t('The family')" list>
+            <FmRow
+                :title="$t('Family name')"
+                :subtitle="account.family"
+                :href="familyName().url"
+            >
+                <template #before>
+                    <span
+                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
+                    >
+                        <FmIcon :icon="House" :size="22" />
+                    </span>
+                </template>
+            </FmRow>
             <FmRow
                 :title="$t('Notices')"
                 :subtitle="$t('How many days before, where and to whom')"

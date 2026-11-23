@@ -73,7 +73,7 @@ describe("Settings, What's new", () => {
             name: 'Settings sections',
         });
         expect(
-            within(nav).getByRole('link', { name: "What's new" }),
+            within(nav).getByRole('link', { name: /What's new/ }),
         ).toHaveAttribute('aria-current', 'page');
     });
 });

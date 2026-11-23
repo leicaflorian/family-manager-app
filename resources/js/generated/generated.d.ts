@@ -419,6 +419,10 @@ readonly children: App.Data.ExpenseCategoryData[],
 export type FamilyData = {
 readonly name: string,
 };
+export type FamilyNameSettingsData = {
+readonly name: string,
+readonly can_edit: boolean,
+};
 export type FamilySummaryData = {
 readonly name: string,
 readonly people: number,

@@ -52,6 +52,7 @@ use App\Http\Controllers\ScanShareController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\Settings\BankController;
+use App\Http\Controllers\Settings\FamilyNameController;
 use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -241,6 +242,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::put('settings/account/theme', [AccountController::class, 'theme'])->name('account.theme');
         Route::post('settings/account/photo', [AccountController::class, 'photo'])->name('account.photo');
         Route::delete('settings/account', [AccountController::class, 'destroy'])->name('account.destroy');
+        Route::get('settings/family', [FamilyNameController::class, 'edit'])->name('settings.family.edit');
+        Route::put('settings/family', [FamilyNameController::class, 'update'])->name('settings.family.update');
         Route::get('settings/devices', [LinkedDeviceController::class, 'index'])->name('devices.index');
         Route::delete('settings/devices/{device}', [LinkedDeviceController::class, 'destroy'])->name('devices.destroy');
         Route::get('settings/calendar', [CalendarSettingsController::class, 'edit'])->name('calendar.edit');

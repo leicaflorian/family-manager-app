@@ -1,0 +1,5 @@
+{
+    "code": 422,
+    "message": "Wrong transactions period requested",
+    "error": "WRONG_TRANSACTIONS_PERIOD"
+}

@@ -109,6 +109,34 @@ it('reads every page of the transactions', function (): void {
         ->and($sent[2][0]['continuation_key'])->toBe('page-3');
 });
 
+it('reads again from the first transaction the bank has when it refuses the period', function (): void {
+    Http::fake(['api.test/accounts/acc-1/transactions*' => Http::sequence()
+        ->push(bankFeedFixture('error-wrong-period'), 422)
+        ->push(bankFeedFixture('transactions-page1'))
+        ->push(bankFeedFixture('transactions-page-empty'))
+        ->push(bankFeedFixture('transactions-page2')),
+    ]);
+
+    $entries = bankFeedNew()->transactions('session', 'acc-1', CarbonImmutable::parse('2026-08-25'), CarbonImmutable::parse('2026-11-23'));
+
+    expect($entries)->toHaveCount(3);
+    $sent = Http::recorded();
+    expect($sent)->toHaveCount(4)
+        ->and($sent[0][0]->url())->not->toContain('strategy')
+        ->and($sent[1][0]['strategy'])->toBe('longest')
+        ->and($sent[1][0]['date_from'])->toBe('2026-08-25')
+        ->and($sent[1][0]->url())->not->toContain('continuation_key')
+        ->and($sent[2][0]['strategy'])->toBe('longest')
+        ->and($sent[2][0]['continuation_key'])->toBe('page-2')
+        ->and($sent[3][0]['continuation_key'])->toBe('page-3');
+});
+
+it('fails when the bank refuses the period of the longest read too', function (): void {
+    Http::fake(['api.test/accounts/acc-1/transactions*' => Http::response(bankFeedFixture('error-wrong-period'), 422)]);
+
+    bankFeedNew()->transactions('s', 'acc-1', CarbonImmutable::parse('2026-08-25'), CarbonImmutable::parse('2026-11-23'));
+})->throws(BankFeedFailed::class, 'Wrong transactions period requested');
+
 it('makes a debit negative and a credit positive', function (): void {
     Http::fake(['api.test/accounts/acc-1/transactions*' => Http::sequence()
         ->push(['transactions' => bankFeedFixture('transactions-page2')['transactions']]),

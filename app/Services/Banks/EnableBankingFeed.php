@@ -8,6 +8,7 @@ use App\Contracts\BankFeed;
 use App\Exceptions\Banks\BankConsentEnded;
 use App\Exceptions\Banks\BankFeedFailed;
 use App\Exceptions\Banks\BankLimitReached;
+use App\Exceptions\Banks\BankPeriodRefused;
 use App\Support\Banks\BankAccount;
 use App\Support\Banks\BankEntry;
 use App\Support\Banks\BankInstitution;
@@ -127,7 +128,9 @@ final readonly class EnableBankingFeed implements BankFeed
     }
 
     /**
-     * Every transaction between two dates, following the pages until the provider has no more.
+     * Every transaction between two dates, following the pages until the provider has no more. A bank that refuses the
+     * period (it keeps less history than asked) is read again with the `longest` strategy, where the first date is only
+     * where the provider starts looking and the period is never refused.
      *
      * @return list<BankEntry>
      *
@@ -135,17 +138,36 @@ final readonly class EnableBankingFeed implements BankFeed
      */
     public function transactions(string $session, string $accountUid, CarbonImmutable $from, CarbonImmutable $to, ?BankVisitor $visitor = null): array
     {
+        try {
+            return $this->pages($accountUid, ['date_from' => $from->toDateString(), 'date_to' => $to->toDateString()], $visitor);
+        } catch (BankPeriodRefused) {
+            return $this->pages($accountUid, ['date_from' => $from->toDateString(), 'strategy' => 'longest'], $visitor);
+        }
+    }
+
+    /**
+     * Every page of the transactions of an account for one query.
+     *
+     * @param  string  $accountUid  the account at the provider
+     * @param  array<string, string>  $query  the period and the strategy of the read
+     * @param  BankVisitor|null  $visitor  who is looking, when a person asked for the read
+     * @return list<BankEntry>
+     *
+     * @throws BankFeedFailed
+     */
+    private function pages(string $accountUid, array $query, ?BankVisitor $visitor): array
+    {
         $entries = [];
         $key = null;
 
         for ($page = 0; $page < self::MAX_PAGES; $page++) {
-            $query = ['date_from' => $from->toDateString(), 'date_to' => $to->toDateString()] + ($key === null ? [] : ['continuation_key' => $key]);
-            $body = $this->send(function (PendingRequest $http) use ($accountUid, $query, $visitor): Response {
+            $pageQuery = $query + ($key === null ? [] : ['continuation_key' => $key]);
+            $body = $this->send(function (PendingRequest $http) use ($accountUid, $pageQuery, $visitor): Response {
                 if ($visitor instanceof BankVisitor) {
                     $http = $http->withHeaders(['Psu-Ip-Address' => $visitor->ip, 'Psu-User-Agent' => $visitor->userAgent]);
                 }
 
-                return $http->get('/accounts/'.rawurlencode($accountUid).'/transactions', $query);
+                return $http->get('/accounts/'.rawurlencode($accountUid).'/transactions', $pageQuery);
             });
 
             foreach (Arr::wrap($body['transactions'] ?? []) as $transaction) {
@@ -222,6 +244,7 @@ final readonly class EnableBankingFeed implements BankFeed
         throw match (true) {
             $response->status() === 429 || $error === 'ASPSP_RATE_LIMIT_EXCEEDED' => new BankLimitReached($message),
             in_array($error, self::CONSENT_ENDED, true) => new BankConsentEnded($message),
+            $error === 'WRONG_TRANSACTIONS_PERIOD' => new BankPeriodRefused($message),
             default => new BankFeedFailed($message),
         };
     }

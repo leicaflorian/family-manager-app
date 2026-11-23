@@ -70,19 +70,21 @@ describe('FmSettingsPage', () => {
         ).toEqual([
             'My account',
             'Calendar',
+            'Family name',
             'Notices',
             'Address for the bills',
             'Document categories',
             'Expense categories',
             'Areas',
             'Support',
-            "What's new",
+            `What's new ${__APP_BUILD__}`,
         ]);
         expect(
             within(within(nav).getByRole('group', { name: 'The family' }))
                 .getAllByRole('link')
                 .map((link) => link.textContent?.trim()),
         ).toEqual([
+            'Family name',
             'Notices',
             'Address for the bills',
             'Document categories',
@@ -94,10 +96,13 @@ describe('FmSettingsPage', () => {
             within(within(nav).getByRole('group', { name: 'The app' }))
                 .getAllByRole('link')
                 .map((link) => link.textContent?.trim()),
-        ).toEqual(["What's new"]);
+        ).toEqual([`What's new ${__APP_BUILD__}`]);
         expect(
             within(nav).getByRole('link', { name: 'Calendar' }),
         ).toHaveAttribute('href', '/settings/calendar');
+        expect(
+            within(nav).getByRole('link', { name: 'Family name' }),
+        ).toHaveAttribute('href', '/settings/family');
     });
 
     it('lists Linked banks after the address for the bills while the link to the bank is on', () => {
@@ -114,7 +119,8 @@ describe('FmSettingsPage', () => {
 
         expect(
             links.map((link) => link.textContent?.trim()).slice(0, 3),
-        ).toEqual(['Notices', 'Address for the bills', 'Linked banks']);
+        ).toEqual(['Family name', 'Notices', 'Address for the bills']);
+        expect(links[3]?.textContent?.trim()).toBe('Linked banks');
         expect(
             within(nav).getByRole('link', { name: 'Linked banks' }),
         ).toHaveAttribute('aria-current', 'page');
