@@ -6,6 +6,7 @@
  */
 import { http } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
+import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
 import { secretFromHash } from '@/lib/phoneLink';
 import { scan } from '@/routes';
 import { resume } from '@/routes/connect';
@@ -38,62 +39,6 @@ export class ScanRequestError extends Error {
 
 /** A file saved in *To sort*, as `POST scan` answers it. */
 export type SavedFile = { id: number; name: string; size: number };
-
-/**
- * The status and the body of an error of the HTTP client of Inertia, whatever its kind.
- *
- * @param error - what the client threw
- * @returns the status (0 without an answer) and the body read as JSON when it is
- */
-function answerOf(error: unknown): {
-    status: number;
-    body: Record<string, unknown> | null;
-} {
-    const response = (
-        error as { response?: { status?: number; data?: unknown } } | null
-    )?.response;
-    const status = typeof response?.status === 'number' ? response.status : 0;
-
-    return { status, body: jsonOf(response?.data) };
-}
-
-/**
- * A body read as a JSON object.
- *
- * @param data - the body, as text or already read
- * @returns the object, or null when it is not one
- */
-function jsonOf(data: unknown): Record<string, unknown> | null {
-    if (data !== null && typeof data === 'object') {
-        return data as Record<string, unknown>;
-    }
-
-    if (typeof data !== 'string') {
-        return null;
-    }
-
-    try {
-        const parsed: unknown = JSON.parse(data);
-
-        return parsed !== null && typeof parsed === 'object'
-            ? (parsed as Record<string, unknown>)
-            : null;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * The message the server wrote in its answer, if it wrote one.
- *
- * @param body - the answer read as JSON
- * @returns the message, or null
- */
-function messageOf(body: Record<string, unknown> | null): string | null {
-    return typeof body?.message === 'string' && body.message !== ''
-        ? body.message
-        : null;
-}
 
 /**
  * Whether a value is four points from 0 to 1.
@@ -143,7 +88,7 @@ export async function findCorners(
             },
             signal: giveUp.signal,
         });
-        const found = jsonOf(response.data)?.corners;
+        const found = jsonBody(response.data)?.corners;
 
         return isCorners(found) ? found : null;
     } catch (error) {
@@ -158,11 +103,11 @@ export async function findCorners(
             );
         }
 
-        const { status, body } = answerOf(error);
+        const { status, body } = failedAnswer(error);
 
         throw new ScanRequestError(
             status,
-            messageOf(body) ??
+            serverMessage(body) ??
                 (status === 0
                     ? trans(
                           'Without a network the edges of the sheet cannot be looked for.',
@@ -216,18 +161,18 @@ export async function sendScanFile(
                 }
             },
         });
-        const files = jsonOf(response.data)?.files;
+        const files = jsonBody(response.data)?.files;
 
         return Array.isArray(files) ? (files as SavedFile[]) : [];
     } catch (error) {
-        const { status, body } = answerOf(error);
+        const { status, body } = failedAnswer(error);
         const errors = body?.errors as Record<string, string[]> | undefined;
         const first = errors ? Object.values(errors)[0]?.[0] : undefined;
 
         throw new ScanRequestError(
             status,
             first ??
-                messageOf(body) ??
+                serverMessage(body) ??
                 (status === 0
                     ? trans(
                           'The upload did not go through: there is no network, or the server does not answer.',

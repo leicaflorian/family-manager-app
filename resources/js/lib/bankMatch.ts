@@ -6,6 +6,8 @@
 import { http } from '@inertiajs/vue3';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { formatDayMonth, formatMoney } from '@/lib/format';
+import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
+import type { JsonBody } from '@/lib/httpAnswer';
 import { examples, matches, rule } from '@/routes/budget/bank';
 
 /** The direction of the form: an expense looks at outgoing transactions, an income at incoming ones. */
@@ -47,34 +49,13 @@ export class BankMatchError extends Error {
     }
 }
 
-/** The body of an answer read as an object, whatever its kind. */
-function bodyOf(data: unknown): Record<string, unknown> | null {
-    if (data !== null && typeof data === 'object') {
-        return data as Record<string, unknown>;
-    }
-
-    if (typeof data !== 'string') {
-        return null;
-    }
-
-    try {
-        const parsed: unknown = JSON.parse(data);
-
-        return parsed !== null && typeof parsed === 'object'
-            ? (parsed as Record<string, unknown>)
-            : null;
-    } catch {
-        return null;
-    }
-}
-
 /**
  * The first message of a 422: the first of `errors`, or `message`.
  *
  * @param body - the answer read as an object
  * @returns the message, or null
  */
-function messageOf(body: Record<string, unknown> | null): string | null {
+function messageOf(body: JsonBody | null): string | null {
     const errors = body?.errors;
 
     if (errors !== null && typeof errors === 'object') {
@@ -89,9 +70,7 @@ function messageOf(body: Record<string, unknown> | null): string | null {
         }
     }
 
-    return typeof body?.message === 'string' && body.message !== ''
-        ? body.message
-        : null;
+    return serverMessage(body);
 }
 
 /**
@@ -118,14 +97,10 @@ async function call(
             signal,
         });
 
-        return bodyOf(response.data) ?? {};
+        return jsonBody(response.data) ?? {};
     } catch (error) {
-        const response = (
-            error as { response?: { status?: number; data?: unknown } } | null
-        )?.response;
-        const status =
-            typeof response?.status === 'number' ? response.status : 0;
-        const message = messageOf(bodyOf(response?.data));
+        const { status, body } = failedAnswer(error);
+        const message = messageOf(body);
 
         throw new BankMatchError(
             status,

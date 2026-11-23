@@ -19,6 +19,7 @@ import {
     improveCanvas,
     drawOn,
     millimetreOf,
+    roundedRect,
     scaleCut,
     sheetCanvas,
 } from './card';
@@ -356,24 +357,6 @@ async function describe(blob: Blob): Promise<PageImage> {
     };
 }
 
-/** Draws a path of round corners. */
-function roundedBox(
-    context: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number,
-): void {
-    context.beginPath();
-    context.moveTo(x + radius, y);
-    context.arcTo(x + width, y, x + width, y + height, radius);
-    context.arcTo(x + width, y + height, x, y + height, radius);
-    context.arcTo(x, y + height, x, y, radius);
-    context.arcTo(x, y, x + width, y, radius);
-    context.closePath();
-}
-
 /**
  * The browser's canvas for `filesToSend`: a cut out page is its JPEG as it is; a photo not cut out is read as
  * the phone shows it, given its turns and written again (a PDF viewer does not read the turn of a camera).
@@ -415,7 +398,7 @@ export const canvasBackend: Backend = {
 
                 if (plan.rounded[index]) {
                     // the table left at the four corners of a card, which are round, is cut away
-                    roundedBox(
+                    roundedRect(
                         context,
                         place.x,
                         place.y,
