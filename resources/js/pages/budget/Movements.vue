@@ -13,6 +13,7 @@
  * the movement, which brings back to this list (`?from=`).
  */
 import { Head, router } from '@inertiajs/vue3';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import {
     ChartColumn,
@@ -270,10 +271,13 @@ function subtitle(movement: App.Data.MovementData): string {
         .filter((part) => part !== null)
         .join(' · ');
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Budget'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Budget')" />
+    <Head :title="pageHead" />
 
     <DefineRow v-slot="{ movement }">
         <FmRow
@@ -318,7 +322,7 @@ function subtitle(movement: App.Data.MovementData): string {
     </DefineRow>
 
     <div class="flex flex-col gap-4">
-        <FmTitle :title="$t('Budget')">
+        <FmTitle :title="pageTitle">
             <template #actions>
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')

@@ -28,6 +28,7 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
@@ -134,13 +135,17 @@ function mailTitle(mail: App.Data.HomeMailData): string {
         ? mail.sender
         : `${mail.sender} · ${mail.subject}`;
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Hi, :name', { name: home.first_name }),
+    head: () => trans('Home'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Home')" />
+    <Head :title="pageHead" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="$t('Hi, :name', { name: home.first_name })">
+        <FmTitle :title="pageTitle">
             <template #overline>
                 <span class="text-body-sm text-ink-soft">{{ day }}</span>
             </template>

@@ -10,6 +10,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { FileText, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useListFilters } from '@/composables/useListFilters';
 import GalleryCard from '@/components/documents/GalleryCard.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
@@ -226,13 +227,16 @@ function rowHref(document: App.Data.DocumentData): string {
           })
         : show.url(document.id);
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Documents'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Documents')" />
+    <Head :title="pageHead" />
 
     <div class="flex flex-col gap-4">
-        <FmTitle :title="$t('Documents')">
+        <FmTitle :title="pageTitle">
             <template #actions>
                 <FmToSortLink :count="toSortCount" />
             </template>

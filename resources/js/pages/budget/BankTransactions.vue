@@ -26,6 +26,7 @@ import {
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
@@ -329,13 +330,16 @@ function assignTo(choice: App.Data.BankPlannedChoiceData): void {
 function add(): void {
     router.get(create.url({ query: { from: bankIndex().url } }));
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Budget'),
+});
 </script>
 
 <template>
-    <Head :title="$t('From the bank')" />
+    <Head :title="pageHead" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="$t('Budget')">
+        <FmTitle :title="pageTitle">
             <template #actions>
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')

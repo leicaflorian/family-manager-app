@@ -18,7 +18,7 @@ import { useAppName } from '@/composables/useAppName';
 import { formatDateTime } from '@/lib/format';
 import { settings } from '@/routes';
 import { destroy, store } from '@/routes/settings/support';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 /** The name of the app, for the texts that say it. */
 const appName = useAppName();
@@ -73,18 +73,18 @@ function takeBack(): void {
     router.delete(destroy.url(), { preserveScroll: true });
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Support') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Support'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Support')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="support">
         <template #title>
-            <FmTitle :title="$t('Support')" />
+            <FmTitle :title="title" />
         </template>
         <FmCard>
             <div class="flex flex-col gap-4">

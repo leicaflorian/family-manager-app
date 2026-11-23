@@ -36,7 +36,7 @@ import {
 } from '@/routes/account';
 import { edit as familyName } from '@/routes/settings/family';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { account } = defineProps<{
     /** My account. */
@@ -183,19 +183,19 @@ function deleteAccount(): void {
     deletion.submit(destroy(), { onFinish: () => deletion.reset() });
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('My account') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('My account'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('My account')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="account">
         <template #title>
             <FmTitle
-                :title="$t('My account')"
+                :title="title"
                 :subtitle="
                     $t(
                         'Yours only: the rest of the settings applies to the whole family',

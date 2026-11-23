@@ -12,11 +12,10 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { errors } from '@/lib/errors';
-import { settings as settingsIndex } from '@/routes';
 import { update } from '@/routes/settings/family';
 
 const { settings } = defineProps<{
@@ -63,19 +62,19 @@ function save(): void {
 
 useSaveShortcut(save, () => settings.can_edit && !saving.value);
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settingsIndex().url },
-    { label: trans('Family name') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Family name'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Family name')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="family">
         <template #title>
             <FmTitle
-                :title="$t('Family name')"
+                :title="title"
                 :subtitle="
                     $t(
                         'You see it in the menu, in the emails and in the calendar',

@@ -25,6 +25,7 @@ import {
 import { useIntervalFn, useTimeoutFn, watchDebounced } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef, watch } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -243,17 +244,20 @@ async function copyCode(): Promise<void> {
         await copier.copyOrSelect(props.mail.gmail_code, codeElement.value);
     }
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Received mail'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Received mail')" />
+    <Head :title="pageHead" />
 
     <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
         <div
             class="flex flex-col gap-3.5 wide:flex-row wide:items-end wide:justify-between wide:gap-4"
             :class="mail && 'not-wide:hidden'"
         >
-            <FmTitle :title="$t('Received mail')" class="min-w-0 wide:flex-1">
+            <FmTitle :title="pageTitle" class="min-w-0 wide:flex-1">
                 <template v-if="address" #subtitle>
                     {{ subtitleParts[0]
                     }}<button

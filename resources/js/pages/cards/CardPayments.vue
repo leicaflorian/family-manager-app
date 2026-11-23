@@ -13,7 +13,7 @@ import FmNumberTile from '@/components/fm/FmNumberTile.vue';
 import FmPayButton from '@/components/fm/FmPayButton.vue';
 import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { listNames } from '@/lib/names';
 import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
@@ -30,12 +30,16 @@ const { card, budget } = defineProps<{
     counts: Record<number, string>;
 }>();
 
-usePageTrail(() => [
-    { label: trans('Areas'), href: areas().url },
-    { label: card.area_label, href: showArea.url(card.area) },
-    { label: card.label, href: show.url({ type: card.type, id: card.id }) },
-    { label: budget.payments_label ?? trans('Payments') },
-]);
+const { title, head } = usePageMeta({
+    title: () => budget.payments_label ?? trans('Payments'),
+    // The tab names the card too: the title alone could be any card's
+    head: () => `${budget.payments_label} · ${card.label}`,
+    parent: () => [
+        'areas',
+        { label: card.area_label, href: showArea.url(card.area) },
+        { label: card.label, href: show.url({ type: card.type, id: card.id }) },
+    ],
+});
 
 /** Whether the planned items are incomes, as the ones of an employment. */
 const income = computed(() => budget.kind === 'income');
@@ -61,10 +65,10 @@ const note = computed((): string => {
 </script>
 
 <template>
-    <Head :title="`${budget.payments_label} · ${card.label}`" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmTitle :title="budget.payments_label ?? $t('Payments')">
+        <FmTitle :title="title">
             <template #overline>
                 <span class="text-label text-ink-soft">{{
                     `${card.area_label} · ${card.type_label}`

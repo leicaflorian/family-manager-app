@@ -18,7 +18,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCardChoice } from '@/composables/useCardChoice';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
@@ -94,12 +94,14 @@ const back = computed(() =>
     planned ? show.url({ kind, id: planned.id }) : index().url,
 );
 
-usePageTrail(() => [
-    { label: trans('Budget'), href: budget().url },
-    { label: trans('Recurring'), href: index().url },
-    ...(planned ? [{ label: planned.title, href: back.value }] : []),
-    { label: heading.value },
-]);
+const { head } = usePageMeta({
+    title: () => heading.value,
+    parent: () => [
+        'budget',
+        { label: trans('Recurring'), href: index().url },
+        ...(planned ? [{ label: planned.title, href: back.value }] : []),
+    ],
+});
 
 /** The units of how often. */
 const units = computed(() => [
@@ -156,7 +158,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="heading" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="heading" />

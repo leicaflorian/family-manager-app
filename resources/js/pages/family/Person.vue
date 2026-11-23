@@ -51,7 +51,7 @@ import {
 import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { family, upload } from '@/routes';
 
 const {
@@ -205,11 +205,10 @@ const actions = computed((): Action[] => [
         : []),
 ]);
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('People'), href: index().url },
-    { label: name.value },
-]);
+usePageMeta({
+    title: () => name.value,
+    parent: ['family', { label: trans('People'), href: index().url }],
+});
 </script>
 
 <template>

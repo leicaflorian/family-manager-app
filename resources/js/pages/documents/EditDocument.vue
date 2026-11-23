@@ -23,9 +23,9 @@ import { useReadingPoll } from '@/composables/useReadingPoll';
 import type { DocumentFormOptions } from '@/lib/documents';
 import { documentValues, proposalOf } from '@/lib/documents';
 import { isReading } from '@/lib/reading';
-import { destroy, file, show, update, index } from '@/routes/documents';
+import { destroy, file, show, update } from '@/routes/documents';
 import { read } from '@/routes/files';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const props = defineProps<{
     /** The document as it is. */
@@ -70,21 +70,20 @@ function fillFromFile(): void {
 /** The panel that asks before deleting. */
 const confirmingDelete = ref(false);
 
-usePageTrail(() => [
-    { label: trans('Documents'), href: index().url },
-    {
-        label: props.document.title,
-        href: show.url(props.document.id),
-    },
-    { label: trans('Edit the document') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Edit the document'),
+    parent: [
+        'documents',
+        { label: props.document.title, href: show.url(props.document.id) },
+    ],
+});
 </script>
 
 <template>
-    <Head :title="$t('Edit the document')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-6">
-        <FmTitle :title="$t('Edit the document')" />
+        <FmTitle :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

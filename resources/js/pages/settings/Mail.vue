@@ -20,10 +20,9 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { settings as settingsIndex } from '@/routes';
 import { index as mailIndex } from '@/routes/mail';
 import { address as changeAddress, update } from '@/routes/mail-settings';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { settings } = defineProps<{
     /** The address, who already wrote, the accounts, the choice saved and whether who looks can change it. */
@@ -104,19 +103,19 @@ function save(): void {
 
 useSaveShortcut(save, () => settings.can_edit && !saving.value);
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settingsIndex().url },
-    { label: trans('Address for the bills') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Address for the bills'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Address for the bills')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="mail">
         <template #title>
             <FmTitle
-                :title="$t('Address for the bills')"
+                :title="title"
                 :subtitle="
                     $t('Forward the bills that arrive by email: we read them')
                 "

@@ -18,7 +18,7 @@ import { errors, listErrors } from '@/lib/errors';
 import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { family } from '@/routes';
 
 const { organization, types } = defineProps<{
@@ -54,16 +54,19 @@ function save(): void {
 
 useSaveShortcut(save, () => !form.processing);
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('Organizations'), href: index().url },
-    ...(organization ? [{ label: organization.name, href: back.value }] : []),
-    {
-        label: organization
+const { title, head } = usePageMeta({
+    title: () =>
+        organization
             ? trans('Edit :name', { name: organization.name })
             : trans('New organization'),
-    },
-]);
+    parent: () => [
+        'family',
+        { label: trans('Organizations'), href: index().url },
+        ...(organization
+            ? [{ label: organization.name, href: back.value }]
+            : []),
+    ],
+});
 </script>
 
 <template>

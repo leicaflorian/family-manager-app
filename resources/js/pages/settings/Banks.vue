@@ -33,12 +33,11 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import BankMark from '@/components/banks/BankMark.vue';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useAppName } from '@/composables/useAppName';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { lastReadText, readTimes } from '@/lib/banks';
 import { formatDate } from '@/lib/format';
 import { plainText } from '@/lib/text';
-import { settings as settingsIndex } from '@/routes';
 import { destroy, store, sync } from '@/routes/banks';
 
 const { connections, can_change, sync_hours, consent_days, institutions } =
@@ -189,20 +188,20 @@ function readText(connection: App.Data.BankConnectionData): string | null {
         : null;
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settingsIndex().url },
-    { label: trans('Linked banks') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Linked banks'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Linked banks')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="banks">
         <template #title>
             <div class="flex flex-col gap-4">
                 <FmTitle
-                    :title="$t('Linked banks')"
+                    :title="title"
                     :subtitle="
                         $t('The transactions arrive by themselves :times', {
                             times,

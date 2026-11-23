@@ -22,6 +22,7 @@ import {
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
@@ -875,10 +876,13 @@ onBeforeUnmount(() => {
         straightener.forget(one.id);
     }
 });
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('New document'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Scan')" />
+    <Head :title="pageHead" />
 
     <ScanCrop
         v-if="crop && cropping && cropping.photo"
@@ -934,7 +938,7 @@ onBeforeUnmount(() => {
         class="flex shrink-0 flex-col gap-5 px-5 pt-4"
     >
         <FmBackLink :label="$t('To sort')" @click="cancel('toSort')" />
-        <FmTitle :title="$t('New document')">
+        <FmTitle :title="pageTitle">
             <template #actions>
                 <span class="text-body-sm whitespace-nowrap text-ink-soft">{{
                     count

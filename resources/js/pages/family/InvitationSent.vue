@@ -13,7 +13,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useCopy } from '@/composables/useCopy';
 import { useFormat } from '@/composables/useFormat';
 import { family } from '@/routes';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { invitation } = defineProps<{
     /** The invitation just sent. */
@@ -33,17 +33,17 @@ async function copy(): Promise<void> {
     }
 }
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('Invitation sent') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Invitation sent'),
+    parent: 'family',
+});
 </script>
 
 <template>
-    <Head :title="$t('Invitation sent')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[560px] flex-col gap-5">
-        <FmTitle :title="$t('Invitation sent')" />
+        <FmTitle :title="title" />
         <FmNotice tone="ok">
             {{
                 $t(

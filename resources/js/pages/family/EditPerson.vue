@@ -19,7 +19,7 @@ import { personValues } from '@/lib/family';
 import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { family } from '@/routes';
 
 const { person, roles } = defineProps<{
@@ -55,42 +55,31 @@ function save(): void {
 
 useSaveShortcut(save, () => !form.processing);
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('People'), href: index().url },
-    ...(person
-        ? [
-              {
-                  label: `${person.first_name} ${person.last_name}`,
-                  href: back.value,
-              },
-          ]
-        : []),
-    {
-        label: person
+const { title, head } = usePageMeta({
+    title: () =>
+        person
             ? trans('Edit :name', { name: person.first_name })
             : trans('New person'),
-    },
-]);
+    parent: () => [
+        'family',
+        { label: trans('People'), href: index().url },
+        ...(person
+            ? [
+                  {
+                      label: `${person.first_name} ${person.last_name}`,
+                      href: back.value,
+                  },
+              ]
+            : []),
+    ],
+});
 </script>
 
 <template>
-    <Head
-        :title="
-            person
-                ? $t('Edit :name', { name: person.first_name })
-                : $t('New person')
-        "
-    />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="
-                person
-                    ? $t('Edit :name', { name: person.first_name })
-                    : $t('New person')
-            "
-        />
+        <FmTitle :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

@@ -18,7 +18,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmDeleteButton from '@/components/fm/FmDeleteButton.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { errors } from '@/lib/errors';
 import { isEmpty, withMethod, withNone } from '@/lib/forms';
@@ -107,15 +107,10 @@ const form = useForm({
  */
 useUnsavedChanges(() => form.data());
 
-/** The title of the page. */
-const heading = computed(() =>
-    reminder ? trans('Edit task') : trans('New task'),
-);
-
-usePageTrail(() => [
-    { label: trans('Agenda'), href: agendaRoute().url },
-    { label: heading.value },
-]);
+const { title: heading, head } = usePageMeta({
+    title: () => (reminder ? trans('Edit task') : trans('New task')),
+    parent: 'agenda',
+});
 
 /** The things a reminder can refer to as one list: «Home · Casa di via Roma», by `type:id`. */
 const things = computed(() =>
@@ -171,7 +166,7 @@ useSaveShortcut(save, () => !form.processing);
 </script>
 
 <template>
-    <Head :title="heading" />
+    <Head :title="head" />
 
     <DefineForm>
         <form class="flex flex-col gap-3.5" novalidate @submit.prevent="save">

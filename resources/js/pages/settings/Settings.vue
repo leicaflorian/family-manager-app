@@ -9,6 +9,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed, watch } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
@@ -103,14 +104,17 @@ watch(
     },
     { immediate: true },
 );
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('Settings'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Settings')" />
+    <Head :title="pageHead" />
 
     <div v-if="!wide" class="flex max-w-[720px] flex-col gap-5">
         <FmTitle
-            :title="$t('Settings')"
+            :title="pageTitle"
             :subtitle="
                 $t(
                     'They apply to the whole :family family; my account is yours only',

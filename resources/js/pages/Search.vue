@@ -29,9 +29,9 @@ import {
     SEARCH_PAGE_FIELD,
     useSearchBox,
 } from '@/composables/useSearchBox';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useLayoutMode } from '@/composables/useLayoutMode';
-import { dashboard, search } from '@/routes';
+import { search } from '@/routes';
 
 /** The name of the app, for the texts that say it. */
 const appName = useAppName();
@@ -137,14 +137,14 @@ function filter(type: App.Enums.SearchGroup | null): void {
     );
 }
 
-usePageTrail(() => [
-    { label: trans('Home'), href: dashboard().url },
-    { label: trans('Search') },
-]);
+const { head } = usePageMeta({
+    title: () => trans('Search'),
+    parent: 'home',
+});
 </script>
 
 <template>
-    <Head :title="$t('Search')" />
+    <Head :title="head" />
 
     <div
         class="flex w-full flex-col"

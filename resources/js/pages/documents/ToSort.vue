@@ -30,6 +30,8 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { usePageMeta } from '@/composables/usePageMeta';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSelectionBar from '@/components/documents/ToSortSelectionBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -193,14 +195,17 @@ function confirmDelete(): void {
         },
     });
 }
+const { title: pageTitle, head: pageHead } = usePageMeta({
+    title: () => trans('To sort'),
+});
 </script>
 
 <template>
-    <Head :title="$t('To sort')" />
+    <Head :title="pageHead" />
 
     <div class="flex flex-col gap-4 wide:gap-6">
         <FmTitle
-            :title="$t('To sort')"
+            :title="pageTitle"
             :subtitle="
                 waiting === 0
                     ? undefined

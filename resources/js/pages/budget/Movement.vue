@@ -17,7 +17,7 @@ import FmCardFiles from '@/components/fm/FmCardFiles.vue';
 import FmMovementPanel from '@/components/fm/FmMovementPanel.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import type { MovementFormOptions, MovementStart } from '@/lib/budget';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { movementsUrl } from '@/lib/budget';
 import { budget } from '@/routes';
@@ -80,19 +80,18 @@ const backHref = computed(
         movementsUrl({ month: (movement?.date ?? start.date).slice(0, 7) }),
 );
 
-/** The title of the page. */
-const title = computed(() => movement?.title ?? trans('New expense or income'));
-
-usePageTrail(() => [
-    { label: trans('Budget'), href: budget().url },
-    {
-        label: trans('Movements'),
-        href: movementsUrl({
-            month: (movement?.date ?? start.date).slice(0, 7),
-        }),
-    },
-    { label: title.value },
-]);
+const { title, head } = usePageMeta({
+    title: () => movement?.title ?? trans('New expense or income'),
+    parent: () => [
+        'budget',
+        {
+            label: trans('Movements'),
+            href: movementsUrl({
+                month: (movement?.date ?? start.date).slice(0, 7),
+            }),
+        },
+    ],
+});
 
 /** The page is wide: the title is the page's, and the form has none. */
 const wide = useWideLayout();
@@ -116,7 +115,7 @@ function close(): void {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle v-if="wide" :title="title" />

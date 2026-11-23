@@ -25,7 +25,7 @@ import type { DocumentLink } from '@/lib/documents';
 import { desktopSystem } from '@/lib/devices';
 import { toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const props = defineProps<{
     /** The card the person comes from, kept for the files. */
@@ -75,19 +75,19 @@ const phoneWording = computed((): PhoneWording =>
         : {},
 );
 
-usePageTrail(() => [
-    { label: trans('To sort'), href: toSort().url },
-    { label: trans('Upload a document') },
-]);
+const { title, head } = usePageMeta({
+    title: () => trans('Upload a document'),
+    parent: 'toSort',
+});
 </script>
 
 <template>
-    <Head :title="$t('Upload a document')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-6">
         <!-- On the phone the link to the files to sort has its own row under the title, as the board Carica -->
         <div class="flex flex-col gap-3">
-            <FmTitle :title="$t('Upload a document')">
+            <FmTitle :title="title">
                 <template #actions>
                     <FmToSortLink
                         v-if="layout !== 'phone'"

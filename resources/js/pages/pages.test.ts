@@ -50,7 +50,7 @@ describe('the pages', () => {
     });
 
     // The top bar shows the trail the page writes: a page of the app layout that
-    // is not a section (or one of its tabs) must call usePageTrail().
+    // is not a section (or one of its tabs) must call usePageTrail(), or usePageMeta() with a parent.
     it('every page of the app layout tells its trail', () => {
         const missing = pages()
             .map((page) => page.replace(/\.vue$/, ''))
@@ -58,12 +58,16 @@ describe('the pages', () => {
                 (name) =>
                     pageLayout(name) === AppLayout && !isSectionPage(name),
             )
-            .filter(
-                (name) =>
-                    !readFileSync(join(root, `${name}.vue`), 'utf8').includes(
-                        'usePageTrail(',
-                    ),
-            );
+            .filter((name) => {
+                const source = readFileSync(join(root, `${name}.vue`), 'utf8');
+
+                // usePageMeta writes the trail only with a parent
+                return !(
+                    source.includes('usePageTrail(') ||
+                    (source.includes('usePageMeta(') &&
+                        source.includes('parent:'))
+                );
+            });
 
         expect(missing).toEqual([]);
     });

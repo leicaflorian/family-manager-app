@@ -42,21 +42,7 @@ import type { ImportChoices } from '@/composables/useImportChoices';
 import { useImportChoices } from '@/composables/useImportChoices';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import {
-    documentNeeds,
-    dueInEffect,
-    eventHint,
-    eventLabel,
-    eventWarnings,
-    missingData,
-    movementHint,
-    movementLabel,
-    movementWarnings,
-    policyBox,
-    recordHint,
-    recordLabel,
-    recordWarnings,
-} from '@/lib/alsoDo';
+import { documentNeeds, missingData } from '@/lib/alsoDo';
 import type {
     DocumentFormOptions,
     DocumentFormValues,
@@ -69,7 +55,7 @@ import { toSort } from '@/routes';
 import { create as createCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 import { useComputerLayout } from '@/composables/useLayoutMode';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const props = defineProps<
     {
@@ -505,29 +491,25 @@ function save(): void {
     );
 }
 
-usePageTrail(() => [
-    { label: trans('To sort'), href: toSort().url },
-    {
-        label: transChoice(
+const { title, head } = usePageMeta({
+    title: () =>
+        transChoice(
             '{1} Import :count file|[2,*] Import :count files',
             props.files.length,
         ),
-    },
-]);
+    // The tab keeps the name of the page, the title counts the files
+    head: () => trans('Import more files'),
+    parent: 'toSort',
+});
 </script>
 
 <template>
-    <Head :title="$t('Import more files')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-6">
         <template v-if="desktop">
             <FmTitle
-                :title="
-                    $tChoice(
-                        '{1} Import :count file|[2,*] Import :count files',
-                        files.length,
-                    )
-                "
+                :title="title"
                 :subtitle="
                     $tChoice(
                         '{1} Check it, then import it.|[2,*] Check them one by one, then import them together.',
@@ -569,14 +551,7 @@ usePageTrail(() => [
             </FmTitle>
         </template>
         <div v-else-if="current" class="flex flex-col gap-3">
-            <FmTitle
-                :title="
-                    $tChoice(
-                        '{1} Import :count file|[2,*] Import :count files',
-                        files.length,
-                    )
-                "
-            >
+            <FmTitle :title="title">
                 <template #actions>
                     <span class="text-label text-ink-soft">{{
                         $t('File :current of :total', {

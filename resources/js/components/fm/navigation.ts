@@ -242,6 +242,18 @@ function itemTexts(): Record<Section, ItemText> {
 }
 
 /**
+ * The label and the address of a section, for the trail of a page.
+ *
+ * @param section - the section
+ * @returns its label, translated now, and its address
+ */
+export function sectionLink(section: Section): { label: string; href: string } {
+    const { label, href } = itemTexts()[section];
+
+    return { label, href };
+}
+
+/**
  * The navigation items with their addresses.
  *
  * @param features - the features of the family; null (no family, tests) shows every section
