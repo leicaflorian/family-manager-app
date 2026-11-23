@@ -1,5 +1,23 @@
 [
     {
+        "version": "2.7.0",
+        "date": "2026-11-23",
+        "notes": {
+            "it": [
+                "Ora un amministratore può cambiare il nome della famiglia da Impostazioni → Nome della famiglia.",
+                "Chi non è amministratore vede il nome della famiglia ma non lo può modificare.",
+                "Dalla riga della famiglia in Il mio account arrivi subito al nome della famiglia.",
+                "Collegare alcune banche ora funziona anche quando conservano pochi mesi di movimenti."
+            ],
+            "en": [
+                "An admin can now change the family name from Settings → Family name.",
+                "If you're not an admin, you can see the family name but not change it.",
+                "The family row in My account now takes you straight to the family name.",
+                "Connecting banks that only keep a short history of transactions now works."
+            ]
+        }
+    },
+    {
         "version": "2.6.1",
         "date": "2026-11-22",
         "notes": {

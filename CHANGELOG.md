@@ -2,6 +2,18 @@
 
 All notable changes to Fameja.app.
 
+## [2.7.0] - 2026-11-23
+
+### Settings
+- New page Settings → Family name (first in The family): an admin changes the family name; members see it read-only. The name need not be unique and the address for the bills stays the same.
+- The version now appears after What's new in the settings sections, and the family row of My account leads to the family name.
+
+### Bank feed
+- A bank that keeps less history than the first 90-day read (Enable Banking `WRONG_TRANSACTIONS_PERIOD`) is now read again with `strategy=longest`, so the period is never refused.
+
+### Docs
+- Project memory (`learnings.md`) trimmed and grouped by topic; publishing notes moved to `docs/pubblicazione.md`.
+
 ## [2.6.1] - 2026-11-22
 
 ### CI
