@@ -1,6 +1,8 @@
 /**
- * The navigation items of the app, the same for the bottom bar of the phone and
- * for the sidebar of the computer.
+ * The navigation items of the app, one list for the bottom bar of the phone and
+ * for the sidebar (always open on the computer, opened from the menu on the
+ * tablet): each places them in its own way (To sort and Received mail, for
+ * example, sit under the sections in the sidebar and elsewhere on the phone).
  */
 import type { LucideIcon } from '@lucide/vue';
 import {

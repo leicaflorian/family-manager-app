@@ -15,7 +15,7 @@ const { title, subtitle } = defineProps<{
 
 <template>
     <div class="flex flex-col gap-2">
-        <h1 class="m-0 text-title-mobile lg:text-title">
+        <h1 class="m-0 text-title-mobile computer:text-title">
             {{ title }}
         </h1>
         <p v-if="subtitle" class="m-0 text-body text-ink-soft">
