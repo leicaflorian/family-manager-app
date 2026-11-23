@@ -51,21 +51,21 @@ export const LAUNCH_WAIT = 5000;
 /** How long the page counts as launching the agent, in milliseconds: it looks like leaving the page, and is not. */
 export const LAUNCHING_FOR = 1000;
 /** What "On a single page" asks of the scanner: enough dots to read the small print of a card. */
-export const CARD_RESOLUTION = 300;
+const CARD_RESOLUTION = 300;
 /** How long after a slider stops the side is made again, in milliseconds. */
-export const SLIDER_WAIT = 300;
+const SLIDER_WAIT = 300;
 
 /**
  * How a side was on a composed page it is no longer on: the cut and the turns, also the ones set by hand, are there
  * again when it goes back on one.
  */
-export type AsCard = { cut: Cut; turns: number; round: boolean };
+type AsCard = { cut: Cut; turns: number; round: boolean };
 
 /**
  * One side of a card on a composed page: the side of the scanner it is cut from (out of the strip while it is here),
  * where, how many quarters of a turn clockwise it is given, and whether its corners are rounded.
  */
-export type Part = { from: Side; cut: Cut; turns: number; round: boolean };
+type Part = { from: Side; cut: Cut; turns: number; round: boolean };
 
 /** One side of a sheet, already downloaded from the agent, or a composed page: it stays when the agent quits. */
 export type Side = {
@@ -105,7 +105,7 @@ export type Side = {
 };
 
 /** Why a scan stopped, or did not start: `settings` is the agent refusing what the scan was asked with. */
-export type Failure = ScanFailure | 'settings';
+type Failure = ScanFailure | 'settings';
 
 /** What the scanner chosen has, kept from the last answer that said it: during a scan the agent does not say it. */
 type Capabilities = {
@@ -115,7 +115,7 @@ type Capabilities = {
 };
 
 /** Where a card is on its composed page, as shares of the page (`left: '10%'`). */
-export type Spot = { left: string; top: string; width: string; height: string };
+type Spot = { left: string; top: string; width: string; height: string };
 
 /** What `useScanner` gives to the page. */
 export type UseScanner = {

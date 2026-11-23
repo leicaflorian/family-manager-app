@@ -3,7 +3,7 @@
  */
 
 /** An option of a menu: the value that is sent and the text that is read. */
-export type Option = { value: string; label: string };
+type Option = { value: string; label: string };
 
 /**
  * A category in a menu. The label is its path («Work › Payslips»): the closed

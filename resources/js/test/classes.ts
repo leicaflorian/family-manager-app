@@ -10,7 +10,7 @@
  * @param source - The text of the file.
  * @returns The arguments of every call, as written.
  */
-export function cnCalls(source: string): string[] {
+function cnCalls(source: string): string[] {
     const calls: string[] = [];
     const opening = /\bcn\(/g;
     let match: RegExpExecArray | null;

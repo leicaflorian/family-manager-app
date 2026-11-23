@@ -1,5 +1,5 @@
 /** The account signed in with the password: the user row as the server shares it. */
-export type User = {
+type User = {
     id: number;
     name: string;
     email: string;
@@ -11,7 +11,7 @@ export type User = {
 };
 
 /** The account of a phone linked with a code: only the name is shared with it. */
-export type LinkedPhoneUser = {
+type LinkedPhoneUser = {
     name: string;
 };
 

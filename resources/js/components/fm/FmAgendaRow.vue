@@ -41,7 +41,7 @@ import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 
 /** Where the row is shown. */
-export type AgendaRowLayout = 'agenda' | 'home';
+type AgendaRowLayout = 'agenda' | 'home';
 
 const {
     entry,

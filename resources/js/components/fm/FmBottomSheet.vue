@@ -52,7 +52,7 @@ const {
 }>();
 
 /** The widths of the panel on the computer. */
-export type SheetSize = 'md' | 'lg';
+type SheetSize = 'md' | 'lg';
 
 /** The widest the panel gets on the computer, for each size. */
 const widths: Record<SheetSize, string> = {

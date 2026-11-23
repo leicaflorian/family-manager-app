@@ -9,7 +9,7 @@ import { isFirefox } from '../devices';
 export const AGENT_URL = 'http://127.0.0.1:47115';
 
 /** The link that starts the agent: the system knows it once the agent has been opened one time. */
-export const AGENT_LINK = 'familymanageragent://open';
+const AGENT_LINK = 'familymanageragent://open';
 
 /** How often the page asks the agent for its status, in milliseconds. */
 export const STATUS_EVERY = 2000;
@@ -73,10 +73,10 @@ export type AgentStatus = {
     colours?: Colour[];
 };
 
-export type ScanState = 'idle' | 'scanning' | 'done' | 'error';
+type ScanState = 'idle' | 'scanning' | 'done' | 'error';
 /** Why a scan stopped: scanner off, feeder empty, a sheet stuck, anything else. */
 export type ScanFailure = 'off' | 'empty' | 'jam' | 'scanner';
-export type AgentPage = { id: string; size: number };
+type AgentPage = { id: string; size: number };
 /** `session` changes when the agent starts again: the ids of its sides start again from 1. */
 export type AgentPages = {
     session: string;
@@ -104,7 +104,7 @@ export type AgentFailure =
     | 'failed';
 
 /** A failed call to the agent, with the reason in `reason`. */
-export class AgentError extends Error {
+class AgentError extends Error {
     constructor(public reason: AgentFailure) {
         super(reason);
     }

@@ -576,7 +576,7 @@ export const pendingPayslip: App.Data.PendingFileData = {
 };
 
 /** The card of the dance lessons, as `DeadlineData` sends it. */
-export const danceEnrollmentRow: App.Data.CardData = {
+const danceEnrollmentRow: App.Data.CardData = {
     type: 'enrollment',
     id: 1,
     type_label: 'Enrollment',
@@ -1169,7 +1169,7 @@ export const octoberComparison: App.Data.ComparisonData = {
 export const luceRow: App.Data.CardData = edison;
 
 /** The planned expense of the electricity: 72 € a month, estimated, on the 23rd. */
-export const lucePlanned: App.Data.PlannedRowData = {
+const lucePlanned: App.Data.PlannedRowData = {
     ...gasRow,
     id: 7,
     title: 'Luce',
@@ -1181,7 +1181,7 @@ export const lucePlanned: App.Data.PlannedRowData = {
 };
 
 /** The October bill, moved to 06/11 with its amount. */
-export const luceOctober: App.Data.DeadlineData = {
+const luceOctober: App.Data.DeadlineData = {
     ...lateDeadline,
     title: 'Bolletta luce di ottobre',
     date: '2026-11-06',
@@ -1204,7 +1204,7 @@ export const luceOctober: App.Data.DeadlineData = {
  * @param amount - the amount paid
  * @returns the movement, as `MovementData` sends it
  */
-export function luceBill(
+function luceBill(
     id: number,
     title: string,
     date: string,
@@ -1382,24 +1382,6 @@ export const loanFields: App.Data.CardFieldData[] = [
             label_when: {},
         },
     ]);
-
-/** The choices of the form of a document, as *Upload* and *Edit a document* receive them. */
-export const documentFormOptions = {
-    categories: documentFilterOptions.categories,
-    people: documentFilterOptions.people,
-    organizations: documentFilterOptions.organizations,
-    links: [
-        {
-            type: 'employment',
-            label: 'Employments',
-            options: [
-                { value: '3', label: 'Laura - Comune di Bologna', help: null },
-            ],
-        },
-    ],
-    statuses: documentFilterOptions.statuses,
-    tags: ['salary', 'bills'],
-};
 
 /**
  * Builds the reminder of an entry of the Agenda as the server sends it.
@@ -1675,50 +1657,6 @@ export const plumberReminder: App.Data.ReminderData = {
     can_delete: true,
 };
 
-/** The inspection of the Panda, made by the app, coming, for Marco. */
-export const inspectionReminder: App.Data.ReminderData = {
-    id: 3,
-    title: 'Do the inspection',
-    due_date: '2027-01-09',
-    postponed_from: null,
-    status: 'open' as App.Enums.ReminderStatus,
-    is_automatic: true,
-    subject: {
-        type: 'vehicle',
-        id: 1,
-        label: 'Fiat Panda',
-        href: '/cards/vehicle/1',
-        area: 'vehicles',
-    },
-    person: { id: 1, name: 'Marco', initials: 'MB', photo: null },
-    group_id: null,
-    next_notice: '2026-11-25',
-    notice_sent: false,
-    missing_expense: false,
-    href: '/cards/vehicle/1',
-    can_edit: false,
-    can_delete: false,
-};
-
-/** A reminder already done. */
-export const doneReminder: App.Data.ReminderData = {
-    id: 4,
-    title: 'Pay the road tax',
-    due_date: '2026-10-05',
-    postponed_from: null,
-    status: 'done' as App.Enums.ReminderStatus,
-    is_automatic: false,
-    subject: null,
-    person: null,
-    group_id: null,
-    next_notice: null,
-    notice_sent: true,
-    missing_expense: false,
-    href: '/reminders/4/edit',
-    can_edit: true,
-    can_delete: true,
-};
-
 /** The people of the family as the menus of the reminders have them: the id as text. */
 export const reminderPeople: App.Data.OptionData[] = [
     { value: '1', label: 'Marco', help: null },
@@ -1759,7 +1697,7 @@ export const reminderLinks: App.Data.LinkGroupData[] = [
  * @param change - the fields that differ from a new notice of the road tax
  * @returns the notice
  */
-export function bellNotice(
+function bellNotice(
     change: Partial<App.Data.ReminderNoticeData> = {},
 ): App.Data.ReminderNoticeData {
     return {

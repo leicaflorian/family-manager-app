@@ -10,7 +10,7 @@ import { isIos, isPhone, isStandalone } from '@/lib/devices';
 /** The most console entries kept. */
 export const MAX_CONSOLE = 50;
 /** The most failed requests kept. */
-export const MAX_REQUESTS = 20;
+const MAX_REQUESTS = 20;
 /** The most pages kept. */
 export const MAX_PAGES = 10;
 /** The longest message kept, in characters. */
@@ -33,7 +33,7 @@ export const MAX_SERIALIZED_BYTES = 65536;
 const HARMLESS = [/^ResizeObserver loop /, /^Date \(\) does not match format /];
 
 /** One error or warning of the console. */
-export interface ConsoleEntry {
+interface ConsoleEntry {
     at: string;
     level: 'error' | 'warn';
     message: string;
@@ -41,7 +41,7 @@ export interface ConsoleEntry {
 }
 
 /** One request that failed. */
-export interface RequestEntry {
+interface RequestEntry {
     at: string;
     method: string;
     path: string;
@@ -50,7 +50,7 @@ export interface RequestEntry {
 }
 
 /** One page shown. */
-export interface PageEntry {
+interface PageEntry {
     at: string;
     path: string;
     component: string | null;

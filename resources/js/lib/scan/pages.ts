@@ -19,9 +19,9 @@ import { makePdf, type PdfPage } from './pdf';
 /** The most one file may weigh when it leaves for the server: 25 MB. */
 export const MAX_UPLOAD_BYTES = 26214400;
 /** The fewest and the most photos "On a single page" takes. */
-export const SHEET_PHOTOS = { least: 2, most: 4 } as const;
+const SHEET_PHOTOS = { least: 2, most: 4 } as const;
 /** The dots per inch of the A4 sheet: the ones a scanner is asked for a card. */
-export const SHEET_DENSITY = 300;
+const SHEET_DENSITY = 300;
 
 /** One page of the document: a photo with what was done to it, or a PDF that goes as it is. */
 export type ScanPage = {

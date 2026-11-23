@@ -114,7 +114,7 @@ export function hasChanges(): boolean {
 /**
  * Gives up the changes of every open form: *Cancel* is a choice, not a mistake.
  */
-export function discardChanges(): void {
+function discardChanges(): void {
     for (const reset of forms.values()) {
         reset();
     }

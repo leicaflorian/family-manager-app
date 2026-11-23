@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 /** The tone of the message. */
-export type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
+type NoticeTone = 'info' | 'ok' | 'warning' | 'danger';
 
 const { tone = 'info', icon } = defineProps<{
     /** Information, done, warning or danger. */

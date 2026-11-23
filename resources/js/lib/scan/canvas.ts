@@ -83,10 +83,7 @@ export async function readPhoto(
  * @returns the JPEG
  * @throws if the browser cannot make the JPEG
  */
-export async function toJpeg(
-    image: Pixels,
-    quality = JPEG_QUALITY,
-): Promise<Blob> {
+async function toJpeg(image: Pixels, quality = JPEG_QUALITY): Promise<Blob> {
     const canvas = document.createElement('canvas');
 
     try {
@@ -108,7 +105,7 @@ export async function toJpeg(
  * @returns the JPEG
  * @throws if the browser cannot make the JPEG
  */
-export async function jpegOfCanvas(
+async function jpegOfCanvas(
     canvas: HTMLCanvasElement,
     quality = JPEG_QUALITY,
 ): Promise<Blob> {
@@ -207,7 +204,7 @@ export type SideMeasure = {
  * @returns the pixels
  * @throws if the browser has no canvas for it
  */
-export function pixelsOf(image: ImageBitmap, longSide = Infinity): Pixels {
+function pixelsOf(image: ImageBitmap, longSide = Infinity): Pixels {
     const scale = Math.min(1, longSide / Math.max(image.width, image.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(image.width * scale));

@@ -4,7 +4,7 @@
  */
 
 /** The file to share, as the pages receive it. */
-export type ShareableFile = { name: string; mime_type: string; url: string };
+type ShareableFile = { name: string; mime_type: string; url: string };
 
 /** What `useShare` gives to the pages. */
 export type UseShare = {

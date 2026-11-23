@@ -4,7 +4,7 @@ import type { BankMatchKind, BankMatchResult } from '@/lib/bankMatch';
 import { BankMatchError, previewMatches } from '@/lib/bankMatch';
 
 /** How long to wait after the last letter before asking the server, in milliseconds. */
-export const PREVIEW_DELAY_MS = 500;
+const PREVIEW_DELAY_MS = 500;
 
 /** What the preview reads from the form. */
 export type BankMatchPreviewSources = {

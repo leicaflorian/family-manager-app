@@ -17,7 +17,7 @@ const INK_DARKER = 30;
  * when in doubt the side is kept, since a blank left among the others is taken away with a click, and a written
  * one put aside could go unnoticed. To be corrected with the real sheets.
  */
-export const BLANK_SHARE = 0.0005;
+const BLANK_SHARE = 0.0005;
 
 /**
  * The share of the dots of a picture that hold ink, from 0 to 1, the edges left out. The picture is already small
@@ -57,7 +57,7 @@ export function inkShareOf(picture: Pixels): number {
 }
 
 /** The share of the dots of a side that hold ink, from 0 to 1; 1 when the browser cannot draw it. */
-export function inkShare(
+function inkShare(
     image: CanvasImageSource,
     width: number,
     height: number,

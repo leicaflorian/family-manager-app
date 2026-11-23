@@ -39,16 +39,16 @@ import FmButton from './FmButton.vue';
 import FmIcon from './FmIcon.vue';
 
 /** Where the filters are shown. */
-export type AgendaFiltersVariant = 'sheet' | 'box';
+type AgendaFiltersVariant = 'sheet' | 'box';
 
 /** The filters in use: the period only where there is one. */
-export type AgendaFilterState = Pick<
+type AgendaFilterState = Pick<
     App.Data.AgendaFiltersData,
     'person_id' | 'hidden_areas'
 > & { months?: number };
 
 /** A person of the family the entries can be filtered by. */
-export type AgendaFilterPerson = Pick<
+type AgendaFilterPerson = Pick<
     App.Data.PersonData,
     'id' | 'first_name' | 'initials' | 'photo'
 >;

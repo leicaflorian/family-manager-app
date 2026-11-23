@@ -19,7 +19,7 @@ import { useAppName } from '@/composables/useAppName';
 const appName = useAppName();
 
 /** What the blue panel of the computer says, already translated. */
-export type AuthPanel = {
+type AuthPanel = {
     /** The big sentence. */
     title: string;
     /** The text below. */
@@ -29,7 +29,7 @@ export type AuthPanel = {
 };
 
 /** The line at the bottom that leads to the other page («Already have an account? Log in»). */
-export type OtherWay = {
+type OtherWay = {
     /** The question. */
     text: string;
     /** The text of the link. */
