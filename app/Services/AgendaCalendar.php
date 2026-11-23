@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Data\AgendaCalendarData;
 use App\Data\AgendaEntryData;
 use App\Enums\AgendaReminderState;
+use App\Support\AgendaEntries;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
@@ -34,8 +35,7 @@ final readonly class AgendaCalendar
     public function open(CarbonImmutable $today, CarbonImmutable $until, int $back = self::DAYS_BACK): array
     {
         return $this->sorted([
-            ...array_filter($this->agenda->entries($today, $until, $back, $back), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'
-                && ($entry->kind !== 'deadline' || $entry->reminder?->state !== AgendaReminderState::Done)),
+            ...array_filter(AgendaEntries::withoutIncomes($this->agenda->entries($today, $until, $back, $back)), static fn (AgendaEntryData $entry): bool => $entry->kind !== 'deadline' || $entry->reminder?->state !== AgendaReminderState::Done),
             ...$this->tasks->open($today, $until),
         ]);
     }

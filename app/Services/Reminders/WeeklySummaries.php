@@ -6,6 +6,7 @@ namespace App\Services\Reminders;
 
 use App\Data\AgendaEntryData;
 use App\Services\AgendaCalendar;
+use App\Support\AgendaEntries;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
 
@@ -27,8 +28,8 @@ final readonly class WeeklySummaries
         $start = $monday->toDateString();
         $entries = $this->calendar->open($monday, $monday->addDays(6));
 
-        $late = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date < $start));
-        $rest = array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->date >= $start);
+        $late = AgendaEntries::before($entries, $start);
+        $rest = AgendaEntries::from($entries, $start);
         $toPay = array_values(array_filter($rest, static fn (AgendaEntryData $entry): bool => $entry->amount !== null));
         $tasks = array_values(array_filter($rest, static fn (AgendaEntryData $entry): bool => $entry->amount === null));
 
@@ -38,7 +39,7 @@ final readonly class WeeklySummaries
             late: $late,
             toPay: $toPay,
             tasks: $tasks,
-            total: round(array_sum(array_map(static fn (AgendaEntryData $entry): float => $entry->amount ?? 0.0, $counted)), 2),
+            total: AgendaEntries::total($counted),
             estimated: array_any($counted, static fn (AgendaEntryData $entry): bool => $entry->estimated),
         );
     }

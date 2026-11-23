@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Data\AgendaEntryData;
 use App\Data\ChecklistStepData;
 use App\Data\HomeData;
 use App\Data\HomeMailData;
@@ -21,6 +20,7 @@ use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Mail\ReceivedMails;
 use App\Services\Reminders\ExpectedDocuments;
+use App\Support\AgendaEntries;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
 
@@ -57,24 +57,21 @@ final readonly class HomeSummary
         $entries = $this->agenda->entries($today, $today->addDays(self::DAYS), self::DEADLINES_BACK, self::DAYS);
         $todayDate = $today->toDateString();
 
-        $payments = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind === 'payment'));
-        $listed = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'));
-        $incoming = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind === 'income' && $entry->date >= $todayDate));
+        $payments = AgendaEntries::payments($entries);
+        $listed = AgendaEntries::withoutIncomes($entries);
 
         // The entries come by date, so a stable partition puts the late ones first without reordering the rest
-        $late = array_values(array_filter($listed, static fn (AgendaEntryData $entry): bool => $entry->date < $todayDate));
-        $next = array_values(array_filter($listed, static fn (AgendaEntryData $entry): bool => $entry->date >= $todayDate));
-        $ordered = [...$late, ...$next];
+        $ordered = [...AgendaEntries::before($listed, $todayDate), ...AgendaEntries::from($listed, $todayDate)];
 
         return new HomeData(
             first_name: $user->person->first_name ?? $user->name,
             today: $todayDate,
-            total: round(array_sum(array_map(static fn (AgendaEntryData $entry): float => $entry->amount ?? 0.0, $payments)), 2),
+            total: AgendaEntries::total($payments),
             payments: count($payments),
-            late: count(array_filter($payments, static fn (AgendaEntryData $entry): bool => $entry->date < $todayDate)),
+            late: count(AgendaEntries::before($payments, $todayDate)),
             entries: array_slice($ordered, 0, self::ENTRIES),
             more: count($ordered) > self::ENTRIES,
-            incoming: $incoming,
+            incoming: AgendaEntries::from(AgendaEntries::incomes($entries), $todayDate),
             pending_count: File::query()->toSort()->notCopies()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
