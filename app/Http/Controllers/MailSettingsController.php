@@ -9,6 +9,7 @@ use App\Data\MailSettingsData;
 use App\Http\Requests\UpdateMailSettingsRequest;
 use App\Models\FamilySetting;
 use App\Models\User;
+use App\Services\FamilyFeatures;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -55,8 +56,7 @@ final class MailSettingsController extends Controller
     public function address(#[CurrentUser] User $user, RegenerateMailAddress $regenerate): RedirectResponse
     {
         Gate::authorize('update', FamilySetting::current());
-        $domain = config('services.mailgun.inbox_domain');
-        abort_unless(is_string($domain) && trim($domain) !== '', 404);
+        abort_unless(resolve(FamilyFeatures::class)->mailDomain() !== null, 404);
 
         $regenerate->handle($user->family);
 

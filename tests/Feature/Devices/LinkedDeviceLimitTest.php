@@ -195,9 +195,9 @@ test('a linked phone cannot send a report', function (): void {
     linkedPhone()->post(route('feedback.store'), ['kind' => 'idea', 'message' => 'Ciao', 'page' => '/scan'])->assertForbidden();
 });
 
-test('a linked phone does not receive the shared prop of the consumption', function (): void {
-    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->missing('has_consumption'));
-    // The same account with its password, as a control: the prop exists, so the phone really is left without it
+test('a linked phone receives the features of the family and no other counts', function (): void {
+    linkedPhone()->get(route('scan'))->assertInertia(fn ($page) => $page->has('family.features')->missing('areas')->missing('bank_feed'));
+    // The same account with its password, as a control: the other props exist, so the phone really is left without them
     $this->flushSession();
-    $this->actingAs($this->marco)->get(route('scan'))->assertInertia(fn ($page) => $page->has('has_consumption'));
+    $this->actingAs($this->marco)->get(route('scan'))->assertInertia(fn ($page) => $page->has('family.features')->has('areas'));
 });

@@ -33,7 +33,10 @@ export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
             updated_at: '2026-10-01T08:00:00.000000Z',
         },
     },
-    family: { name: 'Bianchi' },
+    family: {
+        name: 'Bianchi',
+        features: { bank_feed: false, consumption: false, gallery: false },
+    },
     areas: [],
     unread_notices: 0,
     to_sort_count: 0,

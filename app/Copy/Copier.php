@@ -9,6 +9,7 @@ use App\Actions\Reminders\SyncReminders;
 use App\Enums\FileSource;
 use App\Enums\Role;
 use App\Models\FamilySetting;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -316,7 +317,7 @@ final class Copier
             // The address moves to the new inbox domain, in lower case because `findByMailRecipient()` compares so
             'mail_inbox_recipient' => DirectusMap::billsAddress(
                 $copy['mail_inbox_recipient'] ?? null,
-                is_string(config('services.mailgun.inbox_domain')) ? config('services.mailgun.inbox_domain') : null,
+                resolve(FamilyFeatures::class)->mailDomain(),
                 FamilySetting::addressTaken(...),
             ),
             'mail_inbox_notify' => $ids === null ? null : json_encode($ids),

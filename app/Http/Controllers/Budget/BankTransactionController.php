@@ -20,7 +20,6 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankMatcher;
 use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankTransactionId;
@@ -58,7 +57,6 @@ final class BankTransactionController extends Controller
      */
     public function index(Request $request): Response
     {
-        $this->ensureOn();
         Gate::authorize('viewAny', BankTransaction::class);
 
         $ignored = $request->query('show') === 'ignored';
@@ -148,7 +146,6 @@ final class BankTransactionController extends Controller
      */
     public function sync(Request $request, RefreshBanks $refresh): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('create', BankTransaction::class);
 
         $new = $refresh->handle(
@@ -169,7 +166,6 @@ final class BankTransactionController extends Controller
      */
     public function undo(BankTransaction $transaction, UndoBankPayment $undo): RedirectResponse
     {
-        $this->ensureOn();
         $payment = $transaction->expense ?? $transaction->income;
 
         if ($payment !== null) {
@@ -191,7 +187,6 @@ final class BankTransactionController extends Controller
      */
     public function ignore(BankTransaction $transaction): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('update', $transaction);
 
         DB::transaction(function () use ($transaction): void {
@@ -220,7 +215,6 @@ final class BankTransactionController extends Controller
      */
     public function restore(BankTransaction $transaction): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('update', $transaction);
 
         DB::transaction(function () use ($transaction): void {
@@ -288,13 +282,5 @@ final class BankTransactionController extends Controller
         }
 
         return $options;
-    }
-
-    /**
-     * @throws NotFoundHttpException while the link to the bank is off for the family
-     */
-    private function ensureOn(): void
-    {
-        abort_unless(BankFeedAvailability::on(), 404);
     }
 }

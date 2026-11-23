@@ -44,6 +44,7 @@ import { navigationItems, sectionOf } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import FmToaster from '@/components/fm/FmToaster.vue';
 import { useBellNotices } from '@/composables/useBellNotices';
+import { useFeature } from '@/composables/useFeatures';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useLeavePage } from '@/composables/useLeavePage';
 import { useNewVersion } from '@/composables/useNewVersion';
@@ -74,12 +75,12 @@ const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
-const hasConsumption = computed(
-    (): boolean => page.props.has_consumption ?? false,
-);
+
+/** The family has an electricity, gas or water utility: *Usage* shows under *Budget* in the sidebar. */
+const hasConsumption = useFeature('consumption');
 
 /** The family has a gallery category: *Drawings and crafts* shows under *Documents* in the sidebar. */
-const hasGallery = computed((): boolean => page.props.has_gallery ?? false);
+const hasGallery = useFeature('gallery');
 const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
 // A release while the page is open: a message with Reload, in the toaster below
 useNewVersion();

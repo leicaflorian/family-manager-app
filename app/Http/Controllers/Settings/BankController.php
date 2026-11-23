@@ -15,7 +15,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\StartBankConnectionRequest;
 use App\Models\BankConnection;
 use App\Models\FinancialAccount;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankInstitutions;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
@@ -41,8 +40,6 @@ final class BankController extends Controller
      */
     public function index(BankInstitutions $banks): Response
     {
-        $this->ensureOn();
-
         return Inertia::render('settings/Banks', [
             'connections' => BankConnection::query()
                 ->with('accounts')
@@ -83,7 +80,6 @@ final class BankController extends Controller
      */
     public function callback(Request $request, CompleteBankConnection $complete): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('create', BankConnection::class);
 
         // Read once: a second opening of the same address finds nothing
@@ -123,7 +119,6 @@ final class BankController extends Controller
      */
     public function destroy(BankConnection $connection, DisconnectBank $disconnect): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('delete', $connection);
 
         $disconnect->handle($connection);
@@ -139,7 +134,6 @@ final class BankController extends Controller
      */
     public function sync(Request $request, BankConnection $connection, RefreshBanks $refresh): RedirectResponse
     {
-        $this->ensureOn();
         Gate::authorize('update', $connection);
 
         $new = $refresh->handle([$connection], new BankVisitor((string) $request->ip(), (string) $request->userAgent()));
@@ -156,14 +150,6 @@ final class BankController extends Controller
         Inertia::flash('toast', ['type' => 'error', 'message' => __('The connection did not work. Try again.')]);
 
         return to_route('banks.index');
-    }
-
-    /**
-     * @throws NotFoundHttpException while the link to the bank is off for the family
-     */
-    private function ensureOn(): void
-    {
-        abort_unless(BankFeedAvailability::on(), 404);
     }
 
     /**

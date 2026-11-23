@@ -6,7 +6,6 @@ namespace App\Http\Requests\Banks;
 
 use App\Exceptions\Banks\BankFeedFailed;
 use App\Models\BankConnection;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\BankInstitutions;
 use App\Support\Banks\BankInstitution;
 use Closure;
@@ -24,8 +23,6 @@ final class StartBankConnectionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        abort_unless(BankFeedAvailability::on(), 404);
-
         return Gate::allows('create', BankConnection::class);
     }
 

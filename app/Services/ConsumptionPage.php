@@ -48,15 +48,6 @@ final readonly class ConsumptionPage
     ) {}
 
     /**
-     * Whether the current family has a utility measured in a unit (electricity, gas or water): the page exists only
-     * then. Static, so the shared props do not build the service on every request.
-     */
-    public static function available(): bool
-    {
-        return Utility::query()->whereIn('type', UtilityType::measured())->exists();
-    }
-
-    /**
      * The last 12 months of a utility as its card shows them: the consumption, the average price and the address of the
      * page, over the same 12 months the page opens on (ending at the latest bill, `window()`).
      *

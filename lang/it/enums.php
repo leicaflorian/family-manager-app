@@ -282,6 +282,11 @@ return [
         'web' => 'Domini, hosting ed email',
         'other' => 'Altro',
     ],
+    'feature' => [
+        'bank_feed' => 'Collegamento alla banca',
+        'consumption' => 'Consumi',
+        'gallery' => 'Disegni e lavoretti',
+    ],
     'theme' => [
         'system' => 'Automatico',
         'light' => 'Chiaro',

@@ -6,6 +6,7 @@ namespace App\Services\Reminders;
 
 use App\Data\CardNoticeData;
 use App\Enums\DocumentStatus;
+use App\Enums\Feature;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\NoticeTone;
 use App\Models\BankConnection;
@@ -17,7 +18,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
-use App\Services\Banks\BankFeedAvailability;
+use App\Services\FamilyFeatures;
 use App\Support\ItalianArticle;
 use App\Support\ModelId;
 use App\Support\Reminders\Notices;
@@ -84,7 +85,7 @@ final readonly class CardNotices
         return $card instanceof FinancialAccount
             && $card->status === FinancialAccountStatus::Active
             && $card->bank_connection_id === null
-            && BankFeedAvailability::on()
+            && resolve(FamilyFeatures::class)->on(Feature::BankFeed)
             && (! $user instanceof User || Gate::forUser($user)->allows('create', BankConnection::class));
     }
 

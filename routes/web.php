@@ -190,15 +190,17 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 Route::delete('', [MovementController::class, 'destroy'])->name('destroy');
             });
 
-        Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
-        Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
-        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
-        Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
-        Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
-        Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
-        Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
-        Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
-        Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
+        Route::middleware('feature:bank_feed')->group(function (): void {
+            Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
+            Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
+            Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
+            Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
+            Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
+            Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
+            Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
+            Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
+            Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
+        });
 
         Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
         Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
@@ -257,11 +259,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
         Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
         Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
-        Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
-        Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
-        Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
-        Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
-        Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
+        Route::middleware('feature:bank_feed')->group(function (): void {
+            Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
+            Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
+            Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
+            Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
+            Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
+        });
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');

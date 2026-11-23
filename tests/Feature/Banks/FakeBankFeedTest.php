@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 use App\Contracts\BankFeed;
 use App\Exceptions\Banks\BankFeedFailed;
-use App\Models\Family;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\EnableBankingFeed;
 use App\Services\Banks\FakeBankFeed;
 use App\Services\Banks\OffBankFeed;
 use App\Support\Banks\BankEntry;
-use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 
 it('binds the feed of the provider in the config', function (string $provider, string $class): void {
@@ -36,21 +33,6 @@ it('is off with no provider and throws on every call', function (): void {
     expect($feed->isActive())->toBeFalse();
     $feed->institutions('IT');
 })->throws(LogicException::class);
-
-it('is available only when the feed is active and the family has it on', function (): void {
-    $family = Family::factory()->create(['bank_feed_enabled' => true]);
-
-    CurrentFamily::using($family->id, function () use ($family): void {
-        config(['bank_feed.provider' => '']);
-        expect(BankFeedAvailability::on())->toBeFalse();
-
-        config(['bank_feed.provider' => 'fake']);
-        expect(BankFeedAvailability::on())->toBeTrue();
-
-        $family->forceFill(['bank_feed_enabled' => false])->save();
-        expect(BankFeedAvailability::on())->toBeFalse();
-    });
-});
 
 it('has one bank and sends the person straight back', function (): void {
     $feed = new FakeBankFeed;

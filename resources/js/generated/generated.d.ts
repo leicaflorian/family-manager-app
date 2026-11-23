@@ -418,6 +418,7 @@ readonly children: App.Data.ExpenseCategoryData[],
 };
 export type FamilyData = {
 readonly name: string,
+readonly features: Record<App.Enums.Feature, boolean>,
 };
 export type FamilyNameSettingsData = {
 readonly name: string,
@@ -1233,6 +1234,7 @@ export type EnrollmentStatus = 'active' | 'ended';
 export type EnrollmentType = 'school' | 'sport' | 'course' | 'other';
 export type ExceptionType = 'skip' | 'amount_override' | 'date_override';
 export type FamilyState = 'active' | 'suspended' | 'to_delete';
+export type Feature = 'bank_feed' | 'consumption' | 'gallery';
 export type FeedbackKind = 'problem' | 'idea';
 export type FileSource = 'upload' | 'mail' | 'phone' | 'scanner';
 export type FilingStatus = 'draft' | 'submitted' | 'approved' | 'rejected';

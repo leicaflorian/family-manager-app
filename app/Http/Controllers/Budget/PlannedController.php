@@ -10,6 +10,7 @@ use App\Data\BankTransactionData;
 use App\Data\DeadlineData;
 use App\Data\PlannedFiltersData;
 use App\Data\PlannedRowData;
+use App\Enums\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\PlannedIndexRequest;
 use App\Http\Requests\Budget\SavePlannedRequest;
@@ -17,10 +18,10 @@ use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\Banks\RecurringBankTexts;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
+use App\Services\FamilyFeatures;
 use App\Services\PlannedSummaries;
 use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankTransactionId;
@@ -182,7 +183,7 @@ final class PlannedController extends Controller
      */
     private function form(Request $request, string $kind, ?PlannedRowData $planned, array $values): Response
     {
-        $bankOn = BankFeedAvailability::on();
+        $bankOn = resolve(FamilyFeatures::class)->on(Feature::BankFeed);
         $ai = $bankOn && resolve(DocumentReader::class)->isActive();
         $example = $bankOn ? $this->ruleExample($request->query('rule_from')) : null;
 
@@ -232,7 +233,7 @@ final class PlannedController extends Controller
      */
     private function recurringValues(mixed $id, string $kind): array
     {
-        $id = BankFeedAvailability::on() ? BankTransactionId::parse($id) : null;
+        $id = resolve(FamilyFeatures::class)->on(Feature::BankFeed) ? BankTransactionId::parse($id) : null;
 
         if ($id === null) {
             return [];

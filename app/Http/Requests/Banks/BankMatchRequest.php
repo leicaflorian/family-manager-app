@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests\Banks;
 
 use App\Models\PlannedExpense;
-use App\Services\Banks\BankFeedAvailability;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -23,8 +22,6 @@ class BankMatchRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        abort_unless(BankFeedAvailability::on(), 404);
-
         return (bool) $this->user()?->can('create', PlannedExpense::class);
     }
 

@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Actions\Mail\AssignMailAddress;
 use App\Models\Family;
 use App\Models\FamilySetting;
+use App\Services\FamilyFeatures;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -26,7 +27,7 @@ final class MailInboxAddresses extends Command
      */
     public function handle(AssignMailAddress $assign): int
     {
-        if (! is_string(config('services.mailgun.inbox_domain')) || trim(config('services.mailgun.inbox_domain')) === '') {
+        if (resolve(FamilyFeatures::class)->mailDomain() === null) {
             $this->warn('MAIL_INBOX_DOMAIN is empty: no address made.');
 
             return self::SUCCESS;
