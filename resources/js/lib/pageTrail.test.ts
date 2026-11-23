@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { createTrailState, isSectionPage } from './pageTrail';
+import { createTrailState, isSectionPage, SECTION_PAGES } from './pageTrail';
 
 describe('createTrailState', () => {
     it('sets and clears the pieces', () => {
@@ -27,5 +27,26 @@ describe('isSectionPage', () => {
     it('is false for the pages under Budget that have no tab', () => {
         expect(isSectionPage('budget/Comparison')).toBe(false);
         expect(isSectionPage('budget/Consumption')).toBe(false);
+    });
+});
+
+describe('SECTION_PAGES', () => {
+    it('comes from the sections of the navigation', () => {
+        expect([...SECTION_PAGES].sort()).toEqual(
+            [
+                'Home',
+                'Agenda',
+                'Areas',
+                'documents/Documents',
+                'documents/ToSort',
+                'mail/ReceivedMails',
+                'budget/Movements',
+                'budget/Planned',
+                'budget/BankTransactions',
+                'family/People',
+                'family/Organizations',
+                'settings/Settings',
+            ].sort(),
+        );
     });
 });

@@ -40,11 +40,15 @@ import FmPageTrail from '@/components/fm/FmPageTrail.vue';
 import FmSidebar from '@/components/fm/FmSidebar.vue';
 import FmTopBar from '@/components/fm/FmTopBar.vue';
 import type { Section } from '@/components/fm/navigation';
-import { navigationItems, sectionOf } from '@/components/fm/navigation';
+import {
+    allItems,
+    navigationItems,
+    sectionOf,
+} from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import FmToaster from '@/components/fm/FmToaster.vue';
 import { useBellNotices } from '@/composables/useBellNotices';
-import { useFeature } from '@/composables/useFeatures';
+import { useFeatures } from '@/composables/useFeatures';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useLeavePage } from '@/composables/useLeavePage';
 import { useNewVersion } from '@/composables/useNewVersion';
@@ -66,21 +70,21 @@ defineSlots<{
 }>();
 
 const page = usePage();
-const items = navigationItems();
 const mode = useLayoutMode();
 
+/** The features of the family: they decide the sections of the menus and the pages under them. */
+const features = useFeatures();
+
+/** The navigation items, without the sections of a feature the family does not have. */
+const items = computed(() => navigationItems(features.value));
+
 const path = computed((): string => page.url.split('?')[0] ?? '/');
-const active = computed((): Section => sectionOf(path.value, items));
+const active = computed((): Section => sectionOf(path.value, items.value));
 const areas = computed((): App.Data.AreaCountData[] => page.props.areas ?? []);
 const user = computed((): string => page.props.auth?.user?.name ?? '');
 const toSort = computed((): number => page.props.to_sort_count ?? 0);
 const family = computed((): string => page.props.family?.name ?? '');
 
-/** The family has an electricity, gas or water utility: *Usage* shows under *Budget* in the sidebar. */
-const hasConsumption = useFeature('consumption');
-
-/** The family has a gallery category: *Drawings and crafts* shows under *Documents* in the sidebar. */
-const hasGallery = useFeature('gallery');
 const { unread: unreadNotices, notices, loadNotices } = useBellNotices();
 // A release while the page is open: a message with Reload, in the toaster below
 useNewVersion();
@@ -97,9 +101,10 @@ const sectionPage = computed((): boolean => isSectionPage(page.component));
 
 /** The name of the marked section, as the navigation writes it. */
 const sectionLabel = computed((): string => {
-    const all = [...items.sections, items.toSort, items.mail, items.settings];
-
-    return all.find((item) => item.section === active.value)?.label ?? '';
+    return (
+        allItems(items.value).find((item) => item.section === active.value)
+            ?.label ?? ''
+    );
 });
 
 /** The trail of the top bar: the section alone on its page, otherwise the pieces of the page. */
@@ -227,8 +232,7 @@ useSearchShortcut(focusSearch);
             :family="family"
             :user="user"
             :upload-count="toSort"
-            :has-consumption="hasConsumption"
-            :has-gallery="hasGallery"
+            :features="features"
             @report="openFeedback"
         />
         <div class="flex min-w-0 grow flex-col">
@@ -314,8 +318,7 @@ useSearchShortcut(focusSearch);
                         :family="family"
                         :user="user"
                         :upload-count="toSort"
-                        :has-consumption="hasConsumption"
-                        :has-gallery="hasGallery"
+                        :features="features"
                         @report="openFeedback"
                     />
                 </DialogContent>

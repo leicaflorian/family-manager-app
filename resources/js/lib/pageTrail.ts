@@ -1,5 +1,6 @@
 import type { InjectionKey, Ref } from 'vue';
 import { ref } from 'vue';
+import { SECTIONS } from '@/components/fm/navigation';
 
 /** One piece of the trail in the top bar: the last piece has no `href`. */
 export type TrailPiece = { label: string; href?: string };
@@ -37,21 +38,10 @@ export function createTrailState(): TrailState {
 /** Injection key of the trail state, provided by the layout. */
 export const TRAIL_KEY: InjectionKey<TrailState> = Symbol('page-trail');
 
-/** The pages of a section and its top tabs: they show no trail. */
-export const SECTION_PAGES: readonly string[] = [
-    'Home',
-    'Agenda',
-    'Areas',
-    'documents/Documents',
-    'documents/ToSort',
-    'mail/ReceivedMails',
-    'budget/Movements',
-    'budget/Planned',
-    'budget/BankTransactions',
-    'family/People',
-    'family/Organizations',
-    'settings/Settings',
-];
+/** The pages of a section and its top tabs: they show no trail. They come from the registry of the sections. */
+export const SECTION_PAGES: readonly string[] = SECTIONS.flatMap(
+    (entry) => entry.pages,
+);
 
 /**
  * Tells whether an Inertia page is the page of a section (or one of its top tabs).

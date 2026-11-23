@@ -22,6 +22,7 @@ import FmBottomSheet from './FmBottomSheet.vue';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
+import { barItems } from './navigation';
 
 const {
     active,
@@ -62,20 +63,13 @@ useLeavePage(() => {
     moreOpen.value = false;
 });
 
-/** The sections that stay in the bar, in the order of the board. */
-const barSections: Section[] = ['home', 'budget', 'areas'];
-
-/** The items that stay in the bar: Home, Budget, Areas. */
-const inBar = computed((): NavigationItem[] =>
-    barSections.flatMap((section) =>
-        items.sections.filter((item) => item.section === section),
-    ),
-);
+/** The items that stay in the bar: Home, Budget, Areas (the registry says which, and who takes a missing one's place). */
+const inBar = computed((): NavigationItem[] => barItems(items));
 
 /** The items inside More: the sections that are not in the bar, with Received mail after Documents, and Settings. */
 const inMore = computed((): NavigationItem[] => [
     ...items.sections
-        .filter((item) => !barSections.includes(item.section))
+        .filter((item) => !inBar.value.includes(item))
         .flatMap((item) =>
             item.section === 'documents' ? [item, items.mail] : [item],
         ),

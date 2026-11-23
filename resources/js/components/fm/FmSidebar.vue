@@ -43,7 +43,15 @@ import { trans } from 'laravel-vue-i18n';
 import { countBadge } from '@/lib/badge';
 import { cn } from '@/lib/utils';
 import FmLogo from './FmLogo.vue';
-import type { NavigationItem, NavigationItems, Section } from './navigation';
+import { featureOn } from '@/lib/features';
+import type { Features } from '@/lib/features';
+import type {
+    NavigationItem,
+    NavigationItems,
+    Section,
+    SectionGroupKey,
+} from './navigation';
+import { allItems } from './navigation';
 
 /** The name of the app, for the wordmark. */
 const appName = useAppName();
@@ -57,8 +65,7 @@ const {
     user,
     uploadCount = 0,
     collapsed = false,
-    hasConsumption = false,
-    hasGallery = false,
+    features = {},
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -76,10 +83,11 @@ const {
     uploadCount?: number;
     /** Collapsed to the icons, 76 px wide. */
     collapsed?: boolean;
-    /** The family has an electricity, gas or water utility: *Usage* shows under *Budget*. */
-    hasConsumption?: boolean;
-    /** The family has a gallery category: *Drawings and crafts* shows under *Documents*, which then opens like *Budget*. */
-    hasGallery?: boolean;
+    /**
+     * The features of the family: *Usage* shows under *Budget* with `consumption`, *Drawings and crafts* under
+     * *Documents* with `gallery` (which then opens like *Budget*). `null` (no family) has them all; the default none.
+     */
+    features?: Features | null;
 }>();
 
 const emit = defineEmits<{
@@ -175,36 +183,30 @@ type SectionGroup = {
 };
 
 /**
- * The items of the given sections, in that order.
+ * The name of a group of the sidebar.
  *
- * @param names - the sections to take
- * @returns their items, without the ones the navigation does not have
+ * @param key - the group
+ * @returns its name, already translated; null for Home, which has none
  */
-function pick(...names: Section[]): NavigationItem[] {
-    const all = [...items.sections, items.toSort, items.mail];
-
-    return names.flatMap((name) => all.filter((item) => item.section === name));
+function groupLabel(key: SectionGroupKey): string | null {
+    return {
+        home: null,
+        incoming: trans('Incoming'),
+        'every-day': trans('Every day'),
+        archive: trans('Archive'),
+    }[key];
 }
 
-/** Home alone, then what arrives, what is used every day and what is kept. */
-const groups = computed((): SectionGroup[] => [
-    { key: 'home', label: null, items: pick('home') },
-    {
-        key: 'incoming',
-        label: trans('Incoming'),
-        items: pick('toSort', 'mail'),
-    },
-    {
-        key: 'every-day',
-        label: trans('Every day'),
-        items: pick('agenda', 'budget'),
-    },
-    {
-        key: 'archive',
-        label: trans('Archive'),
-        items: pick('areas', 'documents', 'family'),
-    },
-]);
+/** Home alone, then what arrives, what is used every day and what is kept: the groups of the registry. */
+const groups = computed((): SectionGroup[] =>
+    (['home', 'incoming', 'every-day', 'archive'] as const).map((key) => ({
+        key,
+        label: groupLabel(key),
+        items: allItems(items).filter(
+            (item) => item.group === key && item.section !== 'settings',
+        ),
+    })),
+);
 
 /** A link of the list under *Areas*. */
 type AreaLink = {
@@ -283,7 +285,7 @@ const budgetChildren = computed((): SubPage[] => [
         href: comparisonUrl,
         current: onComparison.value,
     },
-    ...(hasConsumption
+    ...(featureOn(features, 'consumption')
         ? [
               {
                   label: trans('Usage'),
@@ -305,7 +307,7 @@ type SubPage = { label: string; href: string; current: boolean };
 
 /** The pages under *Documents*: *Drawings and crafts*, the gallery, when the family has one. */
 const documentChildren = computed((): SubPage[] =>
-    hasGallery
+    featureOn(features, 'gallery')
         ? [
               {
                   label: trans('Drawings and crafts'),

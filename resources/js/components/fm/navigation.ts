@@ -22,6 +22,8 @@ import {
     Wallet,
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
+import type { Features } from '@/lib/features';
+import { featureOn } from '@/lib/features';
 import { useAppName } from '@/composables/useAppName';
 import {
     agenda,
@@ -52,6 +54,54 @@ export type Section =
     | 'toSort'
     | 'mail';
 
+/** The groups of the sidebar: Home alone, what arrives, what is used every day and what is kept. */
+export type SectionGroupKey = 'home' | 'incoming' | 'every-day' | 'archive';
+
+/** A section of the app in the registry: where it stands, which feature it needs and which pages are its own. */
+export type SectionEntry = {
+    /** The section. */
+    key: Section;
+    /** The feature of the family that shows it; without one, it is always there. */
+    feature?: App.Enums.Feature;
+    /** The place in the bar of the phone (0, 1, 2), if it stays there. */
+    bar?: number;
+    /** It takes the place of a missing item of the bar. */
+    barFallback?: boolean;
+    /** The group of the sidebar. */
+    group: SectionGroupKey;
+    /** The Inertia pages of the section and its top tabs: they show no trail. */
+    pages: string[];
+};
+
+/**
+ * The sections of the app, in the order of the menus. Menus, trail and the section of a page come from here: a
+ * section that depends on a feature of the family says it with `feature`.
+ */
+export const SECTIONS: readonly SectionEntry[] = [
+    { key: 'home', bar: 0, group: 'home', pages: ['Home'] },
+    { key: 'agenda', barFallback: true, group: 'every-day', pages: ['Agenda'] },
+    { key: 'areas', bar: 2, group: 'archive', pages: ['Areas'] },
+    { key: 'documents', group: 'archive', pages: ['documents/Documents'] },
+    {
+        key: 'budget',
+        bar: 1,
+        group: 'every-day',
+        pages: [
+            'budget/Movements',
+            'budget/Planned',
+            'budget/BankTransactions',
+        ],
+    },
+    {
+        key: 'family',
+        group: 'archive',
+        pages: ['family/People', 'family/Organizations'],
+    },
+    { key: 'toSort', group: 'incoming', pages: ['documents/ToSort'] },
+    { key: 'mail', group: 'incoming', pages: ['mail/ReceivedMails'] },
+    { key: 'settings', group: 'archive', pages: ['settings/Settings'] },
+];
+
 /** An item of the navigation. */
 export type NavigationItem = {
     /** The section it leads to. */
@@ -64,7 +114,16 @@ export type NavigationItem = {
     icon: LucideIcon;
     /** A line below the label in More on the phone, if the item has one. */
     hint?: string;
+    /** The group of the sidebar the item stands in. */
+    group: SectionGroupKey;
+    /** The place in the bar of the phone, if the item stays there. */
+    bar?: number;
+    /** The item takes the place of a missing one of the bar. */
+    barFallback?: boolean;
 };
+
+/** What an item says about itself; its place comes from the registry. */
+type ItemText = Omit<NavigationItem, 'group' | 'bar' | 'barFallback'>;
 
 /** A way to add something, in the panel *Add* of the + on the phone. */
 export type AddItem = {
@@ -109,51 +168,49 @@ export type NavigationItems = {
 };
 
 /**
- * The navigation items with their addresses.
+ * What each section says about itself: label, address, icon and hint.
  *
- * @returns the items of the bottom bar and of the sidebar
+ * @returns the texts by section, translated now (the translations are ready only when the app runs)
  */
-export function navigationItems(): NavigationItems {
+function itemTexts(): Record<Section, ItemText> {
     return {
-        sections: [
-            {
-                section: 'home',
-                label: trans('Home'),
-                href: dashboard().url,
-                icon: LayoutDashboard,
-            },
-            {
-                section: 'agenda',
-                label: trans('Agenda'),
-                href: agenda().url,
-                icon: CalendarRange,
-                hint: trans('What expires, month by month'),
-            },
-            {
-                section: 'areas',
-                label: trans('Areas'),
-                href: areas().url,
-                icon: Shapes,
-            },
-            {
-                section: 'documents',
-                label: trans('Documents'),
-                href: documents().url,
-                icon: FileText,
-            },
-            {
-                section: 'budget',
-                label: trans('Budget'),
-                href: budget().url,
-                icon: Wallet,
-            },
-            {
-                section: 'family',
-                label: trans('Family'),
-                href: family().url,
-                icon: Users,
-            },
-        ],
+        home: {
+            section: 'home',
+            label: trans('Home'),
+            href: dashboard().url,
+            icon: LayoutDashboard,
+        },
+        agenda: {
+            section: 'agenda',
+            label: trans('Agenda'),
+            href: agenda().url,
+            icon: CalendarRange,
+            hint: trans('What expires, month by month'),
+        },
+        areas: {
+            section: 'areas',
+            label: trans('Areas'),
+            href: areas().url,
+            icon: Shapes,
+        },
+        documents: {
+            section: 'documents',
+            label: trans('Documents'),
+            href: documents().url,
+            icon: FileText,
+        },
+        budget: {
+            section: 'budget',
+            label: trans('Budget'),
+            href: budget().url,
+            icon: Wallet,
+        },
+        family: {
+            section: 'family',
+            label: trans('Family'),
+            href: family().url,
+            icon: Users,
+        },
         settings: {
             section: 'settings',
             label: trans('Settings'),
@@ -174,6 +231,41 @@ export function navigationItems(): NavigationItems {
             icon: Mail,
             hint: trans('The mail that arrived at the address for bills'),
         },
+    };
+}
+
+/**
+ * The navigation items with their addresses.
+ *
+ * @param features - the features of the family; null (no family, tests) shows every section
+ * @param entries - the registry; the sections of the app unless a test passes its own
+ * @returns the items of the bottom bar and of the sidebar, without the sections of a feature that is off
+ */
+export function navigationItems(
+    features: Features | null = null,
+    entries: readonly SectionEntry[] = SECTIONS,
+): NavigationItems {
+    const texts = itemTexts();
+    const shown = entries.filter((entry) => featureOn(features, entry.feature));
+    const item = (key: Section): NavigationItem => {
+        const entry = entries.find((candidate) => candidate.key === key)!;
+
+        return {
+            ...texts[key],
+            group: entry.group,
+            ...(entry.bar === undefined ? {} : { bar: entry.bar }),
+            ...(entry.barFallback ? { barFallback: true } : {}),
+        };
+    };
+    const sections = shown
+        .filter((entry) => !['settings', 'toSort', 'mail'].includes(entry.key))
+        .map((entry) => item(entry.key));
+
+    return {
+        sections,
+        settings: item('settings'),
+        toSort: item('toSort'),
+        mail: item('mail'),
         upload: upload().url,
         add: [
             {
@@ -236,10 +328,45 @@ export function sectionOf(path: string, items: NavigationItems): Section {
         return 'toSort';
     }
 
-    const all = [...items.sections, items.settings, items.toSort, items.mail];
-    const found = all.find(
+    const found = allItems(items).find(
         (item) => path === item.href || path.startsWith(`${item.href}/`),
     );
 
     return found?.section ?? 'home';
+}
+
+/**
+ * Every item of the navigation in one list, in the order of the registry: the sections, To sort, Received mail and
+ * Settings. The menus, the trail and the sidebar groups read this list.
+ *
+ * @param items - the navigation items
+ * @returns all the items
+ */
+export function allItems(items: NavigationItems): NavigationItem[] {
+    const byKey = new Map(
+        [...items.sections, items.toSort, items.mail, items.settings].map(
+            (item) => [item.section, item] as const,
+        ),
+    );
+
+    return SECTIONS.flatMap((entry) => byKey.get(entry.key) ?? []);
+}
+
+/**
+ * The items that stay in the bar of the phone, in order: each takes its place (`bar`); a missing one (its feature is
+ * off) is replaced by the item marked `barFallback`.
+ *
+ * @param items - the navigation items
+ * @returns the items of the bar, three of them
+ */
+export function barItems(items: NavigationItems): NavigationItem[] {
+    const fallbacks = items.sections.filter((item) => item.barFallback);
+
+    return [0, 1, 2].flatMap((slot): NavigationItem[] => {
+        const item =
+            items.sections.find((candidate) => candidate.bar === slot) ??
+            fallbacks.shift();
+
+        return item ? [item] : [];
+    });
 }

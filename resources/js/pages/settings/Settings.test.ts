@@ -14,6 +14,9 @@ const bankFeed = vi.hoisted(() => ({
 vi.mock('@/composables/useBankFeed', () => ({
     useBankFeed: () => computed(() => bankFeed.share),
 }));
+vi.mock('@/composables/useFeatures', () => ({
+    useFeatures: () => computed(() => ({ bank_feed: bankFeed.share !== null })),
+}));
 
 afterEach(() => {
     vi.unstubAllGlobals();

@@ -1,6 +1,12 @@
 import { MessageSquareWarning } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { navigationItems, sectionOf } from './navigation';
+import {
+    allItems,
+    barItems,
+    navigationItems,
+    SECTIONS,
+    sectionOf,
+} from './navigation';
 
 describe('sectionOf', () => {
     const items = navigationItems();
@@ -102,5 +108,82 @@ describe('navigationItems', () => {
             hint: 'It reaches who makes Fameja.app',
             icon: MessageSquareWarning,
         });
+    });
+});
+
+describe('the registry of the sections', () => {
+    it('lists the items in the order the menus use', () => {
+        expect(allItems(navigationItems()).map((item) => item.section)).toEqual(
+            [
+                'home',
+                'agenda',
+                'areas',
+                'documents',
+                'budget',
+                'family',
+                'toSort',
+                'mail',
+                'settings',
+            ],
+        );
+    });
+
+    it('has one entry per section, each with a group', () => {
+        expect(SECTIONS.map((entry) => entry.key)).toEqual(
+            allItems(navigationItems()).map((item) => item.section),
+        );
+        expect(
+            SECTIONS.filter((entry) => entry.key !== 'settings').map(
+                (entry) => entry.group,
+            ),
+        ).toEqual([
+            'home',
+            'every-day',
+            'archive',
+            'archive',
+            'every-day',
+            'archive',
+            'incoming',
+            'incoming',
+        ]);
+    });
+
+    it('leaves out a section whose feature is off, and keeps the others', () => {
+        const entries = SECTIONS.map((entry) =>
+            entry.key === 'documents'
+                ? { ...entry, feature: 'gallery' as const }
+                : entry,
+        );
+        const names = (features: { gallery?: boolean } | null): string[] =>
+            allItems(navigationItems(features, entries)).map(
+                (item) => item.section,
+            );
+
+        expect(names(null)).toContain('documents');
+        expect(names({ gallery: true })).toContain('documents');
+        expect(names({ gallery: false })).not.toContain('documents');
+        expect(names({ gallery: false })).toHaveLength(8);
+    });
+
+    it('puts Home, Budget and Areas in the bar of the phone', () => {
+        expect(barItems(navigationItems()).map((item) => item.section)).toEqual(
+            ['home', 'budget', 'areas'],
+        );
+    });
+
+    it('takes the item marked as fallback when one of the bar is missing', () => {
+        const items = navigationItems();
+        const withoutBudget = {
+            ...items,
+            sections: items.sections.filter(
+                (item) => item.section !== 'budget',
+            ),
+        };
+
+        expect(barItems(withoutBudget).map((item) => item.section)).toEqual([
+            'home',
+            'agenda',
+            'areas',
+        ]);
     });
 });
