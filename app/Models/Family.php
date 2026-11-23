@@ -48,6 +48,7 @@ use Illuminate\Support\Facades\Crypt;
  * @method static Builder<static>|Family newModelQuery()
  * @method static Builder<static>|Family newQuery()
  * @method static Builder<static>|Family query()
+ * @method static Builder<static>|Family bankFeedOn()
  * @method static Builder<static>|Family notBlocked()
  *
  * @mixin \Eloquent
@@ -136,6 +137,26 @@ final class Family extends Model
     public function allowsSupport(): bool
     {
         return $this->support_until !== null && $this->support_until->isFuture() && ! $this->isBlocked();
+    }
+
+    /**
+     * Whether the banks of the family are read: the owner turned the link to the bank on and the family is not
+     * blocked. The same as {@see self::bankFeedOn()}, for a family already read.
+     */
+    public function hasBankFeedOn(): bool
+    {
+        return $this->bank_feed_enabled && ! $this->isBlocked();
+    }
+
+    /**
+     * Only the families whose banks are read, as {@see self::hasBankFeedOn()} says for one family.
+     *
+     * @param  Builder<Family>  $query  the query to narrow
+     */
+    #[Scope]
+    protected function bankFeedOn(Builder $query): void
+    {
+        $query->notBlocked()->where('bank_feed_enabled', true);
     }
 
     /**

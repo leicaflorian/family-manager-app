@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\Banks\SyncBankConnection;
-use App\Enums\BankConnectionStatus;
 use App\Models\BankConnection;
 use App\Models\Family;
 use App\Support\CurrentFamily;
@@ -52,9 +51,9 @@ final class SyncBank implements ShouldBeUnique, ShouldQueue
 
             // The family may have been blocked or turned off, or the bank disconnected, since the read was queued
             $family = Family::query()->find($this->familyId);
-            $readable = $family instanceof Family && $family->bank_feed_enabled && ! $family->isBlocked();
+            $readable = $family instanceof Family && $family->hasBankFeedOn();
 
-            if ($readable && $connection instanceof BankConnection && in_array($connection->status, [BankConnectionStatus::Active, BankConnectionStatus::Error], true)) {
+            if ($readable && $connection instanceof BankConnection && $connection->isReadable()) {
                 $sync->handle($connection);
             }
         });

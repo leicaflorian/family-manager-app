@@ -6,7 +6,6 @@ namespace App\Console\Commands;
 
 use App\Actions\Banks\WatchBankConsents;
 use App\Console\Concerns\RunsPerFamily;
-use App\Enums\BankConnectionStatus;
 use App\Jobs\SyncBank;
 use App\Models\BankConnection;
 use App\Models\Family;
@@ -46,15 +45,13 @@ final class SyncBanks extends Command
                 report($failure);
             }
 
-            $connections = BankConnection::query()
-                ->whereIn('status', [BankConnectionStatus::Active, BankConnectionStatus::Error])
-                ->orderBy('id')->get(['id']);
+            $connections = BankConnection::query()->readable()->orderBy('id')->get(['id']);
 
             foreach ($connections as $connection) {
                 dispatch(new SyncBank($connection->id, $family->id));
             }
 
             return $connections->count();
-        }, static fn (Builder $families) => $families->where('bank_feed_enabled', true));
+        }, static fn (Builder $families) => $families->bankFeedOn());
     }
 }

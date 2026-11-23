@@ -10,6 +10,7 @@ use Database\Factories\BankConnectionFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -42,6 +43,7 @@ use Illuminate\Support\Facades\Crypt;
  * @property-read int|null $transactions_count
  *
  * @method static BankConnectionFactory factory($count = null, $state = [])
+ * @method static Builder<static>|BankConnection readable()
  * @method static Builder<static>|BankConnection newModelQuery()
  * @method static Builder<static>|BankConnection newQuery()
  * @method static Builder<static>|BankConnection query()
@@ -54,6 +56,33 @@ final class BankConnection extends FamilyModel
 {
     /** @use HasFactory<BankConnectionFactory> */
     use HasFactory;
+
+    /**
+     * Where a connection is read from: working, or answering with errors (the next read may work). One to connect
+     * again waits for the person.
+     *
+     * @var list<BankConnectionStatus>
+     */
+    private const array READABLE = [BankConnectionStatus::Active, BankConnectionStatus::Error];
+
+    /**
+     * Whether the connection is read.
+     */
+    public function isReadable(): bool
+    {
+        return in_array($this->status, self::READABLE, true);
+    }
+
+    /**
+     * Only the connections that are read.
+     *
+     * @param  Builder<BankConnection>  $query  the query to narrow
+     */
+    #[Scope]
+    protected function readable(Builder $query): void
+    {
+        $query->whereIn('status', self::READABLE);
+    }
 
     /**
      * The accounts read through the connection.

@@ -152,7 +152,7 @@ final class BankTransactionController extends Controller
         Gate::authorize('create', BankTransaction::class);
 
         $new = $refresh->handle(
-            BankConnection::query()->whereIn('status', [BankConnectionStatus::Active, BankConnectionStatus::Error])->orderBy('id')->get(),
+            BankConnection::query()->readable()->orderBy('id')->get(),
             new BankVisitor((string) $request->ip(), (string) $request->userAgent()),
         );
         Inertia::flash('toast', ['type' => 'success', 'message' => RefreshBanks::message($new)]);
