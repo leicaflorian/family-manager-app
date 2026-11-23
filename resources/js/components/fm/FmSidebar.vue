@@ -33,7 +33,7 @@ import type { ClassValue } from 'clsx';
 import type { Ref } from 'vue';
 import { computed, reactive, ref, useAttrs, watch } from 'vue';
 import { useAppName } from '@/composables/useAppName';
-import { getInitials } from '@/composables/useInitials';
+import { initialsOfName } from '@/lib/names';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
 import { comparison, consumption } from '@/routes/budget';
@@ -636,7 +636,7 @@ function isPage(section: Section): boolean {
                 >
                     <span
                         class="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-action-soft text-label text-action-dark"
-                        >{{ getInitials(user) }}</span
+                        >{{ initialsOfName(user) }}</span
                     >
                     <span
                         class="flex grow flex-col transition-opacity duration-200 motion-reduce:transition-none"
