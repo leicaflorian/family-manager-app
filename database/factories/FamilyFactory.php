@@ -24,12 +24,4 @@ final class FamilyFactory extends Factory
             'welcomed_at' => now(),
         ];
     }
-
-    /**
-     * A family just registered, which has not done the *Welcome* yet.
-     */
-    public function daAccogliere(): self
-    {
-        return $this->state(['welcomed_at' => null]);
-    }
 }
