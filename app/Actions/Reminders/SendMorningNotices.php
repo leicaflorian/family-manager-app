@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Reminders;
 
-use App\Cards\CardTypes;
-use App\Cards\DeadlineSource;
-use App\Cards\DeadlineSources;
-use App\Data\AgendaData;
 use App\Enums\Role;
 use App\Mail\MorningNoticesMail;
 use App\Mail\WeeklySummaryMail;
@@ -15,14 +11,13 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Reminders\ReminderList;
 use App\Services\Reminders\WeeklySummaries;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\Notices;
-use App\Support\Reminders\SubjectLink;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -39,9 +34,14 @@ use Throwable;
  * the same Monday sends the admins their new notices by the morning mail. If the summary cannot be built, the failure
  * is reported and the admins get the morning mail as on any other day. Members and the bell do not change.
  */
-final class SendMorningNotices
+final readonly class SendMorningNotices
 {
     use Localizable;
+
+    /**
+     * @param  ReminderList  $reminders  words each reminder as a notice of the mail, as the pages and the bell do
+     */
+    public function __construct(private ReminderList $reminders) {}
 
     /**
      * Looks at each open reminder, writes the bell rows, remembers what was reached and queues the mails. Without
@@ -104,7 +104,7 @@ final class SendMorningNotices
                 $created += $result['notices'];
 
                 foreach ($result['mailed'] as $userId) {
-                    $emails[$userId][] = $this->item($reminder);
+                    $emails[$userId][] = $this->reminders->mailItem($reminder);
                 }
             }
         } finally {
@@ -206,40 +206,5 @@ final class SendMorningNotices
     private function locale(User $user): string
     {
         return $user->locale ?? config()->string('app.locale');
-    }
-
-    /**
-     * The raw values of a reminder for the mail.
-     *
-     * @param  Reminder  $reminder  the reminder, with its link loaded
-     */
-    private function item(Reminder $reminder): MorningItem
-    {
-        $source = $reminder->is_automatic && $reminder->source_field !== null ? DeadlineSources::find($reminder->source_field) : null;
-        $subject = $reminder->link?->subject;
-
-        return new MorningItem(
-            $source instanceof DeadlineSource ? $source->title : $reminder->title,
-            $source instanceof DeadlineSource,
-            ! $reminder->is_automatic,
-            $subject instanceof Model ? SubjectLink::name($subject) : null,
-            $reminder->due_date->toDateString(),
-            $this->url($reminder, $subject),
-            CardTypes::find($reminder->link->remindable_type ?? '')?->area()->value ?? AgendaData::GENERAL_AREA,
-            $reminder->id,
-        );
-    }
-
-    /**
-     * The page of the thing the reminder refers to: its card or document; without one, the reminders.
-     *
-     * @param  Reminder  $reminder  the reminder, with its link loaded
-     * @param  Model|null  $subject  the record it refers to
-     */
-    private function url(Reminder $reminder, ?Model $subject): string
-    {
-        $type = $reminder->link?->remindable_type;
-
-        return ($subject instanceof Model && $type !== null ? SubjectLink::href($type, $subject, true) : null) ?? route('reminders.index');
     }
 }

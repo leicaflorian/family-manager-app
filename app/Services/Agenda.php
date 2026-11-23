@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Cards\CardTypes;
-use App\Cards\DeadlineSources;
 use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Data\AgendaReminderData;
@@ -228,7 +227,7 @@ final readonly class Agenda
         $byCard = [];
 
         foreach ($reminders as $reminder) {
-            $source = $reminder->source_field === null ? null : DeadlineSources::find($reminder->source_field);
+            $source = $reminder->deadlineSource();
             $card = $reminder->link?->subject;
 
             if ($card instanceof Model && ($source?->hasExpense === true || $reminder->source_field === Renewals::FIELD)) {

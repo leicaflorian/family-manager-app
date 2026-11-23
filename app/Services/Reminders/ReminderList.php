@@ -6,7 +6,6 @@ namespace App\Services\Reminders;
 
 use App\Cards\CardTypes;
 use App\Cards\DeadlineSource;
-use App\Cards\DeadlineSources;
 use App\Data\AgendaData;
 use App\Data\ReminderData;
 use App\Data\ReminderPersonData;
@@ -18,6 +17,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Support\Linkables;
 use App\Support\ModelId;
+use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\SubjectLink;
 use Carbon\CarbonImmutable;
@@ -103,7 +103,7 @@ final readonly class ReminderList
      */
     public function titleOf(Reminder $reminder): string
     {
-        $source = $reminder->is_automatic && $reminder->source_field !== null ? DeadlineSources::find($reminder->source_field) : null;
+        $source = $reminder->deadlineSource();
 
         return $source instanceof DeadlineSource ? __($source->title) : $reminder->title;
     }
@@ -135,6 +135,53 @@ final readonly class ReminderList
             $subject?->href !== null => $subject->href,
             default => route('reminders.index', absolute: false),
         };
+    }
+
+    /**
+     * One reminder as a notice of the morning mail, with raw values: the title of an automatic reminder stays the
+     * English key, translated when the mail is rendered in the language of the account.
+     *
+     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
+     */
+    public function mailItem(Reminder $reminder): MorningItem
+    {
+        $source = $reminder->deadlineSource();
+        $subject = $this->subject($reminder->link);
+
+        return new MorningItem(
+            $source instanceof DeadlineSource ? $source->title : $reminder->title,
+            $source instanceof DeadlineSource,
+            ! $reminder->is_automatic,
+            $subject?->label,
+            $reminder->due_date->toDateString(),
+            $this->mailHrefOf($reminder),
+            $this->areaOf($reminder->link),
+            $reminder->id,
+        );
+    }
+
+    /**
+     * Where a reminder leads from the mail, with the host: the page of its thing, else the reminders. Unlike
+     * `hrefOf()`, a reminder written by hand leads to its thing too, not to its edit page.
+     *
+     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
+     */
+    private function mailHrefOf(Reminder $reminder): string
+    {
+        $link = $reminder->link;
+        $subject = $link?->subject;
+
+        return ($link instanceof Remindable && $subject instanceof Model ? SubjectLink::href($link->remindable_type, $subject, true) : null) ?? route('reminders.index');
+    }
+
+    /**
+     * The area of the thing a reminder refers to, for its icon: the general one without a card.
+     *
+     * @param  Remindable|null  $link  the link of the reminder
+     */
+    private function areaOf(?Remindable $link): string
+    {
+        return CardTypes::find($link->remindable_type ?? '')?->area()->value ?? AgendaData::GENERAL_AREA;
     }
 
     /**
@@ -182,7 +229,7 @@ final readonly class ReminderList
             ModelId::of($subject),
             SubjectLink::name($subject),
             SubjectLink::href($link->remindable_type, $subject),
-            CardTypes::find($link->remindable_type)?->area()->value ?? AgendaData::GENERAL_AREA,
+            $this->areaOf($link),
         );
     }
 }

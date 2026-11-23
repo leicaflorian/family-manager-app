@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Enums\ReminderStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReminderFactory;
@@ -123,6 +125,15 @@ final class Reminder extends FamilyModel
     public function day(): CarbonImmutable
     {
         return $this->postponed_to ?? $this->due_date;
+    }
+
+    /**
+     * The kind of deadline of an automatic reminder (its title, whether it has an expense), null for one written by
+     * hand or with a field that is no longer a kind of deadline.
+     */
+    public function deadlineSource(): ?DeadlineSource
+    {
+        return $this->is_automatic && $this->source_field !== null ? DeadlineSources::find($this->source_field) : null;
     }
 
     /**
