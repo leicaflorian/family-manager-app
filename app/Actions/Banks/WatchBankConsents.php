@@ -84,7 +84,7 @@ final readonly class WatchBankConsents
             $mails = [];
 
             foreach ($admins as $admin) {
-                $locale = $admin->locale ?? config()->string('app.locale');
+                $locale = $admin->mailLocale();
                 $mail = new BankConsentExpiringMail($admin, $bank, $date, $ended);
                 ReminderNotice::query()->create(['user_id' => $admin->id, 'bank_connection_id' => $connection->id, 'sent_at' => $now, 'lines' => [$mail->sentence($locale)]]);
                 $mails[] = [$admin, $locale, $mail];

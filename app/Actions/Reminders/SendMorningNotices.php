@@ -135,7 +135,7 @@ final readonly class SendMorningNotices
             $admins = $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin);
 
             foreach ($admins as $admin) {
-                $this->queueWeekly($admin, $summaries[$this->locale($admin)], $emails[$admin->id] ?? [], $today);
+                $this->queueWeekly($admin, $summaries[$admin->mailLocale()], $emails[$admin->id] ?? [], $today);
             }
         }
 
@@ -143,7 +143,7 @@ final readonly class SendMorningNotices
             $user = $accounts->firstWhere('id', $userId);
 
             if ($user instanceof User && ! $admins->contains('id', $userId)) {
-                Mail::to($user)->locale($this->locale($user))->queue(new MorningNoticesMail($user, $items, $today->toDateString()));
+                Mail::to($user)->locale($user->mailLocale())->queue(new MorningNoticesMail($user, $items, $today->toDateString()));
             }
         }
     }
@@ -165,7 +165,7 @@ final readonly class SendMorningNotices
             $summaries = [];
 
             foreach ($accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) as $admin) {
-                $locale = $this->locale($admin);
+                $locale = $admin->mailLocale();
                 $summaries[$locale] ??= $this->withLocale($locale, static fn (): WeeklySummary => $service->week($today));
             }
 
@@ -195,16 +195,6 @@ final readonly class SendMorningNotices
             return;
         }
 
-        Mail::to($admin)->locale($this->locale($admin))->queue(new WeeklySummaryMail($admin, $summary, $notices, $today->toDateString()));
-    }
-
-    /**
-     * The language of the mails of an account.
-     *
-     * @param  User  $user  the account
-     */
-    private function locale(User $user): string
-    {
-        return $user->locale ?? config()->string('app.locale');
+        Mail::to($admin)->locale($admin->mailLocale())->queue(new WeeklySummaryMail($admin, $summary, $notices, $today->toDateString()));
     }
 }

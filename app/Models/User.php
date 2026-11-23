@@ -133,6 +133,17 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * The language of the mails and notices sent to the account when nobody is asking (the morning round, the bank):
+     * its own, else the one of the app. Not the language of the request, which in the round is not the account's.
+     * It is not `HasLocalePreference`, which would also change the language of the mails sent from a request, like
+     * the forgotten password, that follow the browser.
+     */
+    public function mailLocale(): string
+    {
+        return $this->locale ?? config()->string('app.locale');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
