@@ -22,7 +22,6 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { newCardUrl } from '@/lib/cards';
 import { areaSummary } from '@/lib/cardTexts';
-import { areas } from '@/routes';
 import { edit as areasSettings } from '@/routes/settings/areas';
 
 const {

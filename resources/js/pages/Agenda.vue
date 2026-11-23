@@ -448,15 +448,16 @@ const payAction = computed((): string =>
               { query: { from_agenda: 1 } },
           ),
 );
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Agenda'),
 });
 </script>
 
 <template>
-    <Head v-if="!embedded" :title="pageHead" />
+    <Head v-if="!embedded" :title="head" />
 
-    <FmTitle :title="pageTitle">
+    <FmTitle :title="title">
         <template v-if="month === null" #beside>
             <FmTabs
                 variant="pill"

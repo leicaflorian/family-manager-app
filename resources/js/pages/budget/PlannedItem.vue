@@ -42,7 +42,6 @@ import {
     skippedMonthsText,
 } from '@/lib/budget';
 import type { RecurrenceUnit } from '@/lib/budget';
-import { budget } from '@/routes';
 import { show as showMovement } from '@/routes/budget/movements';
 import { index, edit } from '@/routes/budget/planned';
 import { show as showCard } from '@/routes/cards';

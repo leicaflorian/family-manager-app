@@ -135,17 +135,18 @@ function mailTitle(mail: App.Data.HomeMailData): string {
         ? mail.sender
         : `${mail.sender} · ${mail.subject}`;
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Hi, :name', { name: home.first_name }),
     head: () => trans('Home'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template #overline>
                 <span class="text-body-sm text-ink-soft">{{ day }}</span>
             </template>

@@ -18,7 +18,6 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
-import { settings } from '@/routes';
 import { destroy, store, update } from '@/routes/categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';

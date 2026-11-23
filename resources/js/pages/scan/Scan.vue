@@ -876,13 +876,14 @@ onBeforeUnmount(() => {
         straightener.forget(one.id);
     }
 });
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('New document'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <ScanCrop
         v-if="crop && cropping && cropping.photo"
@@ -938,7 +939,7 @@ const { title: pageTitle, head: pageHead } = usePageMeta({
         class="flex shrink-0 flex-col gap-5 px-5 pt-4"
     >
         <FmBackLink :label="$t('To sort')" @click="cancel('toSort')" />
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template #actions>
                 <span class="text-body-sm whitespace-nowrap text-ink-soft">{{
                     count

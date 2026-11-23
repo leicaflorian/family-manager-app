@@ -24,7 +24,6 @@ import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
 import { replaceableFor, replaceOptions } from '@/lib/policies';
 import { emptyPlan, type SubscriptionPlan } from '@/lib/subscriptionPlan';
-import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
 

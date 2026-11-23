@@ -16,7 +16,6 @@ import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
-import { settings } from '@/routes';
 import { update } from '@/routes/expense-categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';

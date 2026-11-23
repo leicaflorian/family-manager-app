@@ -19,7 +19,6 @@ import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { family } from '@/routes';
 
 const { organization, types } = defineProps<{
     /** The organization to change, or null for a new one. */
@@ -70,22 +69,10 @@ const { title, head } = usePageMeta({
 </script>
 
 <template>
-    <Head
-        :title="
-            organization
-                ? $t('Edit :name', { name: organization.name })
-                : $t('New organization')
-        "
-    />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="
-                organization
-                    ? $t('Edit :name', { name: organization.name })
-                    : $t('New organization')
-            "
-        />
+        <FmTitle :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

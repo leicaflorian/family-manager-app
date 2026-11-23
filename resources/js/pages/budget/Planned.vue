@@ -120,17 +120,18 @@ const showLabel = computed(() =>
               shown.value,
           ),
 );
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Budget'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="pageTitle"
+            :title="title"
             :subtitle="
                 $t(
                     'The expenses and incomes that repeat, by due date. Home and the Agenda take their due dates from here.',

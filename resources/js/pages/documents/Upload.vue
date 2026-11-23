@@ -23,7 +23,6 @@ import { useToSortCount } from '@/composables/useToSortCount';
 import { cn } from '@/lib/utils';
 import type { DocumentLink } from '@/lib/documents';
 import { desktopSystem } from '@/lib/devices';
-import { toSort } from '@/routes';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { usePageMeta } from '@/composables/usePageMeta';
 

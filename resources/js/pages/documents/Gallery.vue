@@ -24,12 +24,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { index as categories } from '@/routes/categories';
-import {
-    favorite,
-    gallery,
-    index as documents,
-    unfavorite,
-} from '@/routes/documents';
+import { favorite, gallery, unfavorite } from '@/routes/documents';
 
 const props = defineProps<{
     /** The drawings by upload year, the newest year first. */

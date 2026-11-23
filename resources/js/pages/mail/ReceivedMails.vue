@@ -244,20 +244,21 @@ async function copyCode(): Promise<void> {
         await copier.copyOrSelect(props.mail.gmail_code, codeElement.value);
     }
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Received mail'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
         <div
             class="flex flex-col gap-3.5 wide:flex-row wide:items-end wide:justify-between wide:gap-4"
             :class="mail && 'not-wide:hidden'"
         >
-            <FmTitle :title="pageTitle" class="min-w-0 wide:flex-1">
+            <FmTitle :title="title" class="min-w-0 wide:flex-1">
                 <template v-if="address" #subtitle>
                     {{ subtitleParts[0]
                     }}<button

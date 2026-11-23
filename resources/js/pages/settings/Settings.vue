@@ -104,17 +104,18 @@ watch(
     },
     { immediate: true },
 );
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Settings'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div v-if="!wide" class="flex max-w-[720px] flex-col gap-5">
         <FmTitle
-            :title="pageTitle"
+            :title="title"
             :subtitle="
                 $t(
                     'They apply to the whole :family family; my account is yours only',

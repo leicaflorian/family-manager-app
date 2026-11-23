@@ -16,7 +16,6 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import { useAppName } from '@/composables/useAppName';
 import { formatDateTime } from '@/lib/format';
-import { settings } from '@/routes';
 import { destroy, store } from '@/routes/settings/support';
 import { usePageMeta } from '@/composables/usePageMeta';
 

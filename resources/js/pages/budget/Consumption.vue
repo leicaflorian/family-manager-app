@@ -65,7 +65,7 @@ import {
 import { formatNumber, formatQuantity, unitLabel } from '@/lib/format';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
-import { budget, upload } from '@/routes';
+import { upload } from '@/routes';
 import { consumption as consumptionRoute } from '@/routes/budget';
 import { read as readRoute } from '@/routes/budget/consumption';
 import { show as documentPage } from '@/routes/documents';

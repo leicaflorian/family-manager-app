@@ -23,7 +23,6 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { NoticeRule, RulePerson } from '@/lib/reminders';
 import { ruleText } from '@/lib/reminders';
-import { settings } from '@/routes';
 import { update } from '@/routes/settings/notices';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';

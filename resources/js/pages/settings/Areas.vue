@@ -24,7 +24,6 @@ import { useVisitQueue } from '@/composables/useVisitQueue';
 import type { Area } from '@/lib/areas';
 import { areaFill, areaOf } from '@/lib/areas';
 import { cardCountText } from '@/lib/cardTexts';
-import { settings } from '@/routes';
 import { reset, update } from '@/routes/settings/areas';
 import { usePageMeta } from '@/composables/usePageMeta';
 

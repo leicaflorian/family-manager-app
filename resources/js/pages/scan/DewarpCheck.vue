@@ -15,7 +15,6 @@ import { readPhoto, toObjectUrl } from '@/lib/scan/canvas';
 import { WHOLE, warp, LONG_SIDE } from '@/lib/scan/crop';
 import { dewarp, isDewarpAvailable, loadDewarp } from '@/lib/scan/dewarp';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { toSort } from '@/routes';
 
 const available = isDewarpAvailable();
 const working = ref(false);

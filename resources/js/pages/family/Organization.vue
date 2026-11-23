@@ -29,7 +29,6 @@ import {
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/organizations';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { family } from '@/routes';
 
 const {
     organization,

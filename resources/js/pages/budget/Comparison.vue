@@ -24,7 +24,6 @@ import { useFormat } from '@/composables/useFormat';
 import { comparisonComment, deadlineUrls, longMonth } from '@/lib/budget';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { cn } from '@/lib/utils';
-import { budget } from '@/routes';
 import { comparison as comparisonRoute } from '@/routes/budget';
 
 const props = defineProps<{

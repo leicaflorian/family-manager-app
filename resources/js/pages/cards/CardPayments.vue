@@ -15,7 +15,6 @@ import FmPaymentYears from '@/components/fm/FmPaymentYears.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { listNames } from '@/lib/names';
-import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show } from '@/routes/cards';
 

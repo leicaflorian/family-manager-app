@@ -227,16 +227,17 @@ function rowHref(document: App.Data.DocumentData): string {
           })
         : show.url(document.id);
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Documents'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-4">
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template #actions>
                 <FmToSortLink :count="toSortCount" />
             </template>

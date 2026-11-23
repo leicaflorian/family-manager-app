@@ -51,7 +51,6 @@ import type {
 import { linkQuery, newDocument, proposalOf, toPayload } from '@/lib/documents';
 import { cn } from '@/lib/utils';
 import { anyFileReading, isReading, readAgain } from '@/lib/reading';
-import { toSort } from '@/routes';
 import { create as createCard } from '@/routes/cards';
 import { store } from '@/routes/import';
 import { useComputerLayout } from '@/composables/useLayoutMode';

@@ -20,7 +20,6 @@ import { initialsOf } from '@/lib/names';
 import { index, show, store, update } from '@/routes/people';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { family } from '@/routes';
 
 const { person, roles } = defineProps<{
     /** The person to change, or null for a new one. */

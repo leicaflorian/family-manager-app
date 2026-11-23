@@ -271,13 +271,14 @@ function subtitle(movement: App.Data.MovementData): string {
         .filter((part) => part !== null)
         .join(' · ');
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Budget'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <DefineRow v-slot="{ movement }">
         <FmRow
@@ -322,7 +323,7 @@ const { title: pageTitle, head: pageHead } = usePageMeta({
     </DefineRow>
 
     <div class="flex flex-col gap-4">
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template #actions>
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')

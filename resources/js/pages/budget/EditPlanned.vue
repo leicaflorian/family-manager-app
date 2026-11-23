@@ -23,7 +23,6 @@ import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { PlannedFormOptions, PlannedFormValues } from '@/lib/budget';
 import { errors } from '@/lib/errors';
 import { isEmpty, withNone } from '@/lib/forms';
-import { budget } from '@/routes';
 import { destroy, index, show, store, update } from '@/routes/budget/planned';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 

@@ -82,16 +82,17 @@ function tile(area: string): string {
         code === undefined ? 'bg-canvas text-ink-soft' : areaTile[code],
     );
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Areas'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template v-if="canCreate" #actions>
                 <FmActions
                     v-if="canCreate"

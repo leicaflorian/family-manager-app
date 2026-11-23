@@ -20,7 +20,6 @@ import type { MovementFormOptions, MovementStart } from '@/lib/budget';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { movementsUrl } from '@/lib/budget';
-import { budget } from '@/routes';
 import { show as showCard } from '@/routes/cards';
 
 const {

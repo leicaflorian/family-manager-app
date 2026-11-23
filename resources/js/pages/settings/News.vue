@@ -10,7 +10,6 @@ import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { settings } from '@/routes';
 
 const { release, notes } = defineProps<{
     /** The version that runs (`dev` in development). */

@@ -195,17 +195,18 @@ function confirmDelete(): void {
         },
     });
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('To sort'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-4 wide:gap-6">
         <FmTitle
-            :title="pageTitle"
+            :title="title"
             :subtitle="
                 waiting === 0
                     ? undefined

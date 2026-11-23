@@ -17,7 +17,7 @@ import { usePageMeta } from '@/composables/usePageMeta';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
-import { areas, upload } from '@/routes';
+import { upload } from '@/routes';
 import { create } from '@/routes/cards';
 
 const { types, document = null } = defineProps<{

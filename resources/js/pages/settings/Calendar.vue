@@ -13,7 +13,6 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { settings } from '@/routes';
 import { destroy, reset, store } from '@/routes/calendar';
 import { usePageMeta } from '@/composables/usePageMeta';
 

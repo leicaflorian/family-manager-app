@@ -330,16 +330,17 @@ function assignTo(choice: App.Data.BankPlannedChoiceData): void {
 function add(): void {
     router.get(create.url({ query: { from: bankIndex().url } }));
 }
-const { title: pageTitle, head: pageHead } = usePageMeta({
+
+const { title, head } = usePageMeta({
     title: () => trans('Budget'),
 });
 </script>
 
 <template>
-    <Head :title="pageHead" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="pageTitle">
+        <FmTitle :title="title">
             <template #actions>
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')

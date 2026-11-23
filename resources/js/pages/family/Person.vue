@@ -52,7 +52,7 @@ import { index as remindersIndex } from '@/routes/reminders';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/people';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { family, upload } from '@/routes';
+import { upload } from '@/routes';
 
 const {
     person,
@@ -205,17 +205,17 @@ const actions = computed((): Action[] => [
         : []),
 ]);
 
-usePageMeta({
+const { title, head } = usePageMeta({
     title: () => name.value,
     parent: ['family', { label: trans('People'), href: index().url }],
 });
 </script>
 
 <template>
-    <Head :title="name" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmTitle :title="name" :subtitle="personSubtitle(person)">
+        <FmTitle :title="title" :subtitle="personSubtitle(person)">
             <template #leading>
                 <FmAvatar
                     :initials="person.initials"
