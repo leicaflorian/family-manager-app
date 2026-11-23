@@ -15,6 +15,7 @@ import {
     Bell,
     CalendarSync,
     FolderTree,
+    House,
     Landmark,
     LayoutGrid,
     LifeBuoy,
@@ -34,6 +35,7 @@ import { index as categories } from '@/routes/categories';
 import { index as expenseCategories } from '@/routes/expense-categories';
 import { edit as mail } from '@/routes/mail-settings';
 import { edit as areas } from '@/routes/settings/areas';
+import { edit as family } from '@/routes/settings/family';
 import { news } from '@/routes/settings';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
@@ -43,6 +45,7 @@ import FmIcon from './FmIcon.vue';
 /** A section of the settings, as the page names itself. */
 type SettingsSection =
     | 'account'
+    | 'family'
     | 'notices'
     | 'mail'
     | 'banks'
@@ -103,6 +106,12 @@ const groups = computed(
         {
             label: trans('The family'),
             sections: [
+                {
+                    key: 'family',
+                    label: trans('Family name'),
+                    icon: House,
+                    href: family().url,
+                },
                 {
                     key: 'notices',
                     label: trans('Notices'),

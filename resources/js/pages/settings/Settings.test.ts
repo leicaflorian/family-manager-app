@@ -130,6 +130,22 @@ describe('Settings', () => {
         );
     });
 
+    it('leads to the family name, first in The family, with the name', () => {
+        renderPage(Settings, {
+            account,
+            mainCategories: 10,
+            mainExpenseCategories: 13,
+            areaCount: 9,
+            hiddenAreas: 0,
+            release: '1.2.0',
+            releasedOn: '2026-11-15',
+        });
+
+        const row = screen.getByRole('link', { name: /Family name/ });
+        expect(row).toHaveAttribute('href', '/settings/family');
+        expect(within(row).getByText('Bianchi')).toBeInTheDocument();
+    });
+
     it('puts Areas after Expense categories, in The family', () => {
         renderPage(Settings, {
             account,
@@ -147,6 +163,7 @@ describe('Settings', () => {
                 .getAllByRole('link')
                 .map((link) => link.getAttribute('href')),
         ).toEqual([
+            '/settings/family',
             '/settings/notices',
             '/settings/mail',
             '/settings/categories',
