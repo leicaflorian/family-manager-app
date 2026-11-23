@@ -123,7 +123,7 @@ final readonly class ReminderList
     /**
      * Where a reminder leads: the page of its thing for an automatic one, the edit page for one written by hand. An
      * automatic reminder whose thing is gone has no edit page (the policy refuses it), so it falls back to the list.
-     * The one place for the pages and the bell.
+     * The one place for the pages, the bell and the mail.
      *
      * @param  Reminder  $reminder  the reminder
      * @param  ReminderSubjectData|null  $subject  its thing, null when it has none
@@ -154,24 +154,11 @@ final readonly class ReminderList
             ! $reminder->is_automatic,
             $subject?->label,
             $reminder->due_date->toDateString(),
-            $this->mailHrefOf($reminder),
+            // The same page as the bell, with the host: the mail is opened outside the app
+            url($this->hrefOf($reminder, $subject)),
             $this->areaOf($reminder->link),
             $reminder->id,
         );
-    }
-
-    /**
-     * Where a reminder leads from the mail, with the host: the page of its thing, else the reminders. Unlike
-     * `hrefOf()`, a reminder written by hand leads to its thing too, not to its edit page.
-     *
-     * @param  Reminder  $reminder  the reminder, with `link.subject` loaded
-     */
-    private function mailHrefOf(Reminder $reminder): string
-    {
-        $link = $reminder->link;
-        $subject = $link?->subject;
-
-        return ($link instanceof Remindable && $subject instanceof Model ? SubjectLink::href($link->remindable_type, $subject, true) : null) ?? route('reminders.index');
     }
 
     /**

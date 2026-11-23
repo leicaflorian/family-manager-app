@@ -69,7 +69,7 @@ test('the mail item of an automatic notice keeps the key of its title and leads 
         && $mail->items[0]->url === route('cards.show', ['type' => 'vehicle', 'id' => $this->panda->id]));
 });
 
-test('in the mail a reminder written by hand leads to its card, or to the reminders without one', function (): void {
+test('in the mail a reminder written by hand leads to its edit page, like the bell', function (): void {
     $this->panda->update(['inspection_due_date' => null]);
     $group = ReminderGroup::query()->sole();
     $withCard = Reminder::factory()->for($this->family)->create(['title' => 'Wash the Panda', 'due_date' => '2027-01-09', 'is_automatic' => false, 'reminder_group_id' => $group->id]);
@@ -84,9 +84,9 @@ test('in the mail a reminder written by hand leads to its card, or to the remind
         return $mail->hasTo('marco@example.com')
             && $items[$withCard->id]->title === 'Wash the Panda' && ! $items[$withCard->id]->translatable && $items[$withCard->id]->manual
             && $items[$withCard->id]->subject === 'Panda' && $items[$withCard->id]->area === 'vehicles'
-            && $items[$withCard->id]->url === route('cards.show', ['type' => 'vehicle', 'id' => $this->panda->id])
+            && $items[$withCard->id]->url === route('reminders.edit', $withCard)
             && $items[$alone->id]->subject === null && $items[$alone->id]->area === 'general'
-            && $items[$alone->id]->url === route('reminders.index');
+            && $items[$alone->id]->url === route('reminders.edit', $alone);
     });
 });
 
