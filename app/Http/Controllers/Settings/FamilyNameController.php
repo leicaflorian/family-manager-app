@@ -29,7 +29,7 @@ final class FamilyNameController extends Controller
     {
         return Inertia::render('settings/Family', ['settings' => new FamilyNameSettingsData(
             name: $user->family->name,
-            can_edit: $user->can('update', FamilySetting::query()->firstOrCreate([])),
+            can_edit: $user->can('update', FamilySetting::current()),
         )]);
     }
 

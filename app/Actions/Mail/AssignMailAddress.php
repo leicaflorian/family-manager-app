@@ -48,7 +48,7 @@ final readonly class AssignMailAddress
             }
 
             CurrentFamily::using($family->id, function () use ($address): void {
-                FamilySetting::query()->firstOrCreate([])->forceFill(['mail_inbox_recipient' => $address])->save();
+                FamilySetting::current()->forceFill(['mail_inbox_recipient' => $address])->save();
             });
 
             return $address;

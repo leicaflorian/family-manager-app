@@ -55,6 +55,15 @@ final class FamilySetting extends FamilyModel
     }
 
     /**
+     * The settings of the current family, created empty the first time they are asked for. They go through the
+     * family scope, like every other read of the settings from a page.
+     */
+    public static function current(): self
+    {
+        return self::query()->firstOrCreate([]);
+    }
+
+    /**
      * The settings that have this address for the bills. It looks outside the current family (with `addressTaken()`
      * and `familiesWithAddress()`, the only lookups of the settings that do), like `Invitation::findValid()`: the mail arrives when nobody is signed in, and the address says the family.
      *

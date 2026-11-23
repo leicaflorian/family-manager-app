@@ -21,7 +21,7 @@ final class UpdateMailSettingsRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('update', FamilySetting::query()->firstOrCreate([]));
+        return (bool) $this->user()?->can('update', FamilySetting::current());
     }
 
     /**
