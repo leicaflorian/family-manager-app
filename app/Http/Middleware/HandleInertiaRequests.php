@@ -9,6 +9,7 @@ use App\Enums\Theme;
 use App\Models\BankTransaction;
 use App\Models\DocumentCategory;
 use App\Models\File;
+use App\Models\LinkedDevice;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\Banks\BankFeedAvailability;
@@ -59,7 +60,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        if ($request->hasSession() && $request->session()->has('linked_device_id')) {
+        if ($request->hasSession() && $request->session()->has(LinkedDevice::SESSION_KEY)) {
             return $this->linkedPhoneShare($request);
         }
 

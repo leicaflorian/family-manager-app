@@ -178,7 +178,7 @@ final class PhoneLinks
         Auth::login($user);
         $request->session()->regenerate();
         // After the login: the `Login` event of a password clears this mark
-        $request->session()->put('linked_device_id', $device->id);
+        $request->session()->put(LinkedDevice::SESSION_KEY, $device->id);
 
         $device->forceFill(['last_used_at' => now(), 'session_id' => $request->session()->getId()])->save();
     }

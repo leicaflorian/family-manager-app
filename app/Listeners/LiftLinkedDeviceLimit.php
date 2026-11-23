@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\Models\LinkedDevice;
 use Illuminate\Auth\Events\Login;
 
 /**
@@ -17,8 +18,8 @@ final class LiftLinkedDeviceLimit
      */
     public function handle(Login $event): void
     {
-        if ($event->guard === 'web' && session()->has('linked_device_id')) {
-            session()->forget('linked_device_id');
+        if ($event->guard === 'web' && session()->has(LinkedDevice::SESSION_KEY)) {
+            session()->forget(LinkedDevice::SESSION_KEY);
         }
     }
 }

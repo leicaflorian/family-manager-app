@@ -130,6 +130,10 @@ test('the cookie sign-in keeps the mark, so the first page is already limited', 
     expect(session('linked_device_id'))->toBe($this->device->id);
 });
 
+test('the phone of the session is kept under one key, the same of the sessions already open', function (): void {
+    expect(LinkedDevice::SESSION_KEY)->toBe('linked_device_id');
+});
+
 test('a login with the password lifts the limit', function (): void {
     Session::put('linked_device_id', $this->device->id);
     Event::dispatch(new Login('web', $this->marco, false));

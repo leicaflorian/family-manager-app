@@ -29,11 +29,11 @@ final class LimitLinkedDevice
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->hasSession() || ! $request->session()->has('linked_device_id')) {
+        if (! $request->hasSession() || ! $request->session()->has(LinkedDevice::SESSION_KEY)) {
             return $next($request);
         }
 
-        $deviceId = $request->session()->get('linked_device_id');
+        $deviceId = $request->session()->get(LinkedDevice::SESSION_KEY);
 
         if (! is_int($deviceId) || ! LinkedDevice::isActive($deviceId)) {
             // Forgotten or expired: the session of the phone must not outlive its link
