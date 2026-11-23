@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\HasDocuments;
+use App\Models\Concerns\HasExpenseLinks;
 use App\Observers\ExpenseDeadlineObserver;
 use App\Observers\ExpenseRenewalObserver;
 use Carbon\CarbonImmutable;
@@ -16,7 +17,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * A paid expense (`expenses`).
@@ -62,6 +62,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 final class Expense extends FamilyModel
 {
     use HasDocuments;
+    use HasExpenseLinks;
 
     /** @use HasFactory<ExpenseFactory> */
     use HasFactory;
@@ -74,56 +75,6 @@ final class Expense extends FamilyModel
     public function plannedExpense(): BelongsTo
     {
         return $this->belongsTo(PlannedExpense::class);
-    }
-
-    /**
-     * The category.
-     *
-     * @return BelongsTo<ExpenseCategory, $this>
-     */
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(ExpenseCategory::class);
-    }
-
-    /**
-     * The linked organization.
-     *
-     * @return BelongsTo<Organization, $this>
-     */
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(Organization::class);
-    }
-
-    /**
-     * The linked financial account.
-     *
-     * @return BelongsTo<FinancialAccount, $this>
-     */
-    public function financialAccount(): BelongsTo
-    {
-        return $this->belongsTo(FinancialAccount::class);
-    }
-
-    /**
-     * The person it refers to.
-     *
-     * @return BelongsTo<Person, $this>
-     */
-    public function person(): BelongsTo
-    {
-        return $this->belongsTo(Person::class);
-    }
-
-    /**
-     * The card it refers to (a vehicle for a parking, a home…), if any.
-     *
-     * @return MorphTo<Model, $this>
-     */
-    public function card(): MorphTo
-    {
-        return $this->morphTo();
     }
 
     /**

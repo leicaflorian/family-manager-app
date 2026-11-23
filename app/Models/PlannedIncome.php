@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\IncomeType;
 use App\Enums\IntervalUnit;
+use App\Models\Concerns\HasMovementLinks;
 use Carbon\CarbonImmutable;
 use Database\Factories\PlannedIncomeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -62,35 +63,7 @@ final class PlannedIncome extends FamilyModel
     /** @use HasFactory<PlannedIncomeFactory> */
     use HasFactory;
 
-    /**
-     * The linked organization.
-     *
-     * @return BelongsTo<Organization, $this>
-     */
-    public function organization(): BelongsTo
-    {
-        return $this->belongsTo(Organization::class);
-    }
-
-    /**
-     * The person it refers to.
-     *
-     * @return BelongsTo<Person, $this>
-     */
-    public function person(): BelongsTo
-    {
-        return $this->belongsTo(Person::class);
-    }
-
-    /**
-     * The linked financial account.
-     *
-     * @return BelongsTo<FinancialAccount, $this>
-     */
-    public function financialAccount(): BelongsTo
-    {
-        return $this->belongsTo(FinancialAccount::class);
-    }
+    use HasMovementLinks;
 
     /**
      * The linked employment.
