@@ -81,6 +81,8 @@ interface SectionLink {
     label: string;
     icon: LucideIcon;
     href: string;
+    /** A short note after the label, on the right: the version that runs, for *What's new*. */
+    note?: string;
 }
 
 /** The sections of the settings in the groups of the index: mine first, without a name. */
@@ -168,6 +170,7 @@ const groups = computed(
                     label: trans("What's new"),
                     icon: Sparkles,
                     href: news().url,
+                    note: __APP_BUILD__,
                 },
             ],
         },
@@ -215,6 +218,11 @@ const groups = computed(
                     >
                         <FmIcon :icon="section.icon" :size="20" />
                         {{ section.label }}
+                        <span
+                            v-if="section.note"
+                            class="ml-auto text-meta text-ink-soft"
+                            >{{ section.note }}</span
+                        >
                     </Link>
                 </div>
             </nav>

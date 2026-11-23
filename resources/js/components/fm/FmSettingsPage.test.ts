@@ -77,7 +77,7 @@ describe('FmSettingsPage', () => {
             'Expense categories',
             'Areas',
             'Support',
-            "What's new",
+            `What's new ${__APP_BUILD__}`,
         ]);
         expect(
             within(within(nav).getByRole('group', { name: 'The family' }))
@@ -96,7 +96,7 @@ describe('FmSettingsPage', () => {
             within(within(nav).getByRole('group', { name: 'The app' }))
                 .getAllByRole('link')
                 .map((link) => link.textContent?.trim()),
-        ).toEqual(["What's new"]);
+        ).toEqual([`What's new ${__APP_BUILD__}`]);
         expect(
             within(nav).getByRole('link', { name: 'Calendar' }),
         ).toHaveAttribute('href', '/settings/calendar');

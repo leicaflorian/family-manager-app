@@ -34,6 +34,7 @@ import {
     theme as saveTheme,
     update,
 } from '@/routes/account';
+import { edit as familyName } from '@/routes/settings/family';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageTrail } from '@/composables/usePageTrail';
 
@@ -354,6 +355,7 @@ usePageTrail(() => [
         <FmCard :title="$t('The family')" list>
             <FmRow
                 :title="$t(':family family', { family: account.family })"
+                :href="familyName().url"
                 :subtitle="
                     account.is_admin
                         ? $t(
