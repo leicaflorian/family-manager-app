@@ -73,10 +73,6 @@ export type SectionEntry = {
     pages: string[];
 };
 
-/**
- * The sections of the app, in the order of the menus. Menus, trail and the section of a page come from here: a
- * section that depends on a feature of the family says it with `feature`.
- */
 /** Settings: always in the menus, with the account. */
 const SETTINGS_ENTRY: SectionEntry = {
     key: 'settings',
@@ -84,6 +80,10 @@ const SETTINGS_ENTRY: SectionEntry = {
     pages: ['settings/Settings'],
 };
 
+/**
+ * The sections of the app, in the order of the menus. Menus, trail and the section of a page come from here: a
+ * section that depends on a feature of the family says it with `feature`.
+ */
 export const SECTIONS: readonly SectionEntry[] = [
     { key: 'home', bar: 0, group: 'home', pages: ['Home'] },
     { key: 'agenda', barFallback: true, group: 'every-day', pages: ['Agenda'] },

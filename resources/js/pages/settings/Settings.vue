@@ -7,6 +7,7 @@
  * *Linked banks* is there only while the link to the bank is on for the family.
  */
 import { Head, router } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import { computed, watch } from 'vue';
 import FmAvatar from '@/components/fm/FmAvatar.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -18,7 +19,6 @@ import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import type { SettingsGroup, SettingsSection } from '@/lib/settingsSections';
 import { settingsSections } from '@/lib/settingsSections';
-import { trans } from 'laravel-vue-i18n';
 import { edit } from '@/routes/account';
 
 const {
