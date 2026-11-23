@@ -49,7 +49,7 @@ export type RulePerson = {
  * @param channels - app, email or both
  * @returns for example «App and email»
  */
-export function channelsText(channels: NoticeChannels): string {
+function channelsText(channels: NoticeChannels): string {
     switch (channels) {
         case 'app':
             return trans('App only');
@@ -67,7 +67,7 @@ export function channelsText(channels: NoticeChannels): string {
  * @param timing - before or after
  * @returns for example «45 days before», «On the day»
  */
-export function timingText(days: number, timing: NoticeTiming): string {
+function timingText(days: number, timing: NoticeTiming): string {
     if (days === 0) {
         return trans('On the day');
     }
@@ -90,7 +90,7 @@ export function timingText(days: number, timing: NoticeTiming): string {
  * @param people - the people with an account
  * @returns «Everyone» or the names, separated by commas
  */
-export function recipientsText(
+function recipientsText(
     recipients: ('all' | number)[],
     people: RulePerson[],
 ): string {
@@ -196,18 +196,6 @@ export type NoticeItem = {
     state: 'overdue' | 'done' | null;
     /** Where the notice leads. */
     href: string;
-};
-
-/** A group of notices as *Settings → Notices* shows it. */
-export type ReminderGroupItem = {
-    /** The name of the group. */
-    name: string;
-    /** It is the group of everything that has no group of its own. */
-    is_default: boolean;
-    /** The kinds of deadline it covers, in words: «Road tax», «inspection». */
-    kinds: string[];
-    /** Its notices. */
-    rules: NoticeRule[];
 };
 
 /**
