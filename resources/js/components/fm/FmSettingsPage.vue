@@ -47,7 +47,7 @@ const GROUP_LABELS: Record<SettingsGroup, () => string | null> = {
 
 /** The sections of the settings in the groups of the index: mine first, without a name. */
 const groups = computed(() => {
-    const sections = settingsSections(features.value, () => true);
+    const sections = settingsSections(features.value);
 
     return (['mine', 'family', 'app'] as const).map((group) => ({
         label: GROUP_LABELS[group](),

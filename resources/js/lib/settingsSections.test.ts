@@ -3,7 +3,7 @@ import { settingsSections } from './settingsSections';
 
 /** The keys of the sections, in order. */
 function keys(features: Record<string, boolean> | null): string[] {
-    return settingsSections(features, () => true).map((s) => s.key);
+    return settingsSections(features).map((s) => s.key);
 }
 
 describe('settingsSections', () => {
@@ -33,10 +33,7 @@ describe('settingsSections', () => {
     });
 
     it('puts the sections in the three groups of the index', () => {
-        const groups = settingsSections(null, () => true).map((s) => [
-            s.key,
-            s.group,
-        ]);
+        const groups = settingsSections(null).map((s) => [s.key, s.group]);
 
         expect(groups[0]).toEqual(['account', 'mine']);
         expect(groups[2]).toEqual(['family', 'family']);
@@ -45,7 +42,7 @@ describe('settingsSections', () => {
 
     it('gives the addresses', () => {
         const hrefs = Object.fromEntries(
-            settingsSections(null, () => true).map((s) => [s.key, s.href]),
+            settingsSections(null).map((s) => [s.key, s.href]),
         );
 
         expect(hrefs['banks']).toBe('/settings/banks');
@@ -54,7 +51,7 @@ describe('settingsSections', () => {
 
     it('writes the subtitles that come from the props of the page', () => {
         const rows = Object.fromEntries(
-            settingsSections(null, () => true).map((s) => [s.key, s]),
+            settingsSections(null).map((s) => [s.key, s]),
         );
         const props = {
             account: {
@@ -85,13 +82,5 @@ describe('settingsSections', () => {
         expect(rows['mail']!.subtitle?.(props)).toBe(
             'The bills arrive by email by themselves',
         );
-    });
-
-    it('leaves out a section the person cannot use', () => {
-        expect(
-            settingsSections(null, (ability) => ability !== 'manage').map(
-                (s) => s.key,
-            ),
-        ).toContain('account');
     });
 });

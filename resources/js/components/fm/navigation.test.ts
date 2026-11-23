@@ -31,8 +31,8 @@ describe('sectionOf', () => {
     });
 
     it('marks To sort on its page, which only the sidebar lists', () => {
-        expect(items.toSort.href).toBe('/to-sort');
-        expect(items.toSort.label).toBe('To sort');
+        expect(items.toSort?.href).toBe('/to-sort');
+        expect(items.toSort?.label).toBe('To sort');
         expect(items.sections.some((item) => item.section === 'toSort')).toBe(
             false,
         );
@@ -45,9 +45,9 @@ describe('sectionOf', () => {
     });
 
     it('has Received mail, marked on every page of the mail', () => {
-        expect(items.mail.href).toBe('/mail');
-        expect(items.mail.label).toBe('Received mail');
-        expect(items.mail.hint).toBe(
+        expect(items.mail?.href).toBe('/mail');
+        expect(items.mail?.label).toBe('Received mail');
+        expect(items.mail?.hint).toBe(
             'The mail that arrived at the address for bills',
         );
         expect(items.sections.some((item) => item.section === 'mail')).toBe(
@@ -163,6 +163,27 @@ describe('the registry of the sections', () => {
         expect(names({ gallery: true })).toContain('documents');
         expect(names({ gallery: false })).not.toContain('documents');
         expect(names({ gallery: false })).toHaveLength(8);
+    });
+
+    it('leaves out To sort and Received mail when their feature is off', () => {
+        const entries = SECTIONS.map((entry) =>
+            entry.key === 'mail'
+                ? { ...entry, feature: 'gallery' as const }
+                : entry,
+        );
+        const off = navigationItems({ gallery: false }, entries);
+
+        expect(off.mail).toBeUndefined();
+        expect(off.toSort).toBeDefined();
+        expect(allItems(off).map((item) => item.section)).not.toContain('mail');
+        expect(navigationItems({ gallery: true }, entries).mail).toBeDefined();
+    });
+
+    it('does not break on a list without To sort, Mail or Settings', () => {
+        const items = navigationItems(null, SECTIONS.slice(0, 2));
+
+        expect(items.toSort).toBeUndefined();
+        expect(items.settings.section).toBe('settings');
     });
 
     it('puts Home, Budget and Areas in the bar of the phone', () => {

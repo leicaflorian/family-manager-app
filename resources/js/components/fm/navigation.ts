@@ -77,6 +77,13 @@ export type SectionEntry = {
  * The sections of the app, in the order of the menus. Menus, trail and the section of a page come from here: a
  * section that depends on a feature of the family says it with `feature`.
  */
+/** Settings: always in the menus, with the account. */
+const SETTINGS_ENTRY: SectionEntry = {
+    key: 'settings',
+    group: 'archive',
+    pages: ['settings/Settings'],
+};
+
 export const SECTIONS: readonly SectionEntry[] = [
     { key: 'home', bar: 0, group: 'home', pages: ['Home'] },
     { key: 'agenda', barFallback: true, group: 'every-day', pages: ['Agenda'] },
@@ -99,7 +106,7 @@ export const SECTIONS: readonly SectionEntry[] = [
     },
     { key: 'toSort', group: 'incoming', pages: ['documents/ToSort'] },
     { key: 'mail', group: 'incoming', pages: ['mail/ReceivedMails'] },
-    { key: 'settings', group: 'archive', pages: ['settings/Settings'] },
+    SETTINGS_ENTRY,
 ];
 
 /** An item of the navigation. */
@@ -154,9 +161,9 @@ export type NavigationItems = {
     /** The settings, in the account menu or in More. */
     settings: NavigationItem;
     /** To sort, an item of the sidebar only: on the phone the number on Upload leads there. */
-    toSort: NavigationItem;
+    toSort?: NavigationItem;
     /** Received mail, under To sort in the sidebar and after Documents in More on the phone. */
-    mail: NavigationItem;
+    mail?: NavigationItem;
     /** The address of Upload. */
     upload: string;
     /** The ways to add something, in the panel of the + on the phone, after To sort. */
@@ -246,26 +253,35 @@ export function navigationItems(
     entries: readonly SectionEntry[] = SECTIONS,
 ): NavigationItems {
     const texts = itemTexts();
-    const shown = entries.filter((entry) => featureOn(features, entry.feature));
-    const item = (key: Section): NavigationItem => {
-        const entry = entries.find((candidate) => candidate.key === key)!;
+    const build = (entry: SectionEntry): NavigationItem => ({
+        ...texts[entry.key],
+        group: entry.group,
+        ...(entry.bar === undefined ? {} : { bar: entry.bar }),
+        ...(entry.barFallback ? { barFallback: true } : {}),
+    });
+    // A section whose feature is off has no item: a list of its own may also leave a section out
+    const shown = (key: Section): NavigationItem | undefined => {
+        const entry = entries.find((candidate) => candidate.key === key);
 
-        return {
-            ...texts[key],
-            group: entry.group,
-            ...(entry.bar === undefined ? {} : { bar: entry.bar }),
-            ...(entry.barFallback ? { barFallback: true } : {}),
-        };
+        return entry && featureOn(features, entry.feature)
+            ? build(entry)
+            : undefined;
     };
-    const sections = shown
-        .filter((entry) => !['settings', 'toSort', 'mail'].includes(entry.key))
-        .map((entry) => item(entry.key));
+    const apart: Section[] = ['settings', 'toSort', 'mail'];
+    const toSortItem = shown('toSort');
+    const mailItem = shown('mail');
 
     return {
-        sections,
-        settings: item('settings'),
-        toSort: item('toSort'),
-        mail: item('mail'),
+        sections: entries
+            .filter(
+                (entry) =>
+                    !apart.includes(entry.key) &&
+                    featureOn(features, entry.feature),
+            )
+            .map(build),
+        settings: shown('settings') ?? build(SETTINGS_ENTRY),
+        ...(toSortItem ? { toSort: toSortItem } : {}),
+        ...(mailItem ? { mail: mailItem } : {}),
         upload: upload().url,
         add: [
             {
@@ -344,9 +360,12 @@ export function sectionOf(path: string, items: NavigationItems): Section {
  */
 export function allItems(items: NavigationItems): NavigationItem[] {
     const byKey = new Map(
-        [...items.sections, items.toSort, items.mail, items.settings].map(
-            (item) => [item.section, item] as const,
-        ),
+        [
+            ...items.sections,
+            ...(items.toSort ? [items.toSort] : []),
+            ...(items.mail ? [items.mail] : []),
+            items.settings,
+        ].map((item) => [item.section, item] as const),
     );
 
     return SECTIONS.flatMap((entry) => byKey.get(entry.key) ?? []);

@@ -16,7 +16,9 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFeatures } from '@/composables/useFeatures';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
+import type { SettingsGroup, SettingsSection } from '@/lib/settingsSections';
 import { settingsSections } from '@/lib/settingsSections';
+import { trans } from 'laravel-vue-i18n';
 import { edit } from '@/routes/account';
 
 const {
@@ -54,15 +56,27 @@ const wide = useWideLayout();
 /** The features of the family: *Linked banks* is there only while the link to the bank is on. */
 const features = useFeatures();
 
-/** The rows of the index, in the three cards: mine, the family and the app. */
+/** The cards of the index, in order: mine (no title), the family and the app. */
 const cards = computed(() => {
-    const sections = settingsSections(features.value, () => true);
+    const sections = settingsSections(features.value);
+    const card = (
+        key: SettingsGroup,
+        title: string | undefined,
+    ): {
+        key: SettingsGroup;
+        title: string | undefined;
+        sections: SettingsSection[];
+    } => ({
+        key,
+        title,
+        sections: sections.filter((section) => section.group === key),
+    });
 
-    return {
-        mine: sections.filter((section) => section.group === 'mine'),
-        family: sections.filter((section) => section.group === 'family'),
-        app: sections.filter((section) => section.group === 'app'),
-    };
+    return [
+        card('mine', undefined),
+        card('family', trans('The family')),
+        card('app', trans('The app')),
+    ];
 });
 
 /** The props of the page the subtitles of the rows are written from. */
@@ -104,63 +118,9 @@ watch(
                 )
             "
         />
-        <FmCard list>
+        <FmCard v-for="card in cards" :key="card.key" :title="card.title" list>
             <FmRow
-                v-for="section in cards.mine"
-                :key="section.key"
-                :title="section.label"
-                :subtitle="section.subtitle?.(subtitleProps) ?? undefined"
-                :href="section.href"
-            >
-                <template #before>
-                    <FmAvatar
-                        v-if="section.key === 'account'"
-                        :initials="account.initials"
-                        :photo="account.photo"
-                        :name="`${account.first_name} ${account.last_name}`"
-                    />
-                    <span
-                        v-else
-                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
-                    >
-                        <FmIcon
-                            :icon="section.phoneIcon ?? section.icon"
-                            :size="22"
-                        />
-                    </span>
-                </template>
-            </FmRow>
-        </FmCard>
-        <FmCard :title="$t('The family')" list>
-            <FmRow
-                v-for="section in cards.family"
-                :key="section.key"
-                :title="section.label"
-                :subtitle="section.subtitle?.(subtitleProps) ?? undefined"
-                :href="section.href"
-            >
-                <template #before>
-                    <FmAvatar
-                        v-if="section.key === 'account'"
-                        :initials="account.initials"
-                        :photo="account.photo"
-                        :name="`${account.first_name} ${account.last_name}`"
-                    />
-                    <span
-                        v-else
-                        class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action-soft text-action-dark"
-                    >
-                        <FmIcon
-                            :icon="section.phoneIcon ?? section.icon"
-                            :size="22"
-                        />
-                    </span>
-                </template>
-            </FmRow>
-        </FmCard>
-        <FmCard :title="$t('The app')" list>
-            <FmRow
-                v-for="section in cards.app"
+                v-for="section in card.sections"
                 :key="section.key"
                 :title="section.label"
                 :subtitle="section.subtitle?.(subtitleProps) ?? undefined"

@@ -71,7 +71,9 @@ const inMore = computed((): NavigationItem[] => [
     ...items.sections
         .filter((item) => !inBar.value.includes(item))
         .flatMap((item) =>
-            item.section === 'documents' ? [item, items.mail] : [item],
+            item.section === 'documents' && items.mail
+                ? [item, items.mail]
+                : [item],
         ),
     items.settings,
 ]);
@@ -142,7 +144,7 @@ function itemClasses(marked: boolean): string {
     <FmBottomSheet v-model:open="addOpen" :title="$t('Add')">
         <div class="flex flex-col gap-3">
             <div
-                v-if="uploadCount > 0"
+                v-if="uploadCount > 0 && items.toSort"
                 class="overflow-hidden rounded-card bg-canvas"
             >
                 <FmRow

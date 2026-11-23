@@ -86,8 +86,6 @@ export type SettingsSection = {
     href: string;
     /** The feature of the family that shows it; without one it is always there. */
     feature?: App.Enums.Feature;
-    /** The ability the person needs; without one every account sees it. */
-    ability?: string;
     /** The group of the index. */
     group: SettingsGroup;
     /** The line under the name on the phone, from the props of the page; null for none. */
@@ -95,16 +93,12 @@ export type SettingsSection = {
 };
 
 /**
- * The sections of the settings the family and the person can use, in the order of the boards.
+ * The sections of the settings the family can use, in the order of the boards.
  *
  * @param features - the features of the family; null (no family, tests) shows every section
- * @param can - whether the person has an ability
  * @returns the sections, translated now
  */
-export function settingsSections(
-    features: Features | null,
-    can: (ability: string) => boolean,
-): SettingsSection[] {
+export function settingsSections(features: Features | null): SettingsSection[] {
     const all: SettingsSection[] = [
         {
             key: 'account',
@@ -236,9 +230,5 @@ export function settingsSections(
         },
     ];
 
-    return all.filter(
-        (section) =>
-            featureOn(features, section.feature) &&
-            (section.ability === undefined || can(section.ability)),
-    );
+    return all.filter((section) => featureOn(features, section.feature));
 }
