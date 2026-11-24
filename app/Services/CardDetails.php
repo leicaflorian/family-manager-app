@@ -22,6 +22,7 @@ use App\Data\DocumentData;
 use App\Data\OptionData;
 use App\Enums\Feature;
 use App\Models\Document;
+use App\Models\Loan;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
@@ -48,7 +49,7 @@ use LogicException;
  * Everything the page of one card needs: its detail, as the person reads it,
  * with its payments ({@see CardBudgets}), and the data of its form, both built
  * from the description of the card type. With the Budget off the card has
- * neither payments nor consumption.
+ * neither payments nor consumption: a loan keeps only its figures.
  */
 final readonly class CardDetails
 {
@@ -90,7 +91,12 @@ final readonly class CardDetails
         ]);
         $documents = $this->documentsPage($type, $row, $documentsPage, static fn (int $number): string => $address($number, $paymentsPage));
         $budgetOn = $this->features->on(Feature::Budget);
-        $budget = $budgetOn ? $this->budgets->of($card, $user, $today) : null;
+        $budget = match (true) {
+            $budgetOn => $this->budgets->of($card, $user, $today),
+            // Without the Budget a loan still shows its instalment and how far it is, from its dates
+            $card instanceof Loan => $this->budgets->loanFigures($card, $user, $today),
+            default => null,
+        };
         $dates = $this->dates($type, $card);
         $status = $this->status($type, $card);
 

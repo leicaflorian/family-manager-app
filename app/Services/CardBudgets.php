@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Actions\Loans\RefreshLoan;
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
@@ -169,12 +170,44 @@ final readonly class CardBudgets
     private function loan(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $loan));
-        $first = $this->running($planned, $today);
+
+        return $this->budget($loan, $planned, $user, $today,
+            nextLabel: __('Next instalment'),
+            numbers: $this->loanNumbers($loan, $this->running($planned, $today)),
+            paymentsLabel: __('Instalments paid'),
+            paymentsMore: __('See all the instalments, year by year'),
+            loan: $this->loanProgress($loan),
+        );
+    }
+
+    /**
+     * A loan without the Budget: the instalment, the total, the cost and how far it is paid, which the loan works
+     * out from its dates ({@see RefreshLoan}); no due dates, planned expenses nor payments.
+     *
+     * @param  Loan  $loan  the loan
+     * @param  User  $user  whoever looks at the card
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its figures only
+     */
+    public function loanFigures(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
+    {
+        return $this->budget($loan, [], $user, $today, numbers: $this->loanNumbers($loan, null), loan: $this->loanProgress($loan));
+    }
+
+    /**
+     * The figures of a loan: the instalment (every when, from its planned expense), the total to pay and the cost.
+     *
+     * @param  Loan  $loan  the loan
+     * @param  PlannedExpense|PlannedIncome|null  $first  its running planned expense, null without one
+     * @return list<CardNumberData>
+     */
+    private function loanNumbers(Loan $loan, PlannedExpense|PlannedIncome|null $first): array
+    {
         $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
-        $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
         $installment = $loan->installment_amount ?? $first?->amount;
         $financed = $loan->total_amount === null ? null : round((float) $loan->total_amount, 2);
-        $numbers = [
+
+        return array_values(array_filter([
             $installment === null ? null : new CardNumberData(__('Instalment'), round((float) $installment, 2), hint: $first === null ? null : $this->every($first, withDay: true)),
             match (true) {
                 $total === null => null,
@@ -182,20 +215,26 @@ final readonly class CardBudgets
                 default => new CardNumberData(__('Total to pay'), $total, hint: __('of :amount financed'), hint_amount: $financed),
             },
             $loan->cost === null ? null : new CardNumberData(__('Cost'), round((float) $loan->cost, 2), hint: __('interest and fees')),
-        ];
+        ]));
+    }
 
-        return $this->budget($loan, $planned, $user, $today,
-            nextLabel: __('Next instalment'),
-            numbers: array_values(array_filter($numbers)),
-            paymentsLabel: __('Instalments paid'),
-            paymentsMore: __('See all the instalments, year by year'),
-            loan: [
-                'count' => $loan->installments_count,
-                'paid' => $loan->installments_paid,
-                'paid_amount' => $total === null || $left === null ? null : round($total - $left, 2),
-                'left_amount' => $left,
-            ],
-        );
+    /**
+     * How far a loan is paid, from the figures it works out from its dates.
+     *
+     * @param  Loan  $loan  the loan
+     * @return array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}
+     */
+    private function loanProgress(Loan $loan): array
+    {
+        $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
+        $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
+
+        return [
+            'count' => $loan->installments_count,
+            'paid' => $loan->installments_paid,
+            'paid_amount' => $total === null || $left === null ? null : round($total - $left, 2),
+            'left_amount' => $left,
+        ];
     }
 
     /**

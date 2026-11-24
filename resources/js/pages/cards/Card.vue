@@ -287,7 +287,14 @@ function link(id: number): void {
                     preserve-scroll
                 />
 
-                <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
+                <div
+                    v-if="
+                        card.budget &&
+                        (card.budget.planned_label ||
+                            card.budget.payments_label)
+                    "
+                    class="mt-3 flex flex-col gap-5"
+                >
                     <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
 

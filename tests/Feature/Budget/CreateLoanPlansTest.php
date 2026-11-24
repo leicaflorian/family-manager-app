@@ -130,6 +130,38 @@ test('changing the loan afterwards does not bring its start back to the past', f
     expect(createLoanPlansOf($this->marco)[0]->start_date?->toDateString())->toBe('2027-02-01');
 });
 
+test('a loan on the 31st keeps its day every month when the first instalment falls on a short month', function (): void {
+    $loan = insideFamilyOf($this->marco, fn (): Loan => Loan::query()->create([
+        'name' => 'Prestito auto',
+        'status' => LoanStatus::Active,
+        'start_date' => '2025-01-31',
+        'installments_count' => 36,
+        'installment_amount' => 300,
+        'final_installment_amount' => 3000,
+    ]));
+    $this->travelTo(CarbonImmutable::parse('2027-02-10 10:00', 'Europe/Rome'));
+
+    insideFamilyOf($this->marco, fn (): int => resolve(CreateLoanPlans::class)->handle(CarbonImmutable::today('Europe/Rome')));
+
+    $plans = array_values(array_filter(createLoanPlansOf($this->marco), fn (PlannedExpense $plan): bool => $plan->card_id === $loan->id));
+    $dates = fn (CarbonImmutable $from, CarbonImmutable $to): array => array_map(
+        fn ($deadline): array => [$deadline->occurrence->date->toDateString(), $deadline->occurrence->amount],
+        insideFamilyOf($this->marco, fn (): array => resolve(Deadlines::class)->between($plans, $from, $to)),
+    );
+
+    // The instalment of February is due on the 28th, then the 31st again; nothing is late before today
+    expect($dates(CarbonImmutable::parse('2025-01-01'), CarbonImmutable::parse('2027-02-09')))->toBe([])
+        ->and($dates(CarbonImmutable::parse('2027-02-10'), CarbonImmutable::parse('2027-05-31')))->toBe([
+            ['2027-02-28', 300.0], ['2027-03-31', 300.0], ['2027-04-30', 300.0], ['2027-05-31', 300.0],
+        ])
+        // The final balloon payment sits on the last instalment, a real due date of the series
+        ->and($dates(CarbonImmutable::parse('2027-11-01'), CarbonImmutable::parse('2028-01-31')))->toBe([
+            ['2027-11-30', 300.0], ['2027-12-31', 3000.0],
+        ])
+        // The figures of the loan count from its own start, untouched
+        ->and(insideFamilyOf($this->marco, fn (): ?int => Loan::query()->findOrFail($loan->id)->installments_paid))->toBe(25);
+});
+
 test('it reads only the loans of the current family', function (): void {
     $rossi = registerFamily('Rossi', 'rossi@example.com');
     insideFamilyOf($rossi, fn (): Loan => Loan::query()->create(['name' => 'Altro', 'status' => LoanStatus::Active, 'start_date' => '2030-01-01', 'installments_count' => 12, 'installment_amount' => 100]));

@@ -59,7 +59,6 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Banks\FakeBankFeed;
-use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Services\Reading\DocumentProposal;
 use App\Services\Reading\ReadingContext;
@@ -202,7 +201,6 @@ final class BianchiFamilySeeder extends Seeder
             $marco = $this->createFamily->handle('Bianchi', 'Marco', 'Bianchi', 'marco.bianchi@example.com', self::PASSWORD);
             // The Budget is on before the cards: a loan saved with it off would get no planned expense of its own
             $marco->family->forceFill(['budget_enabled' => true])->save();
-            resolve(FamilyFeatures::class)->forget($marco->family);
 
             CurrentFamily::using($marco->family_id, function () use ($marco): void {
                 $this->createPeople($marco);

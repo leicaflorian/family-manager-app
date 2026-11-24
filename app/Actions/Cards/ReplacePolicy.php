@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Cards;
 
-use App\Enums\Feature;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\ReminderStatus;
 use App\Models\Expense;
@@ -12,23 +11,20 @@ use App\Models\InsurancePolicy;
 use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Services\Deadlines;
-use App\Services\FamilyFeatures;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
  * Replaces old insurance policies with a new one: the old ones are cancelled, their renewal reminder is closed, their
- * premium moves to the new policy (or ends when the new one has its own) and the payment just made moves too. With the
- * Budget off the premiums and the payments stay where they are. The caller opens the transaction and has checked
- * permissions and family.
+ * premium moves to the new policy (or ends when the new one has its own) and the payment just made moves too. The
+ * caller opens the transaction and has checked permissions and family.
  */
 final readonly class ReplacePolicy
 {
     /**
      * @param  Deadlines  $deadlines  tells whether a due date is paid
-     * @param  FamilyFeatures  $features  tells whether the family uses the Budget
      */
-    public function __construct(private Deadlines $deadlines, private FamilyFeatures $features) {}
+    public function __construct(private Deadlines $deadlines) {}
 
     /** The `source_field` of the automatic renewal reminder of a policy. */
     private const string EXPIRY_FIELD = 'insurance_policies.expiry_date';
@@ -42,20 +38,10 @@ final readonly class ReplacePolicy
      */
     public function handle(InsurancePolicy $new, Collection $old, ?Expense $payment = null): void
     {
-        $budgetOn = $this->features->on(Feature::Budget);
-
         foreach ($old as $policy) {
             $this->closeReminders($policy);
-
-            if ($budgetOn) {
-                $this->movePremiums($new, $policy);
-            }
-
+            $this->movePremiums($new, $policy);
             $policy->forceFill(['status' => InsurancePolicyStatus::Cancelled])->save();
-        }
-
-        if (! $budgetOn) {
-            return;
         }
 
         $payment?->forceFill(['card_type' => $new->getMorphClass(), 'card_id' => $new->id])->save();

@@ -158,11 +158,12 @@ final class LoanSchedule
      * @param  Loan  $loan  The loan.
      * @param  ?int  $categoryId  The category of the loan expenses.
      * @param  ?int  $defaultAccountId  The account given when the loan has none.
+     * @param  ?LoanTerms  $terms  The terms of the loan, when the caller has them already.
      * @return ?array<string, mixed> The columns of `planned_expenses`; null when the loan is not active or has no instalment amount or start date.
      */
-    public function plannedExpense(Loan $loan, ?int $categoryId, ?int $defaultAccountId): ?array
+    public function plannedExpense(Loan $loan, ?int $categoryId, ?int $defaultAccountId, ?LoanTerms $terms = null): ?array
     {
-        $terms = LoanTerms::of($loan);
+        $terms ??= LoanTerms::of($loan);
 
         if ($terms->status !== LoanStatus::Active || ! $terms->start instanceof CarbonImmutable || $terms->installment === null) {
             return null;
@@ -187,32 +188,24 @@ final class LoanSchedule
     }
 
     /**
-     * The first instalment of the loan on `$from` or after it, for a planned expense that starts late (the Budget
-     * turned on while the loan was already running): its due dates before then are not owed to the Budget.
+     * The instalments of the loan on `$from` or after it, without exceptions, for a planned expense that starts late
+     * (the Budget turned on while the loan was already running): its due dates before then are not owed to the Budget.
+     * The last one is the final balloon payment, when the loan has one.
      *
      * @param  LoanTerms  $terms  The loan.
      * @param  CarbonImmutable  $from  The first day that counts.
-     * @return ?CarbonImmutable Null without a start date, or when every instalment is before `$from`.
+     * @return list<array{date: CarbonImmutable, amount: ?float}> Empty without a start date, or when every instalment is before `$from`.
      */
-    public function firstInstallmentFrom(LoanTerms $terms, CarbonImmutable $from): ?CarbonImmutable
+    public function installmentsFrom(LoanTerms $terms, CarbonImmutable $from): array
     {
-        if (! $terms->start instanceof CarbonImmutable) {
-            return null;
-        }
-
         // A loan without a count nor a last date runs until the limit, like its open planned expense
-        $count = min($this->derive($terms, [], $from)->installmentsCount ?? self::MAX_INSTALLMENTS, self::MAX_INSTALLMENTS);
+        $count = $this->derive($terms, [], $from)->installmentsCount ?? self::MAX_INSTALLMENTS;
         $day = $from->toDateString();
 
-        for ($k = 0; $k < $count; $k++) {
-            $date = $this->addMonths($terms->start, $k);
-
-            if ($date->toDateString() >= $day) {
-                return $date;
-            }
-        }
-
-        return null;
+        return array_values(array_filter(
+            $this->installments($terms->withCount($count), []),
+            static fn (array $installment): bool => $installment['date'] instanceof CarbonImmutable && $installment['date']->toDateString() >= $day,
+        ));
     }
 
     /**

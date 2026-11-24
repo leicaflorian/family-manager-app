@@ -65,7 +65,7 @@ test('a new subscription creates no expense with the Budget off, even when alrea
     });
 });
 
-test('replacing a policy with the Budget off moves neither its payment nor its premium', function (): void {
+test('replacing a policy with the Budget off moves its premium but not its payment', function (): void {
     $marco = registerFamily();
     [$old, $premium, $payment] = insideFamilyOf($marco, function () use ($marco): array {
         $vehicle = Vehicle::factory()->create(['family_id' => $marco->family_id]);
@@ -83,9 +83,12 @@ test('replacing a policy with the Budget off moves neither its payment nor its p
     ])->assertRedirect();
 
     insideFamilyOf($marco, function () use ($old, $premium, $payment): void {
+        $new = InsurancePolicy::query()->where('title', 'RC auto 2027')->sole();
+
+        // The premium moves while nobody sees it, so the Budget finds it right when turned on again
         expect(InsurancePolicy::query()->findOrFail($old->id)->status->value)->toBe('cancelled')
             ->and(Expense::query()->findOrFail($payment->id)->card_id)->toBe($old->id)
-            ->and(PlannedExpense::query()->findOrFail($premium->id)->card_id)->toBe($old->id);
+            ->and(PlannedExpense::query()->findOrFail($premium->id)->card_id)->toBe($new->id);
     });
 });
 
@@ -149,19 +152,25 @@ test('a loan saved with the Budget off creates no planned expense, and works out
 
     $loan = insideFamilyOf($marco, fn (): Loan => Loan::query()->sole());
 
-    expect(insideFamilyOf($marco, fn (): int => PlannedExpense::query()->count()))->toBe(0)
-        ->and($loan->installment_amount)->toBe('650.00')
-        ->and($loan->total_to_pay)->toBe('156000.00')
-        ->and($loan->installments_paid)->toBe(23)
-        ->and($loan->installments_left)->toBe(217)
-        ->and($loan->end_date?->toDateString())->toBe('2044-12-01');
+    expect(insideFamilyOf($marco, fn (): int => PlannedExpense::query()->count()))->toBe(0);
+
+    // The card shows the instalment, the total and the instalments past, with nothing of the payments
+    $this->actingAs($marco)->get(route('cards.show', ['type' => 'loan', 'id' => $loan->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        // Amounts come back from JSON as whole numbers
+        ->where('card.budget.numbers', fn ($numbers): bool => collect($numbers)->map(fn (array $number): array => [$number['label'], (float) $number['amount']])->values()->all() === [['Instalment', 650.0], ['Total to pay', 156000.0]])
+        ->where('card.budget.installments_paid', 23)
+        ->where('card.budget.installments_count', 240)
+        ->where('card.budget.paid_amount', fn ($amount): bool => (float) $amount === 14950.0)
+        ->where('card.budget.left_amount', fn ($amount): bool => (float) $amount === 141050.0)
+        ->where('card.budget.next', null)
+        ->where('card.budget.due_label', null)
+        ->where('card.budget.planned_label', null)
+        ->where('card.budget.payments_label', null)
+        ->where('card.budget.can_pay', false)
+        ->where('card.budget.can_add_expense', false));
 
     // A later change of the loan does not create it either
     insideFamilyOf($marco, fn (): bool => $loan->update(['installment_amount' => 660]));
 
     expect(insideFamilyOf($marco, fn (): int => PlannedExpense::query()->count()))->toBe(0);
-
-    $this->actingAs($marco)->get(route('cards.show', ['type' => 'loan', 'id' => $loan->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('card.budget', null)
-        ->where('card.values', fn ($values): bool => collect($values)->contains(fn (array $value): bool => $value['label'] === 'Instalment')));
 });
