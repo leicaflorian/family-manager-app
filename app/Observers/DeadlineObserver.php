@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Actions\Budget\FollowDeadlineDate;
 use App\Actions\Reminders\SyncReminders;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\Expiries;
@@ -23,8 +24,9 @@ final readonly class DeadlineObserver
 {
     /**
      * @param  SyncReminders  $sync  Writes the reminders.
+     * @param  FollowDeadlineDate  $follow  Moves the planned expense that pays a deadline of the card with its date.
      */
-    public function __construct(private SyncReminders $sync) {}
+    public function __construct(private SyncReminders $sync, private FollowDeadlineDate $follow) {}
 
     /**
      * The card is about to be saved: one that is already past its date takes its expired status now, so it is not
@@ -53,7 +55,7 @@ final readonly class DeadlineObserver
      */
     public function saved(Model $card): void
     {
-        DB::afterCommit(fn () => $this->sync($card));
+        DB::afterCommit(fn () => $this->sync($card, true));
     }
 
     /**
@@ -70,8 +72,9 @@ final readonly class DeadlineObserver
      * Brings the reminders of the card in line, in the family of the card.
      *
      * @param  Model  $card  the card
+     * @param  bool  $follow  whether the planned expense of a changed date follows it (a save, not a delete)
      */
-    private function sync(Model $card): void
+    private function sync(Model $card, bool $follow = false): void
     {
         $familyId = $card->getAttribute('family_id');
 
@@ -79,6 +82,13 @@ final readonly class DeadlineObserver
             return;
         }
 
-        CurrentFamily::using($familyId, fn () => $this->sync->handle($card, CarbonImmutable::today('Europe/Rome')));
+        CurrentFamily::using($familyId, function () use ($card, $follow): void {
+            // The expense moves first, so the reminders are written against its new due dates
+            if ($follow) {
+                $this->follow->handle($card);
+            }
+
+            $this->sync->handle($card, CarbonImmutable::today('Europe/Rome'));
+        });
     }
 }
