@@ -66,6 +66,38 @@ describe('AuthLayout', () => {
         ).toEqual(['The deadlines', 'The documents']);
     });
 
+    it('numbers the steps of the panel and marks the current one', () => {
+        render(AuthLayout, {
+            props: {
+                panel: {
+                    title: 'Everything about the family, in one place.',
+                    text: 'Four steps.',
+                    steps: ['Who you are', 'The home', 'What you use'],
+                    step: 1,
+                },
+            },
+        });
+
+        const steps = screen.getAllByRole('listitem');
+        expect(steps.map((li) => li.textContent?.trim())).toEqual([
+            'Who you are',
+            '2 The home',
+            '3 What you use',
+        ]);
+        expect(steps[1]).toHaveAttribute('aria-current', 'step');
+        expect(steps[0]).not.toHaveAttribute('aria-current');
+    });
+
+    it('widens the card when the page asks for it', () => {
+        const { container } = render(AuthLayout, {
+            props: { width: 'wide' },
+        });
+
+        expect(container.querySelector('main > div')).toHaveClass(
+            'max-w-[640px]',
+        );
+    });
+
     it('shows the default sentence of the panel without one', () => {
         render(AuthLayout, { props: { title: 'Log in' } });
 

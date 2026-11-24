@@ -180,7 +180,7 @@ export const peopleList: App.Data.PersonData[] = [
         last_name: 'Bianchi',
         initials: 'MB',
         photo: null,
-        role_label: 'Parent',
+        role_label: 'Adult / Parent',
         age: 44,
         account_label: 'Administrator',
         is_me: true,
@@ -193,7 +193,7 @@ export const peopleList: App.Data.PersonData[] = [
         last_name: 'Bianchi',
         initials: 'LB',
         photo: null,
-        role_label: 'Parent',
+        role_label: 'Adult / Parent',
         age: 40,
         account_label: 'Administrator',
         is_me: false,
@@ -306,7 +306,7 @@ export const organizationTypes: App.Data.OptionData[] = [
 
 /** Who a person can be in the family. */
 export const personRoles: App.Data.OptionData[] = [
-    { value: 'parent', label: 'Parent', help: null },
+    { value: 'parent', label: 'Adult / Parent', help: null },
     { value: 'child', label: 'Child', help: null },
     { value: 'other', label: 'Other', help: null },
 ];

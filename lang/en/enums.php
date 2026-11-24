@@ -178,7 +178,7 @@ return [
         'other' => 'Other',
     ],
     'person_role' => [
-        'parent' => 'Parent',
+        'parent' => 'Adult / Parent',
         'child' => 'Child',
         'other' => 'Other',
     ],
