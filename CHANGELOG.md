@@ -2,6 +2,35 @@
 
 All notable changes to Fameja.app.
 
+## [2.8.0] - 2026-11-24
+
+### Features per family
+- Budget and Mail can be turned on or off per family (`FamilyFeatures` service, `features` on families), with a new *What you use* page in the settings and an undo for a switch that was not saved.
+- With the Budget off: routes, menus, search and bank are hidden; Agenda, Home, weekly mail and calendar show no payments; import proposes no money; cards, loans and areas show no planned expenses or amounts due; hidden notices stay untouched.
+- Loans keep their figures (instalment, total, instalments past) without the Budget; when the Budget is turned on, `CreateLoanPlans` plans the missing expenses, with the same day every month for loans on the 29th-31st.
+- Turning the Budget back on: due dates of the off months are waived (not late) but can still be paid, only after a real pause. The instalment number counts from the start of the loan.
+- Without a mail domain the Mail is not offered and new families get no inbox address.
+
+### Welcome and Home
+- Welcome in four steps for new accounts, with stable rows.
+- "To begin" checklist on the new Home: steps of the new home, ticked steps stay ticked, steps can be skipped or hidden.
+- People are saved by one action (`SavePerson`).
+
+### Interface
+- Info button ("i") on every page, with what the page is for, how to use it and what to know; also on Search and Movement on the phone.
+- Page title, head and breadcrumb come from `usePageMeta`; navigation and settings come from one registry.
+- Components change at the wide layout instead of `lg:`; the header title follows the computer layout.
+- The weight of a file that is too heavy is written the Italian way in every language.
+- Morning and weekly mails link a hand-written reminder to its edit page, like the bell.
+
+### Cleanup and refactoring
+- Shared model concerns for expense and income links, `AgendaEntries`, `RunsPerFamily` for the per-family commands, `FamilySetting::current()`, `User::mailLocale()`, user scopes for family accounts, bank feed helpers.
+- Removed unused frontend files, exports, dependencies (class-variance-authority, concurrently), the shadcn `components.json`, `FmReminderGroup` and unused translations and helpers.
+- Docs: README, AGENTS and learnings updated (two canvases, features per family, the «i» of every page).
+
+### Database
+- Three new migrations: features on families, checklist hidden date on users, checklist columns on family settings (all additive).
+
 ## [2.7.0] - 2026-11-23
 
 ### Settings

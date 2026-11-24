@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.8.0",
+        "date": "2026-11-24",
+        "notes": {
+            "it": [
+                "Ora puoi scegliere cosa usi: Bilancio e Posta si accendono e si spengono da *Cosa usi* nelle impostazioni.",
+                "Con il Bilancio spento non vedi più pagamenti, importi e spese previste in Home, Agenda, mail settimanale e calendario.",
+                "Se riaccendi il Bilancio, le scadenze dei mesi in cui era spento non risultano in ritardo, ma puoi pagarle lo stesso.",
+                "I finanziamenti mostrano rata, totale e rate passate anche con il Bilancio spento, e il numero della rata parte dall'inizio del finanziamento.",
+                "Il benvenuto per chi entra la prima volta ora è in quattro passi.",
+                "In Home trovi «Per cominciare», con i passi da fare: quelli completati restano spuntati.",
+                "Su ogni pagina c'è il pulsante «i» che spiega a cosa serve, come si usa e cosa sapere.",
+                "Senza il dominio della posta, la Posta per le bollette non viene proposta."
+            ],
+            "en": [
+                "You can now choose what you use: Budget and Mail can be turned on or off from *What you use* in the settings.",
+                "With the Budget off you no longer see payments, amounts and planned expenses in the Home, Agenda, weekly mail and calendar.",
+                "If you turn the Budget back on, due dates from the months it was off are not counted as late, but you can still pay them.",
+                "Loans show instalment, total and instalments past even with the Budget off, and the instalment number counts from the start of the loan.",
+                "The welcome for people entering for the first time now has four steps.",
+                "The Home has a \"To begin\" list of steps to do: the ones you completed stay ticked.",
+                "Every page has an \"i\" button that explains what it is for, how to use it and what to know.",
+                "Without a mail domain, the Mail for bills is not offered."
+            ]
+        }
+    },
+    {
         "version": "2.7.0",
         "date": "2026-11-23",
         "notes": {
