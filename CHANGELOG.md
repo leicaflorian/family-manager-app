@@ -2,6 +2,11 @@
 
 All notable changes to Fameja.app.
 
+## [2.8.1] - 2026-11-24
+
+### Tests
+- The mail domain is now set in `phpunit.xml` for every test, because the CI has no `.env` value (this fixes the failures that blocked the 2.8.0 deploy).
+
 ## [2.8.0] - 2026-11-24
 
 ### Features per family

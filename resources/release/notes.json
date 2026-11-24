@@ -1,5 +1,17 @@
 [
     {
+        "version": "2.8.1",
+        "date": "2026-11-24",
+        "notes": {
+            "it": [
+                "Piccole correzioni interne per tenere l'app stabile: non cambia nulla in quello che vedi o usi."
+            ],
+            "en": [
+                "Small behind-the-scenes fixes to keep the app stable: nothing changes in what you see or use."
+            ]
+        }
+    },
+    {
         "version": "2.8.0",
         "date": "2026-11-24",
         "notes": {
