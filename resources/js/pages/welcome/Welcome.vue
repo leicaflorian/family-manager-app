@@ -49,8 +49,9 @@ const appName = useAppName();
 /** The buttons sit in a row on the computer, one under the other elsewhere. */
 const computer = useComputerLayout();
 
-/** A person to add, as written in the form. */
+/** A person to add, as written in the form; `key` only tells the rows apart on the page and is not sent. */
 type NewPerson = {
+    key: number;
     first_name: string;
     last_name: string;
     role: string;
@@ -199,7 +200,7 @@ const howItWorks = computed<Tile[]>(() => [
               tile: cn('bg-paperwork-soft text-paperwork-text'),
               title: trans('Mail for the bills'),
               text: trans(
-                  'Forward the bills to the address of the family: they arrive here and we read them.',
+                  'Forward the bills that arrive by email: we read them',
               ),
           }
         : {
@@ -219,11 +220,15 @@ const infoSentence = computed(() =>
     ).split(':icon'),
 );
 
+/** The key of the next row added: a removed row never gives its key to another one. */
+let nextKey = 0;
+
 /**
  * Adds a row for a person, with the surname of the family already written.
  */
 function addPerson(): void {
     form.people.push({
+        key: nextKey++,
         first_name: '',
         last_name: me?.last_name ?? '',
         role: roles[0]?.value ?? '',
@@ -259,6 +264,7 @@ function done(): void {
     form.transform((data) => ({
         ...data,
         me: me === null ? null : data.me,
+        people: data.people.map(({ key: _key, ...person }) => person),
         home: withoutHome.value ? null : data.home,
         features: features.can_change ? data.features : null,
     })).submit(store(), {
@@ -343,7 +349,7 @@ function done(): void {
             </fieldset>
             <fieldset
                 v-for="(person, i) in form.people"
-                :key="i"
+                :key="person.key"
                 class="m-0 flex flex-col gap-3 rounded-card border-[1.5px] border-edge p-4"
             >
                 <legend class="sr-only">

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { fireEvent, screen, within } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { personDetail, personRoles } from '@/test/fixtures';
 import { choose, renderPage, settle } from '@/test/page';
@@ -89,6 +90,56 @@ describe('Welcome', () => {
         await tap('Remove');
 
         expect(screen.queryByLabelText('First name')).not.toBeInTheDocument();
+    });
+
+    it('removing the middle person keeps what the others wrote', async () => {
+        renderPage(Welcome, props);
+
+        for (const [name, tax] of [
+            ['Laura', 'LAURA'],
+            ['Giulia', 'GIULIA'],
+            ['Paolo', 'PAOLO'],
+        ] as const) {
+            await tap('Add a person');
+            const names = screen.getAllByLabelText('First name');
+            const taxes = screen.getAllByLabelText('Tax code (optional)');
+            await fireEvent.update(names[names.length - 1]!, name);
+            await fireEvent.update(taxes[taxes.length - 1]!, tax);
+        }
+        await settle();
+        const roles = screen.getAllByRole('button', {
+            name: 'In the family they are',
+        });
+        await userEvent.click(roles[1]!);
+        const list = await within(
+            roles[1]!.closest<HTMLElement>('[data-type]')!,
+        ).findByRole('listbox');
+        await userEvent.click(
+            within(list).getByRole('option', { name: 'Child' }),
+        );
+        await settle();
+
+        // The field Paolo typed in: with a stable row it stays the same one (focus and what FormKit keeps go with it)
+        const paolo = screen.getAllByLabelText('First name')[2]!;
+
+        await fireEvent.click(
+            screen.getAllByRole('button', { name: 'Remove' })[1]!,
+        );
+        await settle();
+
+        expect(paolo).toBeInTheDocument();
+        expect(paolo).toHaveValue('Paolo');
+        const values = (label: string): string[] =>
+            screen
+                .getAllByLabelText(label)
+                .map((field) => (field as HTMLInputElement).value);
+        expect(values('First name')).toEqual(['Laura', 'Paolo']);
+        expect(values('Tax code (optional)')).toEqual(['', 'LAURA', 'PAOLO']);
+        expect(
+            screen
+                .getAllByRole('button', { name: 'In the family they are' })
+                .map((button) => button.textContent?.trim()),
+        ).toEqual(['Adult / Parent', 'Adult / Parent']);
     });
 
     it('asks for the home at the second step, and «later» leads to the third', async () => {
@@ -204,6 +255,8 @@ describe('Welcome', () => {
             }),
             expect.anything(),
         );
+        const sent = post.mock.calls[0]![1] as { people: object[] };
+        expect(sent.people[0]).not.toHaveProperty('key');
     });
 
     it('leaves the home out when it is added later', async () => {
