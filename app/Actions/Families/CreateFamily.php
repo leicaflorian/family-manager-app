@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Families;
 
 use App\Actions\People\SavePerson;
+use App\Enums\DocumentCategoryRole;
 use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Models\DocumentCategory;
@@ -60,7 +61,7 @@ final readonly class CreateFamily
                     'user_id' => $account->id,
                 ]);
 
-                $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks(), DefaultCategories::documentCardTypes(), DefaultCategories::documentGalleries());
+                $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks(), DefaultCategories::documentCardTypes(), DefaultCategories::documentGalleries(), DefaultCategories::documentRoles());
                 $this->createTree(ExpenseCategory::class, DefaultCategories::expenses());
                 FamilySetting::query()->create([]);
 
@@ -82,8 +83,9 @@ final readonly class CreateFamily
      * @param  array<string, array{icon: string, color: string}>  $looks  icon and colour of the main categories
      * @param  array<string, string>  $cardTypes  the card type of the categories, by English name
      * @param  list<string>  $galleries  the English names of the categories shown as the gallery
+     * @param  array<string, DocumentCategoryRole>  $roles  the fixed role of the categories, by English name
      */
-    private function createTree(string $model, array $tree, array $looks = [], array $cardTypes = [], array $galleries = []): void
+    private function createTree(string $model, array $tree, array $looks = [], array $cardTypes = [], array $galleries = [], array $roles = []): void
     {
         $sort = 0;
 
@@ -91,7 +93,7 @@ final readonly class CreateFamily
             $parent = $model::query()->create(['name' => __($main), 'sort' => ++$sort, ...$looks[$main] ?? [], ...isset($cardTypes[$main]) ? ['card_type' => $cardTypes[$main]] : []]);
 
             foreach ($subcategories as $position => $name) {
-                $model::query()->create(['name' => __($name), 'parent_id' => $parent->id, 'sort' => $position + 1, ...isset($cardTypes[$name]) ? ['card_type' => $cardTypes[$name]] : [], ...in_array($name, $galleries, true) ? ['gallery' => true] : []]);
+                $model::query()->create(['name' => __($name), 'parent_id' => $parent->id, 'sort' => $position + 1, ...isset($cardTypes[$name]) ? ['card_type' => $cardTypes[$name]] : [], ...in_array($name, $galleries, true) ? ['gallery' => true] : [], ...isset($roles[$name]) ? ['role' => $roles[$name]] : []]);
             }
         }
     }

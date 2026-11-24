@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\DocumentCategoryRole;
 use App\Enums\DocumentStatus;
 use App\Enums\EmploymentStatus;
 use App\Enums\VehicleStatus;
@@ -44,18 +45,48 @@ function expectedLinkedDocument($card, array $state): Document
     return $document;
 }
 
-test('an active vehicle expects its registration document, found by «libretto» or «registration» in the title', function (): void {
+test('an active vehicle expects its registration document, found by the category with the role, or one under it', function (): void {
     insideBianchi(function (): void {
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
 
-        expect(resolve(ExpectedDocuments::class)->for($panda, $this->today))->toBe(['expected' => 1, 'missing' => ['Vehicle registration document']]);
+        expect($category)->not->toBeNull()
+            ->and(resolve(ExpectedDocuments::class)->for($panda, $this->today))->toBe(['expected' => 1, 'missing' => ['Vehicle registration document']]);
 
-        expectedLinkedDocument($panda, ['title' => 'Libretto Panda']);
+        $sub = DocumentCategory::factory()->create(['family_id' => CurrentFamily::id(), 'parent_id' => $category->id]);
+        expectedLinkedDocument($panda, ['title' => 'Carta di circolazione', 'category_id' => $sub->id]);
         expect(resolve(ExpectedDocuments::class)->for($panda->fresh(), $this->today))->toBe(['expected' => 1, 'missing' => []]);
 
         $other = Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
-        expectedLinkedDocument($other, ['title' => 'Vehicle registration 2019']);
+        expectedLinkedDocument($other, ['title' => 'Registration', 'category_id' => $category->id]);
         expect(resolve(ExpectedDocuments::class)->for($other, $this->today)['missing'])->toBe([]);
+    });
+});
+
+test('a document titled «Libretto» in another category is not enough any more', function (): void {
+    insideBianchi(function (): void {
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $vehicles = DocumentCategory::query()->where('card_type', 'vehicle')->whereNull('parent_id')->sole();
+        expectedLinkedDocument($panda, ['title' => 'Libretto Panda', 'category_id' => $vehicles->id]);
+
+        expect(resolve(ExpectedDocuments::class)->for($panda->fresh(), $this->today)['missing'])->toBe(['Vehicle registration document']);
+    });
+});
+
+test('without the category with the role the vehicle expects nothing, and a renamed category still counts', function (): void {
+    insideBianchi(function (): void {
+        $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
+        $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
+        $category->update(['name' => 'Libretti']);
+        expectedLinkedDocument($panda, ['category_id' => $category->id]);
+
+        expect(resolve(ExpectedDocuments::class)->for($panda->fresh(), $this->today))->toBe(['expected' => 1, 'missing' => []]);
+
+        $panda->documents()->detach();
+        $category->delete();
+
+        expect(resolve(ExpectedDocuments::class)->for($panda->fresh(), $this->today))->toBe(['expected' => 0, 'missing' => []])
+            ->and(collect(resolve(ExpectedDocuments::class)->missingFor($this->today))->where('card', 'Fiat Panda')->count())->toBe(0);
     });
 });
 
@@ -124,11 +155,13 @@ test('missingFor lists what is missing in every active vehicle and open ISEE, wi
         $panda = Vehicle::query()->where('name', 'Fiat Panda')->sole();
         $filing = Filing::query()->where('title', 'ISEE 2027')->sole();
 
-        expect($missing[0])->toBe(['card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
+        $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
+
+        expect($missing[0])->toBe(['card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id.'&category='.$category->id, 'document' => 'Vehicle registration document'])
             ->and(collect($missing)->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Average balance 2025 of Conto BPER'])
             ->and(collect($missing)->firstWhere('card', 'ISEE 2027')['href'])->toBe('/upload?link=filing%3A'.$filing->id);
 
-        expectedLinkedDocument($panda, ['title' => 'Libretto']);
+        expectedLinkedDocument($panda, ['title' => 'Libretto', 'category_id' => $category->id]);
         expect(collect(resolve(ExpectedDocuments::class)->missingFor($this->today))->where('card', 'Fiat Panda')->count())->toBe(0);
     });
 });

@@ -1238,6 +1238,7 @@ export type Channel = 'app' | 'email' | 'both';
 export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
 export type ConsumptionSource = 'reading' | 'manual';
 export type ConsumptionUnit = 'kwh' | 'smc' | 'm3';
+export type DocumentCategoryRole = 'vehicle_registration';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
 export type EmploymentStatus = 'active' | 'ended';

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Cards\CardTypes;
 use App\Data\CardNoticeData;
+use App\Enums\DocumentCategoryRole;
 use App\Enums\NoticeTone;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Enrollment;
 use App\Models\Filing;
 use App\Models\FinancialAccount;
@@ -206,7 +208,7 @@ test('the Panda without its registration document says what is missing', functio
 
     expect($missing)->not->toBeNull()
         ->and($missing->action_label)->toBe('Caricalo')
-        ->and($missing->action_href)->toBe('/upload?link=vehicle%3A'.$panda->id);
+        ->and($missing->action_href)->toBe('/upload?link=vehicle%3A'.$panda->id.'&category='.insideBianchi(fn (): int => DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration)->id));
 });
 
 test('the ISEE 2027 of Laura, as the board shows it, has 3 documents of 4 and misses the average balance', function (): void {

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\DocumentCategoryRole;
 use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Models\DocumentCategory;
@@ -87,4 +88,21 @@ test('the password has at least 10 characters, as the form says', function (): v
         ->assertSessionHasErrors('password');
 
     $this->assertGuest();
+});
+
+test('a new family gets the registration document category under Vehicles, with its fixed role', function (): void {
+    $this->post(route('register.store'), signUp())->assertSessionHasNoErrors();
+
+    $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
+
+    expect($category)->not->toBeNull()
+        ->and($category->name)->toBe('Vehicle registration document')
+        ->and($category->parent->name)->toBe('Vehicles')
+        ->and(DocumentCategory::query()->whereNotNull('role')->count())->toBe(1);
+});
+
+test('a family signing up in Italian gets «Libretto di circolazione»', function (): void {
+    $this->withHeader('Accept-Language', 'it')->post(route('register.store'), signUp())->assertSessionHasNoErrors();
+
+    expect(DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration)->name)->toBe('Libretto di circolazione');
 });

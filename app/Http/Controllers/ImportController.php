@@ -19,6 +19,7 @@ use App\Services\BudgetFormOptions;
 use App\Services\DocumentFormOptions;
 use App\Services\Reading\ImportProposals;
 use App\Support\ImportPage;
+use App\Support\PresetCategory;
 use App\Support\PresetLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,6 +76,8 @@ final class ImportController extends Controller
             // The documents imported with *Create the card* while other files failed: the page offers their card
             'cardDocuments' => is_string($cards) ? $cards : null,
             'presetLinks' => array_filter([PresetLink::fromUpload($request->query('link'))]),
+            // The document category the forms start with, when the page was opened with one
+            'presetCategory' => PresetCategory::from($request->query('category')),
             // The names the boxes of *What I do too* show for the expense: its category and the account it was paid with
             'expenseCategories' => BudgetFormOptions::categories(...),
             'accounts' => BudgetFormOptions::accounts(...),
@@ -106,7 +109,7 @@ final class ImportController extends Controller
         $cards = $this->offersCard($request) && $cards !== [] ? implode(',', $cards) : null;
 
         $response = match (true) {
-            $waiting !== [] => ImportPage::open($waiting, $request->query('link'))->with('import_failures', $failures),
+            $waiting !== [] => ImportPage::open($waiting, $request->query('link'), $request->query('category'))->with('import_failures', $failures),
             $cards !== null => to_route('cards.create', ['document' => $cards]),
             $card !== null => redirect(PresetLink::route($card)),
             default => to_route('documents.index'),
