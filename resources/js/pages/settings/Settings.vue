@@ -107,6 +107,7 @@ watch(
 );
 
 const { title, head } = usePageMeta({
+    info: 'settings',
     title: () => trans('Settings'),
 });
 </script>

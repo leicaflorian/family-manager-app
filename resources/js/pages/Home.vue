@@ -213,6 +213,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'home',
     title: () => trans('Hi, :name', { name: home.first_name }),
     head: () => trans('Home'),
 });

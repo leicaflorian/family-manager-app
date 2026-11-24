@@ -63,6 +63,7 @@ function send(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'invite',
     title: () => trans('Invite a family member'),
     parent: 'family',
 });

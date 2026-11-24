@@ -19,6 +19,7 @@ const { document } = defineProps<{
 const subtitle = computed(() => documentSubtitle(document));
 
 const { title, head } = usePageMeta({
+    info: 'document',
     title: () => document.title,
     parent: 'documents',
 });

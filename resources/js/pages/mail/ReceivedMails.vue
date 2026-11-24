@@ -246,6 +246,7 @@ async function copyCode(): Promise<void> {
 }
 
 const { title, head } = usePageMeta({
+    info: 'mail',
     title: () => trans('Received mail'),
 });
 </script>

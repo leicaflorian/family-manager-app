@@ -189,6 +189,7 @@ function readText(connection: App.Data.BankConnectionData): string | null {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-banks',
     title: () => trans('Linked banks'),
     parent: 'settings',
 });

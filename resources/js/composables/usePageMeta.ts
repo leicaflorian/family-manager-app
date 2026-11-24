@@ -4,6 +4,7 @@ import type { Section } from '@/components/fm/navigation';
 import { sectionLink } from '@/components/fm/navigation';
 import { usePageTrail } from '@/composables/usePageTrail';
 import type { TrailPiece } from '@/lib/pageTrail';
+import type { PageInfoKey } from '@/lib/pageInfo';
 import { PAGE_INFO } from '@/lib/titles';
 
 /** A level above the page: a section of the registry (label and address from there) or a piece written out. */
@@ -17,8 +18,8 @@ export type PageMetaOptions = {
     head?: MaybeRefOrGetter<string>;
     /** The levels above the page, from the top; without one the page is a page of a section and writes no trail. */
     parent?: MaybeRefOrGetter<ParentPiece | ParentPiece[]>;
-    /** The key of the explanation of the page (the «i» of the title); `FmTitle` does not show it yet. */
-    info?: string;
+    /** The key of the explanation of the page (`pageInfo.ts`): `FmTitle` and `FmCardHeader` show its «i». */
+    info?: PageInfoKey;
 };
 
 /** What `usePageMeta` gives back. */

@@ -104,6 +104,7 @@ function save(): void {
 useSaveShortcut(save, () => settings.can_edit && !saving.value);
 
 const { title, head } = usePageMeta({
+    info: 'settings-mail',
     title: () => trans('Address for the bills'),
     parent: 'settings',
 });

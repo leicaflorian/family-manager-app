@@ -201,6 +201,7 @@ function confirmDelete(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'to-sort',
     title: () => trans('To sort'),
 });
 </script>

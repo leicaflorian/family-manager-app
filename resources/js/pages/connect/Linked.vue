@@ -11,6 +11,7 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, onMounted } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
+import FmPageInfo from '@/components/fm/FmPageInfo.vue';
 import { isIos, isStandalone } from '@/lib/devices';
 import {
     cleanAddress,
@@ -104,9 +105,12 @@ onMounted(() => {
             >
                 <FmIcon :icon="Smartphone" :size="40" />
             </span>
-            <h1 class="m-0 text-title-mobile">
-                {{ $t('Phone linked') }}
-            </h1>
+            <div class="flex items-center gap-1.5">
+                <h1 class="m-0 text-title-mobile">
+                    {{ $t('Phone linked') }}
+                </h1>
+                <FmPageInfo info-key="linked" />
+            </div>
             <p class="m-0 max-w-[300px] text-body text-ink-soft">
                 {{
                     $t(

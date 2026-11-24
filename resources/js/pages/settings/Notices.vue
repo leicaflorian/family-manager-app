@@ -319,6 +319,7 @@ function save(): void {
 useSaveShortcut(save, () => page.can_change && !saving.value);
 
 const { title, head } = usePageMeta({
+    info: 'settings-notices',
     title: () => trans('Notices'),
     parent: 'settings',
 });

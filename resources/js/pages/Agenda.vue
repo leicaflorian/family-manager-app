@@ -450,6 +450,7 @@ const payAction = computed((): string =>
 );
 
 const { title, head } = usePageMeta({
+    info: 'agenda',
     title: () => trans('Agenda'),
 });
 </script>

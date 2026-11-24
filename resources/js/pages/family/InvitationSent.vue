@@ -34,6 +34,7 @@ async function copy(): Promise<void> {
 }
 
 const { title, head } = usePageMeta({
+    info: 'invitation-sent',
     title: () => trans('Invitation sent'),
     parent: 'family',
 });

@@ -80,6 +80,7 @@ const backHref = computed(
 );
 
 const { title, head } = usePageMeta({
+    info: 'movement',
     title: () => movement?.title ?? trans('New expense or income'),
     parent: () => [
         'budget',

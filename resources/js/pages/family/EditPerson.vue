@@ -55,6 +55,7 @@ function save(): void {
 useSaveShortcut(save, () => !form.processing);
 
 const { title, head } = usePageMeta({
+    info: 'person-form',
     title: () =>
         person
             ? trans('Edit :name', { name: person.first_name })

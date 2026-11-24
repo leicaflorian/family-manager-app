@@ -139,6 +139,7 @@ function change(key: 'budget' | 'mail', value: unknown): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-features',
     title: () => trans('What you use'),
     parent: 'settings',
 });

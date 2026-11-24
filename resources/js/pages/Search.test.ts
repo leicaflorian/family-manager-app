@@ -18,6 +18,7 @@ const shared = vi.hoisted(() => ({ budget: true }));
 
 vi.mock('@/composables/useFeatures', () => ({
     useFeature: () => computed((): boolean => shared.budget),
+    useFeatures: () => computed(() => ({ budget: shared.budget })),
 }));
 
 /**

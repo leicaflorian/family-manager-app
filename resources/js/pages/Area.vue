@@ -44,6 +44,7 @@ const {
 }>();
 
 const { title, head } = usePageMeta({
+    info: 'area',
     title: () => area.label,
     parent: 'areas',
 });

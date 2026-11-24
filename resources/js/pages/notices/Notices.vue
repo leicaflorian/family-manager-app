@@ -37,6 +37,7 @@ const props = defineProps<{
 }>();
 
 const { title, head } = usePageMeta({
+    info: 'notices',
     title: () => trans('Notices'),
     parent: 'home',
 });

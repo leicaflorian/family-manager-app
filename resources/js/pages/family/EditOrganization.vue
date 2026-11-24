@@ -54,6 +54,7 @@ function save(): void {
 useSaveShortcut(save, () => !form.processing);
 
 const { title, head } = usePageMeta({
+    info: 'organization-form',
     title: () =>
         organization
             ? trans('Edit :name', { name: organization.name })

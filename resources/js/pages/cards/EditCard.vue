@@ -145,6 +145,7 @@ const back = computed(() =>
 );
 
 const { title, head } = usePageMeta({
+    info: 'card-form',
     title: () =>
         card
             ? trans('Edit the :type', { type: type.label.toLowerCase() })

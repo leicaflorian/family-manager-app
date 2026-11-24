@@ -84,6 +84,7 @@ function tile(area: string): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'areas',
     title: () => trans('Areas'),
 });
 </script>

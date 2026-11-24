@@ -67,6 +67,7 @@ function save(): void {
 useSaveShortcut(save, () => settings.can_edit && !saving.value);
 
 const { title, head } = usePageMeta({
+    info: 'settings-family',
     title: () => trans('Family name'),
     parent: 'settings',
 });

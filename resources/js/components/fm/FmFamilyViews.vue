@@ -45,6 +45,7 @@ const views = computed((): Tab[] => [
     <div class="flex flex-col gap-4">
         <FmTitle
             :title="$t('Family')"
+            :info="current"
             :subtitle="$t(':family family', { family: family.name })"
         >
             <template v-if="$slots.actions" #actions>

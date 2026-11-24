@@ -108,6 +108,7 @@ const form = useForm({
 useUnsavedChanges(() => form.data());
 
 const { title: heading, head } = usePageMeta({
+    info: 'reminder-form',
     title: () => (reminder ? trans('Edit task') : trans('New task')),
     parent: 'agenda',
 });

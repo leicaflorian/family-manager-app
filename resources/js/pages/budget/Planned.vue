@@ -122,6 +122,7 @@ const showLabel = computed(() =>
 );
 
 const { title, head } = usePageMeta({
+    info: 'planned',
     title: () => trans('Budget'),
 });
 </script>

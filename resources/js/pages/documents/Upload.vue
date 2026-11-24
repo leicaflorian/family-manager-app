@@ -75,6 +75,7 @@ const phoneWording = computed((): PhoneWording =>
 );
 
 const { title, head } = usePageMeta({
+    info: 'upload',
     title: () => trans('Upload a document'),
     parent: 'toSort',
 });

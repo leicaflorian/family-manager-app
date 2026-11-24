@@ -878,6 +878,7 @@ onBeforeUnmount(() => {
 });
 
 const { title, head } = usePageMeta({
+    info: 'scan',
     title: () => trans('New document'),
 });
 </script>

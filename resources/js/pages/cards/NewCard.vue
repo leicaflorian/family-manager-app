@@ -40,6 +40,7 @@ function formUrl(type: string): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'card-new',
     title: () => trans('New card'),
     parent: 'areas',
 });

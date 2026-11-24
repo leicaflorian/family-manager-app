@@ -14,7 +14,7 @@ function mountMeta(options: PageMetaOptions, withTrail = true) {
     // Stands for the FmTitle of the page: a child that reads what the page provides
     const Title = defineComponent({
         setup() {
-            info = inject(PAGE_INFO, ref('none')).value;
+            info = inject(PAGE_INFO, ref(undefined)).value ?? 'none';
 
             return () => h('div');
         },
@@ -103,9 +103,9 @@ describe('usePageMeta', () => {
     });
 
     it('gives the info key to the title', () => {
-        expect(mountMeta({ title: 'Banks', info: 'banks' }).info()).toBe(
-            'banks',
-        );
+        expect(
+            mountMeta({ title: 'Banks', info: 'settings-banks' }).info(),
+        ).toBe('settings-banks');
     });
 
     it('works without a layout', () => {

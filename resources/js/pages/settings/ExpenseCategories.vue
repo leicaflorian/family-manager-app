@@ -79,6 +79,7 @@ function save(): void {
 useSaveShortcut(save, () => open.value && !form.processing);
 
 const { title, head } = usePageMeta({
+    info: 'settings-expense-categories',
     title: () => trans('Expense categories'),
     parent: 'settings',
 });

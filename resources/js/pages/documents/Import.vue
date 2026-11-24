@@ -491,6 +491,7 @@ function save(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'import',
     title: () =>
         transChoice(
             '{1} Import :count file|[2,*] Import :count files',

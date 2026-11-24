@@ -21,6 +21,7 @@ const { release, notes } = defineProps<{
 const { date } = useFormat();
 
 const { title, head } = usePageMeta({
+    info: 'settings-news',
     title: () => trans("What's new"),
     parent: 'settings',
 });

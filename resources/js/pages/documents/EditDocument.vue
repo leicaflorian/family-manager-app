@@ -71,6 +71,7 @@ function fillFromFile(): void {
 const confirmingDelete = ref(false);
 
 const { title, head } = usePageMeta({
+    info: 'document-edit',
     title: () => trans('Edit the document'),
     parent: [
         'documents',

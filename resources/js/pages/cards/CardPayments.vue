@@ -30,6 +30,7 @@ const { card, budget } = defineProps<{
 }>();
 
 const { title, head } = usePageMeta({
+    info: 'card-payments',
     title: () => budget.payments_label ?? trans('Payments'),
     // The tab names the card too: the title alone could be any card's
     head: () => `${budget.payments_label} · ${card.label}`,

@@ -94,6 +94,7 @@ const back = computed(() =>
 );
 
 const { head } = usePageMeta({
+    info: 'planned-form',
     title: () => heading.value,
     parent: () => [
         'budget',

@@ -154,6 +154,7 @@ function cardsStay(count: number): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-areas',
     title: () => trans('Areas'),
     parent: 'settings',
 });

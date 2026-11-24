@@ -64,6 +64,7 @@ function resetAddress(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-calendar',
     title: () => trans('Calendar'),
     parent: 'settings',
 });

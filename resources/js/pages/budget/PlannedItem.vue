@@ -75,6 +75,7 @@ const row = computed(() => detail.row);
 const income = computed(() => row.value.kind === 'income');
 
 const { title, head } = usePageMeta({
+    info: 'planned-item',
     title: () => row.value.title,
     parent: ['budget', { label: trans('Recurring'), href: index().url }],
 });

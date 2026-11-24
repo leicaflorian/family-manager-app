@@ -39,6 +39,7 @@ const [DefineNote, ReuseNote] = createReusableTemplate();
 const { euro } = useFormat();
 
 const { title, head } = usePageMeta({
+    info: 'comparison',
     title: () => trans('Planned and spent'),
     parent: 'budget',
 });

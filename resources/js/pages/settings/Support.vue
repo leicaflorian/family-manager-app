@@ -73,6 +73,7 @@ function takeBack(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-support',
     title: () => trans('Support'),
     parent: 'settings',
 });

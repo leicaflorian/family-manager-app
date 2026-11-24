@@ -148,6 +148,11 @@ describe('Settings, Support', () => {
         expect(
             allByWholeText('Support can come in until 10/12/2026 21:30').length,
         ).toBeGreaterThan(0);
-        expect(screen.queryByRole('button')).not.toBeInTheDocument();
+        // Only the «i» of the title, which explains the page
+        expect(
+            screen
+                .queryAllByRole('button')
+                .map((button) => button.getAttribute('aria-label')),
+        ).toEqual(['What is this page']);
     });
 });

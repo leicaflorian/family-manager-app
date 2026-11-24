@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { h } from 'vue';
+import { defineComponent, h, provide, ref } from 'vue';
+import { PAGE_INFO } from '@/lib/titles';
 import { pandaRow } from '@/test/fixtures';
 import FmButton from './FmButton.vue';
 import FmCardHeader from './FmCardHeader.vue';
@@ -72,5 +73,23 @@ describe('FmCardHeader', () => {
             'bg-on-hero-soft',
             'text-on-hero',
         );
+    });
+    it('has the «i» of the page beside the name when the page gives its key', () => {
+        const Page = defineComponent({
+            setup() {
+                provide(PAGE_INFO, ref('card' as const));
+
+                return () =>
+                    h(FmCardHeader, {
+                        card: pandaRow,
+                        heading: 'Plate GH 482 TK · Marco',
+                    });
+            },
+        });
+        render(Page);
+
+        expect(
+            screen.getByRole('button', { name: 'What is this page' }),
+        ).toBeInTheDocument();
     });
 });

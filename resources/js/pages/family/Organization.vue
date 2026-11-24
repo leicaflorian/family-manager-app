@@ -109,6 +109,7 @@ const actions = computed((): Action[] => [
 ]);
 
 const { title, head } = usePageMeta({
+    info: 'organization',
     title: () => organization.name,
     parent: ['family', { label: trans('Organizations'), href: index().url }],
 });

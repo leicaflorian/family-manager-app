@@ -229,6 +229,7 @@ function rowHref(document: App.Data.DocumentData): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'documents',
     title: () => trans('Documents'),
 });
 </script>

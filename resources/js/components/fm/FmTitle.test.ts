@@ -28,6 +28,8 @@ beforeEach(() => {
     state.mode = 'phone';
 });
 
+import { defineComponent, h, provide, ref } from 'vue';
+import { PAGE_INFO } from '@/lib/titles';
 import FmTitle from './FmTitle.vue';
 
 describe('FmTitle', () => {
@@ -81,8 +83,9 @@ describe('FmTitle', () => {
                 screen.getByRole('heading', { level: 1 }),
             ) & Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy();
+        // The heading sits in a row with the «i», inside the same column
         expect(overline.parentElement).toBe(
-            screen.getByRole('heading', { level: 1 }).parentElement,
+            screen.getByRole('heading', { level: 1 }).closest('.flex-col'),
         );
     });
 
@@ -162,6 +165,45 @@ describe('FmTitle', () => {
                     name: 'Search in Fameja.app',
                 }),
             ).toBeInTheDocument();
+        });
+    });
+    describe('the «i» of the page', () => {
+        it('is beside the title when the page gives its key', () => {
+            const Page = defineComponent({
+                setup() {
+                    provide(PAGE_INFO, ref('documents' as const));
+
+                    return () => h(FmTitle, { title: 'Documents' });
+                },
+            });
+            render(Page);
+
+            const heading = screen.getByRole('heading', {
+                level: 1,
+                name: 'Documents',
+            });
+            expect(
+                within(heading.parentElement as HTMLElement).getByRole(
+                    'button',
+                    { name: 'What is this page' },
+                ),
+            ).toBeInTheDocument();
+        });
+
+        it('is there with the info prop too, without a page around', () => {
+            render(FmTitle, { props: { title: 'Family', info: 'people' } });
+
+            expect(
+                screen.getByRole('button', { name: 'What is this page' }),
+            ).toBeInTheDocument();
+        });
+
+        it('is not there without a key', () => {
+            render(FmTitle, { props: { title: 'Documents' } });
+
+            expect(
+                screen.queryByRole('button', { name: 'What is this page' }),
+            ).not.toBeInTheDocument();
         });
     });
 });

@@ -184,6 +184,7 @@ function deleteAccount(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-account',
     title: () => trans('My account'),
     parent: 'settings',
 });

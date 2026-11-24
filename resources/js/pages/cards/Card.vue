@@ -115,6 +115,7 @@ const consumptionText = computed((): string => {
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
 
 const { head } = usePageMeta({
+    info: 'card',
     title: () => card.card.label,
     parent: () => [
         'areas',

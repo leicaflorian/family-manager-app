@@ -53,6 +53,7 @@ const wide = useWideLayout();
 const adding = ref(false);
 
 const { title, head } = usePageMeta({
+    info: 'gallery',
     title: () => trans('Drawings and crafts'),
     parent: 'documents',
 });

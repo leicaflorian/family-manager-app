@@ -89,6 +89,7 @@ const [DefineBadges, ReuseBadges] = createReusableTemplate<{
 }>();
 
 const { title, head } = usePageMeta({
+    info: 'consumption',
     title: () => trans('Usage'),
     parent: 'budget',
 });

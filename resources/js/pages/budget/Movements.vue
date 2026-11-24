@@ -273,6 +273,7 @@ function subtitle(movement: App.Data.MovementData): string {
 }
 
 const { title, head } = usePageMeta({
+    info: 'movements',
     title: () => trans('Budget'),
 });
 </script>

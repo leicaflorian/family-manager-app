@@ -207,6 +207,7 @@ function deleteCategory(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'settings-categories',
     title: () => trans('Document categories'),
     parent: 'settings',
 });

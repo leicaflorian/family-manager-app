@@ -141,6 +141,7 @@ function filter(type: App.Enums.SearchGroup | null): void {
 }
 
 const { head } = usePageMeta({
+    info: 'search',
     title: () => trans('Search'),
     parent: 'home',
 });

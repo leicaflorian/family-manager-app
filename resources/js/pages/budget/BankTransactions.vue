@@ -332,6 +332,7 @@ function add(): void {
 }
 
 const { title, head } = usePageMeta({
+    info: 'bank-transactions',
     title: () => trans('Budget'),
 });
 </script>

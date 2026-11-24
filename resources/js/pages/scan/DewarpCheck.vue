@@ -87,6 +87,7 @@ async function start(event: Event): Promise<void> {
 onBeforeUnmount(clearPicture);
 
 const { title, head } = usePageMeta({
+    info: 'dewarp-check',
     title: () => trans('Straighten check'),
     parent: 'toSort',
 });
