@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The two features a family can have switched on: the Budget and the mail for the bills, with the day the Budget was
- * last turned on.
+ * The two features a family can have switched on: the Budget and the mail for the bills, with the pause of the Budget
+ * (the first day it was turned off, the day it was last turned on again).
  */
 return new class extends Migration
 {
@@ -22,7 +22,9 @@ return new class extends Migration
         Schema::table('families', function (Blueprint $table): void {
             $table->boolean('budget_enabled')->default(false);
             $table->boolean('mail_enabled')->default(false);
-            // The day the Budget was last turned on: the due dates that fell before it, while it was off, are not late
+            // The first day the Budget was turned off and the day it was last turned on again: the due dates that fell
+            // between them, unpaid, are neither late nor to pay
+            $table->date('budget_paused_on')->nullable();
             $table->date('budget_started_on')->nullable();
         });
 
@@ -35,7 +37,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('families', function (Blueprint $table): void {
-            $table->dropColumn(['budget_enabled', 'mail_enabled', 'budget_started_on']);
+            $table->dropColumn(['budget_enabled', 'mail_enabled', 'budget_paused_on', 'budget_started_on']);
         });
     }
 };

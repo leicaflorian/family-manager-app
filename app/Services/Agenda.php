@@ -111,7 +111,7 @@ final readonly class Agenda
         $paymentsFrom = $today->subDays($paymentsBack)->toDateString();
         $payments = array_values(array_filter(
             $dueDates,
-            static fn (Deadline $due): bool => ! $due->isPaid() && $due->occurrence->date->toDateString() >= $paymentsFrom,
+            static fn (Deadline $due): bool => $due->isDue() && $due->occurrence->date->toDateString() >= $paymentsFrom,
         ));
         $paid = $this->paidByCard($dueDates);
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);

@@ -70,7 +70,7 @@ final readonly class PlannedSummaries
 
         foreach ($planned as $item) {
             $mine = array_filter($found, static fn (Deadline $deadline): bool => $deadline->planned->is($item));
-            $next = array_find($mine, static fn (Deadline $deadline): bool => ! $deadline->isPaid());
+            $next = array_find($mine, static fn (Deadline $deadline): bool => $deadline->isDue());
             $row = PlannedRowData::fromPlanned($item, $next?->occurrence->date, $default, $today);
 
             if ($row->ended) {
@@ -109,7 +109,7 @@ final readonly class PlannedSummaries
     {
         $next = array_find(
             $this->deadlines->between([$planned], $today, $today->addYears(self::YEARS_AHEAD)),
-            static fn (Deadline $deadline): bool => ! $deadline->isPaid(),
+            static fn (Deadline $deadline): bool => $deadline->isDue(),
         );
 
         return PlannedRowData::fromPlanned($planned, $next?->occurrence->date, DefaultAccount::model(), $today);
@@ -129,7 +129,7 @@ final readonly class PlannedSummaries
         $late = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isLate($today)));
         $coming = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() >= $today->toDateString()));
         $lastDay = $today->addYear()->subDay();
-        $next = array_find($coming, static fn (Deadline $deadline): bool => ! $deadline->isPaid());
+        $next = array_find($coming, static fn (Deadline $deadline): bool => $deadline->isDue());
         $default = DefaultAccount::model();
 
         return new PlannedDetailData(

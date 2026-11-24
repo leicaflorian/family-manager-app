@@ -29,8 +29,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * due date (`occurrence_date`) and to the documents waiting to be paid.
  * Exceptions, payments and documents are read with one query per table, always
  * through the family scope; planned items of another family are ignored. The
- * unpaid due dates that fell while the Budget was off (before
- * `families.budget_started_on`) are left out: the Budget starts again from zero.
+ * unpaid due dates that fell while the Budget was paused are flagged waived
+ * (`Deadline::isWaived()`): neither late nor to pay, but they can still be paid.
  */
 final readonly class Deadlines
 {
@@ -42,7 +42,7 @@ final readonly class Deadlines
 
     /**
      * @param  Occurrences  $occurrences  the recurrence rules
-     * @param  FamilyFeatures  $features  the day the Budget of the family was turned on again
+     * @param  FamilyFeatures  $features  the pause of the Budget of the family
      */
     public function __construct(private Occurrences $occurrences, private FamilyFeatures $features) {}
 
@@ -83,7 +83,7 @@ final readonly class Deadlines
         // The default account is looked up once for the whole collection, and only if some planned item has no account
         $default = null;
         $defaultLoaded = false;
-        $startedOn = $this->features->budgetStartedOn();
+        $pause = $this->features->budgetPause();
         $found = [];
 
         foreach ([...$expenses->all(), ...$incomes->all()] as $item) {
@@ -98,17 +98,15 @@ final readonly class Deadlines
             $account = $item->financialAccount ?? $default;
 
             foreach ($this->occurrences->between($schedule, $from, $to, $withSkipped) as $occurrence) {
-                $deadline = new Deadline(
+                $payment = $this->payment($schedule, $occurrence, $payments[$key] ?? []);
+                $found[] = new Deadline(
                     $item,
                     $occurrence,
-                    $this->payment($schedule, $occurrence, $payments[$key] ?? []),
+                    $payment,
                     $this->title($item, $schedule, $occurrence, $documents[$key] ?? []),
                     $account,
+                    $payment === null && $this->inPause($occurrence, $pause),
                 );
-
-                if (! $this->fellWhileOff($deadline, $startedOn)) {
-                    $found[] = $deadline;
-                }
             }
         }
 
@@ -118,15 +116,17 @@ final readonly class Deadlines
     }
 
     /**
-     * Whether a due date fell while the Budget of the family was off and nothing paid it: the Budget starts again from
-     * zero, so it is neither late nor to pay and no reader sees it. A payment recorded for it keeps it.
+     * Whether a due date fell while the Budget of the family was paused, on its real date (after any move): from the
+     * first day it was turned off, included, to the day it was turned on again, excluded. Unpaid, it is waived.
      *
-     * @param  Deadline  $deadline  the due date
-     * @param  ?string  $startedOn  the day the Budget was turned on again, `yyyy-mm-dd`, null when it never was
+     * @param  Occurrence  $occurrence  the due date
+     * @param  array{from: string, until: string}|null  $pause  the pause, `yyyy-mm-dd`, null when there was none
      */
-    private function fellWhileOff(Deadline $deadline, ?string $startedOn): bool
+    private function inPause(Occurrence $occurrence, ?array $pause): bool
     {
-        return $startedOn !== null && ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() < $startedOn;
+        $day = $occurrence->date->toDateString();
+
+        return $pause !== null && $day >= $pause['from'] && $day < $pause['until'];
     }
 
     /**
@@ -256,18 +256,20 @@ final readonly class Deadlines
     }
 
     /**
-     * The open due dates: the late ones (up to 12 months back) and those up to a day.
+     * The open due dates: the late ones (up to 12 months back) and those up to a day. The ones the pause of the
+     * Budget waives are not to pay, so they are left out unless a payment is being matched to them.
      *
      * @param  iterable<PlannedExpense|PlannedIncome>  $planned  The planned items to look at.
      * @param  CarbonImmutable  $until  The last day.
      * @param  CarbonImmutable  $today  Today.
+     * @param  bool  $withWaived  Whether the waived due dates come too, for a payment that may settle one.
      * @return list<Deadline>
      */
-    public function unpaidUntil(iterable $planned, CarbonImmutable $until, CarbonImmutable $today): array
+    public function unpaidUntil(iterable $planned, CarbonImmutable $until, CarbonImmutable $today, bool $withWaived = false): array
     {
         return array_values(array_filter(
             $this->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $until),
-            static fn (Deadline $deadline): bool => ! $deadline->isPaid(),
+            static fn (Deadline $deadline): bool => $withWaived ? ! $deadline->isPaid() : $deadline->isDue(),
         ));
     }
 

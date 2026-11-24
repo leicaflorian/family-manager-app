@@ -410,7 +410,7 @@ final readonly class CardBudgets
             dueLabel: __('Going out from here'),
             due: fn (array $found): array => array_values(array_filter(
                 $found,
-                static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->account?->id === $account->id
+                static fn (Deadline $deadline): bool => $deadline->isDue() && $deadline->account?->id === $account->id
                     && $deadline->occurrence->date->toDateString() >= $today->toDateString() && $deadline->occurrence->date->toDateString() <= $last,
             )),
             paymentsLabel: __('Expenses'),
@@ -462,7 +462,7 @@ final readonly class CardBudgets
         bool $addExpense = false,
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
-        $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
+        $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isDue()));
         $income = $kind === 'income';
         $payable = $plannedPayments ? $planned : [];
         $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($payable, $user, $income ? null : $card);
@@ -551,7 +551,7 @@ final readonly class CardBudgets
         $day = $today->toDateString();
 
         return array_map(static function (PlannedExpense|PlannedIncome $item) use ($found, $default, $today, $day): PlannedRowData {
-            $next = array_find($found, static fn (Deadline $deadline): bool => $deadline->planned->is($item) && ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() >= $day);
+            $next = array_find($found, static fn (Deadline $deadline): bool => $deadline->planned->is($item) && $deadline->isDue() && $deadline->occurrence->date->toDateString() >= $day);
 
             return PlannedRowData::fromPlanned($item, $next?->occurrence->date, $default, $today);
         }, $planned);
@@ -590,7 +590,7 @@ final readonly class CardBudgets
     {
         $last = $until->toDateString();
 
-        return array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() <= $last));
+        return array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isDue() && $deadline->occurrence->date->toDateString() <= $last));
     }
 
     /**

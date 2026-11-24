@@ -103,7 +103,7 @@ function budgetDataQueries(string $from, string $to): array
     return insideBianchi(function () use ($from, $to): array {
         $planned = [...PlannedExpense::query()->get()->all(), ...PlannedIncome::query()->get()->all()];
         // The switches of the family are read once per request: the first call must not count them
-        resolve(FamilyFeatures::class)->budgetStartedOn();
+        resolve(FamilyFeatures::class)->budgetPause();
 
         DB::flushQueryLog();
         DB::enableQueryLog();

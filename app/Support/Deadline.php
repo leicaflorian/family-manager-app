@@ -22,6 +22,7 @@ final readonly class Deadline
      * @param  Expense|Income|null  $payment  The expense or income that settles it, null while it is open.
      * @param  string  $title  What to call it: the title of the document to pay, else the one of the planned item.
      * @param  FinancialAccount|null  $account  The account to pay with: the one of the planned item, else the default account of the family.
+     * @param  bool  $waived  Whether it fell, unpaid, while the Budget was paused: never late nor to pay, but it can still be paid.
      */
     public function __construct(
         public PlannedExpense|PlannedIncome $planned,
@@ -29,6 +30,7 @@ final readonly class Deadline
         public Expense|Income|null $payment,
         public string $title,
         public ?FinancialAccount $account = null,
+        public bool $waived = false,
     ) {}
 
     /**
@@ -58,13 +60,30 @@ final readonly class Deadline
     }
 
     /**
-     * Whether its day is over and nothing settles it: it is late from the day after, not during the day.
-     * A skipped due date is never late.
+     * Whether it fell, unpaid, while the Budget was paused: the Budget starts again from zero, so it is neither late
+     * nor to pay. A payment can still be recorded for it.
+     */
+    public function isWaived(): bool
+    {
+        return $this->waived;
+    }
+
+    /**
+     * Whether it is still to pay: nothing settles it, no exception skips it and the pause of the Budget does not waive it.
+     */
+    public function isDue(): bool
+    {
+        return ! $this->isPaid() && ! $this->isSkipped() && ! $this->isWaived();
+    }
+
+    /**
+     * Whether its day is over and it is still to pay: it is late from the day after, not during the day.
+     * A skipped or waived due date is never late.
      *
      * @param  CarbonImmutable  $today  The day (and time) to look from.
      */
     public function isLate(CarbonImmutable $today): bool
     {
-        return ! $this->isPaid() && ! $this->isSkipped() && $this->occurrence->date->toDateString() < $today->toDateString();
+        return $this->isDue() && $this->occurrence->date->toDateString() < $today->toDateString();
     }
 }

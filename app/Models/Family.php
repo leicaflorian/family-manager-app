@@ -38,7 +38,8 @@ use Illuminate\Support\Facades\Crypt;
  * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
  * @property bool $bank_feed_enabled The owner turns the link to the bank on for the family
  * @property bool $budget_enabled Whether the family has the Budget
- * @property CarbonImmutable|null $budget_started_on The day the Budget was last turned on: the due dates that fell before it, while it was off, are not late
+ * @property CarbonImmutable|null $budget_paused_on The first day the Budget was turned off, null while it never was
+ * @property CarbonImmutable|null $budget_started_on The day the Budget was last turned on again after a pause: the due dates that fell from the pause to it, unpaid, are not late
  * @property bool $mail_enabled Whether the family has the mail for the bills
  * @property-read Collection<int, OwnerAction> $ownerActions
  * @property-read int|null $owner_actions_count
@@ -228,6 +229,7 @@ final class Family extends Model
             'reading_limit' => 'integer',
             'bank_feed_enabled' => 'boolean',
             'budget_enabled' => 'boolean',
+            'budget_paused_on' => 'date',
             'budget_started_on' => 'date',
             'mail_enabled' => 'boolean',
             'calendar_token' => 'encrypted',

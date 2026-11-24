@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Turns the Budget and the mail for the bills of a family on or off. What was saved stays: it comes back when the
  * feature is turned on again, and the mail keeps its address. Turning the Budget on gives the loans saved while it
- * was off their planned expense, from that day on, and writes that day: the due dates that fell before it, unpaid,
- * are neither late nor to pay ({@see Deadlines}).
+ * was off their planned expense, from that day on. The pause is written too, from the first day the Budget was
+ * turned off to the day it was last turned on again: the due dates that fell in it, unpaid, are neither late nor to
+ * pay ({@see Deadlines}).
  */
 final readonly class ChangeFeatures
 {
@@ -30,8 +31,9 @@ final readonly class ChangeFeatures
     public function __construct(private AssignMailAddress $assignMailAddress, private FamilyFeatures $features, private CreateLoanPlans $loanPlans) {}
 
     /**
-     * Writes the switches. Turning the mail on for a family without an address gives it one; turning the Budget on
-     * writes the day it starts again and creates the planned expense of the loans without one.
+     * Writes the switches. Turning the mail on for a family without an address gives it one; turning the Budget off
+     * writes the first day of the pause, turning it on again writes its last day and creates the planned expense of
+     * the loans without one.
      *
      * @param  Family  $family  the family
      * @param  bool  $budget  whether the family uses the Budget
@@ -41,11 +43,18 @@ final readonly class ChangeFeatures
     {
         DB::transaction(function () use ($family, $budget, $mail): void {
             $turnsBudgetOn = $budget && ! $family->budget_enabled;
+            $turnsBudgetOff = ! $budget && $family->budget_enabled;
             $today = CarbonImmutable::today('Europe/Rome');
             $family->forceFill(['budget_enabled' => $budget, 'mail_enabled' => $mail]);
 
-            // The due dates that fell while the Budget was off start from zero: none of them is late
-            if ($turnsBudgetOn) {
+            // The pause starts on the first day the Budget is turned off, and is kept by the pauses after it
+            if ($turnsBudgetOff && $family->budget_paused_on === null) {
+                $family->forceFill(['budget_paused_on' => $today]);
+            }
+
+            // The due dates that fell during the pause start from zero: none of them is late. A Budget turned on for
+            // the first time (a new family) had no pause, so nothing is waived
+            if ($turnsBudgetOn && $family->budget_paused_on !== null) {
                 $family->forceFill(['budget_started_on' => $today]);
             }
 

@@ -95,7 +95,7 @@ final readonly class BankMatcher
         $schedule = Schedule::of($planned);
 
         if (! $schedule->recurring) {
-            return $this->deadlines->unpaidUntil([$planned], CarbonImmutable::parse('2999-12-31'), CarbonImmutable::parse('1900-01-01'))[0] ?? null;
+            return $this->deadlines->unpaidUntil([$planned], CarbonImmutable::parse('2999-12-31'), CarbonImmutable::parse('1900-01-01'), withWaived: true)[0] ?? null;
         }
 
         // Half a period, cut to whole days: 15 for a month, 3 for a week
@@ -113,7 +113,7 @@ final readonly class BankMatcher
         }
 
         return array_find(
-            $this->deadlines->unpaidUntil([$planned], $day, $day),
+            $this->deadlines->unpaidUntil([$planned], $day, $day, withWaived: true),
             static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() < $day->toDateString(),
         );
     }
