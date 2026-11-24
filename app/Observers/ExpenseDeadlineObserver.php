@@ -40,7 +40,8 @@ final class ExpenseDeadlineObserver
         }
 
         foreach (DeadlineSources::forModel($card::class) as $source) {
-            if (! $source->hasExpense) {
+            // A deadline with an expense of its own is paid only by the planned expense that says so
+            if (! $source->hasExpense || ($source->ownExpense && $planned->deadline_field !== $source->field)) {
                 continue;
             }
 

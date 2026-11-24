@@ -2690,5 +2690,8 @@
     "New category adds one.": "Nuova categoria ne aggiunge una.",
     "Do you also need the Budget?": "Ti serve anche il Bilancio?",
     "Turn it on from Settings › What you use.": "Accendilo da Impostazioni › Cosa usate.",
-    "Budget off": "Bilancio spento"
+    "Budget off": "Bilancio spento",
+    "Pays the deadline": "Paga la scadenza",
+    "No deadline": "Nessuna",
+    "The payment closes the reminder of that deadline.": "Il pagamento chiude il promemoria di quella scadenza."
 }

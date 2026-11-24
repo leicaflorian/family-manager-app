@@ -948,6 +948,20 @@ export const plannedExpenseOptions = {
         subscription: 'Subscription',
         utility: 'Utility',
     },
+    deadline_fields: {
+        vehicle: [
+            {
+                value: 'vehicles.road_tax_due_date',
+                label: 'Road tax',
+                help: null,
+            },
+            {
+                value: 'vehicles.inspection_due_date',
+                label: 'Inspection',
+                help: null,
+            },
+        ],
+    },
     employments: [],
     income_types: [],
 };
@@ -970,6 +984,7 @@ export const newPlannedValues = {
     bank_match: null,
     category_id: null,
     card: null,
+    deadline_field: null,
 };
 
 /** The choices of the form of a movement of the Bianchi. */

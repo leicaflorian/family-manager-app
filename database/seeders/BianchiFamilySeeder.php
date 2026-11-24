@@ -645,7 +645,7 @@ final class BianchiFamilySeeder extends Seeder
             [ExceptionType::Skip, '2027-08-05', null, null, 'Vacanze'],
         ]);
         $this->plan('Bollo auto', 198, '2026-01-31', [
-            'category_id' => $this->categoryId('Auto'), 'card_type' => 'vehicle', 'card_id' => $this->records['Fiat Panda']->id, 'interval_unit' => IntervalUnit::Year,
+            'category_id' => $this->categoryId('Auto'), 'card_type' => 'vehicle', 'card_id' => $this->records['Fiat Panda']->id, 'interval_unit' => IntervalUnit::Year, 'deadline_field' => 'vehicles.road_tax_due_date',
         ]);
     }
 

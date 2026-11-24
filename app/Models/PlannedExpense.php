@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $card_id
  * @property string|null $notes
  * @property string|null $bank_match The text that marks the payments of the bank that settle this item
+ * @property string|null $deadline_field The deadline of the card it pays (`vehicles.inspection_due_date`), when it pays one of its own
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -63,7 +64,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['title', 'amount', 'fee_amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes', 'bank_match'])]
+#[Fillable(['title', 'amount', 'fee_amount', 'category_id', 'is_recurring', 'interval', 'interval_unit', 'start_date', 'end_date', 'is_estimated', 'is_auto_created', 'organization_id', 'financial_account_id', 'person_id', 'card_type', 'card_id', 'notes', 'bank_match', 'deadline_field'])]
 #[ObservedBy([LoanPlanObserver::class, PlannedExpenseObserver::class])]
 final class PlannedExpense extends FamilyModel
 {
