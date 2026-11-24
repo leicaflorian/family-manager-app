@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Enums\Feature;
 use App\Models\Document;
 use App\Models\Reminder;
 use App\Models\Vehicle;
+use App\Services\FamilyFeatures;
 use App\Services\Reminders\MissingExpenses;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
@@ -106,6 +108,8 @@ test('ten reminders cost one query', function (): void {
             }
         }
 
+        // The switches of the family are read once per request, before
+        resolve(FamilyFeatures::class)->on(Feature::Budget);
         DB::enableQueryLog();
         $missing = resolve(MissingExpenses::class)->of($reminders, $this->today);
         $queries = DB::getQueryLog();

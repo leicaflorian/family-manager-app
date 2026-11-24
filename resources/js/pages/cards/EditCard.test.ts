@@ -21,9 +21,36 @@ import {
 import EditCard from './EditCard.vue';
 import { hasChanges } from '@/lib/unsavedChanges';
 
+/** The family of the shared props: undefined as in the other tests (everything on), or with its features. */
+const shared = vi.hoisted(() => ({
+    family: undefined as { features: { budget: boolean } } | undefined,
+}));
+
+// As `setup.ts`, with the family of the shared props when a test gives one
+vi.mock('@inertiajs/vue3', async (original) => {
+    const inertia = await original<typeof import('@inertiajs/vue3')>();
+    const { sharedPageProps } = await import('@/test/fixtures');
+
+    return {
+        ...inertia,
+        Head: { render: () => null },
+        usePage: () =>
+            new Proxy(inertia.usePage(), {
+                get: (page, key) =>
+                    key === 'props' && page.props === undefined
+                        ? {
+                              name: sharedPageProps.name,
+                              ...(shared.family && { family: shared.family }),
+                          }
+                        : Reflect.get(page, key),
+            }),
+    };
+});
+
 afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    shared.family = undefined;
 });
 
 describe('Edit a card', () => {
@@ -786,5 +813,97 @@ describe('The planned expense of a new subscription', () => {
             }),
             expect.anything(),
         );
+    });
+});
+
+describe('With the Budget off', () => {
+    const subscription: App.Data.CardTypeData = {
+        type: 'subscription',
+        label: 'Subscription',
+        plural_label: 'Subscriptions',
+        description: '',
+        area: 'subscriptions',
+        area_label: 'Subscriptions',
+    };
+    const policy: App.Data.CardTypeData = {
+        type: 'insurance_policy',
+        label: 'Insurance policy',
+        plural_label: 'Policies',
+        description: '',
+        area: 'insurance',
+        area_label: 'Insurance',
+    };
+
+    it('asks nothing of the planned expense of a new subscription, and sends none', async () => {
+        shared.family = { features: { budget: false } };
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditCard, {
+            type: subscription,
+            fields: [
+                {
+                    column: 'name',
+                    label: 'Name',
+                    kind: 'text',
+                    required: true,
+                    options: [],
+                    show_when: {},
+                    label_when: {},
+                },
+            ],
+            values: { name: 'Hostinger' },
+        });
+        await settle();
+
+        expect(
+            screen.queryByRole('group', { name: 'Planned expense' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole('switch', { name: 'I already paid it' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await settle();
+
+        expect(post.mock.calls[0]![1]).not.toHaveProperty('planned');
+    });
+
+    it('does not say that the premium of the old policy moves', () => {
+        shared.family = { features: { budget: false } };
+        renderPage(EditCard, {
+            type: policy,
+            fields: policyFields,
+            values: { title: 'RC Auto', type: 'car', vehicle_id: '1' },
+            card: null,
+            replaceable: [
+                {
+                    id: 7,
+                    label: 'RC Auto · 40/123456 · UnipolSai',
+                    expiry_date: '2026-11-21',
+                    type: 'car',
+                    vehicle_id: 1,
+                    home_id: null,
+                    employment_id: null,
+                },
+            ],
+            replaces: [7],
+        });
+
+        expect(screen.getByText('Expires on 21/11/2026.')).toBeInTheDocument();
+        expect(
+            screen.queryByText(/Its planned expense moves to the new one/),
+        ).not.toBeInTheDocument();
+    });
+
+    it('has no payments beside the form of a card', () => {
+        shared.family = { features: { budget: false } };
+        renderPage(EditCard, {
+            type: policy,
+            fields: policyFields,
+            values: { title: 'RC auto Panda', type: 'car' },
+            card: policyDetail.card,
+            budget: null,
+        });
+
+        expect(screen.queryByTestId('card-payments')).not.toBeInTheDocument();
     });
 });

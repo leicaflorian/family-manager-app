@@ -59,6 +59,7 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Banks\FakeBankFeed;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Services\Reading\DocumentProposal;
 use App\Services\Reading\ReadingContext;
@@ -199,6 +200,9 @@ final class BianchiFamilySeeder extends Seeder
 
         $this->withLocale(self::LOCALE, fn () => DB::transaction(function (): void {
             $marco = $this->createFamily->handle('Bianchi', 'Marco', 'Bianchi', 'marco.bianchi@example.com', self::PASSWORD);
+            // The Budget is on before the cards: a loan saved with it off would get no planned expense of its own
+            $marco->family->forceFill(['budget_enabled' => true])->save();
+            resolve(FamilyFeatures::class)->forget($marco->family);
 
             CurrentFamily::using($marco->family_id, function () use ($marco): void {
                 $this->createPeople($marco);
@@ -216,7 +220,7 @@ final class BianchiFamilySeeder extends Seeder
             $marco->family->update(['welcomed_at' => now()]);
             // The link to the bank is on for them: with `BANK_FEED_PROVIDER=fake` they can try it
             $marco->family->forceFill(['bank_feed_enabled' => true])->save();
-            // The Budget and the mail too, through the action, so the family gets its address if it has none
+            // The mail too (the Budget is already on), through the action, so the family gets its address if it has none
             resolve(ChangeFeatures::class)->handle($marco->family, budget: true, mail: true);
         }));
     }

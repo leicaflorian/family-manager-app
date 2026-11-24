@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Reminders;
 
 use App\Cards\DeadlineSources;
+use App\Enums\Feature;
 use App\Models\PlannedExpense;
 use App\Models\Remindable;
 use App\Models\Reminder;
+use App\Services\FamilyFeatures;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -17,19 +19,29 @@ use Illuminate\Support\Collection;
  * Which reminders miss the planned expense of their card (*Manca la spesa
  * prevista*): the kind of deadline is paid by a planned expense (road tax,
  * inspection, policy, first and last instalment) and the card has no planned
- * expense in progress.
+ * expense in progress. With the Budget off no reminder misses one: the family
+ * plans no expenses.
  */
-final class MissingExpenses
+final readonly class MissingExpenses
 {
+    /**
+     * @param  FamilyFeatures  $features  tells whether the family uses the Budget
+     */
+    public function __construct(private FamilyFeatures $features) {}
+
     /**
      * The reminders that miss their planned expense, with one query for all.
      *
      * @param  Collection<int, Reminder>  $reminders  the reminders to check
      * @param  CarbonImmutable  $today  today in Rome: a planned expense that ends today is still in progress
-     * @return array<int, true> the ids of the reminders that miss it
+     * @return array<int, true> the ids of the reminders that miss it; none with the Budget off
      */
     public function of(Collection $reminders, CarbonImmutable $today): array
     {
+        if (! $this->features->on(Feature::Budget)) {
+            return [];
+        }
+
         /** @var array<int, array{type: string, id: int}> $cards the card of each reminder that can miss an expense, by reminder id */
         $cards = [];
 

@@ -220,6 +220,31 @@ describe('A card', () => {
         }
     });
 
+    it('shows no payments nor consumption of a utility with the Budget off', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                card: luceRow,
+                heading: 'Electricity · Casa di via Roma',
+                dates: [],
+                budget: null,
+                consumption: null,
+            },
+            linkable: [],
+        });
+
+        for (const text of [
+            'To pay',
+            'Expected expenses',
+            'Bills paid',
+            'Record payment',
+            'See the consumption',
+        ]) {
+            expect(screen.queryByText(text)).not.toBeInTheDocument();
+        }
+        expect(screen.getByText('Data')).toBeInTheDocument();
+    });
+
     it('has the documents as a section, with Link document and Upload as plain links', () => {
         renderPage(Card, {
             card: policyDetail,

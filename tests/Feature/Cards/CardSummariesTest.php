@@ -7,6 +7,7 @@ use App\Data\AreaData;
 use App\Data\CardData;
 use App\Enums\Area;
 use App\Enums\BelongingStatus;
+use App\Enums\Feature;
 use App\Enums\FilingStatus;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\UtilityType;
@@ -22,6 +23,7 @@ use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
+use App\Services\FamilyFeatures;
 use App\Support\CurrentFamily;
 use App\Support\DefaultAccount;
 use Database\Seeders\BianchiFamilySeeder;
@@ -266,6 +268,8 @@ test('it reads the amounts due of an area with the same queries however many car
 
             return $queries;
         };
+        // The switches of the family are read once per request, before
+        resolve(FamilyFeatures::class)->on(Feature::Budget);
         $before = $count();
         $home = Home::query()->sole();
 

@@ -187,6 +187,35 @@ final class LoanSchedule
     }
 
     /**
+     * The first instalment of the loan on `$from` or after it, for a planned expense that starts late (the Budget
+     * turned on while the loan was already running): its due dates before then are not owed to the Budget.
+     *
+     * @param  LoanTerms  $terms  The loan.
+     * @param  CarbonImmutable  $from  The first day that counts.
+     * @return ?CarbonImmutable Null without a start date, or when every instalment is before `$from`.
+     */
+    public function firstInstallmentFrom(LoanTerms $terms, CarbonImmutable $from): ?CarbonImmutable
+    {
+        if (! $terms->start instanceof CarbonImmutable) {
+            return null;
+        }
+
+        // A loan without a count nor a last date runs until the limit, like its open planned expense
+        $count = min($this->derive($terms, [], $from)->installmentsCount ?? self::MAX_INSTALLMENTS, self::MAX_INSTALLMENTS);
+        $day = $from->toDateString();
+
+        for ($k = 0; $k < $count; $k++) {
+            $date = $this->addMonths($terms->start, $k);
+
+            if ($date->toDateString() >= $day) {
+                return $date;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The exception that puts the final balloon payment on the last date.
      *
      * @param  LoanTerms  $terms  The loan.

@@ -20,6 +20,7 @@ use App\Data\CardTypeData;
 use App\Data\CardValueData;
 use App\Data\DocumentData;
 use App\Data\OptionData;
+use App\Enums\Feature;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\Person;
@@ -46,14 +47,23 @@ use LogicException;
 /**
  * Everything the page of one card needs: its detail, as the person reads it,
  * with its payments ({@see CardBudgets}), and the data of its form, both built
- * from the description of the card type.
+ * from the description of the card type. With the Budget off the card has
+ * neither payments nor consumption.
  */
 final readonly class CardDetails
 {
     /** How many documents a page of the card shows. */
     private const int DOCUMENTS_PER_PAGE = 5;
 
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption) {}
+    /**
+     * @param  CardSummaries  $summaries  the row of the card and of the linked ones
+     * @param  DocumentRows  $documents  the pages of its documents
+     * @param  CardBudgets  $budgets  its payments
+     * @param  CardNotices  $notices  its notices
+     * @param  ConsumptionPage  $consumption  the consumption of a utility
+     * @param  FamilyFeatures  $features  tells whether the family uses the Budget
+     */
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption, private FamilyFeatures $features) {}
 
     /**
      * The detail of a card.
@@ -79,7 +89,8 @@ final readonly class CardDetails
             ...($payments > 1 ? ['payments_page' => $payments] : []),
         ]);
         $documents = $this->documentsPage($type, $row, $documentsPage, static fn (int $number): string => $address($number, $paymentsPage));
-        $budget = $this->budgets->of($card, $user, $today);
+        $budgetOn = $this->features->on(Feature::Budget);
+        $budget = $budgetOn ? $this->budgets->of($card, $user, $today) : null;
         $dates = $this->dates($type, $card);
         $status = $this->status($type, $card);
 
@@ -99,7 +110,7 @@ final readonly class CardDetails
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
             budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, static fn (int $number): string => $address($documentsPage, $number)) : null,
             status: $status,
-            consumption: $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
+            consumption: $budgetOn && $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
         );
     }
 

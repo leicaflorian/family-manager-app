@@ -7,7 +7,9 @@
  * which *Upload* opens to file them; the documents chosen in *Link* and those
  * marked to unlink go with the card too, and change only when it is saved.
  * On the computer, below them, the planned expenses and the payments of the
- * card (`FmCardPayments`), as the board *Modifica-pc*.
+ * card (`FmCardPayments`), as the board *Modifica-pc*. With the Budget off
+ * a new subscription has no section *Planned expense* and the old policy
+ * replaced keeps its premium.
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/vue3';
@@ -19,6 +21,7 @@ import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmSubscriptionPlanned from '@/components/fm/FmSubscriptionPlanned.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useFeature } from '@/composables/useFeatures';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
@@ -85,8 +88,13 @@ const {
 /** The box *Cancel the policy* exists only for a new policy. */
 const canReplace = computed(() => !card && type.type === 'insurance_policy');
 
-/** The section *Planned expense* exists only for a new subscription. */
-const canPlan = computed(() => !card && type.type === 'subscription');
+/** Whether the family uses the Budget: without it a card plans no expense and moves no premium. */
+const budgetOn = useFeature('budget');
+
+/** The section *Planned expense* exists only for a new subscription, with the Budget on. */
+const canPlan = computed(
+    () => budgetOn.value && !card && type.type === 'subscription',
+);
 
 /** The values of the section *Planned expense*. */
 const plan = ref<SubscriptionPlan>(emptyPlan());
@@ -265,7 +273,7 @@ function save(data: Record<string, unknown>): void {
                             name="replace_policies"
                             :options="
                                 replaceOptions(offered(live), {
-                                    premiumMoves: true,
+                                    premiumMoves: budgetOn,
                                 })
                             "
                         />
