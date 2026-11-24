@@ -10,6 +10,7 @@ use App\Data\Reading\EventProposalData;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\ProposalData;
+use App\Enums\Feature;
 use App\Enums\RecordKind;
 use App\Models\Document;
 use App\Models\Expense;
@@ -17,6 +18,7 @@ use App\Models\File;
 use App\Models\HealthEvent;
 use App\Models\Income;
 use App\Rules\OfFamily;
+use App\Services\FamilyFeatures;
 use App\Services\Reading\Proposal;
 use App\Support\DocumentRules;
 use App\Support\Reading\ImportErrors;
@@ -49,6 +51,16 @@ final class ImportRequest extends FormRequest
 
     /** An amount correction, bound as the amount of the expense form. */
     private const array PRICE = ['nullable', 'numeric', 'min:0', 'max:99999999'];
+
+    /** @var array<string, list<string>> the rules of the money choices when the Budget is off: only a refusal (`false`) or nothing passes */
+    private const array MONEY_OFF = [
+        'files.*.also.movement' => ['sometimes', 'nullable', 'declined'],
+        'files.*.also.consumption' => ['sometimes', 'nullable', 'declined'],
+        'files.*.also.due' => ['sometimes', 'nullable', 'declined'],
+        'files.*.also.overrides.movement' => ['prohibited'],
+        'files.*.also.overrides.consumption' => ['prohibited'],
+        'files.*.also.targets.movement' => ['prohibited'],
+    ];
 
     /**
      * The proposal of each file made by the checks, by its place in the body: the import starts from it.
@@ -115,6 +127,11 @@ final class ImportRequest extends FormRequest
             'files.*.also.overrides.consumption.period_end' => ['nullable', 'date_format:Y-m-d'],
             'files.*.also.overrides.consumption.is_estimated' => ['sometimes', 'boolean'],
         ];
+
+        // Without the Budget nothing about money is accepted: the page does not send it, so a body that does is wrong
+        if (! resolve(FamilyFeatures::class)->on(Feature::Budget)) {
+            $rules = [...$rules, ...self::MONEY_OFF];
+        }
 
         foreach (ImportChoices::RECORD_FIELDS as $kind => $fields) {
             foreach ($fields as $field => $check) {
