@@ -281,12 +281,12 @@ test('invite is done once Laura accepts', function (): void {
     expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null, 'names' => []]);
 });
 
-test('a member has no people, card or invite step', function (): void {
+test('a member has no people, utilities, card or invite step', function (): void {
     $marco = registerFamily();
     insideFamilyOf($marco, fn () => Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]));
     $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
 
-    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['utilities', 'first_bill', 'mail']);
+    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['first_bill', 'mail']);
 });
 
 test('the checklist of a member is gone when the steps he can do are done', function (): void {
@@ -409,6 +409,67 @@ test('the Home says who can turn the features on', function (): void {
 
     expect(homeFor($marco)['can_change_features'])->toBeTrue()
         ->and(homeFor($member)['can_change_features'])->toBeFalse();
+});
+
+test('deleting the only utility keeps the utilities step done', function (): void {
+    $marco = registerFamily();
+    $utility = insideFamilyOf($marco, fn (): Utility => Utility::factory()->create(['family_id' => CurrentFamily::id()]));
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'utilities')['done'])->toBeTrue();
+
+    insideFamilyOf($marco, fn () => $utility->delete());
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'utilities')['done'])->toBeTrue();
+});
+
+test('an invitation that expires keeps the invite step done', function (): void {
+    $marco = registerFamily();
+    $invitation = insideFamilyOf($marco, function (): Invitation {
+        $laura = Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]);
+
+        return Invitation::factory()->create(['family_id' => CurrentFamily::id(), 'person_id' => $laura->id, 'expires_at' => now()->addDays(3), 'accepted_at' => null]);
+    });
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite')['done'])->toBeTrue();
+
+    $invitation->forceFill(['expires_at' => now()->subDay()])->save();
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null, 'names' => []]);
+});
+
+test('a finished list stays gone after the second person is deleted', function (): void {
+    $marco = registerFamily();
+    $giulia = insideFamilyOf($marco, function (): Person {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
+
+        return Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]);
+    });
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+
+    insideFamilyOf($marco, fn () => $giulia->delete());
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+});
+
+test('turning the mail on after finishing shows one open step', function (): void {
+    $marco = registerFamily();
+    $marco->family->forceFill(['mail_enabled' => false])->save();
+    insideFamilyOf($marco, function (): void {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]);
+    });
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+
+    $marco->family->forceFill(['mail_enabled' => true])->save();
+
+    expect(array_column(homeFor($marco)['checklist'], 'done', 'key'))->toBe(['people' => true, 'utilities' => true, 'first_bill' => true, 'card' => true, 'mail' => false, 'invite' => true]);
 });
 
 test('the Home of a new family is empty', function (): void {

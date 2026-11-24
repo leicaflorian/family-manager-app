@@ -107,9 +107,10 @@ final readonly class HomeSummary
 
     /**
      * The steps of *To begin*, in the order of the board, or none when every one is done or the account hid the list.
-     * Each step is only for whoever can do it: `people` for whoever can create people, `card` for whoever can create
-     * a card, `invite` for whoever can invite; `mail` only with the mail for the bills on. The steps the family took
-     * away (*Not needed*) are not there and do not count.
+     * Each step is only for whoever can do it: `people` for whoever can create people, `utilities` for whoever can
+     * create a utility, `card` for whoever can create a card, `invite` for whoever can invite; `mail` only with the
+     * mail for the bills on. The steps the family took away (*Not needed*) are not built and do not count. A step
+     * found done is remembered for the family and stays ticked, even when the data change later.
      *
      * @param  User  $user  whoever signed in
      * @return list<ChecklistStepData>
@@ -120,46 +121,70 @@ final readonly class HomeSummary
             return [];
         }
 
+        $settings = FamilySetting::current();
+        $skipped = $settings->skippedChecklistSteps();
+        $remembered = $settings->doneChecklistSteps();
         $gate = Gate::forUser($user);
+
+        $offered = [
+            'people' => $gate->allows('create', Person::class),
+            'utilities' => $gate->allows('create', Utility::class),
+            'first_bill' => true,
+            // Whoever cannot create a card would be sent to a page the policy forbids
+            'card' => $gate->allows('create', Vehicle::class),
+            'mail' => $this->features->on(Feature::Mail),
+            'invite' => $gate->allows('create', Invitation::class),
+        ];
+
         $steps = [];
 
-        if ($gate->allows('create', Person::class)) {
-            $steps[] = $this->peopleStep();
+        foreach ($offered as $key => $on) {
+            if ($on && ! in_array($key, $skipped, true)) {
+                $steps[] = $this->step($key, in_array($key, $remembered, true));
+            }
         }
 
-        $steps[] = new ChecklistStepData('utilities', Utility::query()->exists());
-        $steps[] = new ChecklistStepData('first_bill', Document::query()->exists());
-
-        // Whoever cannot create a card would be sent to a page the policy forbids
-        if ($gate->allows('create', Vehicle::class)) {
-            $steps[] = new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists());
-        }
-
-        if ($this->features->on(Feature::Mail)) {
-            $steps[] = new ChecklistStepData('mail', ReceivedMail::query()->exists());
-        }
-
-        if ($gate->allows('create', Invitation::class)) {
-            $steps[] = $this->inviteStep();
-        }
-
-        $skipped = FamilySetting::current()->skippedChecklistSteps();
-        $steps = array_values(array_filter($steps, static fn (ChecklistStepData $step): bool => ! in_array($step->key, $skipped, true)));
+        $settings->rememberDoneChecklistSteps(array_values(array_map(
+            static fn (ChecklistStepData $step): string => $step->key,
+            array_filter($steps, static fn (ChecklistStepData $step): bool => $step->done),
+        )));
 
         return array_all($steps, static fn (ChecklistStepData $step): bool => $step->done) ? [] : $steps;
     }
 
     /**
-     * The `people` step: done when the family has someone besides whoever made it, with the first names of all.
+     * One step of *To begin*. A step remembered as done skips the queries that would tell it.
+     *
+     * @param  string  $key  the key of the step
+     * @param  bool  $remembered  whether the family already did it once
      */
-    private function peopleStep(): ChecklistStepData
+    private function step(string $key, bool $remembered): ChecklistStepData
     {
+        return match ($key) {
+            'people' => $this->peopleStep($remembered),
+            'utilities' => new ChecklistStepData($key, $remembered || Utility::query()->exists()),
+            'first_bill' => new ChecklistStepData($key, $remembered || Document::query()->exists()),
+            'card' => new ChecklistStepData($key, $remembered || Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists()),
+            'mail' => new ChecklistStepData($key, $remembered || ReceivedMail::query()->exists()),
+            default => $remembered ? new ChecklistStepData($key, true) : $this->inviteStep(),
+        };
+    }
+
+    /**
+     * The `people` step: done when the family has someone besides whoever made it (or did once), with the first names of all.
+     *
+     * @param  bool  $remembered  whether the family already did it once
+     */
+    private function peopleStep(bool $remembered): ChecklistStepData
+    {
+        if (! $remembered && Person::query()->count() < 2) {
+            return new ChecklistStepData('people', false);
+        }
+
         /** @var list<string> $names */
         $names = Person::query()->orderBy('id')->pluck('first_name')->all();
 
-        return count($names) > 1
-            ? new ChecklistStepData('people', true, names: $names)
-            : new ChecklistStepData('people', false);
+        return new ChecklistStepData('people', true, names: $names);
     }
 
     /**
