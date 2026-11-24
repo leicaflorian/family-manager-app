@@ -5,6 +5,20 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { renderPage, settle, withTrail } from '@/test/page';
 import Features from './Features.vue';
 
+const shared = vi.hoisted(() => ({ mailAvailable: true }));
+
+// The shared props of the page: only whether this server can offer the mail
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({
+        props: {
+            name: 'Fameja.app',
+            family: { name: 'Bianchi', mail_available: shared.mailAvailable },
+        },
+    }),
+}));
+
 /** What the server sends to the page for an administrator of a family with both features on. */
 const props = (change = true, budget = true, mail = true) => ({
     settings: { budget, mail, can_change: change },
@@ -12,6 +26,7 @@ const props = (change = true, budget = true, mail = true) => ({
 
 afterEach(() => {
     vi.restoreAllMocks();
+    shared.mailAvailable = true;
 });
 
 describe('Settings, What you use', () => {
@@ -23,6 +38,24 @@ describe('Settings, What you use', () => {
             { label: 'Settings', href: '/settings' },
             { label: 'What you use' },
         ]);
+    });
+
+    it('does not offer the mail on a server without the mail domain', () => {
+        shared.mailAvailable = false;
+        renderPage(Features, props(true, true, false));
+
+        expect(
+            screen.getByRole('switch', { name: 'Budget' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('switch', { name: 'Mail for the bills' }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByText('Mail for the bills'),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByText('When you turn the mail on'),
+        ).not.toBeInTheDocument();
     });
 
     it('shows the two cards with their lists of what changes', () => {

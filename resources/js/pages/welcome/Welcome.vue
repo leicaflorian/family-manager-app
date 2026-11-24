@@ -29,6 +29,7 @@ import FmHeader from '@/components/fm/FmHeader.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import { useAppName } from '@/composables/useAppName';
+import { useMailAvailable } from '@/composables/useFeatures';
 import { useComputerLayout } from '@/composables/useLayoutMode';
 import { errors } from '@/lib/errors';
 import { cn } from '@/lib/utils';
@@ -111,11 +112,17 @@ watch(
     { immediate: true },
 );
 
+/** Whether this server can offer the mail: without its domain there is no switch and nothing is sent. */
+const mailAvailable = useMailAvailable();
+
 const form = useForm({
     me: { birth_date: me?.birth_date ?? '', tax_code: me?.tax_code ?? '' },
     people: [] as NewPerson[],
     home: { name: trans('House'), address: '', city: '', is_owned: false },
-    features: { budget: features.budget, mail: features.mail },
+    features: {
+        budget: features.budget,
+        mail: mailAvailable.value && features.mail,
+    },
 });
 
 /** True once «I'll add it later» was chosen at the second step: the home is not sent. */
@@ -147,7 +154,7 @@ const alwaysThere: Tile[] = [
 ];
 
 /** The two switches of the third step. */
-const switches: (Tile & { key: 'budget' | 'mail' })[] = [
+const allSwitches: (Tile & { key: 'budget' | 'mail' })[] = [
     {
         key: 'budget',
         icon: Wallet,
@@ -167,6 +174,11 @@ const switches: (Tile & { key: 'budget' | 'mail' })[] = [
         ),
     },
 ];
+
+/** The switches shown: no mail on a server without the mail domain. */
+const switches = computed(() =>
+    allSwitches.filter((item) => item.key !== 'mail' || mailAvailable.value),
+);
 
 /**
  * The four things to know of the last step. The last one is the mail for the

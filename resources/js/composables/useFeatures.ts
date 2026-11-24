@@ -33,3 +33,16 @@ export function useFeature(name: App.Enums.Feature): ComputedRef<boolean> {
             features.value === null || (features.value[name] ?? false),
     );
 }
+
+/**
+ * Whether this server can offer the mail for the bills (`FamilyFeatures::mailAvailable()`, shared as
+ * `family.mail_available`). When it cannot, the Welcome, *What you use* and *To begin* do not show the mail at all.
+ * Without a family (public pages, tests) it counts as available.
+ *
+ * @returns whether the mail can be offered
+ */
+export function useMailAvailable(): ComputedRef<boolean> {
+    const page = usePage();
+
+    return computed((): boolean => page.props.family?.mail_available ?? true);
+}

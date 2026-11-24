@@ -31,13 +31,13 @@ final readonly class ChangeFeatures
     public function __construct(private AssignMailAddress $assignMailAddress, private FamilyFeatures $features, private CreateLoanPlans $loanPlans) {}
 
     /**
-     * Writes the switches. Turning the mail on for a family without an address gives it one; turning the Budget off
+     * Writes the switches. The mail switch is ignored without the mail domain. Turning the mail on for a family without an address gives it one; turning the Budget off
      * writes the first day of the pause, turning it on again writes its last day and creates the planned expense of
      * the loans without one.
      *
      * @param  Family  $family  the family
      * @param  bool  $budget  whether the family uses the Budget
-     * @param  bool  $mail  whether the family uses the mail for the bills
+     * @param  bool  $mail  whether the family uses the mail for the bills; ignored on a server without the mail domain
      */
     public function handle(Family $family, bool $budget, bool $mail): void
     {
@@ -45,6 +45,8 @@ final readonly class ChangeFeatures
             $turnsBudgetOn = $budget && ! $family->budget_enabled;
             $turnsBudgetOff = ! $budget && $family->budget_enabled;
             $today = CarbonImmutable::today('Europe/Rome');
+            // Without the mail domain the mail is not offered: the switch stays as it was and no address is made
+            $mail = $this->features->mailAvailable() ? $mail : $family->mail_enabled;
             $family->forceFill(['budget_enabled' => $budget, 'mail_enabled' => $mail]);
 
             // The pause starts on the first day the Budget is turned off, and is kept by the pauses after it

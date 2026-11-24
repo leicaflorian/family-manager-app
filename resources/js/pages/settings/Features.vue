@@ -8,12 +8,13 @@ import { Head, router } from '@inertiajs/vue3';
 import { Check, Inbox, Lock, Minus, Wallet } from '@lucide/vue';
 import type { LucideIcon } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useMailAvailable } from '@/composables/useFeatures';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { update } from '@/routes/settings/features';
 
@@ -50,8 +51,11 @@ type Card = {
     off: string[];
 };
 
+/** Whether this server can offer the mail: without its domain the card is not shown. */
+const mailAvailable = useMailAvailable();
+
 /** The two cards, in order. */
-const cards: Card[] = [
+const allCards: Card[] = [
     {
         key: 'budget',
         title: trans('Budget'),
@@ -106,6 +110,11 @@ const cards: Card[] = [
         ],
     },
 ];
+
+/** The cards the person sees: no mail card on a server without the mail domain. */
+const cards = computed(() =>
+    allCards.filter((card) => card.key !== 'mail' || mailAvailable.value),
+);
 
 /**
  * Saves the switches as they are now, with the answer of the server as the truth afterwards.

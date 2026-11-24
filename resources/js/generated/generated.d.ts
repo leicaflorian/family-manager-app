@@ -420,6 +420,7 @@ readonly children: App.Data.ExpenseCategoryData[],
 export type FamilyData = {
 readonly name: string,
 readonly features: Record<App.Enums.Feature, boolean>,
+readonly mail_available: boolean,
 };
 export type FamilyNameSettingsData = {
 readonly name: string,

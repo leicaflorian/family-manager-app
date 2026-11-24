@@ -22,6 +22,20 @@ const me: App.Data.PersonDetailData = {
     can_delete: false,
 };
 
+const shared = vi.hoisted(() => ({ mailAvailable: true }));
+
+// The shared props of the page: only whether this server can offer the mail
+vi.mock('@inertiajs/vue3', async (original) => ({
+    ...(await original<typeof import('@inertiajs/vue3')>()),
+    Head: { render: () => null },
+    usePage: () => ({
+        props: {
+            name: 'Fameja.app',
+            family: { name: 'Bianchi', mail_available: shared.mailAvailable },
+        },
+    }),
+}));
+
 const props = {
     me,
     roles: personRoles,
@@ -57,6 +71,43 @@ async function welcomeToStepFour(mail: boolean): Promise<void> {
 describe('Welcome', () => {
     afterEach(() => {
         vi.restoreAllMocks();
+        shared.mailAvailable = true;
+    });
+
+    it('does not offer the mail on a server without the mail domain, and never sends it on', async () => {
+        shared.mailAvailable = false;
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Welcome, {
+            ...props,
+            features: { budget: false, mail: true, can_change: true },
+        });
+
+        await tap('Next');
+        await tap("I'll add it later");
+
+        expect(
+            screen.getByRole('switch', { name: 'Budget' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('switch', { name: 'Mail for the bills' }),
+        ).not.toBeInTheDocument();
+
+        await tap('Next');
+
+        expect(screen.getByText('Scan from your phone')).toBeInTheDocument();
+        expect(
+            screen.queryByText('Mail for the bills'),
+        ).not.toBeInTheDocument();
+
+        await tap("Done, let's go in");
+
+        expect(post).toHaveBeenCalledWith(
+            '/welcome',
+            expect.objectContaining({
+                features: { budget: false, mail: false },
+            }),
+            expect.anything(),
+        );
     });
 
     it('shows you at the first step with the two optional fields, and adds a person', async () => {

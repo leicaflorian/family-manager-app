@@ -605,3 +605,12 @@ test('the mail of another family is not on the Home', function (): void {
 
     expect(homeFor($marco)['mails'])->toBe([]);
 });
+
+test('without a mail domain the checklist has no mail step even with the mail switched on', function (): void {
+    config(['services.mailgun.inbox_domain' => '']);
+    $marco = registerFamily();
+    $marco->family->forceFill(['mail_enabled' => true])->save();
+
+    test()->actingAs($marco)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('family.mail_available', false));
+    expect(array_column(homeFor($marco)['checklist'], 'key'))->toBe(['people', 'utilities', 'first_bill', 'card', 'invite']);
+});

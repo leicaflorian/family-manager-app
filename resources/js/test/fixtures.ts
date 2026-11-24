@@ -42,6 +42,7 @@ export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
             consumption: false,
             gallery: false,
         },
+        mail_available: true,
     },
     areas: [],
     unread_notices: 0,

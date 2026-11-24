@@ -113,6 +113,15 @@ final class FamilyFeatures
     }
 
     /**
+     * Whether the mail for the bills can be offered on this server: only with the domain its addresses live on. The
+     * one answer for the Welcome, *What you use* and *To begin*; without it they do not show the mail at all.
+     */
+    public function mailAvailable(): bool
+    {
+        return $this->mailDomain() !== null;
+    }
+
+    /**
      * The switches of a family, read once from `families` and remembered.
      *
      * @param  int  $id  the family id
@@ -146,7 +155,7 @@ final class FamilyFeatures
     {
         return match ($feature) {
             Feature::Budget => $switches()['budget'],
-            Feature::Mail => $switches()['mail'] && $this->mailDomain() !== null,
+            Feature::Mail => $switches()['mail'] && $this->mailAvailable(),
             // The link to the bank and the consumption live in the Budget: with it off they are off
             Feature::BankFeed => $switches()['budget'] && resolve(BankFeed::class)->isActive() && $switches()['bank_feed'],
             // An electricity, gas or water utility: the Consumption page exists only then

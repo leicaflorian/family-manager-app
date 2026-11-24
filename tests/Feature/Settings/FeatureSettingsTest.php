@@ -93,13 +93,32 @@ test('turning the mail off keeps the address', function (): void {
     expect(featureSettingsAddress($this->marco))->toBe($address);
 });
 
-test('turning the mail on without a domain saves the switch but gives no address and the mail stays off', function (): void {
+test('without a domain the mail is not offered and turning it on is ignored', function (): void {
     config(['services.mailgun.inbox_domain' => '']);
+    $this->marco->family->forceFill(['mail_enabled' => false])->save();
     insideFamilyOf($this->marco, fn () => FamilySetting::query()->update(['mail_inbox_recipient' => null]));
+
+    $this->get(route('settings.features.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('family.mail_available', false));
 
     $this->put(route('settings.features.update'), ['budget' => true, 'mail' => true]);
 
-    expect($this->marco->family->fresh()?->mail_enabled)->toBeTrue()
+    expect($this->marco->family->fresh()?->mail_enabled)->toBeFalse()
         ->and(featureSettingsAddress($this->marco))->toBeNull()
         ->and(resolve(FamilyFeatures::class)->on(Feature::Mail))->toBeFalse();
+});
+
+test('without a domain a switch saved before stays as it is', function (): void {
+    config(['services.mailgun.inbox_domain' => '']);
+    $this->marco->family->forceFill(['mail_enabled' => true])->save();
+
+    $this->put(route('settings.features.update'), ['budget' => false, 'mail' => false]);
+
+    expect($this->marco->family->fresh()?->mail_enabled)->toBeTrue()
+        ->and($this->marco->family->fresh()?->budget_enabled)->toBeFalse();
+});
+
+test('with the domain the mail is offered', function (): void {
+    $this->get(route('settings.features.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('family.mail_available', true));
 });

@@ -32,7 +32,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
 import { usePageMeta } from '@/composables/usePageMeta';
-import { useFeature } from '@/composables/useFeatures';
+import { useFeature, useMailAvailable } from '@/composables/useFeatures';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
@@ -136,6 +136,9 @@ function toStep(step: App.Data.ChecklistStepData): ChecklistStep {
 /** Whether the family has the mail for the bills. */
 const mail = useFeature('mail');
 
+/** Whether this server can offer the mail: without its domain *To begin* does not mention it. */
+const mailAvailable = useMailAvailable();
+
 /**
  * Hides *To begin* for the account.
  */
@@ -171,7 +174,9 @@ const checklistIntro = computed(() =>
 
 /** Whether *To begin* ends with the way to *Settings › What you use*: only for whoever can turn on a feature that is off. */
 const featuresLink = computed(
-    () => home.can_change_features && (!budget.value || !mail.value),
+    () =>
+        home.can_change_features &&
+        (!budget.value || (mailAvailable.value && !mail.value)),
 );
 
 /** Whether the right column has something to show; without it the left one takes the whole width. */
@@ -311,15 +316,23 @@ const { title, head } = usePageMeta({
                 >
                     <template v-if="featuresLink" #footer>
                         {{
-                            $t(
-                                'Do you also need the Budget or the Mail for the bills?',
-                            )
+                            mailAvailable
+                                ? $t(
+                                      'Do you also need the Budget or the Mail for the bills?',
+                                  )
+                                : $t('Do you also need the Budget?')
                         }}
                         <Link
                             :href="editFeatures().url"
                             class="text-meta-strong text-action no-underline hover:text-action-dark"
                             >{{
-                                $t('Turn them on from Settings › What you use.')
+                                mailAvailable
+                                    ? $t(
+                                          'Turn them on from Settings › What you use.',
+                                      )
+                                    : $t(
+                                          'Turn it on from Settings › What you use.',
+                                      )
                             }}</Link
                         >
                     </template>

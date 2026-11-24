@@ -135,3 +135,24 @@ test('a second Done changes nothing', function (): void {
         ->and($family->budget_enabled)->toBeFalse()
         ->and($family->mail_enabled)->toBeFalse();
 });
+
+test('without a mail domain the Welcome does not offer the mail and its switch is ignored', function (): void {
+    config(['services.mailgun.inbox_domain' => '']);
+
+    $this->get(route('welcome'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('family.mail_available', false));
+
+    $this->post(route('welcome.store'), ['people' => [], 'features' => ['budget' => true, 'mail' => true]]);
+
+    $family = Family::query()->sole();
+    expect($family->budget_enabled)->toBeTrue()
+        ->and($family->mail_enabled)->toBeFalse()
+        ->and(FamilySetting::query()->whereNotNull('mail_inbox_recipient')->exists())->toBeFalse();
+});
+
+test('with the mail domain the Welcome offers the mail', function (): void {
+    config(['services.mailgun.inbox_domain' => 'bollette.familymanager.test']);
+
+    $this->get(route('welcome'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('family.mail_available', true));
+});

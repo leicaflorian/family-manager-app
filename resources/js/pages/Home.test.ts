@@ -17,7 +17,10 @@ const shared = vi.hoisted(() => ({
     name: 'Fameja.app',
     unread_notices: 0,
     family: undefined as
-        | { features: { budget: boolean; mail?: boolean } }
+        | {
+              features: { budget: boolean; mail?: boolean };
+              mail_available?: boolean;
+          }
         | undefined,
     bell_notices: undefined as
         | { unread: unknown[]; seen: unknown[] }
@@ -382,6 +385,36 @@ describe('Home', () => {
             expect.objectContaining({ preserveScroll: true }),
         );
         post.mockRestore();
+    });
+
+    it('does not offer the Mail in the footer on a server without the mail domain', () => {
+        shared.family = {
+            features: { budget: false, mail: false },
+            mail_available: false,
+        };
+        const view = renderPage(Home, { home: newFamily });
+
+        expect(
+            screen.getByText('Do you also need the Budget?', { exact: false }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText(/the Mail for the bills/),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('link', {
+                name: 'Turn it on from Settings › What you use.',
+            }),
+        ).toHaveAttribute('href', '/settings/features');
+        view.unmount();
+
+        // With the Budget on and nothing else to offer, there is no footer at all
+        shared.family = {
+            features: { budget: true, mail: false },
+            mail_available: false,
+        };
+        renderPage(Home, { home: newFamily });
+        expect(screen.queryByText(/Do you also need/)).not.toBeInTheDocument();
+        shared.family = undefined;
     });
 
     it('leads to What you use only for an admin with the Budget or the Mail off', () => {
