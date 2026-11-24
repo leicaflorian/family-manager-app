@@ -51,8 +51,25 @@ const page = usePage();
 const onColor = useOnColor();
 const copier = useCopy();
 
-/** The explanation of the page, without the lines of the features that are off. */
-const info = computed((): PageInfo => pageInfo(infoKey, features.value));
+/**
+ * The account is an administrator: the links to pages only an administrator opens are shown to it alone. A linked
+ * phone shares no level, and counts as not one.
+ */
+const admin = computed((): boolean => {
+    const user: unknown = page.props.auth?.user;
+
+    return (
+        typeof user === 'object' &&
+        user !== null &&
+        'role' in user &&
+        user.role === 'admin'
+    );
+});
+
+/** The explanation of the page, without the lines of the features that are off nor the links closed to the account. */
+const info = computed((): PageInfo =>
+    pageInfo(infoKey, features.value, { admin: admin.value }),
+);
 
 /** The name of the panel beside the page, for screen readers. */
 const sideLabel = computed((): string =>

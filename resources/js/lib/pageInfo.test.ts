@@ -9,6 +9,46 @@ const sources: Record<string, string> = import.meta.glob(
     { query: '?raw', import: 'default', eager: true },
 );
 
+// The components of `components/fm/`, to know which ones draw the «i»
+const components: Record<string, string> = import.meta.glob(
+    '../components/fm/*.vue',
+    { query: '?raw', import: 'default', eager: true },
+);
+
+/** The components that draw the «i»: `FmPageInfo` itself, and those with it (or with `FmTitle`) inside. */
+const CARRIERS = (() => {
+    const names = (pattern: RegExp): string[] =>
+        Object.entries(components)
+            .filter(([, source]) => pattern.test(source))
+            .map(([path]) => path.replace(/^.*\/(\w+)\.vue$/, '$1'));
+    const direct = ['FmPageInfo', ...names(/<FmPageInfo\b/)];
+
+    return [
+        ...new Set([
+            ...direct,
+            ...names(new RegExp(`<(${direct.join('|')})\\b`)),
+        ]),
+    ];
+})();
+
+/** A condition that hides an element in one layout. */
+const LAYOUT_CONDITION =
+    /\bv-(?:if|else-if|show)="[^"]*\b(?:wide|phone|computer|desktop|mode)\b/;
+
+/**
+ * Whether a page draws the «i» on the phone too: one of its carriers is not shown in one layout only.
+ *
+ * @param source - the source of the page
+ * @returns true when a carrier stands with no condition on the layout
+ */
+function drawsOnEveryLayout(source: string): boolean {
+    const tags = new RegExp(`<(${CARRIERS.join('|')})\\b[^>]*>`, 'g');
+
+    return [...source.matchAll(tags)].some(
+        (match) => !LAYOUT_CONDITION.test(match[0]),
+    );
+}
+
 /** A page that shows a title the «i» goes beside. */
 const TITLED = /<(FmTitle|FmCardHeader|FmSettingsPage|FmFamilyViews)\b/;
 
@@ -58,6 +98,18 @@ describe('pageInfo', () => {
             .map(([path]) => path);
 
         expect(missing).toEqual([]);
+    });
+
+    it('draws the «i» on the phone too, on every page with a key', () => {
+        const hidden = Object.entries(sources)
+            .filter(([, source]) => [...source.matchAll(KEY)].length > 0)
+            .filter(([, source]) => !drawsOnEveryLayout(source))
+            .map(([path]) => path);
+
+        expect(CARRIERS).toEqual(
+            expect.arrayContaining(['FmTitle', 'FmCardHeader', 'FmPageInfo']),
+        );
+        expect(hidden).toEqual([]);
     });
 
     it('gives a key to the scanner and to the linked phone, which draw their own title', () => {
@@ -118,6 +170,40 @@ describe('pageInfo', () => {
         expect(
             pageInfo('to-sort', { ...BUDGET_OFF, mail: false }).link,
         ).toBeUndefined();
+    });
+
+    it('says nothing about the mail for the bills with the Mail off, on every page the family can open', () => {
+        const mailOff = {
+            budget: true,
+            mail: false,
+            bank_feed: true,
+            consumption: true,
+            gallery: true,
+        };
+        const mail =
+            /\b(mails?|forward\w*|gmail|address for the bills|received mail)\b/i;
+
+        const found = PAGE_INFO_KEYS.filter((key) => {
+            const info = pageInfo(key, mailOff);
+
+            return (
+                (info.feature === undefined || mailOff[info.feature]) &&
+                texts(info).some((text) => mail.test(text))
+            );
+        });
+
+        expect(found).toEqual([]);
+    });
+
+    it('drops the links an account that is not an administrator cannot open', () => {
+        expect(pageInfo('people', null).link?.label).toBe(
+            'Invite a family member',
+        );
+        expect(pageInfo('people', null, { admin: false }).link).toBeUndefined();
+        expect(
+            pageInfo('person-form', null, { admin: false }).link,
+        ).toBeUndefined();
+        expect(pageInfo('mail', null, { admin: false }).link).toBeDefined();
     });
 
     it('writes the mail page as the board Posta-info: the address to copy and the link to To sort', () => {

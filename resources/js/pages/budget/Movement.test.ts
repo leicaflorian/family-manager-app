@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen, within } from '@testing-library/vue';
+import { cleanup, fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -103,6 +103,22 @@ describe('Movement', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
         expect(get).toHaveBeenCalledWith('/budget/comparison?month=2026-10');
+    });
+
+    it('has the «i» of the page beside the heading of the form on the phone, and once on the computer', () => {
+        renderPage(Movement, props);
+
+        expect(
+            screen.getAllByRole('button', { name: 'What is this page' }),
+        ).toHaveLength(1);
+        cleanup();
+
+        screenWidth(true);
+        renderPage(Movement, props);
+
+        expect(
+            screen.getAllByRole('button', { name: 'What is this page' }),
+        ).toHaveLength(1);
     });
 
     it('shows the movement', () => {

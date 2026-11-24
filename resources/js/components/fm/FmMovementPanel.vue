@@ -12,7 +12,8 @@
  * expense or income, which starts with the choice between the two. Choosing a
  * planned expense or income, or a card (also the one *Add expense* of a card
  * starts with), fills the fields still empty from it. On the computer the
- * page has the title, so the form has no heading of its own there. A movement
+ * page has the title, so the form has no heading of its own there; on the
+ * phone its heading plays the title, with the «i» of the page beside it. A movement
  * the bank recorded says so under the heading, with the text of the bank and
  * *It was not this one*, as the board *Movimento* draws it.
  *
@@ -22,7 +23,7 @@ import { router } from '@inertiajs/vue3';
 import { Landmark, Undo2 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
-import { computed, reactive, ref, toRef, watch } from 'vue';
+import { computed, inject, reactive, ref, toRef, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useCardChoice } from '@/composables/useCardChoice';
@@ -39,11 +40,13 @@ import {
     withNone,
     withoutFee,
 } from '@/lib/forms';
+import { PAGE_INFO } from '@/lib/titles';
 import { cn } from '@/lib/utils';
 import { destroy, store, update } from '@/routes/budget/movements';
 import FmButton from './FmButton.vue';
 import FmConfirmDelete from './FmConfirmDelete.vue';
 import FmDeleteButton from './FmDeleteButton.vue';
+import FmPageInfo from './FmPageInfo.vue';
 
 /** The organization field, beside the account for an income and beside the category for an expense. */
 const [DefineOrganization, ReuseOrganization] = createReusableTemplate();
@@ -154,6 +157,9 @@ if (values.kind === 'income' && values.type === '') {
 
 /** The page has the title on the computer: the form keeps its own heading on the phone only. */
 const wide = useWideLayout();
+
+/** The key of the explanation of the page, for the «i» beside the heading on the phone. */
+const infoKey = inject(PAGE_INFO, ref(undefined));
 
 /** The messages of the server, by field. */
 const problems = ref<Record<string, string>>({});
@@ -412,7 +418,10 @@ defineExpose({ fileErrors });
                 :errors="errors(problems.organization_id)"
             />
         </DefineOrganization>
-        <h2 v-if="!wide" class="m-0 text-stat">{{ heading }}</h2>
+        <div v-if="!wide" class="flex min-w-0 items-center gap-1.5">
+            <h2 class="m-0 text-stat">{{ heading }}</h2>
+            <FmPageInfo v-if="infoKey" :info-key="infoKey" />
+        </div>
 
         <div
             v-if="movement?.bank"

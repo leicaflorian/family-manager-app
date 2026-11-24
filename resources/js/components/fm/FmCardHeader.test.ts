@@ -1,5 +1,15 @@
 import { render, screen } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vite-plus/test';
+
+const layout = vi.hoisted(() => ({ wide: false }));
+
+vi.mock('@/composables/useWideLayout', async () => {
+    const { ref } = await import('vue');
+
+    return { useWideLayout: () => ref(layout.wide) };
+});
+
 import { defineComponent, h, provide, ref } from 'vue';
 import { PAGE_INFO } from '@/lib/titles';
 import { pandaRow } from '@/test/fixtures';
@@ -91,5 +101,32 @@ describe('FmCardHeader', () => {
         expect(
             screen.getByRole('button', { name: 'What is this page' }),
         ).toBeInTheDocument();
+    });
+    it('keeps the buttons of the «i» panel plain on its white card, in the wide layout', async () => {
+        layout.wide = true;
+        const Page = defineComponent({
+            setup() {
+                provide(PAGE_INFO, ref('card' as const));
+
+                return () =>
+                    h(FmCardHeader, {
+                        card: pandaRow,
+                        heading: 'Plate GH 482 TK · Marco',
+                    });
+            },
+        });
+        render(Page);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'What is this page' }),
+        );
+
+        expect(screen.getByRole('button', { name: 'Got it' })).not.toHaveClass(
+            'text-on-hero',
+        );
+        expect(screen.getByRole('button', { name: 'Close' })).not.toHaveClass(
+            'bg-on-hero-soft',
+        );
+        layout.wide = false;
     });
 });

@@ -471,6 +471,23 @@ describe('Search', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
+    it('on the phone, has the «i» of the page beside the box', () => {
+        renderPage(Search, { results: panda });
+
+        expect(
+            screen.getByRole('button', { name: 'What is this page' }),
+        ).toBeInTheDocument();
+    });
+
+    it('on the computer, has the «i» once, beside the title', () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        expect(
+            screen.getAllByRole('button', { name: 'What is this page' }),
+        ).toHaveLength(1);
+    });
+
     it('on the phone, draws no Back of its own: the layout draws the link to the Home', () => {
         renderPage(Search, { results: panda });
 

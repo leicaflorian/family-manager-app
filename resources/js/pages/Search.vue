@@ -19,6 +19,7 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, useTemplateRef } from 'vue';
 import FmChip from '@/components/fm/FmChip.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmPageInfo from '@/components/fm/FmPageInfo.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
@@ -180,6 +181,8 @@ const { head } = usePageMeta({
                     @escape="closeMenu"
                     @keydown="onKeydown"
                 />
+                <!-- The title is only for screen readers here: the «i» goes beside the box -->
+                <FmPageInfo info-key="search" />
             </div>
 
             <div

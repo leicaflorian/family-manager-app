@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 const state = vi.hoisted(() => ({
     wide: false,
     features: null as Record<string, boolean> | null,
+    role: 'admin' as string | undefined,
 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -15,6 +16,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             name: 'Fameja.app',
             address: 'bianchi.k7m2x9@mg.fameja.app',
             family: state.features ? { features: state.features } : null,
+            auth: { user: { name: 'Marco', role: state.role } },
         },
     }),
 }));
@@ -28,6 +30,7 @@ vi.mock('@/composables/useWideLayout', async () => {
 beforeEach(() => {
     state.wide = false;
     state.features = null;
+    state.role = 'admin';
 });
 
 import FmPageInfo from './FmPageInfo.vue';
@@ -155,5 +158,31 @@ describe('FmPageInfo', () => {
         );
 
         expect(screen.getByRole('dialog')).not.toHaveTextContent(/pay/i);
+    });
+    it('has the link to Invite for an administrator', async () => {
+        render(FmPageInfo, { props: { infoKey: 'people' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'What is this page' }),
+        );
+
+        expect(
+            within(screen.getByRole('dialog')).getByRole('link', {
+                name: 'Invite a family member',
+            }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no link to Invite for a member', async () => {
+        state.role = 'member';
+        render(FmPageInfo, { props: { infoKey: 'people' } });
+        await userEvent.click(
+            screen.getByRole('button', { name: 'What is this page' }),
+        );
+
+        expect(
+            within(screen.getByRole('dialog')).queryByRole('link', {
+                name: 'Invite a family member',
+            }),
+        ).not.toBeInTheDocument();
     });
 });

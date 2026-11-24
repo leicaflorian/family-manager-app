@@ -83,6 +83,14 @@ export type PageInfoLink = {
     href: () => string;
     /** The feature the page of the link belongs to: with it off the link is left out. */
     feature?: App.Enums.Feature;
+    /** The page of the link opens only for an administrator: for the others the link is left out. */
+    admin?: boolean;
+};
+
+/** Who reads the explanation. */
+export type PageInfoReader = {
+    /** The account is an administrator of the family; true when it is not known. */
+    admin?: boolean;
 };
 
 /** A step of *How to use it*. */
@@ -783,6 +791,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         link: {
             label: trans('Invite a family member'),
             href: () => invite().url,
+            admin: true,
         },
     }),
     organizations: () => ({
@@ -834,6 +843,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         link: {
             label: trans('Invite a family member'),
             href: () => invite().url,
+            admin: true,
         },
     }),
     organization: () => ({
@@ -1203,17 +1213,20 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
  *
  * @param line - the line
  * @param features - the features of the family, null for everything on
+ * @param admin - the reader is an administrator
  * @returns true when the line shows
  */
-function kept(line: Text, features: Features | null): boolean {
+function kept(line: Text, features: Features | null, admin: boolean): boolean {
     if (typeof line === 'string') {
         return true;
     }
 
-    // A step whose link goes to a page that is off goes too: its sentence would point nowhere
+    // A step whose link goes to a page that is off, or closed to the reader, goes too: its sentence would point
+    // nowhere
     return (
         featureOn(features, line.feature) &&
-        featureOn(features, line.link?.feature) &&
+        (line.link === undefined ||
+            linkOn(line.link, features, admin) !== undefined) &&
         (line.without === undefined || !featureOn(features, line.without))
     );
 }
@@ -1235,17 +1248,23 @@ function step(line: Text): PageInfoStep {
 }
 
 /**
- * The link, when its feature is on.
+ * The link, when its feature is on and the reader can open its page.
  *
  * @param link - the link, if any
  * @param features - the features of the family
+ * @param admin - the reader is an administrator
  * @returns the link, or undefined
  */
 function linkOn(
     link: PageInfoLink | undefined,
     features: Features | null,
+    admin: boolean,
 ): PageInfoLink | undefined {
-    return link && featureOn(features, link.feature) ? link : undefined;
+    return link &&
+        featureOn(features, link.feature) &&
+        (admin || link.admin !== true)
+        ? link
+        : undefined;
 }
 
 /**
@@ -1253,17 +1272,19 @@ function linkOn(
  *
  * @param key - the key of the page
  * @param features - the features of the family; null counts as everything on
+ * @param reader - who reads it: the links to pages only an administrator opens are left out for the others
  * @returns the explanation
  */
 export function pageInfo(
     key: PageInfoKey,
     features: Features | null,
+    { admin = true }: PageInfoReader = {},
 ): PageInfo {
     const entry = ENTRIES[key]();
     const keep = (lines: Text[]): Text[] =>
-        lines.filter((line) => kept(line, features));
+        lines.filter((line) => kept(line, features, admin));
     const notes = keep(entry.notes ?? []).map((line) => step(line).text);
-    const link = linkOn(entry.link, features);
+    const link = linkOn(entry.link, features, admin);
 
     return {
         title: entry.title,
