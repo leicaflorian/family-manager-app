@@ -17,7 +17,7 @@ beforeEach(function (): void {
 });
 
 test('a person saved without initials gets them from the name', function (): void {
-    $person = CurrentFamily::using($this->family->id, fn (): Person => app(SavePerson::class)->handle([
+    $person = CurrentFamily::using($this->family->id, fn (): Person => resolve(SavePerson::class)->handle([
         'first_name' => 'Laura', 'last_name' => 'Bianchi', 'role' => PersonRole::Parent,
     ]));
 
@@ -25,7 +25,7 @@ test('a person saved without initials gets them from the name', function (): voi
 });
 
 test('initials written by hand stay', function (): void {
-    $person = CurrentFamily::using($this->family->id, fn (): Person => app(SavePerson::class)->handle([
+    $person = CurrentFamily::using($this->family->id, fn (): Person => resolve(SavePerson::class)->handle([
         'first_name' => 'Laura', 'last_name' => 'Bianchi', 'role' => PersonRole::Parent, 'initials' => 'ZZ',
     ]));
 
@@ -34,10 +34,10 @@ test('initials written by hand stay', function (): void {
 
 test('the tax code is saved in upper case, on a new person and on a change', function (): void {
     [$new, $changed] = CurrentFamily::using($this->family->id, function (): array {
-        $new = app(SavePerson::class)->handle([
+        $new = resolve(SavePerson::class)->handle([
             'first_name' => 'Laura', 'last_name' => 'Bianchi', 'role' => PersonRole::Parent, 'tax_code' => 'bnclra82m41a944k',
         ]);
-        $changed = app(SavePerson::class)->handle([
+        $changed = resolve(SavePerson::class)->handle([
             'first_name' => 'Laura', 'last_name' => 'Bianchi', 'role' => PersonRole::Parent, 'tax_code' => 'rssmra80a01h501u',
         ], $new);
 

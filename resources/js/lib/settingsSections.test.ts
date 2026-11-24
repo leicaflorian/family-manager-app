@@ -99,4 +99,23 @@ describe('settingsSections', () => {
             'The bills arrive by email by themselves',
         );
     });
+
+    it('does not name the mail in What you use on a server without its domain', () => {
+        const features = settingsSections(null, false).find(
+            (s) => s.key === 'features',
+        )!;
+        const subtitle = (
+            budget: boolean,
+            mail: boolean,
+        ): string | null | undefined =>
+            features.subtitle?.({
+                features: { budget, mail },
+            } as unknown as Parameters<
+                NonNullable<typeof features.subtitle>
+            >[0]);
+
+        expect(subtitle(true, true)).toBe('Budget on');
+        expect(subtitle(false, true)).toBe('Budget off');
+        expect(subtitle(false, false)).toBe('Budget off');
+    });
 });

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Families\KeepChecklistDone;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -13,6 +14,7 @@ return new class extends Migration
 {
     /**
      * Adds the columns, empty: no step is taken away, and the done ones are written the first time the Home finds them done.
+     * The families already welcomed get every step as done, so the list the old release finished does not come back.
      */
     public function up(): void
     {
@@ -20,6 +22,8 @@ return new class extends Migration
             $table->json('checklist_skipped')->nullable();
             $table->json('checklist_done')->nullable();
         });
+
+        resolve(KeepChecklistDone::class)();
     }
 
     /**

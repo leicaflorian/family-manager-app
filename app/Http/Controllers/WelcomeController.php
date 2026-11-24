@@ -13,7 +13,6 @@ use App\Models\Person;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,11 +40,7 @@ final class WelcomeController extends Controller
         return Inertia::render('welcome/Welcome', [
             'me' => $me === null ? null : PersonDetailData::fromPerson($me, $user),
             'roles' => PersonRole::optionData(),
-            'features' => new FeatureSettingsData(
-                budget: $family->budget_enabled,
-                mail: $family->mail_enabled,
-                can_change: Gate::allows('manageFeatures', $family),
-            ),
+            'features' => FeatureSettingsData::fromFamily($family),
         ]);
     }
 

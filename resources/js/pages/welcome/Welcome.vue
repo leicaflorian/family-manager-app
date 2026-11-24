@@ -153,7 +153,7 @@ const alwaysThere: Tile[] = [
     },
 ];
 
-/** The two switches of the third step. */
+/** The switches of the third step, in order (the mail's is filtered out when the server cannot offer it). */
 const allSwitches: (Tile & { key: 'budget' | 'mail' })[] = [
     {
         key: 'budget',

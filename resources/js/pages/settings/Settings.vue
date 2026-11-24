@@ -15,7 +15,7 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { useFeatures } from '@/composables/useFeatures';
+import { useFeatures, useMailAvailable } from '@/composables/useFeatures';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import type { SettingsGroup, SettingsSection } from '@/lib/settingsSections';
@@ -56,10 +56,11 @@ const wide = useWideLayout();
 
 /** The features of the family: *Linked banks* is there only while the link to the bank is on. */
 const features = useFeatures();
+const mailAvailable = useMailAvailable();
 
 /** The cards of the index, in order: mine (no title), the family and the app. */
 const cards = computed(() => {
-    const sections = settingsSections(features.value);
+    const sections = settingsSections(features.value, mailAvailable.value);
     const card = (
         key: SettingsGroup,
         title: string | undefined,

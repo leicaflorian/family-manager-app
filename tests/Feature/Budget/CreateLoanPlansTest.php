@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\CardBudgets;
 use App\Services\Deadlines;
 use App\Services\FamilyFeatures;
+use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 
 beforeEach(function (): void {
@@ -146,7 +147,7 @@ test('a loan on the 31st keeps its day every month when the first instalment fal
 
     $plans = array_values(array_filter(createLoanPlansOf($this->marco), fn (PlannedExpense $plan): bool => $plan->card_id === $loan->id));
     $dates = fn (CarbonImmutable $from, CarbonImmutable $to): array => array_map(
-        fn ($deadline): array => [$deadline->occurrence->date->toDateString(), $deadline->occurrence->amount],
+        fn (Deadline $deadline): array => [$deadline->occurrence->date->toDateString(), $deadline->occurrence->amount],
         insideFamilyOf($this->marco, fn (): array => resolve(Deadlines::class)->between($plans, $from, $to)),
     );
 

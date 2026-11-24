@@ -89,6 +89,13 @@ final class Linkables
     ];
 
     /**
+     * The types that are pages of the Budget: with it off nothing links to them.
+     *
+     * @var list<string>
+     */
+    public const array BUDGET_TYPES = ['expense', 'income'];
+
+    /**
      * The type of a model, as the morph map writes it.
      *
      * @param  class-string<Model>  $class

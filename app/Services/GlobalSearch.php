@@ -30,7 +30,7 @@ final readonly class GlobalSearch
         MovementResults $movements,
         DueResults $dues,
         ContactResults $contacts,
-        private readonly FamilyFeatures $features,
+        private FamilyFeatures $features,
     ) {
         $this->groups = [$cards, $documents, $movements, $dues, $contacts];
     }

@@ -11,7 +11,7 @@
  */
 import { Link } from '@inertiajs/vue3';
 import { computed, provide } from 'vue';
-import { useFeatures } from '@/composables/useFeatures';
+import { useFeatures, useMailAvailable } from '@/composables/useFeatures';
 import { useWideLayout } from '@/composables/useWideLayout';
 import type { SettingsGroup, SettingsKey } from '@/lib/settingsSections';
 import { settingsSections } from '@/lib/settingsSections';
@@ -35,6 +35,7 @@ const wide = useWideLayout();
 
 /** The features of the family: *Linked banks* is in the list only while the link to the bank is on. */
 const features = useFeatures();
+const mailAvailable = useMailAvailable();
 
 provide(SECTION_TITLE, wide);
 
@@ -47,7 +48,7 @@ const GROUP_LABELS: Record<SettingsGroup, () => string | null> = {
 
 /** The sections of the settings in the groups of the index: mine first, without a name. */
 const groups = computed(() => {
-    const sections = settingsSections(features.value);
+    const sections = settingsSections(features.value, mailAvailable.value);
 
     return (['mine', 'family', 'app'] as const).map((group) => ({
         label: GROUP_LABELS[group](),

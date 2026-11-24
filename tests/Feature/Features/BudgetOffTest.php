@@ -50,7 +50,7 @@ test('every route of the Budget, of the banks and of the expense categories sits
 });
 
 test('the pages of the Budget answer 404 with the Budget off and work with it on', function (string $url): void {
-    $this->actingAs($this->admin)->get($url)->assertStatus(in_array($url, ['/budget'], true) ? 302 : 200);
+    $this->actingAs($this->admin)->get($url)->assertStatus($url === '/budget' ? 302 : 200);
 
     budgetOffSwitch($this->admin, false);
 

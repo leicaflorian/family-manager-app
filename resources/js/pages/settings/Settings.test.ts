@@ -21,6 +21,7 @@ vi.mock('@/composables/useFeatures', () => ({
             mail: true,
             bank_feed: bankFeed.share !== null,
         })),
+    useMailAvailable: () => computed(() => true),
 }));
 
 afterEach(() => {

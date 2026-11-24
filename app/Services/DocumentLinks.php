@@ -36,7 +36,7 @@ final class DocumentLinks
 
         foreach (array_keys(Linkables::WITH_DOCUMENTS) as $type) {
             // Expenses and income are pages of the Budget: with it off a document does not link to them
-            if (! $budget && in_array($type, ['expense', 'income'], true)) {
+            if (! $budget && in_array($type, Linkables::BUDGET_TYPES, true)) {
                 continue;
             }
 

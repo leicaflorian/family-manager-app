@@ -101,9 +101,13 @@ export type SettingsSection = {
  * The sections of the settings the family can use, in the order of the boards.
  *
  * @param features - the features of the family; null (no family, tests) shows every section
+ * @param mailAvailable - whether this server has the mail domain; without it *What you use* does not name the mail
  * @returns the sections, translated now
  */
-export function settingsSections(features: Features | null): SettingsSection[] {
+export function settingsSections(
+    features: Features | null,
+    mailAvailable = true,
+): SettingsSection[] {
     const all: SettingsSection[] = [
         {
             key: 'account',
@@ -139,7 +143,11 @@ export function settingsSections(features: Features | null): SettingsSection[] {
             group: 'family',
             subtitle: ({ features }) => {
                 const budget = featureOn(features, 'budget');
-                const mail = featureOn(features, 'mail');
+                const mail = mailAvailable && featureOn(features, 'mail');
+
+                if (!mailAvailable) {
+                    return budget ? trans('Budget on') : trans('Budget off');
+                }
 
                 if (budget && mail) {
                     return trans('Budget and Mail for the bills on');

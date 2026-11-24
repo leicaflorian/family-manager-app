@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * *Settings → What you use*: two cards, one for the Budget and one for the mail for the bills, each with its
+ * *Settings → What you use*: one card for the Budget and one for the mail for the bills (only on a server with the mail domain), each with its
  * switch and the lists of what changes when it is turned on and off. Each switch saves at once. A member sees the
  * page with the switches locked and a note that says who can change them.
  */
@@ -54,7 +54,7 @@ type Card = {
 /** Whether this server can offer the mail: without its domain the card is not shown. */
 const mailAvailable = useMailAvailable();
 
-/** The two cards, in order. */
+/** The cards, in order (the mail's is filtered out when the server cannot offer it). */
 const allCards: Card[] = [
     {
         key: 'budget',

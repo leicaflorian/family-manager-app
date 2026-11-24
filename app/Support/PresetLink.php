@@ -89,7 +89,7 @@ final class PresetLink
      */
     public static function route(array $link): string
     {
-        return in_array($link['type'], ['expense', 'income'], true)
+        return in_array($link['type'], Linkables::BUDGET_TYPES, true)
             ? route('budget.movements.show', ['kind' => $link['type'], 'id' => $link['id']])
             : route('cards.show', $link);
     }

@@ -11,7 +11,6 @@ use App\Http\Requests\Settings\UpdateFeaturesRequest;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,11 +30,7 @@ final class FeatureSettingsController extends Controller
         $family = $user->family;
 
         return Inertia::render('settings/Features', [
-            'settings' => new FeatureSettingsData(
-                budget: $family->budget_enabled,
-                mail: $family->mail_enabled,
-                can_change: Gate::allows('manageFeatures', $family),
-            ),
+            'settings' => FeatureSettingsData::fromFamily($family),
         ]);
     }
 

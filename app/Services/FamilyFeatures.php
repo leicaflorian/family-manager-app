@@ -45,13 +45,7 @@ final class FamilyFeatures
      */
     public function for(Family $family, Feature $feature): bool
     {
-        return $this->resolve($feature, $family->id, static fn (): array => [
-            'budget' => $family->budget_enabled,
-            'mail' => $family->mail_enabled,
-            'bank_feed' => $family->bank_feed_enabled,
-            'budget_paused_on' => $family->budget_paused_on?->toDateString(),
-            'budget_started_on' => $family->budget_started_on?->toDateString(),
-        ]);
+        return $this->resolve($feature, $family->id, fn (): array => $this->switchesOf($family));
     }
 
     /**
@@ -132,16 +126,27 @@ final class FamilyFeatures
         if (! isset($this->switches[$id])) {
             $row = Family::query()->whereKey($id)->first(['budget_enabled', 'mail_enabled', 'bank_feed_enabled', 'budget_paused_on', 'budget_started_on']);
 
-            $this->switches[$id] = [
-                'budget' => (bool) $row?->budget_enabled,
-                'mail' => (bool) $row?->mail_enabled,
-                'bank_feed' => (bool) $row?->bank_feed_enabled,
-                'budget_paused_on' => $row?->budget_paused_on?->toDateString(),
-                'budget_started_on' => $row?->budget_started_on?->toDateString(),
-            ];
+            $this->switches[$id] = $this->switchesOf($row);
         }
 
         return $this->switches[$id];
+    }
+
+    /**
+     * The five switches of a family, off when there is no family.
+     *
+     * @param  Family|null  $family  the family, or null when it does not exist
+     * @return array{budget: bool, mail: bool, bank_feed: bool, budget_paused_on: ?string, budget_started_on: ?string}
+     */
+    private function switchesOf(?Family $family): array
+    {
+        return [
+            'budget' => (bool) $family?->budget_enabled,
+            'mail' => (bool) $family?->mail_enabled,
+            'bank_feed' => (bool) $family?->bank_feed_enabled,
+            'budget_paused_on' => $family?->budget_paused_on?->toDateString(),
+            'budget_started_on' => $family?->budget_started_on?->toDateString(),
+        ];
     }
 
     /**
