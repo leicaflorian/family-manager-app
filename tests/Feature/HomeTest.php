@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Families\CreateFamily;
+use App\Enums\DocumentCategoryRole;
 use App\Enums\ExceptionType;
 use App\Enums\FilingStatus;
 use App\Enums\FilingType;
@@ -11,6 +12,7 @@ use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Enums\UtilityType;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Expense;
 use App\Models\FamilySetting;
 use App\Models\File;
@@ -544,13 +546,15 @@ test('the Home says what is missing: the registration document of a vehicle and 
     ]);
 
     $missing = collect(homeFor($marco)['missing']);
+    $category = insideFamilyOf($marco, fn (): DocumentCategory => DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration));
+    $href = '/upload?link=vehicle%3A'.$panda->id.'&category='.$category->id;
 
-    expect($missing->firstWhere('card', 'Fiat Panda'))->toBe(['key' => '/upload?link=vehicle%3A'.$panda->id.'#1', 'card' => 'Fiat Panda', 'href' => '/upload?link=vehicle%3A'.$panda->id, 'document' => 'Vehicle registration document'])
+    expect($missing->firstWhere('card', 'Fiat Panda'))->toBe(['key' => $href.'#1', 'card' => 'Fiat Panda', 'href' => $href, 'document' => 'Vehicle registration document'])
         ->and($missing->where('card', 'ISEE 2027')->pluck('key')->unique()->count())->toBe(2);
     expect($missing->where('card', 'ISEE 2027')->pluck('document')->all())->toBe(['Annual income statement 2026 of Marco', 'Annual income statement 2026 of Laura']);
 
-    insideFamilyOf($marco, function () use ($panda, $isee): void {
-        $document = Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Libretto Panda']);
+    insideFamilyOf($marco, function () use ($panda, $isee, $category): void {
+        $document = Document::factory()->create(['family_id' => CurrentFamily::id(), 'title' => 'Libretto Panda', 'category_id' => $category->id]);
         $document->morphedByMany(Vehicle::class, 'documentable')->attach($panda);
         $isee->update(['status' => FilingStatus::Submitted]);
     });

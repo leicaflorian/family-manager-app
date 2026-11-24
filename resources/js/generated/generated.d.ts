@@ -207,10 +207,13 @@ readonly dates: App.Data.CardDateData[],
 readonly notices: App.Data.CardNoticeData[],
 readonly values: App.Data.CardValueData[],
 readonly related: App.Data.CardData[],
+readonly related_more: {
+href: string,
+count: number,
+} | null,
 readonly addable: App.Data.CardAddData[],
 readonly documents: App.Data.DocumentData[],
-readonly documents_previous: string | null,
-readonly documents_next: string | null,
+readonly documents_more: string | null,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
@@ -1235,6 +1238,7 @@ export type Channel = 'app' | 'email' | 'both';
 export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
 export type ConsumptionSource = 'reading' | 'manual';
 export type ConsumptionUnit = 'kwh' | 'smc' | 'm3';
+export type DocumentCategoryRole = 'vehicle_registration';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
 export type EmploymentStatus = 'active' | 'ended';

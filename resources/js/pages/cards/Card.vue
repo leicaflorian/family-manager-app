@@ -8,7 +8,7 @@
  * due date, the figures, the due dates to pay), the data of the card (the
  * person, the organization and the card it names open in a new tab) and the
  * cards it is linked to, with the + that adds a new one already linked (for an
- * `admin`); beside them its documents, 5 a page (with *Upload*, which opens
+ * `admin`); beside them its first 5 documents and, with more, *See all the documents* (with *Upload*, which opens
  * the panel with the zone for the files, and *Link*, open to a `member` too,
  * and beside each the buttons of `FmCardDocumentActions`), and under the
  * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
@@ -43,7 +43,6 @@ import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
-import FmPager from '@/components/fm/FmPager.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
@@ -217,33 +216,49 @@ function link(id: number): void {
                     </FmCard>
                 </FmCardBudget>
 
-                <FmCard
-                    v-if="card.related.length > 0 || card.addable.length > 0"
-                    :title="$t('Linked to')"
-                    list
+                <div
+                    v-if="
+                        card.related.length > 0 ||
+                        card.addable.length > 0 ||
+                        card.related_more
+                    "
+                    class="flex flex-col gap-2"
                 >
-                    <template v-if="card.addable.length > 0" #actions>
-                        <FmMenu :icon="Plus" :label="$t('Add')" text>
-                            <FmMenuItem
-                                v-for="entry in card.addable"
-                                :key="entry.type"
-                                :href="entry.href"
-                                >{{ entry.label }}</FmMenuItem
-                            >
-                        </FmMenu>
-                    </template>
-                    <FmCardRow
-                        v-for="related in card.related"
-                        :key="`${related.type}-${related.id}`"
-                        :card="related"
-                    />
-                    <p
-                        v-if="card.related.length === 0"
-                        class="m-0 px-4 py-3.5 text-body-sm text-ink-soft"
+                    <FmCard :title="$t('Linked to')" list>
+                        <template v-if="card.addable.length > 0" #actions>
+                            <FmMenu :icon="Plus" :label="$t('Add')" text>
+                                <FmMenuItem
+                                    v-for="entry in card.addable"
+                                    :key="entry.type"
+                                    :href="entry.href"
+                                    >{{ entry.label }}</FmMenuItem
+                                >
+                            </FmMenu>
+                        </template>
+                        <FmCardRow
+                            v-for="related in card.related"
+                            :key="`${related.type}-${related.id}`"
+                            :card="related"
+                        />
+                        <p
+                            v-if="card.related.length === 0"
+                            class="m-0 px-4 py-3.5 text-body-sm text-ink-soft"
+                        >
+                            {{ $t('Nothing linked yet.') }}
+                        </p>
+                    </FmCard>
+                    <Link
+                        v-if="card.related_more"
+                        :href="card.related_more.href"
+                        class="px-1 text-label text-action underline underline-offset-2"
+                        >{{
+                            $tChoice(
+                                '{1} See the link (:count)|[2,*] See all the links (:count)',
+                                card.related_more.count,
+                            )
+                        }}</Link
                     >
-                        {{ $t('Nothing linked yet.') }}
-                    </p>
-                </FmCard>
+                </div>
             </div>
 
             <div class="flex min-w-0 flex-col gap-2">
@@ -282,11 +297,12 @@ function link(id: number): void {
                         {{ $t('No documents yet.') }}
                     </p>
                 </FmCard>
-                <FmPager
-                    :previous="card.documents_previous"
-                    :next="card.documents_next"
-                    preserve-scroll
-                />
+                <Link
+                    v-if="card.documents_more"
+                    :href="card.documents_more"
+                    class="px-1 text-label text-action underline underline-offset-2"
+                    >{{ $t('See all the documents') }}</Link
+                >
 
                 <div
                     v-if="

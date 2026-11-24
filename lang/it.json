@@ -2693,5 +2693,13 @@
     "Budget off": "Bilancio spento",
     "Pays the deadline": "Paga la scadenza",
     "No deadline": "Nessuna",
-    "The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.": "Il pagamento chiude il promemoria di questa scadenza. La data nella scheda la aggiorni tu, e la spesa la segue."
+    "The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.": "Il pagamento chiude il promemoria di questa scadenza. La data nella scheda la aggiorni tu, e la spesa la segue.",
+    "See all the documents": "Vedi tutti i documenti",
+    "{1} :count document linked to :card, the most recent first|[2,*] :count documents linked to :card, the most recent first": "{1} :count documento collegato a :card, il più recente in cima|[2,*] :count documenti collegati a :card, i più recenti in cima",
+    "{1} See the link (:count)|[2,*] See all the links (:count)": "{1} Vedi il collegamento (:count)|[2,*] Vedi tutti i collegamenti (:count)",
+    "Links of :name": "Collegamenti di :name",
+    "First the cards with a date coming, then the others, the most recent first. The closed ones (cancelled, sold, expired) are at the bottom.": "Prima le schede con una scadenza in arrivo, poi le altre dalla più recente. Le schede chiuse (disdette, vendute, scadute) stanno in fondo.",
+    "All the cards that go with this one, in one list.": "Tutte le schede che vanno con questa, in un elenco solo.",
+    "Add creates a new card already linked to this one.": "Aggiungi crea una scheda nuova già collegata a questa.",
+    "The cards with a date coming are first. The closed ones are at the bottom.": "In alto le schede con una scadenza in arrivo. Quelle chiuse stanno in fondo."
 }

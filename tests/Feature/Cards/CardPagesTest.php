@@ -565,7 +565,7 @@ it('works out the figures of a saved loan with its saved last date and status, a
         ->assertJsonPath('props.loanFigures.total_to_pay', 1200);
 });
 
-test('a card shows its documents 5 at a time, with the addresses of the other pages', function (): void {
+test('a card with more than 5 documents shows 5 and the address of all of them', function (): void {
     $this->actingAs($this->marco);
     $linked = insideBianchi(fn (): int => DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count());
     Document::factory()->for($this->marco->family)->count(7 - $linked)->create()
@@ -573,16 +573,23 @@ test('a card shows its documents 5 at a time, with the addresses of the other pa
 
     $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->has('card.documents', 5)
-        ->where('card.documents_previous', null)
-        ->where('card.documents_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2])));
-
-    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->has('card.documents', 2)
-        ->where('card.documents_previous', route('cards.show', $this->pandaUrl))
-        ->where('card.documents_next', null));
+        ->where('card.documents_more', route('documents.index', ['card' => 'vehicle:'.$this->panda->id]))
+        ->missing('card.documents_previous')
+        ->missing('card.documents_next'));
 });
 
-test('a card shows its payments 5 at a time, each pager keeping the page of the other list', function (): void {
+test('a card with 5 documents or fewer has no link to all of them', function (): void {
+    $this->actingAs($this->marco);
+    $linked = insideBianchi(fn (): int => DB::table('documentables')->where(['documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id])->count());
+    Document::factory()->for($this->marco->family)->count(5 - $linked)->create()
+        ->each(fn (Document $document): bool => DB::table('documentables')->insert(['document_id' => $document->id, 'documentable_type' => 'vehicle', 'documentable_id' => $this->panda->id]));
+
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('card.documents', 5)
+        ->where('card.documents_more', null));
+});
+
+test('a card shows its payments 5 at a time', function (): void {
     $this->actingAs($this->marco);
     insideBianchi(fn () => Expense::factory()->count(5)->create([
         'family_id' => $this->marco->family_id,
@@ -592,17 +599,16 @@ test('a card shows its payments 5 at a time, each pager keeping the page of the 
     ]));
     $count = fn (array $years): int => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years));
 
-    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+    $this->get(route('cards.show', $this->pandaUrl))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 5)
         ->where('card.budget.payments_previous', null)
-        ->where('card.budget.payments_next', route('cards.show', [...$this->pandaUrl, 'documents_page' => 2, 'payments_page' => 2])));
+        ->where('card.budget.payments_next', route('cards.show', [...$this->pandaUrl, 'payments_page' => 2])));
 
     $this->get(route('cards.show', [...$this->pandaUrl, 'payments_page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         // The 3 payments of the Panda of the seeder and the 5 added: 3 left after the first page
         ->where('card.budget.payments', fn (Collection $years): bool => $count($years->toArray()) === 3)
         ->where('card.budget.payments_previous', route('cards.show', $this->pandaUrl))
-        ->where('card.budget.payments_next', null)
-        ->where('card.documents_previous', null));
+        ->where('card.budget.payments_next', null));
 });
 
 test('the column of payments beside the form shows the first page, without the pager', function (): void {
@@ -619,10 +625,22 @@ test('the column of payments beside the form shows the first page, without the p
         ->where('budget.payments_next', null));
 });
 
-test('a page of documents past the last one shows the first', function (): void {
+test('the linked cards page lists all of them with the closed ones last', function (): void {
+    $c4 = linkedCardsVehicle();
     $this->actingAs($this->marco);
 
-    $this->get(route('cards.show', [...$this->pandaUrl, 'documents_page' => 5]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('card.documents.0.title', 'Polizza RC auto 2026')
-        ->where('card.documents_previous', null));
+    $this->get(route('cards.related', ['type' => 'vehicle', 'id' => $c4->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/CardRelated')
+        ->where('card.label', 'Citroen C4')
+        ->has('related', 7)
+        ->where('related.6.label', 'Old policy')
+        ->where('related.6.closed', true)
+        ->has('addable')
+        ->where('back', route('cards.show', ['type' => 'vehicle', 'id' => $c4->id], false)));
+});
+
+test('the linked cards page answers 404 for a card of another family', function (): void {
+    $this->actingAs(registerFamily('Rossi', 'mario@rossi.example'));
+
+    $this->get(route('cards.related', $this->pandaUrl))->assertNotFound();
 });

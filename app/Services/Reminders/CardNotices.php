@@ -252,7 +252,7 @@ final readonly class CardNotices
         }
 
         foreach ($found['missing'] as $position => $document) {
-            $notices[] = new CardNoticeData('missing-document:'.$position, NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card));
+            $notices[] = new CardNoticeData('missing-document:'.$position, NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card, $this->expected->categoryFor($card)));
         }
 
         return $notices;

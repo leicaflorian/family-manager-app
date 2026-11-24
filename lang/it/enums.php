@@ -49,6 +49,9 @@ return [
         'out_of_range' => 'Consumo fuori misura',
         'bad_period' => 'Periodo non valido',
     ],
+    'document_category_role' => [
+        'vehicle_registration' => 'Libretto di circolazione',
+    ],
     'document_status' => [
         'active' => 'Attivo',
         'archived' => 'Archiviato',

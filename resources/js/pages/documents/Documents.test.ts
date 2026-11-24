@@ -24,6 +24,7 @@ const none = {
     status: null,
     expiring: false,
     search: null,
+    card: null,
 };
 
 const payslip = {
@@ -46,6 +47,7 @@ const props = {
     nextPage: '/documents?page=2',
     previousPage: null,
     filters: none,
+    cardLabel: null,
     hasDocuments: true,
     options: documentFilterOptions,
     selected: null,
@@ -220,6 +222,34 @@ describe('Documents', () => {
         await fireEvent.click(
             screen.getByRole('button', {
                 name: 'Remove the filter Laura Bianchi',
+            }),
+        );
+
+        expect(get).toHaveBeenCalledWith(
+            '/documents?expiring=1',
+            {},
+            expect.anything(),
+        );
+    });
+
+    it('shows the card the list is limited to as a pill, and removes it leaving the other filters', async () => {
+        const get = vi.spyOn(router, 'get').mockImplementation(() => {});
+        renderPage(Documents, {
+            ...props,
+            total: 4,
+            filters: { ...none, card: 'vehicle:3', expiring: true },
+            cardLabel: 'Renault Clio',
+        });
+
+        expect(
+            screen.getByText(
+                '4 documents linked to Renault Clio, the most recent first',
+            ),
+        ).toBeInTheDocument();
+
+        await fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Remove the filter Renault Clio',
             }),
         );
 

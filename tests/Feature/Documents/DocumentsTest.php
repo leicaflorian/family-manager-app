@@ -408,3 +408,28 @@ test('markLinked leaves no dirty attribute behind', function (): void {
 
     expect($this->document->fresh()->title)->toBe('Renamed again');
 });
+
+test('the list of a card shows only its documents and the name of the card', function (): void {
+    $vehicle = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Renault Clio']);
+    $this->document->vehicles()->attach($vehicle);
+    Document::factory()->for($this->marco->family)->create(['title' => 'Not of the Clio']);
+
+    $this->get(route('documents.index', ['card' => 'vehicle:'.$vehicle->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('documents', 1)
+        ->where('documents.0.title', 'Payslip of October')
+        ->where('total', 1)
+        ->where('filters.card', 'vehicle:'.$vehicle->id)
+        ->where('cardLabel', 'Renault Clio'));
+
+    $this->get(route('documents.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('filters.card', null)
+        ->where('cardLabel', null));
+});
+
+test('the list of a card of the Rossis answers 404 to the Bianchis', function (): void {
+    $rossi = registerFamily('Rossi', 'anna@example.com');
+    $theirs = CurrentFamily::using($rossi->family_id, fn (): Vehicle => Vehicle::factory()->for($rossi->family)->create());
+
+    $this->get(route('documents.index', ['card' => 'vehicle:'.$theirs->id]))->assertNotFound();
+    $this->get(route('documents.index', ['card' => 'nonsense']))->assertNotFound();
+});

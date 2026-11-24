@@ -192,3 +192,32 @@ test('a utility without consumption, or without a unit, has no consumption on it
         ->and(insideBianchi(fn () => $this->details->of($empty, $this->marco))->consumption)->toBeNull()
         ->and(insideBianchi(fn () => $this->details->of($this->policy, $this->marco))->consumption)->toBeNull();
 });
+
+test('it shows five open linked cards, the soonest first, and counts all of them', function (): void {
+    $c4 = linkedCardsVehicle();
+    $detail = insideBianchi(fn () => $this->details->of($c4, $this->marco));
+
+    expect(array_map(fn (CardData $row): string => $row->label, $detail->related))
+        ->toBe(['Active policy', 'Service 2025', 'Service 2024', 'Service 2023', 'Service 2022'])
+        ->and($detail->related_more)->toBe(['href' => route('cards.related', ['type' => 'vehicle', 'id' => $c4->id]), 'count' => 7]);
+});
+
+test('it puts the closed linked cards last in the whole list', function (): void {
+    $c4 = linkedCardsVehicle();
+    $labels = array_map(fn (CardData $row): string => $row->label, insideBianchi(fn (): array => $this->details->related(CardTypes::for($c4), $c4)));
+
+    expect($labels)->toHaveCount(7)->and($labels[6])->toBe('Old policy')->and($labels[0])->toBe('Active policy')->and($labels[1])->toBe('Service 2025');
+});
+
+test('it has no link to all the linked cards when they all fit and none is closed', function (): void {
+    $c4 = linkedCardsVehicle('Panda bis', [2024, 2025], expiredPolicy: false);
+
+    expect(insideBianchi(fn () => $this->details->of($c4, $this->marco))->related_more)->toBeNull();
+});
+
+test('it links to all the linked cards when one is closed', function (): void {
+    $c4 = linkedCardsVehicle('Panda bis', [], expiredPolicy: true);
+    $detail = insideBianchi(fn () => $this->details->of($c4, $this->marco));
+
+    expect($detail->related)->toHaveCount(1)->and($detail->related_more['count'])->toBe(2);
+});

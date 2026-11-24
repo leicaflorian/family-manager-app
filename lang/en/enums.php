@@ -49,6 +49,9 @@ return [
         'out_of_range' => 'Consumption out of range',
         'bad_period' => 'Period not valid',
     ],
+    'document_category_role' => [
+        'vehicle_registration' => 'Vehicle registration document',
+    ],
     'document_status' => [
         'active' => 'Active',
         'archived' => 'Archived',

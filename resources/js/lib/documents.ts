@@ -46,6 +46,8 @@ export type DocumentFilters = {
     status: string | null;
     expiring: boolean;
     search: string | null;
+    /** The card the list is limited to, `<type>:<id>`. */
+    card: string | null;
 };
 
 /** The choices of the filters of *Documents*. */
@@ -238,6 +240,10 @@ export function filterQuery(
         query.search = filters.search;
     }
 
+    if (filters.card) {
+        query.card = filters.card;
+    }
+
     return query;
 }
 
@@ -253,16 +259,24 @@ export function linkKey(link: DocumentLink): string {
 
 /**
  * The query that keeps the card an upload comes from on an address
- * (`?link=vehicle:1`): the files sent are linked to it, and the last one
- * filed goes back to it.
+ * (`?link=vehicle:1`), and the document category already chosen
+ * (`&category=5`): the files sent are linked to the card, the import form
+ * starts with the category, and the last file filed goes back to the card.
  *
  * @param link - the card, if there is one
- * @returns the query for a route of Wayfinder, empty without a card
+ * @param category - the id of the category already chosen, if there is one
+ * @returns the query for a route of Wayfinder, empty with neither
  */
 export function linkQuery(
     link: DocumentLink | undefined,
-): { query: { link: string } } | Record<string, never> {
-    return link ? { query: { link: linkKey(link) } } : {};
+    category?: number | null,
+): { query: { link?: string; category?: number } } | Record<string, never> {
+    const query = {
+        ...(link ? { link: linkKey(link) } : {}),
+        ...(category ? { category } : {}),
+    };
+
+    return Object.keys(query).length > 0 ? { query } : {};
 }
 
 /**

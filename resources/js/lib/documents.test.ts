@@ -80,6 +80,14 @@ describe('linkQuery', () => {
         });
         expect(linkQuery(undefined)).toEqual({});
     });
+
+    it('keeps the category already chosen beside the card, or alone', () => {
+        expect(linkQuery({ type: 'vehicle', id: 1 }, 5)).toEqual({
+            query: { link: 'vehicle:1', category: 5 },
+        });
+        expect(linkQuery(undefined, 5)).toEqual({ query: { category: 5 } });
+        expect(linkQuery(undefined, null)).toEqual({});
+    });
 });
 
 describe('documentValues', () => {
@@ -128,6 +136,7 @@ describe('filterQuery', () => {
                 status: null,
                 expiring: true,
                 search: 'danza',
+                card: null,
             }),
         ).toEqual({ category: 4, expiring: 1, search: 'danza' });
         expect(
@@ -138,8 +147,9 @@ describe('filterQuery', () => {
                 status: null,
                 expiring: false,
                 search: null,
+                card: 'vehicle:3',
             }),
-        ).toEqual({});
+        ).toEqual({ card: 'vehicle:3' });
     });
 });
 

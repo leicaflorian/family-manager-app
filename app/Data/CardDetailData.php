@@ -21,11 +21,11 @@ final class CardDetailData extends Data
      * @param  list<CardDateData>  $dates  the dates of the tiles
      * @param  list<CardNoticeData>  $notices  the notices of the card: what its data and its reminders say
      * @param  list<CardValueData>  $values  the data, without the empty fields
-     * @param  list<CardData>  $related  the linked cards, in both directions
+     * @param  list<CardData>  $related  the first five open linked cards, in both directions
+     * @param  array{href: string, count: int}|null  $related_more  the address of the page with all the linked cards and how many they are, null when the ones shown are all and none is closed
      * @param  list<CardAddData>  $addable  the cards whoever looks can add already linked to this one
-     * @param  list<DocumentData>  $documents  a page of the documents linked to the card
-     * @param  string|null  $documents_previous  the address of the previous page of the documents, null on the first
-     * @param  string|null  $documents_next  the address of the next page of the documents, null on the last
+     * @param  list<DocumentData>  $documents  the first documents linked to the card
+     * @param  string|null  $documents_more  the address of the list of all its documents, null when it has no more than those shown
      * @param  bool  $can_edit  whether whoever looks can edit the card
      * @param  bool  $can_delete  whether whoever looks can delete the card
      * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
@@ -44,12 +44,12 @@ final class CardDetailData extends Data
         public readonly array $values,
         #[DataCollectionOf(CardData::class)]
         public readonly array $related,
+        public readonly ?array $related_more,
         #[DataCollectionOf(CardAddData::class)]
         public readonly array $addable,
         #[DataCollectionOf(DocumentData::class)]
         public readonly array $documents,
-        public readonly ?string $documents_previous,
-        public readonly ?string $documents_next,
+        public readonly ?string $documents_more,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
         public readonly bool $can_delete_documents,

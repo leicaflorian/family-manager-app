@@ -20,6 +20,8 @@ export type UseFileUpload = {
 export type FileUploadOptions = {
     /** The files stay in *To sort* (the page they are dropped on) instead of opening *Import*. */
     stay?: boolean;
+    /** The document category already chosen, which the import form starts with. */
+    category?: () => number | null | undefined;
 };
 
 /**
@@ -28,12 +30,12 @@ export type FileUploadOptions = {
  * `stay` goes back to *To sort*.
  *
  * @param link - the card the files come from, linked from the start of their form
- * @param options - whether the files stay in *To sort*
+ * @param options - whether the files stay in *To sort*, and the category already chosen
  * @returns `send` for the files of `FmFileDrop`, whether they are being sent and the messages of those refused
  */
 export function useFileUpload(
     link: () => DocumentLink | undefined,
-    { stay = false }: FileUploadOptions = {},
+    { stay = false, category }: FileUploadOptions = {},
 ): UseFileUpload {
     const form = useForm<{ files: File[] }>({ files: [] });
 
@@ -45,7 +47,9 @@ export function useFileUpload(
     function send(files: File[]): void {
         form.files = files;
         form.submit(
-            stay ? store({ query: { stay: 1 } }) : store(linkQuery(link())),
+            stay
+                ? store({ query: { stay: 1 } })
+                : store(linkQuery(link(), category?.())),
             {
                 forceFormData: true,
                 preserveScroll: true,
