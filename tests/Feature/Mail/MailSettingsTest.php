@@ -89,11 +89,10 @@ test('an admin sees the page as editable', function (): void {
     $this->actingAs($this->marco)->get(route('mail-settings.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('settings.can_edit', true));
 });
 
-test('without the domain the page says the mail is not active yet', function (): void {
+test('without the domain the mail is off for every family and the page is not found', function (): void {
     config(['services.mailgun.inbox_domain' => null]);
 
-    $this->actingAs($this->marco)->get(route('mail-settings.edit'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('settings.address', null));
+    $this->actingAs($this->marco)->get(route('mail-settings.edit'))->assertNotFound();
 });
 
 test('an admin chooses who gets the notice and whether it is only for mails with files', function (): void {

@@ -12,6 +12,7 @@ import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import { useFeature } from '@/composables/useFeatures';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
@@ -22,6 +23,9 @@ const { settings } = defineProps<{
     /** The name and whether who looks can change it. */
     settings: App.Data.FamilyNameSettingsData;
 }>();
+
+/** Whether the family has the mail for the bills: the help about its address shows only then. */
+const mailOn = useFeature('mail');
 
 const name = ref(settings.name);
 const saving = ref(false);
@@ -90,7 +94,11 @@ const { title, head } = usePageMeta({
                     type="text"
                     name="name"
                     :label="$t('Family name')"
-                    :help="$t('The address for the bills stays the same')"
+                    :help="
+                        mailOn
+                            ? $t('The address for the bills stays the same')
+                            : undefined
+                    "
                     :readonly="!settings.can_edit"
                     :errors="errors(nameError)"
                 />

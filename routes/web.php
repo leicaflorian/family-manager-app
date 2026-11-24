@@ -261,9 +261,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('settings/news', ReleaseNotesController::class)->name('settings.news');
         Route::post('settings/support', [SupportSettingsController::class, 'store'])->name('settings.support.store');
         Route::delete('settings/support', [SupportSettingsController::class, 'destroy'])->name('settings.support.destroy');
-        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
-        Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
-        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
+        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->middleware('feature:mail')->name('mail-settings.edit');
+        Route::put('settings/mail', [MailSettingsController::class, 'update'])->middleware('feature:mail')->name('mail-settings.update');
+        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->middleware('feature:mail')->name('mail-settings.address');
         Route::middleware(['feature:budget', 'feature:bank_feed'])->group(function (): void {
             Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
             Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
@@ -298,11 +298,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
-        Route::get('mail', [ReceivedMailController::class, 'index'])->name('mail.index');
-        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->name('mail.show')->whereNumber('receivedMail');
-        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->name('mail.text')->whereNumber('receivedMail');
-        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->name('mail.destroy')->whereNumber('receivedMail');
-        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
+        Route::get('mail', [ReceivedMailController::class, 'index'])->middleware('feature:mail')->name('mail.index');
+        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->middleware('feature:mail')->name('mail.show')->whereNumber('receivedMail');
+        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->middleware('feature:mail')->name('mail.text')->whereNumber('receivedMail');
+        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->middleware('feature:mail')->name('mail.destroy')->whereNumber('receivedMail');
+        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->middleware('feature:mail')->name('mail.notice')->whereNumber('receivedMail');
         // `gallery` before `documents/{document}`, so it is not taken for a document id
         Route::get('documents/gallery', [GalleryController::class, 'index'])->name('documents.gallery');
         Route::post('documents/gallery', [GalleryController::class, 'store'])->middleware('throttle:20,1,gallery-add')->name('documents.gallery.store');

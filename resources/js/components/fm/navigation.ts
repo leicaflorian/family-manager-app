@@ -106,7 +106,12 @@ export const SECTIONS: readonly SectionEntry[] = [
         pages: ['family/People', 'family/Organizations'],
     },
     { key: 'toSort', group: 'incoming', pages: ['documents/ToSort'] },
-    { key: 'mail', group: 'incoming', pages: ['mail/ReceivedMails'] },
+    {
+        key: 'mail',
+        group: 'incoming',
+        pages: ['mail/ReceivedMails'],
+        feature: 'mail',
+    },
     SETTINGS_ENTRY,
 ];
 

@@ -18,6 +18,7 @@ vi.mock('@/composables/useFeatures', () => ({
     useFeatures: () =>
         computed(() => ({
             budget: true,
+            mail: true,
             bank_feed: bankFeed.share !== null,
         })),
 }));

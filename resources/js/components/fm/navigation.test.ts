@@ -157,7 +157,9 @@ describe('the registry of the sections', () => {
         const names = (features: { gallery?: boolean } | null): string[] =>
             allItems(
                 navigationItems(
-                    features === null ? null : { budget: true, ...features },
+                    features === null
+                        ? null
+                        : { budget: true, mail: true, ...features },
                     entries,
                 ),
             ).map((item) => item.section);
@@ -225,6 +227,15 @@ describe('the registry of the sections', () => {
         expect(allItems(off).map((item) => item.section)).not.toContain(
             'budget',
         );
+    });
+
+    it('has no Received mail in the menu while the Mail is off', () => {
+        const off = navigationItems({ budget: true, mail: false });
+        const on = navigationItems({ budget: true, mail: true });
+
+        expect(off.mail).toBeUndefined();
+        expect(allItems(off).map((item) => item.section)).not.toContain('mail');
+        expect(on.mail?.section).toBe('mail');
     });
 
     it('offers New expense in Add only with the Budget on', () => {

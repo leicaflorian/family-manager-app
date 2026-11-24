@@ -46,6 +46,7 @@ import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useFeature } from '@/composables/useFeatures';
 import { useFilterBox } from '@/composables/useFilterBox';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
@@ -69,6 +70,9 @@ const props = defineProps<{
 
 /** The layout of the window: it decides the header, the filters, the rows and the bars. */
 const mode = useLayoutMode();
+
+/** Whether the family has the mail for the bills: the texts talk about it only then. */
+const mailOn = useFeature('mail');
 
 /** The phone layout. */
 const phone = computed((): boolean => mode.value === 'phone');
@@ -316,9 +320,13 @@ const { title, head } = usePageMeta({
                     :icon="Inbox"
                     :title="$t('Nothing to sort')"
                     :text="
-                        $t(
-                            'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
-                        )
+                        mailOn
+                            ? $t(
+                                  'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
+                              )
+                            : $t(
+                                  'The files you upload, or that arrive from the phone, wait here until they become a document.',
+                              )
                     "
                 />
 
@@ -391,9 +399,13 @@ const { title, head } = usePageMeta({
                     class="m-0 text-body-sm text-ink-soft"
                 >
                     {{
-                        $t(
-                            'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
-                        )
+                        mailOn
+                            ? $t(
+                                  'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
+                              )
+                            : $t(
+                                  'The files that arrived from the phone or uploaded here stay until you import or delete them.',
+                              )
                     }}
                 </p>
             </div>

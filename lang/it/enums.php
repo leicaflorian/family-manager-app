@@ -257,6 +257,7 @@ return [
         'unknown' => 'Indirizzo sconosciuto',
         'limited' => 'Oltre il limite',
         'suspended' => 'Famiglia sospesa',
+        'mail_off' => 'Posta spenta',
     ],
     'search_group' => [
         'cards' => 'Schede',

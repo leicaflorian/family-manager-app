@@ -83,7 +83,7 @@ final class ReminderNotice extends FamilyModel
     }
 
     /**
-     * The notices the bell shows: the ones about the bank only while the Budget, where the bank lives, is on.
+     * The notices the bell shows: the ones about the bank only while the Budget, where the bank lives, is on, and the ones about the mail only while the Mail is on.
      *
      * @param  Builder<ReminderNotice>  $query
      */
@@ -92,6 +92,14 @@ final class ReminderNotice extends FamilyModel
     {
         if (! resolve(FamilyFeatures::class)->on(Feature::Budget)) {
             $query->whereNull('bank_transaction_id')->whereNull('bank_connection_id');
+        }
+
+        if (! resolve(FamilyFeatures::class)->on(Feature::Mail)) {
+            // a mail notice is the one with no reminder and nothing of the bank (the mail itself, or the mails limit)
+            $query->where(static fn (Builder $notices): Builder => $notices
+                ->whereNotNull('reminder_id')
+                ->orWhereNotNull('bank_transaction_id')
+                ->orWhereNotNull('bank_connection_id'));
         }
     }
 

@@ -170,6 +170,7 @@ export function settingsSections(features: Features | null): SettingsSection[] {
             href: mail().url,
             group: 'family',
             subtitle: () => trans('The bills arrive by email by themselves'),
+            feature: 'mail',
         },
         {
             key: 'banks',

@@ -8,7 +8,7 @@ function keys(features: Record<string, boolean> | null): string[] {
 
 describe('settingsSections', () => {
     it('lists the sections of the settings in the order of the board, with the bank on', () => {
-        expect(keys({ budget: true, bank_feed: true })).toEqual([
+        expect(keys({ budget: true, bank_feed: true, mail: true })).toEqual([
             'account',
             'calendar',
             'family',
@@ -35,6 +35,11 @@ describe('settingsSections', () => {
         expect(off).not.toContain('banks');
         expect(off).not.toContain('expense-categories');
         expect(off).toContain('categories');
+    });
+
+    it('leaves out the address for the bills while the Mail is off', () => {
+        expect(keys({ mail: false })).not.toContain('mail');
+        expect(keys({ mail: true })).toContain('mail');
     });
 
     it('has everything on without a family', () => {

@@ -76,10 +76,10 @@ final readonly class HomeSummary
             pending_count: File::query()->toSort()->notCopies()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
-            mails: array_map(
+            mails: $this->features->on(Feature::Mail) ? array_map(
                 static fn (array $row): HomeMailData => HomeMailData::fromMail($row['mail'], $row['documents']),
                 $this->mails->recent(self::MAILS),
-            ),
+            ) : [],
         );
     }
 

@@ -257,6 +257,7 @@ return [
         'unknown' => 'Unknown address',
         'limited' => 'Over the limit',
         'suspended' => 'Family suspended',
+        'mail_off' => 'Mail off',
     ],
     'search_group' => [
         'cards' => 'Cards',

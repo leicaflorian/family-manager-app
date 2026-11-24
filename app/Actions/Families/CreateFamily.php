@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Families;
 
-use App\Actions\Mail\AssignMailAddress;
 use App\Actions\People\SavePerson;
 use App\Enums\PersonRole;
 use App\Enums\Role;
@@ -25,10 +24,9 @@ use Illuminate\Support\Facades\DB;
 final readonly class CreateFamily
 {
     /**
-     * @param  AssignMailAddress  $assignMailAddress  Gives the family its address for the bills.
      * @param  SavePerson  $savePerson  Saves the first person of the family.
      */
-    public function __construct(private AssignMailAddress $assignMailAddress, private SavePerson $savePerson) {}
+    public function __construct(private SavePerson $savePerson) {}
 
     /**
      * Creates in one transaction the family, the `admin` account, its person, the
@@ -65,7 +63,6 @@ final readonly class CreateFamily
                 $this->createTree(DocumentCategory::class, DefaultCategories::documents(), DefaultCategories::documentLooks(), DefaultCategories::documentCardTypes(), DefaultCategories::documentGalleries());
                 $this->createTree(ExpenseCategory::class, DefaultCategories::expenses());
                 FamilySetting::query()->create([]);
-                $this->assignMailAddress->handle($family);
 
                 foreach (DefaultReminderGroups::all() as $group) {
                     ReminderGroup::query()->create($group);

@@ -2376,5 +2376,7 @@
     "Budget and Mail for the bills on": "Bilancio e Posta per le bollette accesi",
     "Budget on": "Bilancio acceso",
     "Mail for the bills on": "Posta per le bollette accesa",
-    "Budget and Mail for the bills off": "Bilancio e Posta per le bollette spenti"
+    "Budget and Mail for the bills off": "Bilancio e Posta per le bollette spenti",
+    "The files you upload, or that arrive from the phone, wait here until they become a document.": "I file che carichi, o che arrivano dal telefono, aspettano qui finché non diventano un documento.",
+    "The files that arrived from the phone or uploaded here stay until you import or delete them.": "I file arrivati dal telefono o caricati qui restano finché non li importi o li elimini."
 }
