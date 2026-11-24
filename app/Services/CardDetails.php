@@ -36,7 +36,6 @@ use App\Support\Translated;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -53,7 +52,7 @@ use LogicException;
  */
 final readonly class CardDetails
 {
-    /** How many documents a page of the card shows. */
+    /** How many documents the card shows before the link to all of them. */
     private const int DOCUMENTS_PER_PAGE = 5;
 
     /**
@@ -72,24 +71,21 @@ final readonly class CardDetails
      * @param  Model  $card  a record of one of the 13 models
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable|null  $today  today in Rome, the clock's if missing
-     * @param  int  $documentsPage  the page of the documents, from 1; past the last one it is the first
      * @param  int  $paymentsPage  the page of the payments, from 1; past the last one it is the first
      *
      * @throws InvalidArgumentException if the record is not a card
      */
-    public function of(Model $card, User $user, ?CarbonImmutable $today = null, int $documentsPage = 1, int $paymentsPage = 1): CardDetailData
+    public function of(Model $card, User $user, ?CarbonImmutable $today = null, int $paymentsPage = 1): CardDetailData
     {
         $today ??= CarbonImmutable::today('Europe/Rome');
         $type = CardTypes::for($card);
         $row = $this->summaries->row($card, $today);
-        // Each pager keeps the page of the other list
-        $address = static fn (int $documents, int $payments): string => route('cards.show', [
+        $address = static fn (int $payments): string => route('cards.show', [
             'type' => $type->type(),
             'id' => $row->id,
-            ...($documents > 1 ? ['documents_page' => $documents] : []),
             ...($payments > 1 ? ['payments_page' => $payments] : []),
         ]);
-        $documents = $this->documentsPage($type, $row, $documentsPage, static fn (int $number): string => $address($number, $paymentsPage));
+        $documents = $this->documentsShown($type, $row);
         $budgetOn = $this->features->on(Feature::Budget);
         $budget = match (true) {
             $budgetOn => $this->budgets->of($card, $user, $today),
@@ -109,12 +105,11 @@ final readonly class CardDetails
             related: $this->related($type, $card),
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
             documents: $documents['documents'],
-            documents_previous: $documents['previous'],
-            documents_next: $documents['next'],
+            documents_more: $documents['more'],
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
-            budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, static fn (int $number): string => $address($documentsPage, $number)) : null,
+            budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, $address) : null,
             status: $status,
             consumption: $budgetOn && $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
         );
@@ -519,30 +514,19 @@ final readonly class CardDetails
     }
 
     /**
-     * A page of the documents of the card, with the addresses of the pages
-     * before and after it. A page past the last one (the last document of the
-     * page just unlinked) gives the first.
+     * The first documents of the card, and the address of the list of all of them when there are more.
      *
      * @param  CardType  $type  the description of the card type
      * @param  CardData  $row  the row of the card
-     * @param  int  $page  the page asked for, from 1
-     * @param  Closure(int): string  $address  the address of a page, from its number
-     * @return array{documents: list<DocumentData>, previous: ?string, next: ?string}
+     * @return array{documents: list<DocumentData>, more: ?string}
      */
-    private function documentsPage(CardType $type, CardData $row, int $page, Closure $address): array
+    private function documentsShown(CardType $type, CardData $row): array
     {
-        $filters = ['record' => ['type' => $type->type(), 'id' => $row->id]];
-        $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
-
-        if ($found['documents'] === [] && $page > 1) {
-            $page = 1;
-            $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
-        }
+        $found = $this->documents->page(['record' => ['type' => $type->type(), 'id' => $row->id]], 1, self::DOCUMENTS_PER_PAGE);
 
         return [
             'documents' => $found['documents'],
-            'previous' => $page > 1 ? $address($page - 1) : null,
-            'next' => $found['next'] !== null ? $address($found['next']) : null,
+            'more' => $found['total'] > self::DOCUMENTS_PER_PAGE ? route('documents.index', ['card' => $type->type().':'.$row->id]) : null,
         ];
     }
 

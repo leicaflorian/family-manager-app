@@ -46,6 +46,8 @@ export type DocumentFilters = {
     status: string | null;
     expiring: boolean;
     search: string | null;
+    /** The card the list is limited to, `<type>:<id>`. */
+    card: string | null;
 };
 
 /** The choices of the filters of *Documents*. */
@@ -236,6 +238,10 @@ export function filterQuery(
 
     if (filters.search) {
         query.search = filters.search;
+    }
+
+    if (filters.card) {
+        query.card = filters.card;
     }
 
     return query;

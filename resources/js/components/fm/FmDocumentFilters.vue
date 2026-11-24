@@ -79,6 +79,8 @@ function remove(): void {
         status: null,
         expiring: false,
         search: null,
+        // The card the list is limited to has its own chip: this panel does not take it away
+        card: filters.card,
     });
 }
 

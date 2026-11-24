@@ -22,10 +22,12 @@ use App\Services\DocumentFormOptions;
 use App\Services\DocumentLinks;
 use App\Services\FileStore;
 use App\Services\Reading\ReadingAvailability;
+use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -61,7 +63,8 @@ final class DocumentController extends Controller
             'total' => $page->total(),
             'nextPage' => $page->nextPageUrl(),
             'previousPage' => $page->previousPageUrl(),
-            'filters' => $filters,
+            'filters' => [...Arr::except($filters, 'record'), 'card' => $filters['record'] === null ? null : PresetLink::key($filters['record']['type'], $filters['record']['id'])],
+            'cardLabel' => $request->cardLabel(),
             'hasDocuments' => $page->total() > 0 || $filter->apply(Document::query()->select('id'), ['gallery' => false])->exists(),
             'options' => $options->filters(),
             'selected' => $selected === null ? null : $this->detail($selected, $user),

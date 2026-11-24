@@ -128,6 +128,7 @@ describe('filterQuery', () => {
                 status: null,
                 expiring: true,
                 search: 'danza',
+                card: null,
             }),
         ).toEqual({ category: 4, expiring: 1, search: 'danza' });
         expect(
@@ -138,8 +139,9 @@ describe('filterQuery', () => {
                 status: null,
                 expiring: false,
                 search: null,
+                card: 'vehicle:3',
             }),
-        ).toEqual({});
+        ).toEqual({ card: 'vehicle:3' });
     });
 });
 

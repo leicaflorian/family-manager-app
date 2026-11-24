@@ -575,19 +575,29 @@ describe('A card', () => {
             expect(screen.getByText('9 bills')).toBeInTheDocument();
         });
 
-        it('shows the pages of the documents, 5 at a time', () => {
+        it('links to all the documents when the card has more than the 5 shown, with no pager', () => {
             renderPage(Card, {
                 card: {
                     ...luceDetail,
-                    documents_next: '/cards/utility/3?documents_page=2',
+                    documents_more: '/documents?card=utility%3A3',
                 },
                 linkable: [],
             });
 
-            expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute(
-                'href',
-                '/cards/utility/3?documents_page=2',
-            );
+            expect(
+                screen.getByRole('link', { name: 'See all the documents' }),
+            ).toHaveAttribute('href', '/documents?card=utility%3A3');
+            expect(
+                screen.queryByRole('link', { name: 'Next' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('has no link to all the documents when it has no more', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(
+                screen.queryByRole('link', { name: 'See all the documents' }),
+            ).not.toBeInTheDocument();
         });
 
         it('adds a planned expense already linked to the card', () => {

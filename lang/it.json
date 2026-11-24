@@ -2690,5 +2690,7 @@
     "New category adds one.": "Nuova categoria ne aggiunge una.",
     "Do you also need the Budget?": "Ti serve anche il Bilancio?",
     "Turn it on from Settings › What you use.": "Accendilo da Impostazioni › Cosa usate.",
-    "Budget off": "Bilancio spento"
+    "Budget off": "Bilancio spento",
+    "See all the documents": "Vedi tutti i documenti",
+    "{1} :count document linked to :card, the most recent first|[2,*] :count documents linked to :card, the most recent first": "{1} :count documento collegato a :card, il più recente in cima|[2,*] :count documenti collegati a :card, i più recenti in cima"
 }

@@ -23,9 +23,8 @@ final class CardDetailData extends Data
      * @param  list<CardValueData>  $values  the data, without the empty fields
      * @param  list<CardData>  $related  the linked cards, in both directions
      * @param  list<CardAddData>  $addable  the cards whoever looks can add already linked to this one
-     * @param  list<DocumentData>  $documents  a page of the documents linked to the card
-     * @param  string|null  $documents_previous  the address of the previous page of the documents, null on the first
-     * @param  string|null  $documents_next  the address of the next page of the documents, null on the last
+     * @param  list<DocumentData>  $documents  the first documents linked to the card
+     * @param  string|null  $documents_more  the address of the list of all its documents, null when it has no more than those shown
      * @param  bool  $can_edit  whether whoever looks can edit the card
      * @param  bool  $can_delete  whether whoever looks can delete the card
      * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
@@ -48,8 +47,7 @@ final class CardDetailData extends Data
         public readonly array $addable,
         #[DataCollectionOf(DocumentData::class)]
         public readonly array $documents,
-        public readonly ?string $documents_previous,
-        public readonly ?string $documents_next,
+        public readonly ?string $documents_more,
         public readonly bool $can_edit,
         public readonly bool $can_delete,
         public readonly bool $can_delete_documents,

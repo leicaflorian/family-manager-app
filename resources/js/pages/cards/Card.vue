@@ -8,7 +8,7 @@
  * due date, the figures, the due dates to pay), the data of the card (the
  * person, the organization and the card it names open in a new tab) and the
  * cards it is linked to, with the + that adds a new one already linked (for an
- * `admin`); beside them its documents, 5 a page (with *Upload*, which opens
+ * `admin`); beside them its first 5 documents and, with more, *See all the documents* (with *Upload*, which opens
  * the panel with the zone for the files, and *Link*, open to a `member` too,
  * and beside each the buttons of `FmCardDocumentActions`), and under the
  * documents the planned expenses and the payments (`FmCardPayments`). *Link* opens the documents not yet linked, searched while
@@ -43,7 +43,6 @@ import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
-import FmPager from '@/components/fm/FmPager.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
@@ -282,11 +281,12 @@ function link(id: number): void {
                         {{ $t('No documents yet.') }}
                     </p>
                 </FmCard>
-                <FmPager
-                    :previous="card.documents_previous"
-                    :next="card.documents_next"
-                    preserve-scroll
-                />
+                <Link
+                    v-if="card.documents_more"
+                    :href="card.documents_more"
+                    class="px-1 text-label text-action underline underline-offset-2"
+                    >{{ $t('See all the documents') }}</Link
+                >
 
                 <div
                     v-if="
