@@ -75,6 +75,23 @@ describe('Settings, What you use', () => {
         );
     });
 
+    it('puts a switch back when the save did not go through', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(Features, props());
+
+        await userEvent.click(screen.getByRole('switch', { name: 'Budget' }));
+        await settle();
+        expect(
+            screen.getByRole('switch', { name: 'Budget' }),
+        ).not.toBeChecked();
+
+        const options = put.mock.calls[0]?.[2];
+        options?.onFinish?.({} as never);
+        await settle();
+
+        expect(screen.getByRole('switch', { name: 'Budget' })).toBeChecked();
+    });
+
     it('locks the switches for a member and says why', async () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
         renderPage(Features, props(false));

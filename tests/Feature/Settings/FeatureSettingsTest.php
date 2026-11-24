@@ -92,3 +92,14 @@ test('turning the mail off keeps the address', function (): void {
 
     expect(featureSettingsAddress($this->marco))->toBe($address);
 });
+
+test('turning the mail on without a domain saves the switch but gives no address and the mail stays off', function (): void {
+    config(['services.mailgun.inbox_domain' => '']);
+    insideFamilyOf($this->marco, fn () => FamilySetting::query()->update(['mail_inbox_recipient' => null]));
+
+    $this->put(route('settings.features.update'), ['budget' => true, 'mail' => true]);
+
+    expect($this->marco->family->fresh()?->mail_enabled)->toBeTrue()
+        ->and(featureSettingsAddress($this->marco))->toBeNull()
+        ->and(resolve(FamilyFeatures::class)->on(Feature::Mail))->toBeFalse();
+});

@@ -26,13 +26,16 @@ const props = defineProps<{
 const budget = ref(props.settings.budget);
 const mail = ref(props.settings.mail);
 
-watch(
-    () => props.settings,
-    (settings) => {
-        budget.value = settings.budget;
-        mail.value = settings.mail;
-    },
-);
+/**
+ * Puts the switches back to what the server has: after a save that failed (the props did not change) and after
+ * every save.
+ */
+function resync(): void {
+    budget.value = props.settings.budget;
+    mail.value = props.settings.mail;
+}
+
+watch(() => props.settings, resync);
 
 /** One card: the feature, its switch and what changes. */
 type Card = {
@@ -111,7 +114,7 @@ function save(): void {
     router.put(
         update.url(),
         { budget: budget.value, mail: mail.value },
-        { preserveScroll: true },
+        { preserveScroll: true, onError: resync, onFinish: resync },
     );
 }
 
