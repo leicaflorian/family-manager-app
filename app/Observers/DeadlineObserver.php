@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Keeps the automatic reminders of a card or document in line with it, when it is saved or deleted.
@@ -85,7 +86,12 @@ final readonly class DeadlineObserver
         CurrentFamily::using($familyId, function () use ($card, $follow): void {
             // The expense moves first, so the reminders are written against its new due dates
             if ($follow) {
-                $this->follow->handle($card);
+                // A planned expense that cannot follow must neither break the save of the card nor skip its reminders
+                try {
+                    $this->follow->handle($card);
+                } catch (Throwable $e) {
+                    report($e);
+                }
             }
 
             $this->sync->handle($card, CarbonImmutable::today('Europe/Rome'));

@@ -65,7 +65,10 @@ final readonly class FollowDeadlineDate
      */
     private function follow(PlannedExpense $planned, CarbonImmutable $date): void
     {
-        if ($planned->start_date !== null && $date->lt($planned->start_date) && ! $planned->expenses()->exists()) {
+        // A one-off has a single due date: it goes where the card says, whatever the distance
+        $oneOff = ! $planned->is_recurring && $planned->start_date !== null && ! $date->isSameDay($planned->start_date);
+
+        if (($oneOff || ($planned->start_date !== null && $date->lt($planned->start_date))) && ! $planned->expenses()->exists()) {
             $this->savePlanned->handle('expense', ['start_date' => $date], $planned);
 
             return;
@@ -95,10 +98,6 @@ final readonly class FollowDeadlineDate
      */
     private function reach(PlannedExpense $planned): int
     {
-        if (! $planned->is_recurring) {
-            return 183;
-        }
-
         $days = match ($planned->interval_unit) {
             IntervalUnit::Week => 7,
             IntervalUnit::Month => 30,

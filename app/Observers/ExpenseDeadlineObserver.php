@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Observers;
 
 use App\Cards\DeadlineSources;
+use App\Enums\ExceptionType;
 use App\Enums\ReminderStatus;
 use App\Models\Expense;
 use App\Models\PlannedExpense;
 use App\Models\Reminder;
 use App\Support\ModelId;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -39,6 +41,10 @@ final class ExpenseDeadlineObserver
             return;
         }
 
+        // The occurrence may have been moved: the reminder is dated on its real day, `occurrence_date` is the original
+        $moved = $planned->exceptions()->where('type', ExceptionType::DateOverride)->whereDate('occurrence_date', $day->toDateString())->value('date_override');
+        $reminderDay = is_string($moved) || $moved instanceof CarbonInterface ? CarbonImmutable::parse($moved) : $day;
+
         foreach (DeadlineSources::forModel($card::class) as $source) {
             // A deadline with an expense of its own is paid only by the planned expense that says so
             if (! $source->hasExpense || ($source->ownExpense && $planned->deadline_field !== $source->field)) {
@@ -48,7 +54,7 @@ final class ExpenseDeadlineObserver
             $reminders = Reminder::query()
                 ->automaticFor($source->field, $card->getMorphClass(), [ModelId::of($card)])
                 ->open()
-                ->whereDate('reminders.due_date', $day->toDateString())
+                ->whereDate('reminders.due_date', $reminderDay->toDateString())
                 ->get();
 
             foreach ($reminders as $reminder) {

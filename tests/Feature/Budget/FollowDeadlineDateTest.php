@@ -2,16 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Actions\Budget\ChangeOccurrence;
 use App\Actions\Budget\RecordPayment;
 use App\Enums\IntervalUnit;
+use App\Enums\ReminderStatus;
 use App\Enums\VehicleStatus;
 use App\Models\PlannedExpense;
+use App\Models\Reminder;
 use App\Models\Vehicle;
 use App\Services\Deadlines;
 use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Exceptions;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2027-04-10 10:00', 'Europe/Rome'));
@@ -124,4 +129,72 @@ test('a date that already matches the due date adds no exception', function (): 
 
         expect($planned->exceptions()->count())->toBe(0);
     });
+});
+
+test('a one-off planned expense follows the card date whatever the distance', function (): void {
+    insideFamilyOf($this->user, function (): void {
+        [$vehicle, $planned] = followVehicle('2027-03-21', '2027-03-21', ['is_recurring' => false]);
+
+        $vehicle->update(['inspection_due_date' => '2028-03-21']);
+
+        expect($planned->fresh()->start_date->toDateString())->toBe('2028-03-21')
+            ->and($planned->exceptions()->count())->toBe(0);
+    });
+});
+
+test('a due date moved twice keeps only the second move', function (): void {
+    insideFamilyOf($this->user, function (): void {
+        [$vehicle, $planned] = followVehicle('2027-03-21', '2027-03-21');
+
+        $vehicle->update(['inspection_due_date' => '2027-03-25']);
+        $vehicle->update(['inspection_due_date' => '2027-03-30']);
+
+        expect(followDates($planned, '2027-01-01', '2027-12-31'))->toBe(['2027-03-30'])
+            ->and($planned->exceptions()->count())->toBe(1);
+    });
+});
+
+test('the amount chosen for a due date stays when the date moves', function (): void {
+    insideFamilyOf($this->user, function (): void {
+        [$vehicle, $planned] = followVehicle('2027-03-21', '2027-03-21');
+        resolve(ChangeOccurrence::class)->handle($planned, CarbonImmutable::parse('2027-03-21'), false, 95.0, null, null);
+
+        $vehicle->update(['inspection_due_date' => '2027-03-25']);
+
+        $due = resolve(Deadlines::class)->between([$planned->fresh()], CarbonImmutable::parse('2027-01-01'), CarbonImmutable::parse('2027-12-31'))[0];
+        expect($due->occurrence->date->toDateString())->toBe('2027-03-25')
+            ->and($due->occurrence->amount)->toBe(95.0);
+    });
+});
+
+test('paying a moved due date closes the reminder of the moved date', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2027-02-01 10:00', 'Europe/Rome'));
+    insideFamilyOf($this->user, function (): void {
+        [$vehicle, $planned] = followVehicle('2027-03-21', '2027-03-21');
+        $vehicle->update(['inspection_due_date' => '2027-03-25']);
+        $reminder = Reminder::query()->where('source_field', 'vehicles.inspection_due_date')->sole();
+        $due = resolve(Deadlines::class)->find($planned->fresh(), CarbonImmutable::parse('2027-03-21'));
+        resolve(RecordPayment::class)->handle($due, CarbonImmutable::parse('2027-03-25'), 80.0, null, null);
+
+        expect($reminder->fresh()->due_date->toDateString())->toBe('2027-03-25')
+            ->and($reminder->fresh()->status)->toBe(ReminderStatus::Done);
+    });
+});
+
+test('a failure while following does not break the save nor the reminders', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2027-02-01 10:00', 'Europe/Rome'));
+    Exceptions::fake();
+
+    insideFamilyOf($this->user, function (): void {
+        [$vehicle, $planned] = followVehicle('2027-03-21', '2027-03-21');
+        // The planned expense cannot be saved: the follow fails for real
+        Event::listen('eloquent.updating: '.PlannedExpense::class, static fn () => throw new RuntimeException('boom'));
+        $vehicle->update(['inspection_due_date' => '2027-03-15']);
+        Event::forget('eloquent.updating: '.PlannedExpense::class);
+
+        expect($vehicle->fresh()->inspection_due_date->toDateString())->toBe('2027-03-15')
+            ->and($planned->fresh()->start_date->toDateString())->toBe('2027-03-21')
+            ->and(Reminder::query()->where('source_field', 'vehicles.inspection_due_date')->where('due_date', '2027-03-15')->exists())->toBeTrue();
+    });
+    Exceptions::assertReported(RuntimeException::class);
 });
