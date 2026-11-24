@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property bool $mail_inbox_notify_attachments_only
+ * @property array<array-key, mixed>|null $checklist_skipped The keys of the steps of *To begin* the family took away with *Not needed*
  * @property-read Family $family
  *
  * @method static FamilySettingFactory factory($count = null, $state = [])
@@ -51,7 +52,32 @@ final class FamilySetting extends FamilyModel
             'mail_inbox_notify' => 'array',
             'mail_inbox_notify_attachments_only' => 'boolean',
             'areas' => 'array',
+            'checklist_skipped' => 'array',
         ];
+    }
+
+    /**
+     * Takes a step of *To begin* away for the whole family (*Not needed*). Taking it away twice changes nothing.
+     *
+     * @param  string  $step  the key of the step, `people` or `invite`
+     */
+    public function skipChecklistStep(string $step): void
+    {
+        $skipped = $this->skippedChecklistSteps();
+
+        if (! in_array($step, $skipped, true)) {
+            $this->forceFill(['checklist_skipped' => [...$skipped, $step]])->save();
+        }
+    }
+
+    /**
+     * The keys of the steps of *To begin* the family took away.
+     *
+     * @return list<string>
+     */
+    public function skippedChecklistSteps(): array
+    {
+        return array_values(array_filter($this->checklist_skipped ?? [], is_string(...)));
     }
 
     /**

@@ -41,6 +41,7 @@ use Illuminate\Support\Str;
  * @property CarbonImmutable|null $updated_at
  * @property Theme $theme system, light or dark
  * @property CarbonImmutable|null $last_seen_at When the account last used the app, written at most once a minute
+ * @property CarbonImmutable|null $checklist_hidden_at When the account pressed *Hide* on *To begin*; null while it sees the list
  * @property-read Family $family
  * @property-read Collection<int, LinkedDevice> $linkedDevices
  * @property-read int|null $linked_devices_count
@@ -58,7 +59,7 @@ use Illuminate\Support\Str;
  * @mixin \Eloquent
  */
 #[Fillable(['name', 'email', 'password', 'family_id', 'role', 'theme'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'checklist_hidden_at'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -194,6 +195,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'theme' => Theme::class,
             'agenda_filters' => 'array',
             'last_seen_at' => 'datetime',
+            'checklist_hidden_at' => 'datetime',
         ];
     }
 }

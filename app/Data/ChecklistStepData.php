@@ -14,13 +14,15 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class ChecklistStepData extends Data
 {
     /**
-     * @param  string  $key  `utilities`, `first_bill`, `card` or `invite`
+     * @param  string  $key  `people`, `utilities`, `first_bill`, `card`, `mail` or `invite`
      * @param  bool  $done  whether the data of the family say it is done
      * @param  string|null  $name  the first name of the person to invite; only for `invite`
+     * @param  list<string>  $names  the first names of the people of the family, by id; only for `people` once it is done
      */
     public function __construct(
         public readonly string $key,
         public readonly bool $done,
-        public readonly ?string $name,
+        public readonly ?string $name = null,
+        public readonly array $names = [],
     ) {}
 }

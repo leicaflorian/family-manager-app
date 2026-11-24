@@ -11,10 +11,12 @@ use App\Data\MissingDocumentData;
 use App\Enums\Feature;
 use App\Enums\PersonRole;
 use App\Models\Document;
+use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\InsurancePolicy;
 use App\Models\Invitation;
 use App\Models\Person;
+use App\Models\ReceivedMail;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
@@ -80,6 +82,7 @@ final readonly class HomeSummary
                 static fn (array $row): HomeMailData => HomeMailData::fromMail($row['mail'], $row['documents']),
                 $this->mails->recent(self::MAILS),
             ) : [],
+            can_change_features: Gate::forUser($user)->allows('manageFeatures', $user->family),
         );
     }
 
@@ -103,28 +106,60 @@ final readonly class HomeSummary
     }
 
     /**
-     * The steps of *To begin*, or none when every one is done. Whoever cannot create a card has no `card` step, and whoever cannot invite has no `invite` step.
+     * The steps of *To begin*, in the order of the board, or none when every one is done or the account hid the list.
+     * Each step is only for whoever can do it: `people` for whoever can create people, `card` for whoever can create
+     * a card, `invite` for whoever can invite; `mail` only with the mail for the bills on. The steps the family took
+     * away (*Not needed*) are not there and do not count.
      *
      * @param  User  $user  whoever signed in
      * @return list<ChecklistStepData>
      */
     private function checklist(User $user): array
     {
-        $steps = [
-            new ChecklistStepData('utilities', Utility::query()->exists(), null),
-            new ChecklistStepData('first_bill', Document::query()->exists(), null),
-        ];
-
-        // Whoever cannot create a card would be sent to a page the policy forbids
-        if (Gate::forUser($user)->allows('create', Vehicle::class)) {
-            $steps[] = new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists(), null);
+        if ($user->checklist_hidden_at !== null) {
+            return [];
         }
 
-        if (Gate::forUser($user)->allows('create', Invitation::class)) {
+        $gate = Gate::forUser($user);
+        $steps = [];
+
+        if ($gate->allows('create', Person::class)) {
+            $steps[] = $this->peopleStep();
+        }
+
+        $steps[] = new ChecklistStepData('utilities', Utility::query()->exists());
+        $steps[] = new ChecklistStepData('first_bill', Document::query()->exists());
+
+        // Whoever cannot create a card would be sent to a page the policy forbids
+        if ($gate->allows('create', Vehicle::class)) {
+            $steps[] = new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists());
+        }
+
+        if ($this->features->on(Feature::Mail)) {
+            $steps[] = new ChecklistStepData('mail', ReceivedMail::query()->exists());
+        }
+
+        if ($gate->allows('create', Invitation::class)) {
             $steps[] = $this->inviteStep();
         }
 
+        $skipped = FamilySetting::current()->skippedChecklistSteps();
+        $steps = array_values(array_filter($steps, static fn (ChecklistStepData $step): bool => ! in_array($step->key, $skipped, true)));
+
         return array_all($steps, static fn (ChecklistStepData $step): bool => $step->done) ? [] : $steps;
+    }
+
+    /**
+     * The `people` step: done when the family has someone besides whoever made it, with the first names of all.
+     */
+    private function peopleStep(): ChecklistStepData
+    {
+        /** @var list<string> $names */
+        $names = Person::query()->orderBy('id')->pluck('first_name')->all();
+
+        return count($names) > 1
+            ? new ChecklistStepData('people', true, names: $names)
+            : new ChecklistStepData('people', false);
     }
 
     /**

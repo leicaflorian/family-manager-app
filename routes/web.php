@@ -19,6 +19,7 @@ use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DocumentController;
@@ -152,6 +153,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
+        Route::post('dashboard/checklist/hide', [ChecklistController::class, 'hide'])->middleware('throttle:10,1,checklist-hide')->name('dashboard.checklist.hide');
+        Route::post('dashboard/checklist/skip', [ChecklistController::class, 'skip'])->middleware('throttle:10,1,checklist-skip')->name('dashboard.checklist.skip');
         Route::get('agenda', AgendaController::class)->name('agenda');
         Route::put('agenda/filters', [AgendaController::class, 'filters'])->name('agenda.filters');
         Route::put('agenda/deadlines/{field}/{id}', [AgendaController::class, 'updateDeadline'])->name('agenda.deadlines.update');

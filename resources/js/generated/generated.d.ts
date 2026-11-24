@@ -287,6 +287,7 @@ export type ChecklistStepData = {
 readonly key: string,
 readonly done: boolean,
 readonly name: string | null,
+readonly names: string[],
 };
 export type ComparisonData = {
 readonly month: string,
@@ -462,6 +463,7 @@ readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
 readonly missing: App.Data.MissingDocumentData[],
 readonly mails: App.Data.HomeMailData[],
+readonly can_change_features: boolean,
 };
 export type HomeMailData = {
 readonly id: number,
@@ -1227,7 +1229,7 @@ export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
-export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended';
+export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended' | 'mail_off';
 export type Channel = 'app' | 'email' | 'both';
 export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
 export type ConsumptionSource = 'reading' | 'manual';
