@@ -131,6 +131,15 @@ describe('pageInfo', () => {
         expect(PAGE_INFO_KEYS.filter((key) => !used.has(key))).toEqual([]);
     });
 
+    it('explains the page of the linked cards of a card, whatever the family has on', () => {
+        expect(PAGE_INFO_KEYS).toContain('card-related');
+        const info = pageInfo('card-related', BUDGET_OFF);
+
+        expect(info.title).toBe('Links');
+        expect(info.feature).toBeUndefined();
+        expect(info.steps.length).toBeGreaterThan(0);
+    });
+
     it('has a title, a purpose and at least one step for every page', () => {
         for (const key of PAGE_INFO_KEYS) {
             const info = pageInfo(key, null);

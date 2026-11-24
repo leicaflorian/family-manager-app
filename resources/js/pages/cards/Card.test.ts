@@ -56,6 +56,28 @@ describe('A card', () => {
         ).toHaveAttribute('href', '/cards/vehicle/1');
     });
 
+    it('links to all the linked cards, with their number, when there are more than the ones shown', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                related_more: { href: '/cards/vehicle/1/related', count: 7 },
+            },
+            linkable: [],
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'See all the links (7)' }),
+        ).toHaveAttribute('href', '/cards/vehicle/1/related');
+    });
+
+    it('has no link to all the linked cards when they are all shown', () => {
+        renderPage(Card, { card: policyDetail, linkable: [] });
+
+        expect(
+            screen.queryByRole('link', { name: /See all the links/ }),
+        ).not.toBeInTheDocument();
+    });
+
     it('offers the cards that can be added linked to this one', async () => {
         renderPage(Card, {
             card: {

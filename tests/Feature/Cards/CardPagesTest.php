@@ -624,3 +624,23 @@ test('the column of payments beside the form shows the first page, without the p
         ->where('budget.payments', fn (Collection $years): bool => array_sum(array_map(static fn (array $year): int => count($year['payments']), $years->toArray())) === 5)
         ->where('budget.payments_next', null));
 });
+
+test('the linked cards page lists all of them with the closed ones last', function (): void {
+    $c4 = linkedCardsVehicle();
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.related', ['type' => 'vehicle', 'id' => $c4->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/CardRelated')
+        ->where('card.label', 'Citroen C4')
+        ->has('related', 7)
+        ->where('related.6.label', 'Old policy')
+        ->where('related.6.closed', true)
+        ->has('addable')
+        ->where('back', route('cards.show', ['type' => 'vehicle', 'id' => $c4->id], false)));
+});
+
+test('the linked cards page answers 404 for a card of another family', function (): void {
+    $this->actingAs(registerFamily('Rossi', 'mario@rossi.example'));
+
+    $this->get(route('cards.related', $this->pandaUrl))->assertNotFound();
+});

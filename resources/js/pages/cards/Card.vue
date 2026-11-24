@@ -216,33 +216,49 @@ function link(id: number): void {
                     </FmCard>
                 </FmCardBudget>
 
-                <FmCard
-                    v-if="card.related.length > 0 || card.addable.length > 0"
-                    :title="$t('Linked to')"
-                    list
+                <div
+                    v-if="
+                        card.related.length > 0 ||
+                        card.addable.length > 0 ||
+                        card.related_more
+                    "
+                    class="flex flex-col gap-2"
                 >
-                    <template v-if="card.addable.length > 0" #actions>
-                        <FmMenu :icon="Plus" :label="$t('Add')" text>
-                            <FmMenuItem
-                                v-for="entry in card.addable"
-                                :key="entry.type"
-                                :href="entry.href"
-                                >{{ entry.label }}</FmMenuItem
-                            >
-                        </FmMenu>
-                    </template>
-                    <FmCardRow
-                        v-for="related in card.related"
-                        :key="`${related.type}-${related.id}`"
-                        :card="related"
-                    />
-                    <p
-                        v-if="card.related.length === 0"
-                        class="m-0 px-4 py-3.5 text-body-sm text-ink-soft"
+                    <FmCard :title="$t('Linked to')" list>
+                        <template v-if="card.addable.length > 0" #actions>
+                            <FmMenu :icon="Plus" :label="$t('Add')" text>
+                                <FmMenuItem
+                                    v-for="entry in card.addable"
+                                    :key="entry.type"
+                                    :href="entry.href"
+                                    >{{ entry.label }}</FmMenuItem
+                                >
+                            </FmMenu>
+                        </template>
+                        <FmCardRow
+                            v-for="related in card.related"
+                            :key="`${related.type}-${related.id}`"
+                            :card="related"
+                        />
+                        <p
+                            v-if="card.related.length === 0"
+                            class="m-0 px-4 py-3.5 text-body-sm text-ink-soft"
+                        >
+                            {{ $t('Nothing linked yet.') }}
+                        </p>
+                    </FmCard>
+                    <Link
+                        v-if="card.related_more"
+                        :href="card.related_more.href"
+                        class="px-1 text-label text-action underline underline-offset-2"
+                        >{{
+                            $tChoice(
+                                '{1} See the link (:count)|[2,*] See all the links (:count)',
+                                card.related_more.count,
+                            )
+                        }}</Link
                     >
-                        {{ $t('Nothing linked yet.') }}
-                    </p>
-                </FmCard>
+                </div>
             </div>
 
             <div class="flex min-w-0 flex-col gap-2">

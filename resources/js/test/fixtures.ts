@@ -523,6 +523,7 @@ export const policyDetail: App.Data.CardDetailData = {
     notices: [],
     values: [{ label: 'Type', text: 'Car', href: null }],
     related: [pandaRow],
+    related_more: null,
     addable: [],
     documents: [healthCard],
     documents_more: null,

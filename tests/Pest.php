@@ -15,6 +15,7 @@ use App\Models\Family;
 use App\Models\FamilySetting;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
@@ -23,6 +24,7 @@ use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\Vehicle;
 use App\Support\CurrentFamily;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -93,6 +95,30 @@ function registerFamily(string $lastName = 'Bianchi', string $email = 'marco@exa
 function insideBianchi(callable $work): mixed
 {
     return CurrentFamily::using(Family::query()->where('name', 'Bianchi')->sole()->id, $work);
+}
+
+/**
+ * A vehicle of the Bianchi with linked cards: an active policy, an expired one and one maintenance per year.
+ *
+ * @param  list<int>  $years  the years of the maintenance records, each on 1 March
+ */
+function linkedCardsVehicle(string $name = 'Citroen C4', array $years = [2021, 2022, 2023, 2024, 2025], bool $expiredPolicy = true): Vehicle
+{
+    return insideBianchi(function () use ($name, $years, $expiredPolicy): Vehicle {
+        $family = Family::query()->where('name', 'Bianchi')->sole()->id;
+        $vehicle = Vehicle::factory()->create(['family_id' => $family, 'name' => $name]);
+        InsurancePolicy::factory()->create(['family_id' => $family, 'vehicle_id' => $vehicle->id, 'title' => 'Active policy', 'status' => InsurancePolicyStatus::Active, 'expiry_date' => '2027-09-20']);
+
+        if ($expiredPolicy) {
+            InsurancePolicy::factory()->create(['family_id' => $family, 'vehicle_id' => $vehicle->id, 'title' => 'Old policy', 'status' => InsurancePolicyStatus::Expired, 'expiry_date' => '2026-09-20']);
+        }
+
+        foreach ($years as $year) {
+            MaintenanceRecord::factory()->create(['family_id' => $family, 'vehicle_id' => $vehicle->id, 'title' => "Service {$year}", 'date' => "{$year}-03-01"]);
+        }
+
+        return $vehicle;
+    });
 }
 
 /**

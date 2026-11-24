@@ -21,7 +21,8 @@ final class CardDetailData extends Data
      * @param  list<CardDateData>  $dates  the dates of the tiles
      * @param  list<CardNoticeData>  $notices  the notices of the card: what its data and its reminders say
      * @param  list<CardValueData>  $values  the data, without the empty fields
-     * @param  list<CardData>  $related  the linked cards, in both directions
+     * @param  list<CardData>  $related  the first five open linked cards, in both directions
+     * @param  array{href: string, count: int}|null  $related_more  the address of the page with all the linked cards and how many they are, null when the ones shown are all and none is closed
      * @param  list<CardAddData>  $addable  the cards whoever looks can add already linked to this one
      * @param  list<DocumentData>  $documents  the first documents linked to the card
      * @param  string|null  $documents_more  the address of the list of all its documents, null when it has no more than those shown
@@ -43,6 +44,7 @@ final class CardDetailData extends Data
         public readonly array $values,
         #[DataCollectionOf(CardData::class)]
         public readonly array $related,
+        public readonly ?array $related_more,
         #[DataCollectionOf(CardAddData::class)]
         public readonly array $addable,
         #[DataCollectionOf(DocumentData::class)]

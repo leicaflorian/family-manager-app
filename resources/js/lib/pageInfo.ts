@@ -36,6 +36,7 @@ export const PAGE_INFO_KEYS = [
     'card-new',
     'card-form',
     'card-payments',
+    'card-related',
     'documents',
     'document',
     'document-edit',
@@ -627,6 +628,19 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         notes: [
             trans(
                 'Only the payments of the planned expenses of the card count here.',
+            ),
+        ],
+    }),
+    'card-related': () => ({
+        title: trans('Links'),
+        purpose: [trans('All the cards that go with this one, in one list.')],
+        steps: [
+            trans('Tap a card to open it.'),
+            trans('Add creates a new card already linked to this one.'),
+        ],
+        notes: [
+            trans(
+                'The cards with a date coming are first. The closed ones are at the bottom.',
             ),
         ],
     }),

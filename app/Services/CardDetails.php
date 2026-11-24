@@ -55,6 +55,9 @@ final readonly class CardDetails
     /** How many documents the card shows before the link to all of them. */
     private const int DOCUMENTS_PER_PAGE = 5;
 
+    /** How many open linked cards the card shows before the link to all of them. */
+    private const int RELATED_SHOWN = 5;
+
     /**
      * @param  CardSummaries  $summaries  the row of the card and of the linked ones
      * @param  DocumentRows  $documents  the pages of its documents
@@ -95,6 +98,8 @@ final readonly class CardDetails
         };
         $dates = $this->dates($type, $card);
         $status = $this->status($type, $card);
+        $related = $this->related($type, $card);
+        $openRelated = array_values(array_filter($related, static fn (CardData $row): bool => ! $row->closed));
 
         return new CardDetailData(
             card: $row,
@@ -102,7 +107,10 @@ final readonly class CardDetails
             dates: $dates,
             notices: [...$type->notices($card), ...$this->notices->for($card, $today, $user)],
             values: $this->values($type, $card, $this->shown($type, $card, $status)),
-            related: $this->related($type, $card),
+            related: array_slice($openRelated, 0, self::RELATED_SHOWN),
+            related_more: count($openRelated) > self::RELATED_SHOWN || count($openRelated) < count($related)
+                ? ['href' => route('cards.related', ['type' => $type->type(), 'id' => $row->id]), 'count' => count($related)]
+                : null,
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
             documents: $documents['documents'],
             documents_more: $documents['more'],
@@ -294,12 +302,16 @@ final readonly class CardDetails
     }
 
     /**
-     * The cards linked to this one, in both directions, as rows.
+     * The cards linked to this one, in both directions, as rows: the ones with a date coming first, the soonest
+     * first; then the others, the most recent date first; the closed ones last.
      *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
      * @return list<CardData>
      */
-    private function related(CardType $type, Model $card): array
+    public function related(CardType $type, Model $card): array
     {
+        $today = CarbonImmutable::today('Europe/Rome')->format('Y-m-d');
         $rows = [];
 
         foreach ($type->related() as $relation) {
@@ -313,6 +325,17 @@ final readonly class CardDetails
             }
         }
 
+        $group = static fn (CardData $row): int => match (true) {
+            $row->closed => 2,
+            $row->next_date !== null && $row->next_date >= $today => 0,
+            default => 1,
+        };
+
+        usort($rows, static fn (CardData $a, CardData $b): int => $group($a) <=> $group($b)
+            ?: ($group($a) === 0
+                ? strcmp((string) $a->next_date, (string) $b->next_date)
+                : strcmp((string) $b->next_date, (string) $a->next_date)));
+
         return $rows;
     }
 
@@ -320,11 +343,13 @@ final readonly class CardDetails
      * The cards that can be added already linked to this one, each with the
      * address of its form.
      *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
      * @return list<CardAddData>
      *
      * @throws InvalidArgumentException if the card has no numeric id
      */
-    private function addable(CardType $type, Model $card): array
+    public function addable(CardType $type, Model $card): array
     {
         return array_map(
             static fn (array $entry): CardAddData => new CardAddData(
