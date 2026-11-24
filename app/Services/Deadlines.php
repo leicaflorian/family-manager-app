@@ -28,7 +28,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * {@see Occurrences} rules joined to the expenses and incomes that name each
  * due date (`occurrence_date`) and to the documents waiting to be paid.
  * Exceptions, payments and documents are read with one query per table, always
- * through the family scope; planned items of another family are ignored.
+ * through the family scope; planned items of another family are ignored. The
+ * unpaid due dates that fell while the Budget was off (before
+ * `families.budget_started_on`) are left out: the Budget starts again from zero.
  */
 final readonly class Deadlines
 {
@@ -38,7 +40,11 @@ final readonly class Deadlines
     /** How many years around a date `find()` looks, because an exception can move a due date. */
     private const int FIND_YEARS = 2;
 
-    public function __construct(private Occurrences $occurrences) {}
+    /**
+     * @param  Occurrences  $occurrences  the recurrence rules
+     * @param  FamilyFeatures  $features  the day the Budget of the family was turned on again
+     */
+    public function __construct(private Occurrences $occurrences, private FamilyFeatures $features) {}
 
     /**
      * The due dates whose real date falls between two days, both included, in order of date.
@@ -77,6 +83,7 @@ final readonly class Deadlines
         // The default account is looked up once for the whole collection, and only if some planned item has no account
         $default = null;
         $defaultLoaded = false;
+        $startedOn = $this->features->budgetStartedOn();
         $found = [];
 
         foreach ([...$expenses->all(), ...$incomes->all()] as $item) {
@@ -91,19 +98,35 @@ final readonly class Deadlines
             $account = $item->financialAccount ?? $default;
 
             foreach ($this->occurrences->between($schedule, $from, $to, $withSkipped) as $occurrence) {
-                $found[] = new Deadline(
+                $deadline = new Deadline(
                     $item,
                     $occurrence,
                     $this->payment($schedule, $occurrence, $payments[$key] ?? []),
                     $this->title($item, $schedule, $occurrence, $documents[$key] ?? []),
                     $account,
                 );
+
+                if (! $this->fellWhileOff($deadline, $startedOn)) {
+                    $found[] = $deadline;
+                }
             }
         }
 
         usort($found, static fn (Deadline $a, Deadline $b): int => $a->occurrence->date <=> $b->occurrence->date);
 
         return $found;
+    }
+
+    /**
+     * Whether a due date fell while the Budget of the family was off and nothing paid it: the Budget starts again from
+     * zero, so it is neither late nor to pay and no reader sees it. A payment recorded for it keeps it.
+     *
+     * @param  Deadline  $deadline  the due date
+     * @param  ?string  $startedOn  the day the Budget was turned on again, `yyyy-mm-dd`, null when it never was
+     */
+    private function fellWhileOff(Deadline $deadline, ?string $startedOn): bool
+    {
+        return $startedOn !== null && ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() < $startedOn;
     }
 
     /**

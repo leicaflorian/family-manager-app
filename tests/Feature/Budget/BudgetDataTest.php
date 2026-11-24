@@ -14,6 +14,7 @@ use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Models\Utility;
 use App\Services\Deadlines;
+use App\Services\FamilyFeatures;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -101,6 +102,8 @@ function budgetDataQueries(string $from, string $to): array
 {
     return insideBianchi(function () use ($from, $to): array {
         $planned = [...PlannedExpense::query()->get()->all(), ...PlannedIncome::query()->get()->all()];
+        // The switches of the family are read once per request: the first call must not count them
+        resolve(FamilyFeatures::class)->budgetStartedOn();
 
         DB::flushQueryLog();
         DB::enableQueryLog();

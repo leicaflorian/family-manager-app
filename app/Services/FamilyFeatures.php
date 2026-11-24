@@ -18,7 +18,7 @@ use App\Support\CurrentFamily;
  */
 final class FamilyFeatures
 {
-    /** @var array<int, array{budget: bool, mail: bool, bank_feed: bool}> the switches of the family, by family id */
+    /** @var array<int, array{budget: bool, mail: bool, bank_feed: bool, budget_started_on: ?string}> the switches of the family, by family id */
     private array $switches = [];
 
     /**
@@ -49,6 +49,7 @@ final class FamilyFeatures
             'budget' => $family->budget_enabled,
             'mail' => $family->mail_enabled,
             'bank_feed' => $family->bank_feed_enabled,
+            'budget_started_on' => $family->budget_started_on?->toDateString(),
         ]);
     }
 
@@ -67,6 +68,18 @@ final class FamilyFeatures
         }
 
         return $all;
+    }
+
+    /**
+     * The day the Budget of the current family was last turned on, `yyyy-mm-dd`: the due dates of planned expenses
+     * and incomes that fell before it, while the Budget was off, are neither late nor to pay. Null when the Budget was
+     * never turned on again, or without a family.
+     */
+    public function budgetStartedOn(): ?string
+    {
+        $id = CurrentFamily::id();
+
+        return $id === null ? null : $this->switches($id)['budget_started_on'];
     }
 
     /**
@@ -93,17 +106,18 @@ final class FamilyFeatures
      * The switches of a family, read once from `families` and remembered.
      *
      * @param  int  $id  the family id
-     * @return array{budget: bool, mail: bool, bank_feed: bool}
+     * @return array{budget: bool, mail: bool, bank_feed: bool, budget_started_on: ?string}
      */
     private function switches(int $id): array
     {
         if (! isset($this->switches[$id])) {
-            $row = Family::query()->whereKey($id)->first(['budget_enabled', 'mail_enabled', 'bank_feed_enabled']);
+            $row = Family::query()->whereKey($id)->first(['budget_enabled', 'mail_enabled', 'bank_feed_enabled', 'budget_started_on']);
 
             $this->switches[$id] = [
                 'budget' => (bool) $row?->budget_enabled,
                 'mail' => (bool) $row?->mail_enabled,
                 'bank_feed' => (bool) $row?->bank_feed_enabled,
+                'budget_started_on' => $row?->budget_started_on?->toDateString(),
             ];
         }
 
@@ -115,7 +129,7 @@ final class FamilyFeatures
      *
      * @param  Feature  $feature  the feature
      * @param  int  $id  the family id
-     * @param  callable(): array{budget: bool, mail: bool, bank_feed: bool}  $switches  reads the switches of the family
+     * @param  callable(): array{budget: bool, mail: bool, bank_feed: bool, budget_started_on: ?string}  $switches  reads the switches of the family
      */
     private function resolve(Feature $feature, int $id, callable $switches): bool
     {
