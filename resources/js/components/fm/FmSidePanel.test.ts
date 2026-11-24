@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vite-plus/test';
-import { h } from 'vue';
+import { defineComponent, h } from 'vue';
+import { provideOnColor } from '@/composables/useOnColor';
+import FmButton from './FmButton.vue';
 import FmSidePanel from './FmSidePanel.vue';
 
 describe('FmSidePanel', () => {
@@ -56,5 +58,24 @@ describe('FmSidePanel', () => {
         await userEvent.keyboard('{Escape}');
 
         expect(result.emitted('close')).toBeUndefined();
+    });
+    it('is white inside, also when it opens from a coloured top', () => {
+        const Coloured = defineComponent({
+            setup() {
+                provideOnColor();
+
+                return () =>
+                    h(
+                        FmSidePanel,
+                        { label: 'Bolletta luce' },
+                        { default: () => h(FmButton, () => 'Got it') },
+                    );
+            },
+        });
+        render(Coloured);
+
+        expect(screen.getByRole('button', { name: 'Got it' })).not.toHaveClass(
+            'text-on-hero',
+        );
     });
 });

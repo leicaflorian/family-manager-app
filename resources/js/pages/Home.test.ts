@@ -16,6 +16,12 @@ import Home from './Home.vue';
 const shared = vi.hoisted(() => ({
     name: 'Fameja.app',
     unread_notices: 0,
+    family: undefined as
+        | {
+              features: { budget: boolean; mail?: boolean };
+              mail_available?: boolean;
+          }
+        | undefined,
     bell_notices: undefined as
         | { unread: unknown[]; seen: unknown[] }
         | undefined,
@@ -46,9 +52,10 @@ const home: App.Data.HomeData = {
     checklist: [],
     missing: [],
     mails: [],
+    can_change_features: true,
 };
 
-/** The Home of a new family: nothing to pay, four steps to begin. */
+/** The Home of a new family after the Welcome with Laura: nothing to pay, five steps to begin, the first done. */
 const newFamily: App.Data.HomeData = {
     ...home,
     total: 0,
@@ -57,10 +64,11 @@ const newFamily: App.Data.HomeData = {
     entries: [],
     incoming: [],
     checklist: [
-        { key: 'utilities', done: true, name: null },
-        { key: 'first_bill', done: false, name: null },
-        { key: 'card', done: false, name: null },
-        { key: 'invite', done: false, name: 'Laura' },
+        { key: 'people', done: true, name: null, names: ['Marco', 'Laura'] },
+        { key: 'utilities', done: false, name: null, names: [] },
+        { key: 'first_bill', done: false, name: null, names: [] },
+        { key: 'card', done: false, name: null, names: [] },
+        { key: 'invite', done: false, name: null, names: [] },
     ],
 };
 
@@ -107,6 +115,7 @@ describe('Home', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        shared.family = undefined;
     });
 
     it('greets with the day and the first name', () => {
@@ -190,6 +199,24 @@ describe('Home', () => {
         expect(rows[0]).toHaveTextContent('Late by 26 days · 30/09/2026');
         expect(rows[1]).toHaveTextContent('Bolletta gas');
         expect(rows[1]).toHaveTextContent('in 4 days');
+    });
+
+    it('has no money with the Budget off: no total and no incomes box', () => {
+        shared.family = { features: { budget: false } };
+        renderPage(Home, {
+            home: { ...home, total: null, payments: 0, late: 0, incoming: [] },
+        });
+
+        expect(
+            screen.queryByRole('region', {
+                name: 'To pay in the next 30 days',
+            }),
+        ).toBeNull();
+        expect(screen.queryByText('Incoming')).toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'The deadlines' }),
+        ).toBeInTheDocument();
+        shared.family = undefined;
     });
 
     it('offers the Agenda only when there are more than the ones shown', () => {
@@ -282,23 +309,141 @@ describe('Home', () => {
             .getByRole('heading', { name: 'To begin' })
             .closest('section') as HTMLElement;
         const links = within(begin).getAllByRole('link');
+        expect(links.map((link) => link.textContent)).toEqual([
+            expect.stringContaining('Add whoever lives with you'),
+            expect.stringContaining('The bills of the house'),
+            expect.stringContaining('Upload the first document'),
+            expect.stringContaining('Create the first card'),
+            expect.stringContaining('Invite whoever lives with you'),
+        ]);
         expect(links.map((link) => link.getAttribute('href'))).toEqual([
+            '/family/people',
             '/areas',
             '/upload',
             '/cards/create',
             '/family/invite',
         ]);
+        expect(within(begin).getByText('1 of 5')).toBeInTheDocument();
         expect(
-            within(begin).getByText('Take a photo or choose the PDF'),
+            within(begin).getByRole('progressbar', { name: 'To begin' }),
+        ).toHaveAttribute('aria-valuenow', '1');
+        expect(
+            within(begin).getByText(
+                'Five things to get started. Tick them off as you go.',
+            ),
         ).toBeInTheDocument();
         expect(
-            within(begin).getByRole('link', { name: /Invite Laura/ }),
+            within(begin).getByText('Done in the Welcome: Marco and Laura'),
         ).toBeInTheDocument();
         expect(
             screen.getByText(
                 'Salaries and other incomes show here when you add the card of a job.',
             ),
         ).toBeInTheDocument();
+    });
+
+    it('names the person to invite, and has the mail step with the mail on', () => {
+        renderPage(Home, {
+            home: {
+                ...newFamily,
+                checklist: [
+                    { key: 'mail', done: false, name: null, names: [] },
+                    { key: 'invite', done: false, name: 'Laura', names: [] },
+                ],
+            },
+        });
+
+        expect(
+            screen.getByRole('link', {
+                name: /Send the bills to the address of the family/,
+            }),
+        ).toHaveAttribute('href', '/mail');
+        expect(
+            screen.getByRole('link', { name: /Invite Laura/ }),
+        ).toHaveAttribute('href', '/family/invite');
+    });
+
+    it('hides the list with Hide and takes a step away with Not needed', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Home, { home: newFamily });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Hide' }));
+        expect(post).toHaveBeenCalledWith(
+            '/dashboard/checklist/hide',
+            {},
+            expect.objectContaining({ preserveScroll: true }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'Remove the step Invite whoever lives with you',
+            }),
+        );
+        expect(post).toHaveBeenCalledWith(
+            '/dashboard/checklist/skip',
+            { step: 'invite' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        post.mockRestore();
+    });
+
+    it('does not offer the Mail in the footer on a server without the mail domain', () => {
+        shared.family = {
+            features: { budget: false, mail: false },
+            mail_available: false,
+        };
+        const view = renderPage(Home, { home: newFamily });
+
+        expect(
+            screen.getByText('Do you also need the Budget?', { exact: false }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByText(/the Mail for the bills/),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('link', {
+                name: 'Turn it on from Settings › What you use.',
+            }),
+        ).toHaveAttribute('href', '/settings/features');
+        view.unmount();
+
+        // With the Budget on and nothing else to offer, there is no footer at all
+        shared.family = {
+            features: { budget: true, mail: false },
+            mail_available: false,
+        };
+        renderPage(Home, { home: newFamily });
+        expect(screen.queryByText(/Do you also need/)).not.toBeInTheDocument();
+        shared.family = undefined;
+    });
+
+    it('leads to What you use only for an admin with the Budget or the Mail off', () => {
+        const link = (): HTMLElement | null =>
+            screen.queryByRole('link', {
+                name: 'Turn them on from Settings › What you use.',
+            });
+
+        shared.family = { features: { budget: false, mail: true } };
+        const view = renderPage(Home, { home: newFamily });
+        expect(link()).toHaveAttribute('href', '/settings/features');
+        expect(
+            screen.getByText(
+                'Do you also need the Budget or the Mail for the bills?',
+                { exact: false },
+            ),
+        ).toBeInTheDocument();
+        view.unmount();
+
+        const member = renderPage(Home, {
+            home: { ...newFamily, can_change_features: false },
+        });
+        expect(link()).toBeNull();
+        member.unmount();
+
+        shared.family = { features: { budget: true, mail: true } };
+        renderPage(Home, { home: newFamily });
+        expect(link()).toBeNull();
+        shared.family = undefined;
     });
 
     it('has no steps to begin once all are done', () => {

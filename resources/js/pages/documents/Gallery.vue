@@ -21,15 +21,10 @@ import FmDrawingTile from '@/components/fm/FmDrawingTile.vue';
 import FmDrawingViewer from '@/components/fm/FmDrawingViewer.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { index as categories } from '@/routes/categories';
-import {
-    favorite,
-    gallery,
-    index as documents,
-    unfavorite,
-} from '@/routes/documents';
+import { favorite, gallery, unfavorite } from '@/routes/documents';
 
 const props = defineProps<{
     /** The drawings by upload year, the newest year first. */
@@ -57,10 +52,11 @@ const wide = useWideLayout();
 /** The panel *Add a drawing* is open. */
 const adding = ref(false);
 
-usePageTrail(() => [
-    { label: trans('Documents'), href: documents().url },
-    { label: trans('Drawings and crafts') },
-]);
+const { title, head } = usePageMeta({
+    info: 'gallery',
+    title: () => trans('Drawings and crafts'),
+    parent: 'documents',
+});
 
 /** All the drawings in the order of the page, to move through them. */
 const order = computed((): App.Data.DrawingData[] =>
@@ -202,11 +198,11 @@ function setFavorite(value: boolean): void {
 </script>
 
 <template>
-    <Head :title="$t('Drawings and crafts')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
         <FmTitle
-            :title="$t('Drawings and crafts')"
+            :title="title"
             :subtitle="hasGallery && total > 0 ? subtitle : undefined"
         >
             <template v-if="canAdd && hasGallery" #actions>

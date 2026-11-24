@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Actions\Banks\WatchBankConsents;
-use App\Enums\BankConnectionStatus;
+use App\Console\Concerns\RunsPerFamily;
 use App\Jobs\SyncBank;
 use App\Models\BankConnection;
 use App\Models\Family;
-use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Throwable;
 
 /**
@@ -24,61 +24,34 @@ use Throwable;
 #[Signature('banks:sync {--family= : Only this family (its id)}')]
 final class SyncBanks extends Command
 {
+    use RunsPerFamily;
+
     /**
      * Queues the reads, after the consents of each family were checked. A family that fails is reported and skipped, so it does not stop the others.
+     *
+     * @param  WatchBankConsents  $watch  Checks the consents of the family before its reads.
      */
     public function handle(WatchBankConsents $watch): int
     {
-        $option = $this->option('family');
-        $only = is_scalar($option) ? (string) $option : '';
-
-        if ($only !== '' && (! ctype_digit($only) || (int) $only < 1)) {
-            $this->error('--family must be the id of a family.');
-
+        if (! $this->hasValidFamilyOption()) {
             return self::FAILURE;
         }
 
-        $families = Family::query()->notBlocked()->where('bank_feed_enabled', true)
-            ->when($only !== '', fn ($query) => $query->whereKey((int) $only))
-            ->orderBy('id')->get(['id']);
-
-        $queued = 0;
-        $failed = 0;
-
-        foreach ($families as $family) {
+        return $this->runPerFamily('Reads queued', static function (Family $family) use ($watch): int {
             try {
-                $queued += CurrentFamily::using($family->id, function () use ($family, $watch): int {
-                    try {
-                        $watch->handle(CarbonImmutable::now());
-                    } catch (Throwable $failure) {
-                        // The reads of the family go on even when the check of its consents fails
-                        report($failure);
-                    }
-
-                    $connections = BankConnection::query()
-                        ->whereIn('status', [BankConnectionStatus::Active, BankConnectionStatus::Error])
-                        ->orderBy('id')->get(['id']);
-
-                    foreach ($connections as $connection) {
-                        dispatch(new SyncBank($connection->id, $family->id));
-                    }
-
-                    return $connections->count();
-                });
-            } catch (Throwable $exception) {
-                report($exception);
-                $failed++;
+                $watch->handle(CarbonImmutable::now());
+            } catch (Throwable $failure) {
+                // The reads of the family go on even when the check of its consents fails
+                report($failure);
             }
-        }
 
-        $this->info("Reads queued: {$queued}");
+            $connections = BankConnection::query()->readable()->orderBy('id')->get(['id']);
 
-        if ($failed > 0) {
-            $this->error("Families that failed: {$failed}");
+            foreach ($connections as $connection) {
+                dispatch(new SyncBank($connection->id, $family->id));
+            }
 
-            return self::FAILURE;
-        }
-
-        return self::SUCCESS;
+            return $connections->count();
+        }, static fn (Builder $families) => $families->bankFeedOn());
     }
 }

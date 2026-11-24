@@ -37,6 +37,10 @@ use Illuminate\Support\Facades\Crypt;
  * @property CarbonImmutable|null $support_until
  * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
  * @property bool $bank_feed_enabled The owner turns the link to the bank on for the family
+ * @property bool $budget_enabled Whether the family has the Budget
+ * @property CarbonImmutable|null $budget_paused_on The first day the Budget was turned off, null while it never was
+ * @property CarbonImmutable|null $budget_started_on The day the Budget was last turned on again after a pause: the due dates that fell from the pause to it, unpaid, are not late
+ * @property bool $mail_enabled Whether the family has the mail for the bills
  * @property-read Collection<int, OwnerAction> $ownerActions
  * @property-read int|null $owner_actions_count
  * @property-read Collection<int, Person> $people
@@ -48,6 +52,7 @@ use Illuminate\Support\Facades\Crypt;
  * @method static Builder<static>|Family newModelQuery()
  * @method static Builder<static>|Family newQuery()
  * @method static Builder<static>|Family query()
+ * @method static Builder<static>|Family bankFeedOn()
  * @method static Builder<static>|Family notBlocked()
  *
  * @mixin \Eloquent
@@ -139,6 +144,26 @@ final class Family extends Model
     }
 
     /**
+     * Whether the banks of the family are read: the owner turned the link to the bank on, the Budget (where the
+     * banks live) is on and the family is not blocked. The same as {@see self::bankFeedOn()}, for a family already read.
+     */
+    public function hasBankFeedOn(): bool
+    {
+        return $this->bank_feed_enabled && $this->budget_enabled && ! $this->isBlocked();
+    }
+
+    /**
+     * Only the families whose banks are read, as {@see self::hasBankFeedOn()} says for one family.
+     *
+     * @param  Builder<Family>  $query  the query to narrow
+     */
+    #[Scope]
+    protected function bankFeedOn(Builder $query): void
+    {
+        $query->notBlocked()->where('bank_feed_enabled', true)->where('budget_enabled', true);
+    }
+
+    /**
      * Only the families that are neither suspended nor waiting to be deleted: the opposite of {@see self::isBlocked()}.
      *
      * @param  Builder<Family>  $query  the query to narrow
@@ -203,6 +228,10 @@ final class Family extends Model
             'support_until' => 'datetime',
             'reading_limit' => 'integer',
             'bank_feed_enabled' => 'boolean',
+            'budget_enabled' => 'boolean',
+            'budget_paused_on' => 'date',
+            'budget_started_on' => 'date',
+            'mail_enabled' => 'boolean',
             'calendar_token' => 'encrypted',
         ];
     }

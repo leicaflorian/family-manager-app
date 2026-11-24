@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Enums\Feature;
 use App\Enums\SearchGroup;
+use App\Services\FamilyFeatures;
 use App\Support\SearchTerms;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,7 +26,11 @@ final class SearchRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:100'],
-            'type' => ['nullable', Rule::enum(SearchGroup::class)],
+            // *Movements* and *Dues* belong to the Budget: with it off they are not groups to ask for
+            'type' => ['nullable', Rule::enum(SearchGroup::class)->unless(
+                resolve(FamilyFeatures::class)->on(Feature::Budget),
+                static fn ($rule) => $rule->except([SearchGroup::Movements, SearchGroup::Dues]),
+            )],
         ];
     }
 

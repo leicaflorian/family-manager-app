@@ -8,6 +8,7 @@ use App\Actions\Agenda\SaveAgendaFilters;
 use App\Actions\Agenda\UpdateDeadline;
 use App\Data\CalendarSettingsData;
 use App\Data\DeadlineData;
+use App\Enums\Feature;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Requests\Agenda\UpdateDeadlineRequest;
 use App\Http\Requests\AgendaFiltersRequest;
@@ -16,6 +17,7 @@ use App\Models\User;
 use App\Services\AgendaPage;
 use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
+use App\Services\FamilyFeatures;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Illuminate\Container\Attributes\CurrentUser;
@@ -30,7 +32,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class AgendaController extends Controller
 {
-    public function __construct(private readonly Deadlines $deadlines) {}
+    public function __construct(private readonly Deadlines $deadlines, private readonly FamilyFeatures $features) {}
 
     /**
      * The Agenda of `?months=1|3|6|12`: the period asked is used and remembered, the remembered one is used when
@@ -62,6 +64,9 @@ final class AgendaController extends Controller
      */
     private function payment(string $key): Deadline
     {
+        // The panel of a payment is the Budget's: with it off there is no payment to open
+        abort_unless($this->features->on(Feature::Budget), 404);
+
         if (preg_match('/^(payment|income):(\d+):([0-9-]+)$/', $key, $parts) !== 1) {
             throw new NotFoundHttpException;
         }

@@ -25,4 +25,5 @@ enum CallOutcome: string
     case Unknown = 'unknown';
     case Limited = 'limited';
     case Suspended = 'suspended';
+    case MailOff = 'mail_off';
 }

@@ -14,8 +14,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { readPhoto, toObjectUrl } from '@/lib/scan/canvas';
 import { WHOLE, warp, LONG_SIDE } from '@/lib/scan/crop';
 import { dewarp, isDewarpAvailable, loadDewarp } from '@/lib/scan/dewarp';
-import { usePageTrail } from '@/composables/usePageTrail';
-import { toSort } from '@/routes';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const available = isDewarpAvailable();
 const working = ref(false);
@@ -87,18 +86,19 @@ async function start(event: Event): Promise<void> {
 
 onBeforeUnmount(clearPicture);
 
-usePageTrail(() => [
-    { label: trans('To sort'), href: toSort().url },
-    { label: trans('Straighten check') },
-]);
+const { title, head } = usePageMeta({
+    info: 'dewarp-check',
+    title: () => trans('Straighten check'),
+    parent: 'toSort',
+});
 </script>
 
 <template>
-    <Head :title="$t('Straighten check')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[640px] flex-col gap-4">
         <FmTitle
-            :title="$t('Straighten check')"
+            :title="title"
             :subtitle="
                 $t(
                     'Pick a photo of a folded sheet or a receipt: the whole photo is taken as the sheet.',

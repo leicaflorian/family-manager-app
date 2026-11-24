@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Families\CreateFamily;
 use App\Enums\ExceptionType;
 use App\Enums\FilingStatus;
 use App\Enums\FilingType;
@@ -11,6 +12,7 @@ use App\Enums\Role;
 use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\Expense;
+use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\Filing;
 use App\Models\InsurancePolicy;
@@ -33,6 +35,8 @@ use Inertia\Testing\AssertableInertia;
 beforeEach(function (): void {
     Storage::fake('local');
     Date::setTestNow(CarbonImmutable::parse('2026-10-26 10:00', 'Europe/Rome'));
+    // The mail for the bills counts as on only with the domain of the mail
+    config(['services.mailgun.inbox_domain' => 'bollette.familymanager.test']);
 });
 
 afterEach(fn () => Date::setTestNow());
@@ -215,7 +219,7 @@ test('the checklist of a new family', function (): void {
 
     $steps = fn (): array => array_column(homeFor($marco)['checklist'], 'done', 'key');
 
-    expect($steps())->toBe(['utilities' => false, 'first_bill' => false, 'card' => false, 'invite' => true]);
+    expect($steps())->toBe(['people' => false, 'utilities' => false, 'first_bill' => false, 'card' => false, 'mail' => false, 'invite' => true]);
 
     insideFamilyOf($marco, fn () => Utility::factory()->create(['family_id' => CurrentFamily::id()]));
     expect($steps()['utilities'])->toBeTrue();
@@ -223,8 +227,14 @@ test('the checklist of a new family', function (): void {
     insideFamilyOf($marco, fn () => Document::factory()->create(['family_id' => CurrentFamily::id()]));
     expect($steps()['first_bill'])->toBeTrue();
 
-    // Without a vehicle, a policy or a subscription the step is open; with a subscription it is done and, all done, the list is gone
     insideFamilyOf($marco, fn () => Subscription::factory()->create(['family_id' => CurrentFamily::id()]));
+    expect($steps()['card'])->toBeTrue();
+
+    insideFamilyOf($marco, fn () => ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]));
+    expect($steps()['mail'])->toBeTrue();
+
+    // A second person completes the last step and, all done, the list is gone
+    insideFamilyOf($marco, fn () => Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]));
     expect($steps())->toBe([]);
 });
 
@@ -245,7 +255,7 @@ test('invite names the first parent without an account', function (): void {
 
     $invite = collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite');
 
-    expect($invite)->toBe(['key' => 'invite', 'done' => false, 'name' => 'Laura']);
+    expect($invite)->toBe(['key' => 'invite', 'done' => false, 'name' => 'Laura', 'names' => []]);
 });
 
 test('a pending invitation counts, then the next parent is named', function (): void {
@@ -268,15 +278,15 @@ test('invite is done once Laura accepts', function (): void {
     $account = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Admin, 'email_verified_at' => now()]);
     $laura->forceFill(['user_id' => $account->id])->save();
 
-    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null]);
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null, 'names' => []]);
 });
 
-test('a member has no invite step and no card step', function (): void {
+test('a member has no people, utilities, card or invite step', function (): void {
     $marco = registerFamily();
     insideFamilyOf($marco, fn () => Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]));
     $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
 
-    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['utilities', 'first_bill']);
+    expect(array_column(homeFor($member)['checklist'], 'key'))->toBe(['first_bill', 'mail']);
 });
 
 test('the checklist of a member is gone when the steps he can do are done', function (): void {
@@ -284,6 +294,7 @@ test('the checklist of a member is gone when the steps he can do are done', func
     insideFamilyOf($marco, function (): void {
         Utility::factory()->create(['family_id' => CurrentFamily::id()]);
         Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
     });
     $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
 
@@ -296,9 +307,169 @@ test('the checklist is gone when every step is done', function (): void {
         Utility::factory()->create(['family_id' => CurrentFamily::id()]);
         Document::factory()->create(['family_id' => CurrentFamily::id()]);
         Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
+        Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]);
     });
 
     expect(homeFor($marco)['checklist'])->toBe([]);
+});
+
+test('after the Welcome with Marco and Laura the people step is done, with their names', function (): void {
+    $marco = resolve(CreateFamily::class)->handle('Bianchi', 'Marco', 'Bianchi', 'marco@example.com', 'a-long-password');
+    $marco->forceFill(['email_verified_at' => now()])->save();
+
+    $this->actingAs($marco)->post(route('welcome.store'), [
+        'people' => [['first_name' => 'Laura', 'last_name' => 'Bianchi', 'role' => 'parent']],
+    ])->assertRedirect(route('dashboard'));
+
+    $people = collect(homeFor($marco)['checklist'])->firstWhere('key', 'people');
+
+    expect($people)->toBe(['key' => 'people', 'done' => true, 'name' => null, 'names' => ['Marco', 'Laura']]);
+});
+
+test('with the mail off the steps are five, with the mail on six', function (): void {
+    $marco = registerFamily();
+    $marco->family->forceFill(['mail_enabled' => false])->save();
+
+    expect(array_column(homeFor($marco)['checklist'], 'key'))->toBe(['people', 'utilities', 'first_bill', 'card', 'invite']);
+
+    $marco->family->forceFill(['mail_enabled' => true])->save();
+
+    expect(array_column(homeFor($marco)['checklist'], 'key'))->toBe(['people', 'utilities', 'first_bill', 'card', 'mail', 'invite']);
+});
+
+test('the mail step is done after the first mail', function (): void {
+    $marco = registerFamily();
+    $mail = fn (): bool => collect(homeFor($marco)['checklist'])->firstWhere('key', 'mail')['done'];
+
+    expect($mail())->toBeFalse();
+
+    insideFamilyOf($marco, fn () => ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]));
+
+    expect($mail())->toBeTrue();
+});
+
+test('Hide hides the list only for the account that pressed it', function (): void {
+    $marco = registerFamily();
+    $laura = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Admin, 'email_verified_at' => now()]);
+
+    $this->actingAs($marco)->post(route('dashboard.checklist.hide'))->assertRedirect(route('dashboard'));
+
+    expect(homeFor($marco)['checklist'])->toBe([])
+        ->and(homeFor($laura)['checklist'])->not->toBe([])
+        ->and($marco->fresh()?->toArray())->not->toHaveKey('checklist_hidden_at');
+});
+
+test('Not needed on invite removes it for the whole family, and the total goes down', function (): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, fn () => Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]));
+    $anna = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Admin, 'email_verified_at' => now()]);
+
+    expect(homeFor($anna)['checklist'])->toHaveCount(6);
+
+    $this->actingAs($marco)->post(route('dashboard.checklist.skip'), ['step' => 'invite'])->assertRedirect(route('dashboard'));
+    $this->actingAs($marco)->post(route('dashboard.checklist.skip'), ['step' => 'invite'])->assertRedirect(route('dashboard'));
+
+    expect(array_column(homeFor($anna)['checklist'], 'key'))->toBe(['people', 'utilities', 'first_bill', 'card', 'mail'])
+        ->and(insideFamilyOf($marco, fn (): ?array => FamilySetting::current()->checklist_skipped))->toBe(['invite']);
+});
+
+test('a skipped step does not keep the list open', function (): void {
+    $marco = registerFamily();
+    insideFamilyOf($marco, function (): void {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
+    });
+
+    $this->actingAs($marco)->post(route('dashboard.checklist.skip'), ['step' => 'people']);
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+});
+
+test('only people and invite can be skipped', function (string $step): void {
+    $marco = registerFamily();
+
+    $this->actingAs($marco)->postJson(route('dashboard.checklist.skip'), ['step' => $step])->assertUnprocessable();
+})->with(['utilities', 'first_bill', 'card', 'mail', 'other', '']);
+
+test('a member cannot skip a step', function (): void {
+    $marco = registerFamily();
+    $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
+
+    $this->actingAs($member)->post(route('dashboard.checklist.skip'), ['step' => 'invite'])->assertForbidden();
+
+    expect(array_column(homeFor($marco)['checklist'], 'key'))->toContain('invite');
+});
+
+test('the Home says who can turn the features on', function (): void {
+    $marco = registerFamily();
+    $member = User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member, 'email_verified_at' => now()]);
+
+    expect(homeFor($marco)['can_change_features'])->toBeTrue()
+        ->and(homeFor($member)['can_change_features'])->toBeFalse();
+});
+
+test('deleting the only utility keeps the utilities step done', function (): void {
+    $marco = registerFamily();
+    $utility = insideFamilyOf($marco, fn (): Utility => Utility::factory()->create(['family_id' => CurrentFamily::id()]));
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'utilities')['done'])->toBeTrue();
+
+    insideFamilyOf($marco, fn () => $utility->delete());
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'utilities')['done'])->toBeTrue();
+});
+
+test('an invitation that expires keeps the invite step done', function (): void {
+    $marco = registerFamily();
+    $invitation = insideFamilyOf($marco, function (): Invitation {
+        $laura = Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Laura', 'role' => PersonRole::Parent, 'user_id' => null]);
+
+        return Invitation::factory()->create(['family_id' => CurrentFamily::id(), 'person_id' => $laura->id, 'expires_at' => now()->addDays(3), 'accepted_at' => null]);
+    });
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite')['done'])->toBeTrue();
+
+    $invitation->forceFill(['expires_at' => now()->subDay()])->save();
+
+    expect(collect(homeFor($marco)['checklist'])->firstWhere('key', 'invite'))->toBe(['key' => 'invite', 'done' => true, 'name' => null, 'names' => []]);
+});
+
+test('a finished list stays gone after the second person is deleted', function (): void {
+    $marco = registerFamily();
+    $giulia = insideFamilyOf($marco, function (): Person {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        ReceivedMail::factory()->create(['family_id' => CurrentFamily::id()]);
+
+        return Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]);
+    });
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+
+    insideFamilyOf($marco, fn () => $giulia->delete());
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+});
+
+test('turning the mail on after finishing shows one open step', function (): void {
+    $marco = registerFamily();
+    $marco->family->forceFill(['mail_enabled' => false])->save();
+    insideFamilyOf($marco, function (): void {
+        Utility::factory()->create(['family_id' => CurrentFamily::id()]);
+        Document::factory()->create(['family_id' => CurrentFamily::id()]);
+        Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
+        Person::factory()->create(['family_id' => CurrentFamily::id(), 'first_name' => 'Giulia', 'role' => PersonRole::Child]);
+    });
+
+    expect(homeFor($marco)['checklist'])->toBe([]);
+
+    $marco->family->forceFill(['mail_enabled' => true])->save();
+
+    expect(array_column(homeFor($marco)['checklist'], 'done', 'key'))->toBe(['people' => true, 'utilities' => true, 'first_bill' => true, 'card' => true, 'mail' => false, 'invite' => true]);
 });
 
 test('the Home of a new family is empty', function (): void {
@@ -362,7 +533,7 @@ test('an account of the Rossi sees nothing of the Bianchi', function (): void {
         ->and($home['entries'])->toBe([])
         ->and($home['incoming'])->toBe([])
         ->and($home['pending_count'])->toBe(0)
-        ->and(array_column($home['checklist'], 'done', 'key'))->toBe(['utilities' => false, 'first_bill' => false, 'card' => false, 'invite' => true]);
+        ->and(array_column($home['checklist'], 'done', 'key'))->toBe(['people' => false, 'utilities' => false, 'first_bill' => false, 'card' => false, 'mail' => false, 'invite' => true]);
 });
 
 test('the Home says what is missing: the registration document of a vehicle and the file of an ISEE, and nothing once there is nothing', function (): void {
@@ -433,4 +604,13 @@ test('the mail of another family is not on the Home', function (): void {
     });
 
     expect(homeFor($marco)['mails'])->toBe([]);
+});
+
+test('without a mail domain the checklist has no mail step even with the mail switched on', function (): void {
+    config(['services.mailgun.inbox_domain' => '']);
+    $marco = registerFamily();
+    $marco->family->forceFill(['mail_enabled' => true])->save();
+
+    test()->actingAs($marco)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('family.mail_available', false));
+    expect(array_column(homeFor($marco)['checklist'], 'key'))->toBe(['people', 'utilities', 'first_bill', 'card', 'invite']);
 });

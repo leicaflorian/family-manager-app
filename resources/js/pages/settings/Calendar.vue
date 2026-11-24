@@ -13,9 +13,8 @@ import FmCard from '@/components/fm/FmCard.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { settings } from '@/routes';
 import { destroy, reset, store } from '@/routes/calendar';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { calendar } = defineProps<{
     /** Whether the calendar is on, its address and whether who looks can change it. */
@@ -64,19 +63,20 @@ function resetAddress(): void {
     router.post(reset.url(), {}, { preserveScroll: true });
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Calendar') },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-calendar',
+    title: () => trans('Calendar'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Calendar')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="calendar">
         <template #title>
             <FmTitle
-                :title="$t('Calendar')"
+                :title="title"
                 :subtitle="$t('Reminders and deadlines in Google Calendar')"
             />
         </template>

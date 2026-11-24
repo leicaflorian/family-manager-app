@@ -10,6 +10,8 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Camera, Plus, Search, Shapes } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCardRow from '@/components/fm/FmCardRow.vue';
@@ -80,13 +82,18 @@ function tile(area: string): string {
         code === undefined ? 'bg-canvas text-ink-soft' : areaTile[code],
     );
 }
+
+const { title, head } = usePageMeta({
+    info: 'areas',
+    title: () => trans('Areas'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Areas')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="$t('Areas')">
+        <FmTitle :title="title">
             <template v-if="canCreate" #actions>
                 <FmActions
                     v-if="canCreate"

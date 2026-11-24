@@ -24,9 +24,8 @@ import { useVisitQueue } from '@/composables/useVisitQueue';
 import type { Area } from '@/lib/areas';
 import { areaFill, areaOf } from '@/lib/areas';
 import { cardCountText } from '@/lib/cardTexts';
-import { settings } from '@/routes';
 import { reset, update } from '@/routes/settings/areas';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { settings: page } = defineProps<{
     /** The areas of the family in its order, with their cards and whether they are hidden, and whether who looks can change them. */
@@ -154,19 +153,20 @@ function cardsStay(count: number): string {
     );
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Areas') },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-areas',
+    title: () => trans('Areas'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Areas')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="areas">
         <template #title>
             <FmTitle
-                :title="$t('Areas')"
+                :title="title"
                 :subtitle="$t('Their order, and the ones you hide')"
             />
         </template>

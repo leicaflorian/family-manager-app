@@ -285,7 +285,7 @@ describe('FmSidebar', () => {
                 areas: areaCounts,
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
-                hasGallery: true,
+                features: { gallery: true },
             },
         });
 
@@ -315,7 +315,7 @@ describe('FmSidebar', () => {
                 areas: areaCounts,
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
-                hasGallery: true,
+                features: { gallery: true },
             },
         });
 
@@ -372,7 +372,7 @@ describe('FmSidebar', () => {
                 areas: areaCounts,
                 family: 'Bianchi',
                 user: 'Marco Bianchi',
-                hasConsumption: true,
+                features: { consumption: true },
             },
         });
 

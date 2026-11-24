@@ -6,10 +6,13 @@
  * panel shows. It closes with Esc (unless a menu inside it is open) and with
  * the × the page puts in its content. It floats 16 px under the sticky top of
  * the layout (`--app-header`). Used by *Documents* between 1280 and 1439 px.
+ * Inside it the buttons are those of a white surface, also when it opens from
+ * the coloured top of a card.
  *
  * @group panels
  */
 import { useEscapeClose } from '@/composables/useEscapeClose';
+import { provideOnColor } from '@/composables/useOnColor';
 
 const { label } = defineProps<{
     /** What the panel shows, said to screen readers. */
@@ -25,6 +28,9 @@ defineSlots<{
     /** The content of the panel. */
     default: () => unknown;
 }>();
+
+// The panel is white, also when it opens from the coloured top of a card
+provideOnColor(false);
 
 // Esc closes the panel, but not when it is meant for an open menu inside it
 useEscapeClose(() => emit('close'));

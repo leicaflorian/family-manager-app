@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Actions\Loans\CreateLoanPlans;
 use App\Actions\Loans\RefreshLoan;
 use App\Enums\ExceptionType;
+use App\Enums\Feature;
 use App\Models\Loan;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
+use App\Services\FamilyFeatures;
 use App\Services\LoanSchedule;
 use App\Support\CurrentFamily;
 use App\Support\DefaultAccount;
@@ -18,7 +21,8 @@ use Illuminate\Support\Arr;
 
 /**
  * What a loan does by itself when it is saved: it works out its figures in the same save, then creates the planned
- * expense of its instalment, or brings the one created for it in line with the loan.
+ * expense of its instalment, or brings the one created for it in line with the loan. With the Budget off it creates
+ * none: {@see CreateLoanPlans} does when the Budget is turned on.
  */
 final readonly class LoanObserver
 {
@@ -37,11 +41,15 @@ final readonly class LoanObserver
      * @param  RefreshLoan  $refresh  Works out the figures.
      * @param  LoanSchedule  $schedule  The rules of the loans.
      * @param  LoanPlanObserver  $plans  The observer of the planned expenses, kept quiet while this one writes them.
+     * @param  CreateLoanPlans  $loanPlans  Creates the planned expense of a loan that has none.
+     * @param  FamilyFeatures  $features  Tells whether the family uses the Budget.
      */
     public function __construct(
         private RefreshLoan $refresh,
         private LoanSchedule $schedule,
         private LoanPlanObserver $plans,
+        private CreateLoanPlans $loanPlans,
+        private FamilyFeatures $features,
     ) {}
 
     /**
@@ -62,8 +70,8 @@ final readonly class LoanObserver
     }
 
     /**
-     * Creates the planned expense of the instalment when the loan has none, or makes the one created for it follow
-     * the loan. The loan before the save is still in `getOriginal()`.
+     * Creates the planned expense of the instalment when the loan has none and the family uses the Budget, or makes
+     * the one created for it follow the loan. The loan before the save is still in `getOriginal()`.
      *
      * @param  Loan  $loan  The saved loan.
      */
@@ -81,39 +89,18 @@ final readonly class LoanObserver
             $expenses = $loan->plannedExpenses()->with('exceptions')->orderBy('id')->get();
             $today = CarbonImmutable::today();
 
+            if ($expenses->isEmpty() && ! $this->features->on(Feature::Budget)) {
+                return;
+            }
+
             $written = $this->plans->muted(fn (): bool => $expenses->isEmpty()
-                ? $this->create($loan)
+                ? $this->loanPlans->create($loan)
                 : $this->follow($loan, $before, $this->refresh->followed($expenses), $today));
 
             if ($written) {
                 $this->refreshAfter($loan, $today);
             }
         });
-    }
-
-    /**
-     * Creates the planned expense of the instalment, with the final balloon payment as its exception.
-     *
-     * @param  Loan  $loan  The loan.
-     * @return bool Whether it was created: not for a loan paid off or without the instalment or the start.
-     */
-    private function create(Loan $loan): bool
-    {
-        $category = PlannedExpense::query()->where('card_type', (new Loan)->getMorphClass())->whereNotNull('category_id')->latest('id')->value('category_id');
-        $columns = $this->schedule->plannedExpense($loan, is_numeric($category) ? (int) $category : null, DefaultAccount::id());
-
-        if ($columns === null) {
-            return false;
-        }
-
-        $expense = PlannedExpense::query()->create($columns);
-        $balloon = $this->schedule->balloon(LoanTerms::of($loan));
-
-        if ($balloon !== null) {
-            $expense->exceptions()->create([...$balloon, 'type' => ExceptionType::AmountOverride]);
-        }
-
-        return true;
     }
 
     /**

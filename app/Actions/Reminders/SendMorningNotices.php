@@ -4,25 +4,19 @@ declare(strict_types=1);
 
 namespace App\Actions\Reminders;
 
-use App\Cards\CardTypes;
-use App\Cards\DeadlineSource;
-use App\Cards\DeadlineSources;
-use App\Data\AgendaData;
-use App\Enums\Role;
 use App\Mail\MorningNoticesMail;
 use App\Mail\WeeklySummaryMail;
 use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Reminders\ReminderList;
 use App\Services\Reminders\WeeklySummaries;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\MorningItem;
 use App\Support\Reminders\Notices;
-use App\Support\Reminders\SubjectLink;
 use App\Support\Reminders\WeeklySummary;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -39,9 +33,14 @@ use Throwable;
  * the same Monday sends the admins their new notices by the morning mail. If the summary cannot be built, the failure
  * is reported and the admins get the morning mail as on any other day. Members and the bell do not change.
  */
-final class SendMorningNotices
+final readonly class SendMorningNotices
 {
     use Localizable;
+
+    /**
+     * @param  ReminderList  $reminders  words each reminder as a notice of the mail, as the pages and the bell do
+     */
+    public function __construct(private ReminderList $reminders) {}
 
     /**
      * Looks at each open reminder, writes the bell rows, remembers what was reached and queues the mails. Without
@@ -52,7 +51,7 @@ final class SendMorningNotices
      */
     public function handle(CarbonImmutable $today): int
     {
-        $accounts = User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
+        $accounts = User::ofCurrentFamily();
 
         if ($accounts->isEmpty()) {
             return 0;
@@ -104,7 +103,7 @@ final class SendMorningNotices
                 $created += $result['notices'];
 
                 foreach ($result['mailed'] as $userId) {
-                    $emails[$userId][] = $this->item($reminder);
+                    $emails[$userId][] = $this->reminders->mailItem($reminder);
                 }
             }
         } finally {
@@ -132,10 +131,10 @@ final class SendMorningNotices
         // Taken only once the summary exists, so a failed build leaves the Monday to a later run. When a run of the
         // same Monday already took it, the admins get their new notices by the morning mail, so none is lost.
         if ($summaries !== null && Cache::add(sprintf('weekly-summary:%d:%s', CurrentFamily::id(), $today->toDateString()), true, now()->addDays(2))) {
-            $admins = $accounts->filter(static fn (User $user): bool => $user->role === Role::Admin);
+            $admins = $accounts->filter(static fn (User $user): bool => $user->isAdmin());
 
             foreach ($admins as $admin) {
-                $this->queueWeekly($admin, $summaries[$this->locale($admin)], $emails[$admin->id] ?? [], $today);
+                $this->queueWeekly($admin, $summaries[$admin->mailLocale()], $emails[$admin->id] ?? [], $today);
             }
         }
 
@@ -143,7 +142,7 @@ final class SendMorningNotices
             $user = $accounts->firstWhere('id', $userId);
 
             if ($user instanceof User && ! $admins->contains('id', $userId)) {
-                Mail::to($user)->locale($this->locale($user))->queue(new MorningNoticesMail($user, $items, $today->toDateString()));
+                Mail::to($user)->locale($user->mailLocale())->queue(new MorningNoticesMail($user, $items, $today->toDateString()));
             }
         }
     }
@@ -164,8 +163,8 @@ final class SendMorningNotices
             $service = resolve(WeeklySummaries::class);
             $summaries = [];
 
-            foreach ($accounts->filter(static fn (User $user): bool => $user->role === Role::Admin) as $admin) {
-                $locale = $this->locale($admin);
+            foreach ($accounts->filter(static fn (User $user): bool => $user->isAdmin()) as $admin) {
+                $locale = $admin->mailLocale();
                 $summaries[$locale] ??= $this->withLocale($locale, static fn (): WeeklySummary => $service->week($today));
             }
 
@@ -195,51 +194,6 @@ final class SendMorningNotices
             return;
         }
 
-        Mail::to($admin)->locale($this->locale($admin))->queue(new WeeklySummaryMail($admin, $summary, $notices, $today->toDateString()));
-    }
-
-    /**
-     * The language of the mails of an account.
-     *
-     * @param  User  $user  the account
-     */
-    private function locale(User $user): string
-    {
-        return $user->locale ?? config()->string('app.locale');
-    }
-
-    /**
-     * The raw values of a reminder for the mail.
-     *
-     * @param  Reminder  $reminder  the reminder, with its link loaded
-     */
-    private function item(Reminder $reminder): MorningItem
-    {
-        $source = $reminder->is_automatic && $reminder->source_field !== null ? DeadlineSources::find($reminder->source_field) : null;
-        $subject = $reminder->link?->subject;
-
-        return new MorningItem(
-            $source instanceof DeadlineSource ? $source->title : $reminder->title,
-            $source instanceof DeadlineSource,
-            ! $reminder->is_automatic,
-            $subject instanceof Model ? SubjectLink::name($subject) : null,
-            $reminder->due_date->toDateString(),
-            $this->url($reminder, $subject),
-            CardTypes::find($reminder->link->remindable_type ?? '')?->area()->value ?? AgendaData::GENERAL_AREA,
-            $reminder->id,
-        );
-    }
-
-    /**
-     * The page of the thing the reminder refers to: its card or document; without one, the reminders.
-     *
-     * @param  Reminder  $reminder  the reminder, with its link loaded
-     * @param  Model|null  $subject  the record it refers to
-     */
-    private function url(Reminder $reminder, ?Model $subject): string
-    {
-        $type = $reminder->link?->remindable_type;
-
-        return ($subject instanceof Model && $type !== null ? SubjectLink::href($type, $subject, true) : null) ?? route('reminders.index');
+        Mail::to($admin)->locale($admin->mailLocale())->queue(new WeeklySummaryMail($admin, $summary, $notices, $today->toDateString()));
     }
 }

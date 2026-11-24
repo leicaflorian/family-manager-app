@@ -287,6 +287,7 @@ export type ChecklistStepData = {
 readonly key: string,
 readonly done: boolean,
 readonly name: string | null,
+readonly names: string[],
 };
 export type ComparisonData = {
 readonly month: string,
@@ -418,6 +419,8 @@ readonly children: App.Data.ExpenseCategoryData[],
 };
 export type FamilyData = {
 readonly name: string,
+readonly features: Record<App.Enums.Feature, boolean>,
+readonly mail_available: boolean,
 };
 export type FamilyNameSettingsData = {
 readonly name: string,
@@ -427,6 +430,11 @@ export type FamilySummaryData = {
 readonly name: string,
 readonly people: number,
 readonly organizations: number,
+};
+export type FeatureSettingsData = {
+readonly budget: boolean,
+readonly mail: boolean,
+readonly can_change: boolean,
 };
 export type FileData = {
 readonly name: string,
@@ -446,7 +454,7 @@ readonly url: string,
 export type HomeData = {
 readonly first_name: string,
 readonly today: string,
-readonly total: number,
+readonly total: number | null,
 readonly payments: number,
 readonly late: number,
 readonly entries: App.Data.AgendaEntryData[],
@@ -456,6 +464,7 @@ readonly pending_count: number,
 readonly checklist: App.Data.ChecklistStepData[],
 readonly missing: App.Data.MissingDocumentData[],
 readonly mails: App.Data.HomeMailData[],
+readonly can_change_features: boolean,
 };
 export type HomeMailData = {
 readonly id: number,
@@ -1221,7 +1230,7 @@ export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
-export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended';
+export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended' | 'mail_off';
 export type Channel = 'app' | 'email' | 'both';
 export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
 export type ConsumptionSource = 'reading' | 'manual';
@@ -1233,6 +1242,7 @@ export type EnrollmentStatus = 'active' | 'ended';
 export type EnrollmentType = 'school' | 'sport' | 'course' | 'other';
 export type ExceptionType = 'skip' | 'amount_override' | 'date_override';
 export type FamilyState = 'active' | 'suspended' | 'to_delete';
+export type Feature = 'budget' | 'mail' | 'bank_feed' | 'consumption' | 'gallery';
 export type FeedbackKind = 'problem' | 'idea';
 export type FileSource = 'upload' | 'mail' | 'phone' | 'scanner';
 export type FilingStatus = 'draft' | 'submitted' | 'approved' | 'rejected';

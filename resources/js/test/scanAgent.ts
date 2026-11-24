@@ -45,25 +45,13 @@ export type FakeScanAgent = {
     hold: (call: string) => Promise<void> | null;
 };
 
-/** The fake agent of the test. */
-export const scanAgent: FakeScanAgent = {
-    mode: 'reachable',
-    version: '1.0.0',
-    scanner: 'ready',
-    scanners: [{ id: 'sp', name: 'SP-1120N', connection: 'usb' }],
-    pages: [],
-    state: 'idle',
-    error: null,
-    sheets: ['sheet-1', 'blank', 'sheet-2'],
-    busy: false,
-    scanningFor: 0,
-    calls: [],
-    hold: () => null,
-};
-
-/** Puts the agent back as it is at the start of a test. */
-export function resetScanAgent(): void {
-    Object.assign(scanAgent, {
+/**
+ * The agent as it is at the start of a test: a new object each time, so no list is shared between tests.
+ *
+ * @returns the fresh agent
+ */
+function freshScanAgent(): FakeScanAgent {
+    return {
         mode: 'reachable',
         version: '1.0.0',
         scanner: 'ready',
@@ -76,7 +64,15 @@ export function resetScanAgent(): void {
         scanningFor: 0,
         calls: [],
         hold: () => null,
-    } satisfies FakeScanAgent);
+    };
+}
+
+/** The fake agent of the test. */
+export const scanAgent: FakeScanAgent = freshScanAgent();
+
+/** Puts the agent back as it is at the start of a test. */
+export function resetScanAgent(): void {
+    Object.assign(scanAgent, freshScanAgent());
 }
 
 /** The sides a scan brings, as the agent keeps them. */

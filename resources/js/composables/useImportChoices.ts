@@ -56,7 +56,8 @@ export type ImportAlso = {
     /** Only when the proposal has a consumption. */
     consumption?: boolean;
     records: App.Enums.RecordKind[];
-    targets: ImportTargets;
+    /** The target of the expense only when the proposal has an expense: with the Budget off it has none. */
+    targets: Omit<ImportTargets, 'movement'> & { movement?: ImportTarget };
     /** Only when the person wrote a field. */
     overrides?: ImportOverrides;
     /** Only when the person chose: missing, the server decides. */
@@ -190,7 +191,9 @@ export function useImportChoices(
                 : {}),
             records: records.map((draft) => draft.kind),
             targets: {
-                movement: picks.targets.movement,
+                ...(current.movement
+                    ? { movement: picks.targets.movement }
+                    : {}),
                 event: picks.targets.event,
                 records: { ...picks.targets.records },
             },

@@ -40,12 +40,19 @@ vi.mock('@inertiajs/vue3', async (original) => ({
         props: {
             name: 'Fameja.app',
             auth: { user: { name: 'Marco Bianchi' } },
-            family: { name: 'Bianchi' },
+            family: {
+                name: 'Bianchi',
+                features: {
+                    budget: true,
+                    bank_feed: false,
+                    consumption: page.hasConsumption,
+                    gallery: false,
+                },
+            },
             areas: areaCounts,
             to_sort_count: page.toSort,
             impersonating: page.impersonating,
             unread_notices: 2,
-            has_consumption: page.hasConsumption,
         },
     }),
 }));

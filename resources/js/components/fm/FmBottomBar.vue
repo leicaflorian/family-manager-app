@@ -3,8 +3,8 @@
  * The bottom bar of the phone (below 768 px): Home, Budget, the + of Add in
  * the middle, Areas and More. The + opens the panel *Add*: To sort (only when
  * files wait, with their number), then Upload a file, Scan a sheet, New expense
- * and New task. More opens a panel with Agenda, Documents, Family,
- * Settings, *Report a problem or an idea* (it closes More and emits `report`:
+ * and New task. More opens a panel with Agenda, Documents, Received mail,
+ * Family, Settings, *Report a problem or an idea* (it closes More and emits `report`:
  * the layout opens the panel) and Log out, and stays marked when one of those pages is open.
  *
  * The + (60 px, `fab` shadow) is the only round button of the app and
@@ -22,6 +22,7 @@ import FmBottomSheet from './FmBottomSheet.vue';
 import FmIcon from './FmIcon.vue';
 import FmRow from './FmRow.vue';
 import type { NavigationItem, NavigationItems, Section } from './navigation';
+import { barItems } from './navigation';
 
 const {
     active,
@@ -62,22 +63,17 @@ useLeavePage(() => {
     moreOpen.value = false;
 });
 
-/** The sections that stay in the bar, in the order of the board. */
-const barSections: Section[] = ['home', 'budget', 'areas'];
-
-/** The items that stay in the bar: Home, Budget, Areas. */
-const inBar = computed((): NavigationItem[] =>
-    barSections.flatMap((section) =>
-        items.sections.filter((item) => item.section === section),
-    ),
-);
+/** The items that stay in the bar: Home, Budget, Areas (the registry says which, and who takes a missing one's place). */
+const inBar = computed((): NavigationItem[] => barItems(items));
 
 /** The items inside More: the sections that are not in the bar, with Received mail after Documents, and Settings. */
 const inMore = computed((): NavigationItem[] => [
     ...items.sections
-        .filter((item) => !barSections.includes(item.section))
+        .filter((item) => !inBar.value.includes(item))
         .flatMap((item) =>
-            item.section === 'documents' ? [item, items.mail] : [item],
+            item.section === 'documents' && items.mail
+                ? [item, items.mail]
+                : [item],
         ),
     items.settings,
 ]);
@@ -148,7 +144,7 @@ function itemClasses(marked: boolean): string {
     <FmBottomSheet v-model:open="addOpen" :title="$t('Add')">
         <div class="flex flex-col gap-3">
             <div
-                v-if="uploadCount > 0"
+                v-if="uploadCount > 0 && items.toSort"
                 class="overflow-hidden rounded-card bg-canvas"
             >
                 <FmRow

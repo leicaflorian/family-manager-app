@@ -6,8 +6,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Files\ReplaceImage;
 use App\Actions\People\DeletePerson;
+use App\Actions\People\SavePerson;
 use App\Data\FamilySummaryData;
-use App\Data\OptionData;
 use App\Data\PersonData;
 use App\Data\PersonDetailData;
 use App\Enums\PersonRole;
@@ -69,9 +69,9 @@ final class PersonController extends Controller
     /**
      * Adds the person, with their photo, without an account: that comes with an invitation.
      */
-    public function store(SavePersonRequest $request, ReplaceImage $replace): RedirectResponse
+    public function store(SavePersonRequest $request, SavePerson $save, ReplaceImage $replace): RedirectResponse
     {
-        $person = Person::query()->create($request->fields());
+        $person = $save->handle($request->fields());
         $replace->handle($person, 'photo_id', $request->uploadedImage('photo'));
 
         return to_route('people.show', $person);
@@ -118,9 +118,9 @@ final class PersonController extends Controller
     /**
      * Saves the change, with the new photo or without the old one.
      */
-    public function update(SavePersonRequest $request, Person $person, ReplaceImage $replace): RedirectResponse
+    public function update(SavePersonRequest $request, Person $person, SavePerson $save, ReplaceImage $replace): RedirectResponse
     {
-        $person->update($request->fields());
+        $save->handle($request->fields(), $person);
         $replace->handle($person, 'photo_id', $request->uploadedImage('photo'), $request->boolean('remove_photo'));
 
         return to_route('people.show', $person);
@@ -147,7 +147,7 @@ final class PersonController extends Controller
     {
         return Inertia::render('family/EditPerson', [
             'person' => $person,
-            'roles' => OptionData::list(PersonRole::options()),
+            'roles' => PersonRole::optionData(),
         ]);
     }
 }

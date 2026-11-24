@@ -192,7 +192,7 @@ final class FamilyAreas
         $family = CurrentFamily::id();
 
         if (! $this->setting instanceof FamilySetting || $this->settingFamily !== $family) {
-            $this->setting = FamilySetting::query()->firstOrCreate([]);
+            $this->setting = FamilySetting::current();
             $this->settingFamily = $family;
         }
 

@@ -12,7 +12,12 @@ import { choose, renderPage, screenWidth, settle } from '@/test/page';
 import Movements from './Movements.vue';
 
 /** The shared props the page reads: whether the family has a utility with consumption. */
-const shared = vi.hoisted(() => ({ has_consumption: false }));
+const shared = vi.hoisted(() => ({
+    family: {
+        name: 'Bianchi',
+        features: { bank_feed: false, consumption: false, gallery: false },
+    },
+}));
 
 // The shared props of the page (the tools beside the title read the notices)
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -128,7 +133,7 @@ const allFiltersQuery =
     'month=2026-10&kind=expense&account=1&search=spesa&min=20&max=100&from=2026-09-01&to=2026-10-31';
 
 afterEach(() => {
-    shared.has_consumption = false;
+    shared.family.features.consumption = false;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -586,7 +591,7 @@ describe('Movements', () => {
     });
 
     it('with the sidebar, on the tablet and the computer, has no box: the sidebar has those pages under Budget', () => {
-        shared.has_consumption = true;
+        shared.family.features.consumption = true;
         for (const width of [800, 1280]) {
             screenWidth(width);
             const view = renderPage(Movements, props);
@@ -601,7 +606,7 @@ describe('Movements', () => {
     });
 
     it('on the phone adds the use of electricity, gas and water when the family has a utility with it', () => {
-        shared.has_consumption = true;
+        shared.family.features.consumption = true;
         screenWidth(390);
         renderPage(Movements, props);
 

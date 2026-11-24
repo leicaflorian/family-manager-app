@@ -25,6 +25,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property bool $mail_inbox_notify_attachments_only
+ * @property array<array-key, mixed>|null $checklist_skipped The keys of the steps of *To begin* the family took away with *Not needed*
+ * @property array<array-key, mixed>|null $checklist_done The keys of the steps of *To begin* once found done: a ticked step stays ticked
  * @property-read Family $family
  *
  * @method static FamilySettingFactory factory($count = null, $state = [])
@@ -51,7 +53,67 @@ final class FamilySetting extends FamilyModel
             'mail_inbox_notify' => 'array',
             'mail_inbox_notify_attachments_only' => 'boolean',
             'areas' => 'array',
+            'checklist_skipped' => 'array',
+            'checklist_done' => 'array',
         ];
+    }
+
+    /**
+     * Takes a step of *To begin* away for the whole family (*Not needed*). Taking it away twice changes nothing.
+     *
+     * @param  string  $step  the key of the step, `people` or `invite`
+     */
+    public function skipChecklistStep(string $step): void
+    {
+        $skipped = $this->skippedChecklistSteps();
+
+        if (! in_array($step, $skipped, true)) {
+            $this->forceFill(['checklist_skipped' => [...$skipped, $step]])->save();
+        }
+    }
+
+    /**
+     * The keys of the steps of *To begin* the family took away.
+     *
+     * @return list<string>
+     */
+    public function skippedChecklistSteps(): array
+    {
+        return array_values(array_filter($this->checklist_skipped ?? [], is_string(...)));
+    }
+
+    /**
+     * The keys of the steps of *To begin* found done once: they stay ticked even when the data change.
+     *
+     * @return list<string>
+     */
+    public function doneChecklistSteps(): array
+    {
+        return array_values(array_filter($this->checklist_done ?? [], is_string(...)));
+    }
+
+    /**
+     * Remembers steps of *To begin* as done. It writes only when one of them is new, so the Home writes at most once per step.
+     *
+     * @param  list<string>  $steps  the keys of the steps found done
+     */
+    public function rememberDoneChecklistSteps(array $steps): void
+    {
+        $done = $this->doneChecklistSteps();
+        $new = array_values(array_diff($steps, $done));
+
+        if ($new !== []) {
+            $this->forceFill(['checklist_done' => [...$done, ...$new]])->save();
+        }
+    }
+
+    /**
+     * The settings of the current family, created empty the first time they are asked for. They go through the
+     * family scope, like every other read of the settings from a page.
+     */
+    public static function current(): self
+    {
+        return self::query()->firstOrCreate([]);
     }
 
     /**
@@ -103,9 +165,8 @@ final class FamilySetting extends FamilyModel
     public function notifyUsers(): Collection
     {
         return User::query()
-            ->where('family_id', $this->family_id)
+            ->inFamily($this->family_id)
             ->when($this->mail_inbox_notify !== null, fn ($query) => $query->whereIn('id', $this->mail_inbox_notify))
-            ->orderBy('id')
             ->get();
     }
 }

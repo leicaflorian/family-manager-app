@@ -14,7 +14,7 @@ import { errors } from '@/lib/errors';
 import { family } from '@/routes';
 import { store } from '@/routes/family/invitations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 /** The value of «Who they are» for a person who is not there yet. */
 const NEW_PERSON = 'new';
@@ -62,21 +62,22 @@ function send(): void {
     })).submit(store());
 }
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('Invite a family member') },
-]);
+const { title, head } = usePageMeta({
+    info: 'invite',
+    title: () => trans('Invite a family member'),
+    parent: 'family',
+});
 </script>
 
 <template>
-    <Head :title="$t('Invite a family member')" />
+    <Head :title="head" />
 
     <form
         class="flex max-w-[560px] flex-col gap-3.5"
         novalidate
         @submit.prevent="send"
     >
-        <FmTitle :title="$t('Invite a family member')" />
+        <FmTitle :title="title" />
         <FormKit
             v-model="form.email"
             type="email"

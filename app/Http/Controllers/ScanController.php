@@ -56,7 +56,7 @@ final class ScanController extends Controller
             $saved[] = ['id' => $stored->id, 'name' => $stored->original_name, 'size' => $stored->size];
         }
 
-        $deviceId = $request->session()->get('linked_device_id');
+        $deviceId = $request->session()->get(LinkedDevice::SESSION_KEY);
 
         if (is_int($deviceId)) {
             LinkedDevice::query()->whereKey($deviceId)->where('user_id', $user->id)->update(['last_upload_at' => $now]);

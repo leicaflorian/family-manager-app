@@ -195,14 +195,14 @@ it('answers the current month for a utility without rows', function (): void {
 
 it('shares whether the family has a utility with consumption, and answers 404 without one', function (): void {
     $this->actingAs($this->marco)->get('/budget/consumption')
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('has_consumption', true));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('family.features.consumption', true));
 
     $family = Family::factory()->create();
     $alone = User::factory()->create(['family_id' => $family->id, 'role' => Role::Admin]);
     CurrentFamily::using($family->id, static fn (): Utility => Utility::factory()->create(['family_id' => $family->id, 'type' => UtilityType::Internet]));
 
     $this->actingAs($alone)->get(route('settings'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('has_consumption', false));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('family.features.consumption', false));
     $this->actingAs($alone)->get('/budget/consumption')->assertNotFound();
 });
 

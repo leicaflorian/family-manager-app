@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Actions\Loans\RefreshLoan;
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
@@ -169,12 +170,44 @@ final readonly class CardBudgets
     private function loan(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
     {
         $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $loan));
-        $first = $this->running($planned, $today);
+
+        return $this->budget($loan, $planned, $user, $today,
+            nextLabel: __('Next instalment'),
+            numbers: $this->loanNumbers($loan, $this->running($planned, $today)),
+            paymentsLabel: __('Instalments paid'),
+            paymentsMore: __('See all the instalments, year by year'),
+            loan: $this->loanProgress($loan),
+        );
+    }
+
+    /**
+     * A loan without the Budget: the instalment, the total, the cost and how far it is paid, which the loan works
+     * out from its dates ({@see RefreshLoan}); no due dates, planned expenses nor payments.
+     *
+     * @param  Loan  $loan  the loan
+     * @param  User  $user  whoever looks at the card
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return CardBudgetData its figures only
+     */
+    public function loanFigures(Loan $loan, User $user, CarbonImmutable $today): CardBudgetData
+    {
+        return $this->budget($loan, [], $user, $today, numbers: $this->loanNumbers($loan, null), loan: $this->loanProgress($loan));
+    }
+
+    /**
+     * The figures of a loan: the instalment (every when, from its planned expense), the total to pay and the cost.
+     *
+     * @param  Loan  $loan  the loan
+     * @param  PlannedExpense|PlannedIncome|null  $first  its running planned expense, null without one
+     * @return list<CardNumberData>
+     */
+    private function loanNumbers(Loan $loan, PlannedExpense|PlannedIncome|null $first): array
+    {
         $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
-        $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
         $installment = $loan->installment_amount ?? $first?->amount;
         $financed = $loan->total_amount === null ? null : round((float) $loan->total_amount, 2);
-        $numbers = [
+
+        return array_values(array_filter([
             $installment === null ? null : new CardNumberData(__('Instalment'), round((float) $installment, 2), hint: $first === null ? null : $this->every($first, withDay: true)),
             match (true) {
                 $total === null => null,
@@ -182,20 +215,26 @@ final readonly class CardBudgets
                 default => new CardNumberData(__('Total to pay'), $total, hint: __('of :amount financed'), hint_amount: $financed),
             },
             $loan->cost === null ? null : new CardNumberData(__('Cost'), round((float) $loan->cost, 2), hint: __('interest and fees')),
-        ];
+        ]));
+    }
 
-        return $this->budget($loan, $planned, $user, $today,
-            nextLabel: __('Next instalment'),
-            numbers: array_values(array_filter($numbers)),
-            paymentsLabel: __('Instalments paid'),
-            paymentsMore: __('See all the instalments, year by year'),
-            loan: [
-                'count' => $loan->installments_count,
-                'paid' => $loan->installments_paid,
-                'paid_amount' => $total === null || $left === null ? null : round($total - $left, 2),
-                'left_amount' => $left,
-            ],
-        );
+    /**
+     * How far a loan is paid, from the figures it works out from its dates.
+     *
+     * @param  Loan  $loan  the loan
+     * @return array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}
+     */
+    private function loanProgress(Loan $loan): array
+    {
+        $total = $loan->total_to_pay === null ? null : round((float) $loan->total_to_pay, 2);
+        $left = $loan->residual_amount === null ? null : round((float) $loan->residual_amount, 2);
+
+        return [
+            'count' => $loan->installments_count,
+            'paid' => $loan->installments_paid,
+            'paid_amount' => $total === null || $left === null ? null : round($total - $left, 2),
+            'left_amount' => $left,
+        ];
     }
 
     /**
@@ -371,7 +410,7 @@ final readonly class CardBudgets
             dueLabel: __('Going out from here'),
             due: fn (array $found): array => array_values(array_filter(
                 $found,
-                static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->account?->id === $account->id
+                static fn (Deadline $deadline): bool => $deadline->isDue() && $deadline->account?->id === $account->id
                     && $deadline->occurrence->date->toDateString() >= $today->toDateString() && $deadline->occurrence->date->toDateString() <= $last,
             )),
             paymentsLabel: __('Expenses'),
@@ -423,7 +462,7 @@ final readonly class CardBudgets
         bool $addExpense = false,
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
-        $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
+        $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isDue()));
         $income = $kind === 'income';
         $payable = $plannedPayments ? $planned : [];
         $payments = $paymentsLabel === null ? [] : $this->summaries->paymentsByYear($payable, $user, $income ? null : $card);
@@ -435,8 +474,7 @@ final readonly class CardBudgets
             kind: $kind,
             next: $next === null ? null : $data($next),
             next_label: $nextLabel,
-            installment_number: $loan === null || ! $next instanceof Deadline || $next->planned->start_date === null ? null
-                : $this->loans->installmentsBetween($next->planned->start_date, $next->occurrence->originalDate),
+            installment_number: $this->installmentNumber($card, $loan, $next),
             installments_count: $loan['count'] ?? null,
             installments_paid: $loan['paid'] ?? null,
             paid_amount: $loan['paid_amount'] ?? null,
@@ -454,6 +492,22 @@ final readonly class CardBudgets
             can_pay: $paymentsLabel !== null && $payable !== [] && $user->can('create', $income ? Income::class : Expense::class),
             can_add_expense: $addExpense && $user->can('create', Expense::class),
         );
+    }
+
+    /**
+     * The number of the next instalment of a loan, as in «Instalment 26 of 36»: counted from the start of the loan,
+     * since its planned expense may start later (created when the Budget was turned on).
+     *
+     * @param  Model  $card  the card
+     * @param  ?array<string, mixed>  $loan  the progress of the loan, null when the card is not one
+     * @param  ?Deadline  $next  the due date of the box at the top
+     */
+    private function installmentNumber(Model $card, ?array $loan, ?Deadline $next): ?int
+    {
+        $start = $card instanceof Loan && $card->start_date !== null ? $card->start_date : $next?->planned->start_date;
+
+        return $loan === null || ! $next instanceof Deadline || $start === null ? null
+            : $this->loans->installmentsBetween($start, $next->occurrence->originalDate);
     }
 
     /**
@@ -497,7 +551,7 @@ final readonly class CardBudgets
         $day = $today->toDateString();
 
         return array_map(static function (PlannedExpense|PlannedIncome $item) use ($found, $default, $today, $day): PlannedRowData {
-            $next = array_find($found, static fn (Deadline $deadline): bool => $deadline->planned->is($item) && ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() >= $day);
+            $next = array_find($found, static fn (Deadline $deadline): bool => $deadline->planned->is($item) && $deadline->isDue() && $deadline->occurrence->date->toDateString() >= $day);
 
             return PlannedRowData::fromPlanned($item, $next?->occurrence->date, $default, $today);
         }, $planned);
@@ -536,7 +590,7 @@ final readonly class CardBudgets
     {
         $last = $until->toDateString();
 
-        return array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->isPaid() && $deadline->occurrence->date->toDateString() <= $last));
+        return array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isDue() && $deadline->occurrence->date->toDateString() <= $last));
     }
 
     /**

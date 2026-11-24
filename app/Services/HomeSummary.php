@@ -4,23 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Data\AgendaEntryData;
 use App\Data\ChecklistStepData;
 use App\Data\HomeData;
 use App\Data\HomeMailData;
 use App\Data\MissingDocumentData;
+use App\Enums\Feature;
 use App\Enums\PersonRole;
 use App\Models\Document;
+use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\InsurancePolicy;
 use App\Models\Invitation;
 use App\Models\Person;
+use App\Models\ReceivedMail;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\Mail\ReceivedMails;
 use App\Services\Reminders\ExpectedDocuments;
+use App\Support\AgendaEntries;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
 
@@ -43,7 +46,7 @@ final readonly class HomeSummary
     /** How many mails *Arrived by mail* shows. */
     private const int MAILS = 3;
 
-    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails) {}
+    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails, private FamilyFeatures $features) {}
 
     /**
      * The data of the Home of an account.
@@ -57,31 +60,29 @@ final readonly class HomeSummary
         $entries = $this->agenda->entries($today, $today->addDays(self::DAYS), self::DEADLINES_BACK, self::DAYS);
         $todayDate = $today->toDateString();
 
-        $payments = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind === 'payment'));
-        $listed = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind !== 'income'));
-        $incoming = array_values(array_filter($entries, static fn (AgendaEntryData $entry): bool => $entry->kind === 'income' && $entry->date >= $todayDate));
+        $payments = AgendaEntries::payments($entries);
+        $listed = AgendaEntries::withoutIncomes($entries);
 
         // The entries come by date, so a stable partition puts the late ones first without reordering the rest
-        $late = array_values(array_filter($listed, static fn (AgendaEntryData $entry): bool => $entry->date < $todayDate));
-        $next = array_values(array_filter($listed, static fn (AgendaEntryData $entry): bool => $entry->date >= $todayDate));
-        $ordered = [...$late, ...$next];
+        $ordered = [...AgendaEntries::before($listed, $todayDate), ...AgendaEntries::from($listed, $todayDate)];
 
         return new HomeData(
             first_name: $user->person->first_name ?? $user->name,
             today: $todayDate,
-            total: round(array_sum(array_map(static fn (AgendaEntryData $entry): float => $entry->amount ?? 0.0, $payments)), 2),
+            total: $this->features->on(Feature::Budget) ? AgendaEntries::total($payments) : null,
             payments: count($payments),
-            late: count(array_filter($payments, static fn (AgendaEntryData $entry): bool => $entry->date < $todayDate)),
+            late: count(AgendaEntries::before($payments, $todayDate)),
             entries: array_slice($ordered, 0, self::ENTRIES),
             more: count($ordered) > self::ENTRIES,
-            incoming: $incoming,
+            incoming: AgendaEntries::from(AgendaEntries::incomes($entries), $todayDate),
             pending_count: File::query()->toSort()->notCopies()->count(),
             checklist: $this->checklist($user),
             missing: $this->missing($today),
-            mails: array_map(
+            mails: $this->features->on(Feature::Mail) ? array_map(
                 static fn (array $row): HomeMailData => HomeMailData::fromMail($row['mail'], $row['documents']),
                 $this->mails->recent(self::MAILS),
-            ),
+            ) : [],
+            can_change_features: Gate::forUser($user)->allows('manageFeatures', $user->family),
         );
     }
 
@@ -105,28 +106,85 @@ final readonly class HomeSummary
     }
 
     /**
-     * The steps of *To begin*, or none when every one is done. Whoever cannot create a card has no `card` step, and whoever cannot invite has no `invite` step.
+     * The steps of *To begin*, in the order of the board, or none when every one is done or the account hid the list.
+     * Each step is only for whoever can do it: `people` for whoever can create people, `utilities` for whoever can
+     * create a utility, `card` for whoever can create a card, `invite` for whoever can invite; `mail` only with the
+     * mail for the bills on. The steps the family took away (*Not needed*) are not built and do not count. A step
+     * found done is remembered for the family and stays ticked, even when the data change later.
      *
      * @param  User  $user  whoever signed in
      * @return list<ChecklistStepData>
      */
     private function checklist(User $user): array
     {
-        $steps = [
-            new ChecklistStepData('utilities', Utility::query()->exists(), null),
-            new ChecklistStepData('first_bill', Document::query()->exists(), null),
+        if ($user->checklist_hidden_at !== null) {
+            return [];
+        }
+
+        $settings = FamilySetting::current();
+        $skipped = $settings->skippedChecklistSteps();
+        $remembered = $settings->doneChecklistSteps();
+        $gate = Gate::forUser($user);
+
+        $offered = [
+            'people' => $gate->allows('create', Person::class),
+            'utilities' => $gate->allows('create', Utility::class),
+            'first_bill' => true,
+            // Whoever cannot create a card would be sent to a page the policy forbids
+            'card' => $gate->allows('create', Vehicle::class),
+            'mail' => $this->features->on(Feature::Mail),
+            'invite' => $gate->allows('create', Invitation::class),
         ];
 
-        // Whoever cannot create a card would be sent to a page the policy forbids
-        if (Gate::forUser($user)->allows('create', Vehicle::class)) {
-            $steps[] = new ChecklistStepData('card', Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists(), null);
+        $steps = [];
+
+        foreach ($offered as $key => $on) {
+            if ($on && ! in_array($key, $skipped, true)) {
+                $steps[] = $this->step($key, in_array($key, $remembered, true));
+            }
         }
 
-        if (Gate::forUser($user)->allows('create', Invitation::class)) {
-            $steps[] = $this->inviteStep();
-        }
+        $settings->rememberDoneChecklistSteps(array_values(array_map(
+            static fn (ChecklistStepData $step): string => $step->key,
+            array_filter($steps, static fn (ChecklistStepData $step): bool => $step->done),
+        )));
 
         return array_all($steps, static fn (ChecklistStepData $step): bool => $step->done) ? [] : $steps;
+    }
+
+    /**
+     * One step of *To begin*. A step remembered as done skips the queries that would tell it.
+     *
+     * @param  string  $key  the key of the step
+     * @param  bool  $remembered  whether the family already did it once
+     */
+    private function step(string $key, bool $remembered): ChecklistStepData
+    {
+        return match ($key) {
+            'people' => $this->peopleStep($remembered),
+            'utilities' => new ChecklistStepData($key, $remembered || Utility::query()->exists()),
+            'first_bill' => new ChecklistStepData($key, $remembered || Document::query()->exists()),
+            'card' => new ChecklistStepData($key, $remembered || Vehicle::query()->exists() || InsurancePolicy::query()->exists() || Subscription::query()->exists()),
+            'mail' => new ChecklistStepData($key, $remembered || ReceivedMail::query()->exists()),
+            default => $remembered ? new ChecklistStepData($key, true) : $this->inviteStep(),
+        };
+    }
+
+    /**
+     * The `people` step: done when the family has someone besides whoever made it (or did once), with the first names of all.
+     *
+     * @param  bool  $remembered  whether the family already did it once
+     */
+    private function peopleStep(bool $remembered): ChecklistStepData
+    {
+        if (! $remembered && Person::query()->count() < 2) {
+            return new ChecklistStepData('people', false);
+        }
+
+        /** @var list<string> $names */
+        $names = Person::query()->orderBy('id')->pluck('first_name')->all();
+
+        return new ChecklistStepData('people', true, names: $names);
     }
 
     /**

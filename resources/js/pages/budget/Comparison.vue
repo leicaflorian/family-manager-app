@@ -22,9 +22,8 @@ import FmMonthSwitch from '@/components/fm/FmMonthSwitch.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { comparisonComment, deadlineUrls, longMonth } from '@/lib/budget';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { cn } from '@/lib/utils';
-import { budget } from '@/routes';
 import { comparison as comparisonRoute } from '@/routes/budget';
 
 const props = defineProps<{
@@ -39,10 +38,11 @@ const [DefineUnpaid, ReuseUnpaid] = createReusableTemplate();
 const [DefineNote, ReuseNote] = createReusableTemplate();
 const { euro } = useFormat();
 
-usePageTrail(() => [
-    { label: trans('Budget'), href: budget().url },
-    { label: trans('Planned and spent') },
-]);
+const { title, head } = usePageMeta({
+    info: 'comparison',
+    title: () => trans('Planned and spent'),
+    parent: 'budget',
+});
 
 /** What the spending is next to the plan, for example «185,10 € less». */
 const difference = computed(() =>
@@ -90,10 +90,10 @@ const tile = cn(
 </script>
 
 <template>
-    <Head :title="$t('Planned and spent')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
-        <FmTitle :title="$t('Planned and spent')" />
+        <FmTitle :title="title" />
 
         <FmMonthSwitch :month="comparison.month" @change="go" />
         <p v-if="daysLeft" class="m-0 text-body-sm text-ink-soft">

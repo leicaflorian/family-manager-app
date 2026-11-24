@@ -14,6 +14,15 @@ const bankFeed = vi.hoisted(() => ({
 vi.mock('@/composables/useBankFeed', () => ({
     useBankFeed: () => computed(() => bankFeed.share),
 }));
+vi.mock('@/composables/useFeatures', () => ({
+    useFeatures: () =>
+        computed(() => ({
+            budget: true,
+            mail: true,
+            bank_feed: bankFeed.share !== null,
+        })),
+    useMailAvailable: () => computed(() => true),
+}));
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -164,6 +173,7 @@ describe('Settings', () => {
                 .map((link) => link.getAttribute('href')),
         ).toEqual([
             '/settings/family',
+            '/settings/features',
             '/settings/notices',
             '/settings/mail',
             '/settings/categories',

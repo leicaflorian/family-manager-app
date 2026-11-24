@@ -16,10 +16,9 @@ import FmCategoryTree from '@/components/fm/FmCategoryTree.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
-import { settings } from '@/routes';
 import { update } from '@/routes/expense-categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { cardTypes } = defineProps<{
     /** The tree, from the main ones. */
@@ -79,19 +78,20 @@ function save(): void {
 // Only the open panel has a form to save
 useSaveShortcut(save, () => open.value && !form.processing);
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Expense categories') },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-expense-categories',
+    title: () => trans('Expense categories'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Expense categories')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="expense-categories">
         <template #title>
             <FmTitle
-                :title="$t('Expense categories')"
+                :title="title"
                 :subtitle="
                     $t(
                         'The card a category refers to is chosen on its main category',

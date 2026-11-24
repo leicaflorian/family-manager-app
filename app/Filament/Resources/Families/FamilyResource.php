@@ -128,6 +128,10 @@ final class FamilyResource extends Resource
                 TextEntry::make('last_activity')->label(__('Last access'))->state(static fn (Family $record, ViewFamily $livewire): string => self::dateTime($livewire->figure()->lastActivity)),
                 TextEntry::make('reading_limit')->label(__('Reading limit of this family'))
                     ->state(static fn (Family $record): string => $record->reading_limit === null ? __('Same as everyone') : (string) $record->reading_limit),
+                TextEntry::make('budget')->label(__('Budget'))
+                    ->state(static fn (Family $record): string => $record->budget_enabled ? __('Turned on') : __('Turned off')),
+                TextEntry::make('mail')->label(__('Mail for the bills'))
+                    ->state(static fn (Family $record): string => $record->mail_enabled ? __('Turned on') : __('Turned off')),
                 TextEntry::make('bank_feed')->label(__('Link to the bank'))
                     ->state(static fn (Family $record): string => $record->bank_feed_enabled ? __('Turned on') : __('Turned off')),
                 TextEntry::make('banks_linked')->label(__('Banks linked'))

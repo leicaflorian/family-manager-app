@@ -19,6 +19,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Mail;
 
@@ -56,6 +57,37 @@ test('the morning of 25/11/2026', function (): void {
     Mail::assertQueued(MorningNoticesMail::class, 2);
     Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com') && count($mail->items) === 1 && $mail->items[0]->subject === 'Panda' && $mail->items[0]->area === 'vehicles');
     Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('laura@example.com'));
+});
+
+test('the mail item of an automatic notice keeps the key of its title and leads to its card', function (): void {
+    $this->artisan('reminders:run')->assertSuccessful();
+
+    Mail::assertQueued(MorningNoticesMail::class, fn (MorningNoticesMail $mail): bool => $mail->hasTo('marco@example.com')
+        && $mail->items[0]->title === 'Get the inspection done'
+        && $mail->items[0]->translatable
+        && ! $mail->items[0]->manual
+        && $mail->items[0]->url === route('cards.show', ['type' => 'vehicle', 'id' => $this->panda->id]));
+});
+
+test('in the mail a reminder written by hand leads to its edit page, like the bell', function (): void {
+    $this->panda->update(['inspection_due_date' => null]);
+    $group = ReminderGroup::query()->sole();
+    $withCard = Reminder::factory()->for($this->family)->create(['title' => 'Wash the Panda', 'due_date' => '2027-01-09', 'is_automatic' => false, 'reminder_group_id' => $group->id]);
+    DB::table('remindables')->insert(['reminder_id' => $withCard->id, 'remindable_type' => 'vehicle', 'remindable_id' => $this->panda->id]);
+    $alone = Reminder::factory()->for($this->family)->create(['title' => 'Call the plumber', 'due_date' => '2027-01-09', 'is_automatic' => false, 'reminder_group_id' => $group->id]);
+
+    $this->artisan('reminders:run')->assertSuccessful();
+
+    Mail::assertQueued(MorningNoticesMail::class, function (MorningNoticesMail $mail) use ($withCard, $alone): bool {
+        $items = collect($mail->items)->keyBy('reminderId');
+
+        return $mail->hasTo('marco@example.com')
+            && $items[$withCard->id]->title === 'Wash the Panda' && ! $items[$withCard->id]->translatable && $items[$withCard->id]->manual
+            && $items[$withCard->id]->subject === 'Panda' && $items[$withCard->id]->area === 'vehicles'
+            && $items[$withCard->id]->url === route('reminders.edit', $withCard)
+            && $items[$alone->id]->subject === null && $items[$alone->id]->area === 'general'
+            && $items[$alone->id]->url === route('reminders.edit', $alone);
+    });
 });
 
 test('twice in a day sends nothing new', function (): void {

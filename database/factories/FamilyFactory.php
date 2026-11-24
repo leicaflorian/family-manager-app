@@ -22,14 +22,16 @@ final class FamilyFactory extends Factory
         return [
             'name' => fake()->lastName(),
             'welcomed_at' => now(),
+            'budget_enabled' => true,
+            'mail_enabled' => true,
         ];
     }
 
     /**
-     * A family just registered, which has not done the *Welcome* yet.
+     * A family with the Budget and the mail off, as a new one starts.
      */
-    public function daAccogliere(): self
+    public function withoutFeatures(): static
     {
-        return $this->state(['welcomed_at' => null]);
+        return $this->state(['budget_enabled' => false, 'mail_enabled' => false]);
     }
 }

@@ -13,6 +13,7 @@ import { Head } from '@inertiajs/vue3';
 import { ArrowDownLeft, ArrowUpRight, Plus, Repeat, Search } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmCard from '@/components/fm/FmCard.vue';
@@ -119,14 +120,19 @@ const showLabel = computed(() =>
               shown.value,
           ),
 );
+
+const { title, head } = usePageMeta({
+    info: 'planned',
+    title: () => trans('Budget'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Planned expenses and incomes')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="$t('Budget')"
+            :title="title"
             :subtitle="
                 $t(
                     'The expenses and incomes that repeat, by due date. Home and the Agenda take their due dates from here.',

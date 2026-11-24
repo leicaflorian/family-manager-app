@@ -38,6 +38,7 @@ import FmConfirm from '@/components/fm/FmConfirm.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { StripPage } from '@/components/fm/FmPageStrip.vue';
+import FmPageInfo from '@/components/fm/FmPageInfo.vue';
 import FmPageStrip from '@/components/fm/FmPageStrip.vue';
 import FmTooltip from '@/components/fm/FmTooltip.vue';
 import ScanStatus from '@/components/scan/ScanStatus.vue';
@@ -361,9 +362,15 @@ async function upload(): Promise<void> {
                 :href="toSort().url"
                 >{{ $t('Back') }}</FmButton
             >
-            <h1 class="m-0" :class="wide ? 'text-subtitle' : 'text-section'">
-                {{ $t('Scan the sheets') }}
-            </h1>
+            <div class="flex min-w-0 items-center gap-1.5">
+                <h1
+                    class="m-0"
+                    :class="wide ? 'text-subtitle' : 'text-section'"
+                >
+                    {{ $t('Scan the sheets') }}
+                </h1>
+                <FmPageInfo info-key="scanner" />
+            </div>
             <span class="justify-self-end text-body-sm text-ink-soft">{{
                 narrow ? '' : count
             }}</span>

@@ -5,17 +5,17 @@
  */
 
 /** A value that is the same in both themes, or one value for each theme id. */
-export type ThemedValue = string | Record<string, string>;
+type ThemedValue = string | Record<string, string>;
 
 /** A token with a name, a value and a note on where it is used. */
-export interface Token<V extends ThemedValue = string> {
+interface Token<V extends ThemedValue = string> {
     name: string;
     value: V;
     usage?: string;
 }
 
 /** One text style: size, unitless line height and weight. */
-export interface TextStyle {
+interface TextStyle {
     name: string;
     fontSize: string;
     lineHeight: number;

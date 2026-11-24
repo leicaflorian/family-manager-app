@@ -12,7 +12,8 @@
  * consumption, *Usage*; on the tablet and the computer the sidebar has them under *Budget*. A row, and *New expense or income*, always open the page of
  * the movement, which brings back to this list (`?from=`).
  */
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import {
     ChartColumn,
@@ -51,6 +52,7 @@ import {
     weekdayShort,
 } from '@/lib/budget';
 import { useBankFeed } from '@/composables/useBankFeed';
+import { useFeature } from '@/composables/useFeatures';
 import { budgetTabs } from '@/lib/budgetTabs';
 import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
@@ -82,15 +84,12 @@ const [DefineRow, ReuseRow] = createReusableTemplate<{
 
 const { euro } = useFormat();
 const bankFeed = useBankFeed();
-const page = usePage();
 
 /** The layout of the screen: the box of the other pages shows only on the phone, which has no sidebar. */
 const layout = useLayoutMode();
 
 /** The family has an electricity, gas or water utility: *Usage* is offered too. */
-const hasConsumption = computed(
-    (): boolean => page.props.has_consumption ?? false,
-);
+const hasConsumption = useFeature('consumption');
 
 /** The search box, the visits with other filters and the box of the filters. */
 const {
@@ -272,10 +271,15 @@ function subtitle(movement: App.Data.MovementData): string {
         .filter((part) => part !== null)
         .join(' · ');
 }
+
+const { title, head } = usePageMeta({
+    info: 'movements',
+    title: () => trans('Budget'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Budget')" />
+    <Head :title="head" />
 
     <DefineRow v-slot="{ movement }">
         <FmRow
@@ -320,7 +324,7 @@ function subtitle(movement: App.Data.MovementData): string {
     </DefineRow>
 
     <div class="flex flex-col gap-4">
-        <FmTitle :title="$t('Budget')">
+        <FmTitle :title="title">
             <template #actions>
                 <FmButton :icon="Plus" @click="add">{{
                     $t('New expense or income')

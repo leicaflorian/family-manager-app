@@ -6,9 +6,11 @@ namespace App\Support;
 
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Enums\Feature;
 use App\Models\Expense;
 use App\Models\File;
 use App\Models\Income;
+use App\Services\FamilyFeatures;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -59,9 +61,12 @@ final class PresetLink
      */
     public static function findUpload(string $type, int $id): ?array
     {
+        // An expense or an income is a page of the Budget: with it off an upload does not come from one
+        $budget = resolve(FamilyFeatures::class)->on(Feature::Budget);
+
         return match ($type) {
-            'expense' => Expense::query()->whereKey($id)->exists() ? ['type' => 'expense', 'id' => $id] : null,
-            'income' => Income::query()->whereKey($id)->exists() ? ['type' => 'income', 'id' => $id] : null,
+            'expense' => $budget && Expense::query()->whereKey($id)->exists() ? ['type' => 'expense', 'id' => $id] : null,
+            'income' => $budget && Income::query()->whereKey($id)->exists() ? ['type' => 'income', 'id' => $id] : null,
             default => self::find($type, $id),
         };
     }
@@ -84,7 +89,7 @@ final class PresetLink
      */
     public static function route(array $link): string
     {
-        return in_array($link['type'], ['expense', 'income'], true)
+        return in_array($link['type'], Linkables::BUDGET_TYPES, true)
             ? route('budget.movements.show', ['kind' => $link['type'], 'id' => $link['id']])
             : route('cards.show', $link);
     }

@@ -17,6 +17,7 @@ use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
 use App\Enums\ConsumptionOutcome;
 use App\Enums\ConsumptionUnit;
+use App\Enums\Feature;
 use App\Enums\RecordKind;
 use App\Enums\UtilityType;
 use App\Models\DocumentCategory;
@@ -25,6 +26,7 @@ use App\Models\File;
 use App\Models\HealthEvent;
 use App\Models\Income;
 use App\Models\Utility;
+use App\Services\FamilyFeatures;
 use App\Support\CurrentFamily;
 use App\Support\DocumentRules;
 use App\Support\Reading\Choices;
@@ -64,6 +66,7 @@ final readonly class Proposal
      * @param  RecordsProposal  $records  the cards side
      * @param  RecordSearch  $search  the event already there
      * @param  PolicyFromOtherFiles  $policies  the policy of a paper without a number
+     * @param  FamilyFeatures  $features  the parts of the app the family has: without the Budget no money is proposed
      */
     public function __construct(
         private DocumentProposal $documents,
@@ -72,6 +75,7 @@ final readonly class Proposal
         private RecordsProposal $records,
         private RecordSearch $search,
         private PolicyFromOtherFiles $policies,
+        private FamilyFeatures $features,
     ) {}
 
     /**
@@ -112,7 +116,10 @@ final readonly class Proposal
         $cardType = DocumentCategory::cardTypeOf($this->categoryId($document, $choices));
         $draft = $this->drafts->of($x, $context, $locale, $cardType, $side['person_id']);
 
-        $movement = $draft['movement'] === null
+        // Without the Budget the reading proposes no movement, no due date to pay and no consumption: only the
+        // document, the cards and the event
+        $budget = $this->features->on(Feature::Budget);
+        $movement = $draft['movement'] === null || ! $budget
             ? null
             : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $this->fromMovement($file, $draft['movement']->kind, $choices), $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
@@ -132,7 +139,7 @@ final readonly class Proposal
             // With the card of the category the boxes already say which card the document belongs to
             createCard: $cardType === null && $this->namesNoCard($document, $event, $records),
             cardType: $cardType,
-            consumption: $this->consumption($x, $document, $records, $choices),
+            consumption: $budget ? $this->consumption($x, $document, $records, $choices) : null,
         );
     }
 

@@ -5,6 +5,8 @@
  * bottom. On the computer the blue panel is on the left and the form on the right
  * in a card, as in the *Log in* board, over three soft blurred shapes of the
  * colours of the app (the action blue, the panel blue and the warm orange of Home).
+ * A page in steps (the *Welcome*) lists them on the panel, numbered, with a tick
+ * on those done, and can ask for a wider card.
  */
 import { Link } from '@inertiajs/vue3';
 import { CircleCheck } from '@lucide/vue';
@@ -14,22 +16,37 @@ import FmHeader from '@/components/fm/FmHeader.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmLogo from '@/components/fm/FmLogo.vue';
 import { useAppName } from '@/composables/useAppName';
+import { cn } from '@/lib/utils';
 
 /** The name of the app, for the wordmark. */
 const appName = useAppName();
 
 /** What the blue panel of the computer says, already translated. */
-export type AuthPanel = {
+type AuthPanel = {
     /** The big sentence. */
     title: string;
     /** The text below. */
     text: string;
     /** The points at the bottom of the panel, with the tick. */
     points?: string[];
+    /** The steps of a page in steps, numbered at the bottom of the panel in place of the points. */
+    steps?: string[];
+    /** The index of the current step, from 0: the ones before have the tick. */
+    step?: number;
+};
+
+/** How wide the card of the computer is: 480 px, 640 px or 680 px. */
+type CardWidth = 'narrow' | 'wide' | 'wider';
+
+/** The class of each width of the card. */
+const widths: Record<CardWidth, string> = {
+    narrow: cn('max-w-[480px]'),
+    wide: cn('max-w-[640px]'),
+    wider: cn('max-w-[680px]'),
 };
 
 /** The line at the bottom that leads to the other page («Already have an account? Log in»). */
-export type OtherWay = {
+type OtherWay = {
     /** The question. */
     text: string;
     /** The text of the link. */
@@ -46,6 +63,7 @@ const {
         text: '',
     },
     otherWay,
+    width = 'narrow',
 } = defineProps<{
     /** The title of the page. Without it, the page writes its own (for example with a name). */
     title?: string;
@@ -55,6 +73,8 @@ const {
     panel?: AuthPanel;
     /** The line at the bottom. */
     otherWay?: OtherWay;
+    /** How wide the card of the computer is. */
+    width?: CardWidth;
 }>();
 
 /** The id of the blur, unique in the page. */
@@ -83,8 +103,40 @@ defineSlots<{
                     {{ panel.text }}
                 </p>
             </div>
+            <ol
+                v-if="panel.steps?.length"
+                class="m-0 flex list-none flex-col gap-2.5 p-0 text-body"
+            >
+                <li
+                    v-for="(name, i) in panel.steps"
+                    :key="name"
+                    class="flex items-center gap-2.5"
+                    :class="{
+                        'text-body-strong': i === (panel.step ?? 0),
+                        'text-on-hero-soft': i > (panel.step ?? 0),
+                    }"
+                    :aria-current="i === (panel.step ?? 0) ? 'step' : undefined"
+                >
+                    <FmIcon
+                        v-if="i < (panel.step ?? 0)"
+                        :icon="CircleCheck"
+                        :size="22"
+                    />
+                    <span
+                        v-else
+                        class="flex size-[22px] shrink-0 items-center justify-center rounded-full text-meta-strong"
+                        :class="
+                            i === (panel.step ?? 0)
+                                ? 'bg-card text-action-dark'
+                                : 'border-[1.5px] border-on-hero-soft'
+                        "
+                        >{{ i + 1 }}</span
+                    >
+                    {{ name }}
+                </li>
+            </ol>
             <ul
-                v-if="panel.points?.length"
+                v-else-if="panel.points?.length"
                 class="m-0 flex list-none flex-col gap-2.5 p-0 text-body"
             >
                 <li
@@ -145,7 +197,8 @@ defineSlots<{
                 </g>
             </svg>
             <div
-                class="relative flex w-full max-w-[480px] flex-col gap-[18px] px-5 pt-8 pb-7 computer:rounded-sheet computer:bg-card computer:p-9 computer:shadow-card"
+                class="relative flex w-full flex-col gap-[18px] px-5 pt-8 pb-7 computer:rounded-sheet computer:bg-card computer:p-9 computer:shadow-card"
+                :class="widths[width]"
             >
                 <div class="flex items-center gap-2.5 computer:hidden">
                     <FmLogo :size="36" />

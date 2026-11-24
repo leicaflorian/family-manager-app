@@ -4,6 +4,7 @@
  * sheet) sits behind `Backend`, which `canvas.ts` fills in the browser and the tests fill with a fake.
  */
 import { transChoice, trans } from 'laravel-vue-i18n';
+import { formatNumber } from '@/lib/format';
 import { canvasBackend } from './canvas';
 import {
     CARD_CORNER,
@@ -19,9 +20,9 @@ import { makePdf, type PdfPage } from './pdf';
 /** The most one file may weigh when it leaves for the server: 25 MB. */
 export const MAX_UPLOAD_BYTES = 26214400;
 /** The fewest and the most photos "On a single page" takes. */
-export const SHEET_PHOTOS = { least: 2, most: 4 } as const;
+const SHEET_PHOTOS = { least: 2, most: 4 } as const;
 /** The dots per inch of the A4 sheet: the ones a scanner is asked for a card. */
-export const SHEET_DENSITY = 300;
+const SHEET_DENSITY = 300;
 
 /** One page of the document: a photo with what was done to it, or a PDF that goes as it is. */
 export type ScanPage = {
@@ -87,12 +88,7 @@ export class ScanTooHeavyError extends Error {
         super(
             trans(':name weighs :size MB: the most is 25 MB.', {
                 name: label,
-                size: new Intl.NumberFormat(
-                    typeof document === 'undefined'
-                        ? 'en'
-                        : document.documentElement.lang || 'en',
-                    { maximumFractionDigits: 1 },
-                ).format(bytes / 1048576),
+                size: formatNumber(bytes / 1048576),
             }),
         );
         this.name = 'ScanTooHeavyError';

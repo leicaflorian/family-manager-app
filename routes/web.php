@@ -19,6 +19,7 @@ use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ConnectController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DocumentController;
@@ -53,6 +54,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\Settings\BankController;
 use App\Http\Controllers\Settings\FamilyNameController;
+use App\Http\Controllers\Settings\FeatureSettingsController;
 use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -151,6 +153,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::middleware(RedirectToWelcome::class)->group(function (): void {
         Route::get('dashboard', HomeController::class)->name('dashboard');
+        Route::post('dashboard/checklist/hide', [ChecklistController::class, 'hide'])->middleware('throttle:10,1,checklist-hide')->name('dashboard.checklist.hide');
+        Route::post('dashboard/checklist/skip', [ChecklistController::class, 'skip'])->middleware('throttle:10,1,checklist-skip')->name('dashboard.checklist.skip');
         Route::get('agenda', AgendaController::class)->name('agenda');
         Route::put('agenda/filters', [AgendaController::class, 'filters'])->name('agenda.filters');
         Route::put('agenda/deadlines/{field}/{id}', [AgendaController::class, 'updateDeadline'])->name('agenda.deadlines.update');
@@ -171,65 +175,69 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('cards/{type}', [CardController::class, 'store'])->name('cards.store');
         Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show')->whereNumber('id');
         Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit')->whereNumber('id');
-        Route::get('cards/{type}/{id}/payments', [CardPaymentController::class, 'show'])->name('cards.payments')->whereNumber('id');
+        Route::get('cards/{type}/{id}/payments', [CardPaymentController::class, 'show'])->middleware('feature:budget')->name('cards.payments')->whereNumber('id');
         Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update')->whereNumber('id');
         Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
         Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');
         Route::delete('cards/{type}/{id}/documents/{document}', [CardDocumentController::class, 'destroy'])->name('cards.documents.destroy')->whereNumber('id');
 
-        Route::redirect('budget', '/budget/movements')->name('budget');
-        Route::get('budget/movements', [MovementController::class, 'index'])->name('budget.movements.index');
-        Route::get('budget/movements/create', [MovementController::class, 'create'])->name('budget.movements.create');
-        Route::post('budget/movements', [MovementController::class, 'store'])->name('budget.movements.store');
-        Route::prefix('budget/movements/{kind}/{id}')
-            ->where(['kind' => 'expense|income', 'id' => '[0-9]+'])
-            ->name('budget.movements.')
-            ->group(function (): void {
-                Route::get('', [MovementController::class, 'show'])->name('show');
-                Route::put('', [MovementController::class, 'update'])->name('update');
-                Route::delete('', [MovementController::class, 'destroy'])->name('destroy');
+        Route::middleware('feature:budget')->group(function (): void {
+            Route::redirect('budget', '/budget/movements')->name('budget');
+            Route::get('budget/movements', [MovementController::class, 'index'])->name('budget.movements.index');
+            Route::get('budget/movements/create', [MovementController::class, 'create'])->name('budget.movements.create');
+            Route::post('budget/movements', [MovementController::class, 'store'])->name('budget.movements.store');
+            Route::prefix('budget/movements/{kind}/{id}')
+                ->where(['kind' => 'expense|income', 'id' => '[0-9]+'])
+                ->name('budget.movements.')
+                ->group(function (): void {
+                    Route::get('', [MovementController::class, 'show'])->name('show');
+                    Route::put('', [MovementController::class, 'update'])->name('update');
+                    Route::delete('', [MovementController::class, 'destroy'])->name('destroy');
+                });
+
+            Route::middleware('feature:bank_feed')->group(function (): void {
+                Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
+                Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
+                Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
+                Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
+                Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
+                Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
+                Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
+                Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
             });
 
-        Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
-        Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
-        Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
-        Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
-        Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
-        Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
-        Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
-        Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
-        Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
+            Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
+            Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
+            Route::post('budget/consumption/{utility}/read', [ConsumptionController::class, 'read'])->name('budget.consumption.read')->whereNumber('utility')->middleware('throttle:6,1,consumption-read');
+            Route::middleware('throttle:30,1,consumption-save')->name('budget.consumption.')->group(function (): void {
+                Route::post('budget/consumption/{utility}/rows', [UtilityConsumptionController::class, 'store'])->name('store')->whereNumber('utility');
+                Route::put('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'update'])->name('update')->whereNumber('consumption');
+                Route::delete('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'destroy'])->name('destroy')->whereNumber('consumption');
+            });
 
-        Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');
-        Route::get('budget/consumption', [ConsumptionController::class, 'index'])->name('budget.consumption');
-        Route::post('budget/consumption/{utility}/read', [ConsumptionController::class, 'read'])->name('budget.consumption.read')->whereNumber('utility')->middleware('throttle:6,1,consumption-read');
-        Route::middleware('throttle:30,1,consumption-save')->name('budget.consumption.')->group(function (): void {
-            Route::post('budget/consumption/{utility}/rows', [UtilityConsumptionController::class, 'store'])->name('store')->whereNumber('utility');
-            Route::put('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'update'])->name('update')->whereNumber('consumption');
-            Route::delete('budget/consumption/rows/{consumption}', [UtilityConsumptionController::class, 'destroy'])->name('destroy')->whereNumber('consumption');
+            Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
+            Route::prefix('budget/planned/{kind}')
+                ->where(['kind' => 'expense|income', 'id' => '[0-9]+'])
+                ->name('budget.planned.')
+                ->group(function (): void {
+                    Route::get('create', [PlannedController::class, 'create'])->name('create');
+                    Route::post('', [PlannedController::class, 'store'])->name('store');
+                    Route::get('{id}', [PlannedController::class, 'show'])->name('show');
+                    Route::get('{id}/edit', [PlannedController::class, 'edit'])->name('edit');
+                    Route::put('{id}', [PlannedController::class, 'update'])->name('update');
+                    Route::delete('{id}', [PlannedController::class, 'destroy'])->name('destroy');
+                });
+
+            Route::prefix('budget/planned/{kind}/{id}/occurrences/{date}')
+                ->where(['kind' => 'expense|income', 'id' => '[0-9]+', 'date' => '[0-9]{4}-[0-9]{2}-[0-9]{2}'])
+                ->name('budget.deadlines.')
+                ->group(function (): void {
+                    Route::get('', [DeadlineController::class, 'show'])->name('show');
+                    Route::post('payment', [DeadlineController::class, 'payment'])->name('payment');
+                    Route::put('exceptions', [DeadlineController::class, 'exceptions'])->name('exceptions');
+                });
         });
-
-        Route::get('budget/planned', [PlannedController::class, 'index'])->name('budget.planned.index');
-        Route::prefix('budget/planned/{kind}')
-            ->where(['kind' => 'expense|income', 'id' => '[0-9]+'])
-            ->name('budget.planned.')
-            ->group(function (): void {
-                Route::get('create', [PlannedController::class, 'create'])->name('create');
-                Route::post('', [PlannedController::class, 'store'])->name('store');
-                Route::get('{id}', [PlannedController::class, 'show'])->name('show');
-                Route::get('{id}/edit', [PlannedController::class, 'edit'])->name('edit');
-                Route::put('{id}', [PlannedController::class, 'update'])->name('update');
-                Route::delete('{id}', [PlannedController::class, 'destroy'])->name('destroy');
-            });
-
-        Route::prefix('budget/planned/{kind}/{id}/occurrences/{date}')
-            ->where(['kind' => 'expense|income', 'id' => '[0-9]+', 'date' => '[0-9]{4}-[0-9]{2}-[0-9]{2}'])
-            ->name('budget.deadlines.')
-            ->group(function (): void {
-                Route::get('', [DeadlineController::class, 'show'])->name('show');
-                Route::post('payment', [DeadlineController::class, 'payment'])->name('payment');
-                Route::put('exceptions', [DeadlineController::class, 'exceptions'])->name('exceptions');
-            });
 
         Route::get('family/invite', [InvitationController::class, 'create'])->name('family.invitations.create');
         Route::post('family/invitations', [InvitationController::class, 'store'])->name('family.invitations.store');
@@ -250,18 +258,22 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/features', [FeatureSettingsController::class, 'edit'])->name('settings.features.edit');
+        Route::put('settings/features', [FeatureSettingsController::class, 'update'])->middleware('throttle:20,1,settings-features')->name('settings.features.update');
         Route::get('settings/support', [SupportSettingsController::class, 'edit'])->name('settings.support.edit');
         Route::get('settings/news', ReleaseNotesController::class)->name('settings.news');
         Route::post('settings/support', [SupportSettingsController::class, 'store'])->name('settings.support.store');
         Route::delete('settings/support', [SupportSettingsController::class, 'destroy'])->name('settings.support.destroy');
-        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->name('mail-settings.edit');
-        Route::put('settings/mail', [MailSettingsController::class, 'update'])->name('mail-settings.update');
-        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->name('mail-settings.address');
-        Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
-        Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
-        Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
-        Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
-        Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
+        Route::get('settings/mail', [MailSettingsController::class, 'edit'])->middleware('feature:mail')->name('mail-settings.edit');
+        Route::put('settings/mail', [MailSettingsController::class, 'update'])->middleware('feature:mail')->name('mail-settings.update');
+        Route::post('settings/mail/address', [MailSettingsController::class, 'address'])->middleware('feature:mail')->name('mail-settings.address');
+        Route::middleware(['feature:budget', 'feature:bank_feed'])->group(function (): void {
+            Route::get('settings/banks', [BankController::class, 'index'])->name('banks.index');
+            Route::post('settings/banks', [BankController::class, 'store'])->name('banks.store');
+            Route::get('settings/banks/callback', [BankController::class, 'callback'])->name('banks.callback');
+            Route::post('settings/banks/{connection}/sync', [BankController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('banks.sync');
+            Route::delete('settings/banks/{connection}', [BankController::class, 'destroy'])->name('banks.destroy');
+        });
         Route::get('settings/notices', [NoticeSettingsController::class, 'edit'])->name('settings.notices.edit');
         Route::put('settings/notices', [NoticeSettingsController::class, 'update'])->name('settings.notices.update');
         Route::get('settings/areas', [AreaSettingsController::class, 'edit'])->name('settings.areas.edit');
@@ -271,8 +283,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['categories' => 'category'])
             ->names('categories');
-        Route::get('settings/expense-categories', [ExpenseCategoryController::class, 'index'])->name('expense-categories.index');
-        Route::patch('settings/expense-categories/{category}', [ExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+        Route::middleware('feature:budget')->group(function (): void {
+            Route::get('settings/expense-categories', [ExpenseCategoryController::class, 'index'])->name('expense-categories.index');
+            Route::patch('settings/expense-categories/{category}', [ExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+        });
 
         Route::get('files/{file}', [FileController::class, 'show'])->name('files.show');
         Route::get('files/{file}/preview', [FileController::class, 'preview'])->name('files.preview');
@@ -287,11 +301,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('upload', [UploadController::class, 'index'])->name('upload');
         Route::post('upload', [UploadController::class, 'store'])->name('upload.store');
         Route::delete('upload/{file}', [UploadController::class, 'destroy'])->name('upload.destroy');
-        Route::get('mail', [ReceivedMailController::class, 'index'])->name('mail.index');
-        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->name('mail.show')->whereNumber('receivedMail');
-        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->name('mail.text')->whereNumber('receivedMail');
-        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->name('mail.destroy')->whereNumber('receivedMail');
-        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->name('mail.notice')->whereNumber('receivedMail');
+        Route::get('mail', [ReceivedMailController::class, 'index'])->middleware('feature:mail')->name('mail.index');
+        Route::get('mail/{receivedMail}', [ReceivedMailController::class, 'show'])->middleware('feature:mail')->name('mail.show')->whereNumber('receivedMail');
+        Route::get('mail/{receivedMail}/text', [ReceivedMailController::class, 'text'])->middleware('feature:mail')->name('mail.text')->whereNumber('receivedMail');
+        Route::delete('mail/{receivedMail}', [ReceivedMailController::class, 'destroy'])->middleware('feature:mail')->name('mail.destroy')->whereNumber('receivedMail');
+        Route::post('mail/{receivedMail}/notice', [ReceivedMailController::class, 'notice'])->middleware('feature:mail')->name('mail.notice')->whereNumber('receivedMail');
         // `gallery` before `documents/{document}`, so it is not taken for a document id
         Route::get('documents/gallery', [GalleryController::class, 'index'])->name('documents.gallery');
         Route::post('documents/gallery', [GalleryController::class, 'store'])->middleware('throttle:20,1,gallery-add')->name('documents.gallery.store');

@@ -8,6 +8,7 @@ use App\Models\FamilySetting;
 use App\Models\Person;
 use App\Models\ReceivedMail;
 use App\Models\User;
+use App\Services\FamilyFeatures;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -45,15 +46,14 @@ final class MailSettingsData extends Data
      */
     public static function fromSettings(FamilySetting $settings, User $user): self
     {
-        $domain = config('services.mailgun.inbox_domain');
-        $active = is_string($domain) && trim($domain) !== '' && $settings->mail_inbox_recipient !== null;
+        $active = resolve(FamilyFeatures::class)->mailDomain() !== null && $settings->mail_inbox_recipient !== null;
         /** @var list<int>|null $notify */
         $notify = $settings->mail_inbox_notify;
 
         return new self(
             address: $active ? $settings->mail_inbox_recipient : null,
             senders: self::senders(),
-            accounts: array_values(User::query()->where('family_id', $user->family_id)->orderBy('id')->get()
+            accounts: array_values(User::query()->inFamily($user->family_id)->get()
                 ->map(static fn (User $account): MailAccountData => MailAccountData::fromUser($account, $notify))
                 ->all()),
             people_without_account: array_values(Person::query()->whereNull('user_id')->orderBy('first_name')->get()

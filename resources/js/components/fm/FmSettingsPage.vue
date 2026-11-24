@@ -9,56 +9,19 @@
  *
  * @group sections
  */
-import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
-import {
-    Bell,
-    CalendarSync,
-    FolderTree,
-    House,
-    Landmark,
-    LayoutGrid,
-    LifeBuoy,
-    Mail,
-    Sparkles,
-    Tags,
-    User,
-} from '@lucide/vue';
-import { trans } from 'laravel-vue-i18n';
 import { computed, provide } from 'vue';
-import { useBankFeed } from '@/composables/useBankFeed';
+import { useFeatures, useMailAvailable } from '@/composables/useFeatures';
 import { useWideLayout } from '@/composables/useWideLayout';
-import { edit as account } from '@/routes/account';
-import { index as banks } from '@/routes/banks';
-import { edit as calendar } from '@/routes/calendar';
-import { index as categories } from '@/routes/categories';
-import { index as expenseCategories } from '@/routes/expense-categories';
-import { edit as mail } from '@/routes/mail-settings';
-import { edit as areas } from '@/routes/settings/areas';
-import { edit as family } from '@/routes/settings/family';
-import { news } from '@/routes/settings';
-import { edit as notices } from '@/routes/settings/notices';
-import { edit as support } from '@/routes/settings/support';
+import type { SettingsGroup, SettingsKey } from '@/lib/settingsSections';
+import { settingsSections } from '@/lib/settingsSections';
 import { SECTION_TITLE } from '@/lib/titles';
+import { trans } from 'laravel-vue-i18n';
 import FmIcon from './FmIcon.vue';
-
-/** A section of the settings, as the page names itself. */
-type SettingsSection =
-    | 'account'
-    | 'family'
-    | 'notices'
-    | 'mail'
-    | 'banks'
-    | 'calendar'
-    | 'categories'
-    | 'expense-categories'
-    | 'areas'
-    | 'support'
-    | 'news';
 
 const { current } = defineProps<{
     /** The section the page is, marked in the list. */
-    current: SettingsSection;
+    current: SettingsKey;
 }>();
 
 defineSlots<{
@@ -70,112 +33,34 @@ defineSlots<{
 
 const wide = useWideLayout();
 
-/** The link to the bank: its section is in the list only while the family has it on. */
-const bankFeed = useBankFeed();
+/** The features of the family: *Linked banks* is in the list only while the link to the bank is on. */
+const features = useFeatures();
+const mailAvailable = useMailAvailable();
 
 provide(SECTION_TITLE, wide);
 
-/** A section of the settings in the list beside the page. */
-interface SectionLink {
-    key: SettingsSection;
-    label: string;
-    icon: LucideIcon;
-    href: string;
-    /** A short note after the label, on the right: the version that runs, for *What's new*. */
-    note?: string;
-}
+/** The names of the groups of the index; mine has none. */
+const GROUP_LABELS: Record<SettingsGroup, () => string | null> = {
+    mine: () => null,
+    family: () => trans('The family'),
+    app: () => trans('The app'),
+};
 
 /** The sections of the settings in the groups of the index: mine first, without a name. */
-const groups = computed(
-    (): { label: string | null; sections: SectionLink[] }[] => [
-        {
-            label: null,
-            sections: [
-                {
-                    key: 'account',
-                    label: trans('My account'),
-                    icon: User,
-                    href: account().url,
-                },
-                {
-                    key: 'calendar',
-                    label: trans('Calendar'),
-                    icon: CalendarSync,
-                    href: calendar().url,
-                },
-            ],
-        },
-        {
-            label: trans('The family'),
-            sections: [
-                {
-                    key: 'family',
-                    label: trans('Family name'),
-                    icon: House,
-                    href: family().url,
-                },
-                {
-                    key: 'notices',
-                    label: trans('Notices'),
-                    icon: Bell,
-                    href: notices().url,
-                },
-                {
-                    key: 'mail',
-                    label: trans('Address for the bills'),
-                    icon: Mail,
-                    href: mail().url,
-                },
-                ...(bankFeed.value === null
-                    ? []
-                    : [
-                          {
-                              key: 'banks' as const,
-                              label: trans('Linked banks'),
-                              icon: Landmark,
-                              href: banks().url,
-                          },
-                      ]),
-                {
-                    key: 'categories',
-                    label: trans('Document categories'),
-                    icon: FolderTree,
-                    href: categories().url,
-                },
-                {
-                    key: 'expense-categories',
-                    label: trans('Expense categories'),
-                    icon: Tags,
-                    href: expenseCategories().url,
-                },
-                {
-                    key: 'areas',
-                    label: trans('Areas'),
-                    icon: LayoutGrid,
-                    href: areas().url,
-                },
-                {
-                    key: 'support',
-                    label: trans('Support'),
-                    icon: LifeBuoy,
-                    href: support().url,
-                },
-            ],
-        },
-        {
-            label: trans('The app'),
-            sections: [
-                {
-                    key: 'news',
-                    label: trans("What's new"),
-                    icon: Sparkles,
-                    href: news().url,
-                    note: __APP_BUILD__,
-                },
-            ],
-        },
-    ],
-);
+const groups = computed(() => {
+    const sections = settingsSections(features.value, mailAvailable.value);
+
+    return (['mine', 'family', 'app'] as const).map((group) => ({
+        label: GROUP_LABELS[group](),
+        sections: sections
+            .filter((section) => section.group === group)
+            .map((section) => ({
+                ...section,
+                // The version that runs, after the name of *What's new*
+                note: section.key === 'news' ? __APP_BUILD__ : undefined,
+            })),
+    }));
+});
 </script>
 
 <template>

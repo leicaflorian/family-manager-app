@@ -58,7 +58,7 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
  * The line under the name of a person: who they are and how old.
  *
  * @param person - the role and the age, if known
- * @returns for example «Parent · 44 years»
+ * @returns for example «Adult / Parent · 44 years»
  */
 export function personSubtitle(person: {
     role_label: string;

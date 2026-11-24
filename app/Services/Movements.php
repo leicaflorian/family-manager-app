@@ -10,6 +10,7 @@ use App\Data\MovementData;
 use App\Data\MovementMonthData;
 use App\Data\MovementSearchData;
 use App\Data\OptionData;
+use App\Enums\Feature;
 use App\Enums\IncomeType;
 use App\Models\BankTransaction;
 use App\Models\Expense;
@@ -17,7 +18,6 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
-use App\Services\Banks\BankFeedAvailability;
 use App\Support\Deadline;
 use App\Support\MovementFilters;
 use App\Support\Occurrence;
@@ -55,7 +55,7 @@ final readonly class Movements
      */
     public function bank(Expense|Income $movement, User $user): ?MovementBankData
     {
-        if (! BankFeedAvailability::on()) {
+        if (! resolve(FamilyFeatures::class)->on(Feature::BankFeed)) {
             return null;
         }
 

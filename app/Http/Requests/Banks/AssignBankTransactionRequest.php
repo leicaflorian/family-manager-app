@@ -7,7 +7,6 @@ namespace App\Http\Requests\Banks;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
-use App\Services\Banks\BankFeedAvailability;
 use App\Support\PlannedKind;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -38,8 +37,6 @@ final class AssignBankTransactionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        abort_unless(BankFeedAvailability::on(), 404);
-
         $kind = $this->input('kind');
         $id = $this->input('planned_id');
 

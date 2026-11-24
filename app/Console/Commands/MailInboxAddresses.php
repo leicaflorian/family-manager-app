@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Actions\Mail\AssignMailAddress;
+use App\Enums\Feature;
 use App\Models\Family;
 use App\Models\FamilySetting;
+use App\Services\FamilyFeatures;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 /**
- * Gives the address for the bills to the families that have none: the ones registered before the mail inbox, and
+ * Gives the address for the bills to the families that have the mail on and none: the ones registered before the mail inbox, and
  * the ones copied from Directus. It is safe to run again.
  */
 #[Description('Give the address for the bills to the families that have none')]
@@ -26,7 +28,7 @@ final class MailInboxAddresses extends Command
      */
     public function handle(AssignMailAddress $assign): int
     {
-        if (! is_string(config('services.mailgun.inbox_domain')) || trim(config('services.mailgun.inbox_domain')) === '') {
+        if (resolve(FamilyFeatures::class)->mailDomain() === null) {
             $this->warn('MAIL_INBOX_DOMAIN is empty: no address made.');
 
             return self::SUCCESS;
@@ -35,7 +37,13 @@ final class MailInboxAddresses extends Command
         $made = 0;
         $withAddress = FamilySetting::familiesWithAddress();
 
+        $features = resolve(FamilyFeatures::class);
+
         foreach (Family::query()->whereKeyNot($withAddress)->orderBy('id')->get() as $family) {
+            if (! $features->for($family, Feature::Mail)) {
+                continue;
+            }
+
             if ($assign->handle($family) !== null) {
                 $made++;
             }

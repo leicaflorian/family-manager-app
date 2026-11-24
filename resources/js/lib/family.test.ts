@@ -36,8 +36,8 @@ const neri = {
 
 describe('personSubtitle', () => {
     it('says who they are and how old', () => {
-        expect(personSubtitle({ role_label: 'Parent', age: 44 })).toBe(
-            'Parent · 44 years',
+        expect(personSubtitle({ role_label: 'Adult / Parent', age: 44 })).toBe(
+            'Adult / Parent · 44 years',
         );
         expect(personSubtitle({ role_label: 'Child', age: 1 })).toBe(
             'Child · 1 year',

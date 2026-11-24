@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Data\FamilyData;
+use App\Enums\Feature;
 use App\Enums\Theme;
 use App\Models\BankTransaction;
-use App\Models\DocumentCategory;
 use App\Models\File;
+use App\Models\LinkedDevice;
 use App\Models\ReminderNotice;
 use App\Models\User;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\CardSummaries;
-use App\Services\CategoryTree;
-use App\Services\ConsumptionPage;
+use App\Services\FamilyFeatures;
 use App\Services\Reminders\NoticeList;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -36,9 +35,9 @@ class HandleInertiaRequests extends Middleware
     /**
      * @param  CardSummaries  $summaries  the cards of the family, for the counts of the sidebar
      * @param  NoticeList  $notices  the notices of the bell
-     * @param  CategoryTree  $categories  the categories, for the gallery under *Documents* in the sidebar
+     * @param  FamilyFeatures  $features  which parts of the app the family has
      */
-    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices, private readonly CategoryTree $categories) {}
+    public function __construct(private readonly CardSummaries $summaries, private readonly NoticeList $notices, private readonly FamilyFeatures $features) {}
 
     /**
      * Determines the current asset version.
@@ -59,7 +58,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        if ($request->hasSession() && $request->session()->has('linked_device_id')) {
+        if ($request->hasSession() && $request->session()->has(LinkedDevice::SESSION_KEY)) {
             return $this->linkedPhoneShare($request);
         }
 
@@ -73,7 +72,7 @@ class HandleInertiaRequests extends Middleware
             'linked_phone' => false,
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
-            'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
+            'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->shown()->where('user_id', $request->user()->id)->unread()->count() : 0,
             // The menu of the bell: sent only when a page asks for it (`only: ['bell_notices']`)
             'bell_notices' => Inertia::optional(fn (): array => $request->user() instanceof User
                 ? $this->notices->latest($request->user()->id, CarbonImmutable::today('Europe/Rome'))
@@ -81,11 +80,7 @@ class HandleInertiaRequests extends Middleware
             // The number on *Upload*: the files waiting for their document, the copies left out
             'to_sort_count' => fn (): int => $request->user() instanceof User ? File::query()->toSort()->notCopies()->count() : 0,
             // The link to the bank: null while it is off for the family, otherwise what is still to sort (the badge of the menu)
-            'bank_feed' => fn (): ?array => $request->user() instanceof User && BankFeedAvailability::on() ? ['unsorted' => BankTransaction::query()->unsorted()->count()] : null,
-            // Whether the family has an electricity, gas or water utility: the Consumption page exists only then
-            'has_consumption' => fn (): bool => $request->user() instanceof User && ConsumptionPage::available(),
-            // Whether the family has a gallery category: the sidebar shows *Drawings and crafts* under *Documents*
-            'has_gallery' => fn (): bool => $request->user() instanceof User && $this->categories->galleryCategory() instanceof DocumentCategory,
+            'bank_feed' => fn (): ?array => $request->user() instanceof User && $this->features->on(Feature::BankFeed) ? ['unsorted' => BankTransaction::query()->unsorted()->count()] : null,
             'locale' => app()->getLocale(),
             // The name of the account the owner looks as during a visit (*Enter as…*), for the strip of the layout
             'impersonating' => LimitVisit::isOpen($request) && $request->user() instanceof User ? $request->user()->name : null,

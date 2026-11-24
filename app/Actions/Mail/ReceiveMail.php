@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Mail;
 
 use App\Enums\CallOutcome;
+use App\Enums\Feature;
 use App\Enums\FileSource;
 use App\Enums\MailOutcome;
 use App\Enums\SkipReason;
@@ -14,6 +15,7 @@ use App\Models\Family;
 use App\Models\FamilySetting;
 use App\Models\File;
 use App\Models\ReceivedMail;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Services\Mailgun\MailgunForm;
 use App\Services\Mailgun\MailgunSignature;
@@ -126,6 +128,15 @@ final readonly class ReceiveMail
             $this->log->handle(CallOutcome::Suspended, 200, null, $settings->family_id, null, ['recipient' => $mail->recipient], null);
 
             return $this->answer(200, 'Suspended.');
+        }
+
+        $family = Family::query()->find($settings->family_id);
+
+        if ($family instanceof Family && ! resolve(FamilyFeatures::class)->for($family, Feature::Mail)) {
+            // the family turned the mail off after it got its address: nothing is saved, Mailgun gets its 200
+            $this->log->handle(CallOutcome::MailOff, 200, null, $settings->family_id, null, ['recipient' => $mail->recipient], null);
+
+            return $this->answer(200, 'Mail off.');
         }
 
         $familyId = $settings->family_id;

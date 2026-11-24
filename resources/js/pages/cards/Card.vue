@@ -48,10 +48,9 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { useFormat } from '@/composables/useFormat';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import type { Action } from '@/lib/actions';
 import { formatQuantity, unitLabel } from '@/lib/format';
-import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
 import { store as linkDocument } from '@/routes/cards/documents';
@@ -115,11 +114,14 @@ const consumptionText = computed((): string => {
 /** The address of the card in the routes: its type and its number. */
 const address = computed(() => ({ type: card.card.type, id: card.card.id }));
 
-usePageTrail(() => [
-    { label: trans('Areas'), href: areas().url },
-    { label: card.card.area_label, href: showArea.url(card.card.area) },
-    { label: card.card.label },
-]);
+const { head } = usePageMeta({
+    info: 'card',
+    title: () => card.card.label,
+    parent: () => [
+        'areas',
+        { label: card.card.area_label, href: showArea.url(card.card.area) },
+    ],
+});
 
 /** *Edit* beside the title, *Delete* in the ⋯ menu. */
 const actions = computed((): Action[] => [
@@ -166,7 +168,7 @@ function link(id: number): void {
 </script>
 
 <template>
-    <Head :title="card.card.label" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmCardHeader :card="card.card" :heading="card.heading">
@@ -286,7 +288,14 @@ function link(id: number): void {
                     preserve-scroll
                 />
 
-                <div v-if="card.budget" class="mt-3 flex flex-col gap-5">
+                <div
+                    v-if="
+                        card.budget &&
+                        (card.budget.planned_label ||
+                            card.budget.payments_label)
+                    "
+                    class="mt-3 flex flex-col gap-5"
+                >
                     <FmCardPayments :budget="card.budget" :card="address" />
                 </div>
 

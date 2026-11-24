@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 
 /** The colour of the label. */
-export type MailTone = App.Data.ReceivedMailRowData['tone'];
+type MailTone = App.Data.ReceivedMailRowData['tone'];
 
 const { label, tone } = defineProps<{
     /** What was done, in a few words: «1 file saved · 2 deliveries». */

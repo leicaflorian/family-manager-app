@@ -23,10 +23,9 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import type { NoticeRule, RulePerson } from '@/lib/reminders';
 import { ruleText } from '@/lib/reminders';
-import { settings } from '@/routes';
 import { update } from '@/routes/settings/notices';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { settings: page } = defineProps<{
     /** The groups, the kinds of deadline, the people with an account and whether who looks can change them. */
@@ -319,19 +318,20 @@ function save(): void {
 
 useSaveShortcut(save, () => page.can_change && !saving.value);
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Notices') },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-notices',
+    title: () => trans('Notices'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Notices')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="notices">
         <template #title>
             <FmTitle
-                :title="$t('Notices')"
+                :title="title"
                 :subtitle="$t('How many days before, where and to whom')"
             >
                 <template v-if="page.can_change" #actions>

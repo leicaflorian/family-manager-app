@@ -178,7 +178,7 @@ return [
         'other' => 'Altro',
     ],
     'person_role' => [
-        'parent' => 'Genitore',
+        'parent' => 'Adulto / Genitore',
         'child' => 'Figlio/a',
         'other' => 'Altro',
     ],
@@ -257,6 +257,7 @@ return [
         'unknown' => 'Indirizzo sconosciuto',
         'limited' => 'Oltre il limite',
         'suspended' => 'Famiglia sospesa',
+        'mail_off' => 'Posta spenta',
     ],
     'search_group' => [
         'cards' => 'Schede',
@@ -281,6 +282,13 @@ return [
         'cloud' => 'Cloud e archiviazione',
         'web' => 'Domini, hosting ed email',
         'other' => 'Altro',
+    ],
+    'feature' => [
+        'budget' => 'Bilancio',
+        'mail' => 'Posta per le bollette',
+        'bank_feed' => 'Collegamento alla banca',
+        'consumption' => 'Consumi',
+        'gallery' => 'Disegni e lavoretti',
     ],
     'theme' => [
         'system' => 'Automatico',

@@ -17,6 +17,7 @@ use App\Data\CardTypeData;
 use App\Data\LoanFiguresData;
 use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
+use App\Enums\Feature;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
@@ -29,6 +30,7 @@ use App\Services\CardBudgets;
 use App\Services\CardDetails;
 use App\Services\CardSummaries;
 use App\Services\FamilyAreas;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Services\LinkableDocuments;
 use App\Services\ReplaceablePolicies;
@@ -67,6 +69,7 @@ final class CardController extends Controller
         private readonly FamilyAreas $familyAreas,
         private readonly ReplaceablePolicies $replaceable,
         private readonly LinkableDocuments $linkableDocuments,
+        private readonly FamilyFeatures $features,
     ) {}
 
     /**
@@ -89,7 +92,7 @@ final class CardController extends Controller
                 ...$this->details->form($card, null, $request->query()),
                 ...$this->loanFigures($request, $card, null),
                 ...$this->replacement($request, $card),
-                ...($card->model() === Subscription::class ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
+                ...($card->model() === Subscription::class && $this->features->on(Feature::Budget) ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkableDocuments->props($request, []),
                 'linked' => $this->documents->ofModels($documents),
             ]);
@@ -180,7 +183,8 @@ final class CardController extends Controller
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
             'canDeleteDocuments' => $user->can('deleteAny', Document::class),
             'budget' => function () use ($card, $user): ?CardBudgetData {
-                $budget = $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome'));
+                // With the Budget off the card has no payments
+                $budget = $this->features->on(Feature::Budget) ? $this->budgets->of($card, $user, CarbonImmutable::today('Europe/Rome')) : null;
 
                 return $budget instanceof CardBudgetData ? $this->budgets->page($budget, 1) : null;
             },

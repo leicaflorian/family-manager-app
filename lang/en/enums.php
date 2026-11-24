@@ -178,7 +178,7 @@ return [
         'other' => 'Other',
     ],
     'person_role' => [
-        'parent' => 'Parent',
+        'parent' => 'Adult / Parent',
         'child' => 'Child',
         'other' => 'Other',
     ],
@@ -257,6 +257,7 @@ return [
         'unknown' => 'Unknown address',
         'limited' => 'Over the limit',
         'suspended' => 'Family suspended',
+        'mail_off' => 'Mail off',
     ],
     'search_group' => [
         'cards' => 'Cards',
@@ -281,6 +282,13 @@ return [
         'cloud' => 'Cloud and storage',
         'web' => 'Domains, hosting and email',
         'other' => 'Other',
+    ],
+    'feature' => [
+        'budget' => 'Budget',
+        'mail' => 'Mail for the bills',
+        'bank_feed' => 'Link to the bank',
+        'consumption' => 'Consumption',
+        'gallery' => 'Drawings and crafts',
     ],
     'theme' => [
         'system' => 'Automatic',

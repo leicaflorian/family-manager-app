@@ -1,6 +1,12 @@
 import { MessageSquareWarning } from '@lucide/vue';
 import { describe, expect, it } from 'vite-plus/test';
-import { navigationItems, sectionOf } from './navigation';
+import {
+    allItems,
+    barItems,
+    navigationItems,
+    SECTIONS,
+    sectionOf,
+} from './navigation';
 
 describe('sectionOf', () => {
     const items = navigationItems();
@@ -25,8 +31,8 @@ describe('sectionOf', () => {
     });
 
     it('marks To sort on its page, which only the sidebar lists', () => {
-        expect(items.toSort.href).toBe('/to-sort');
-        expect(items.toSort.label).toBe('To sort');
+        expect(items.toSort?.href).toBe('/to-sort');
+        expect(items.toSort?.label).toBe('To sort');
         expect(items.sections.some((item) => item.section === 'toSort')).toBe(
             false,
         );
@@ -39,9 +45,9 @@ describe('sectionOf', () => {
     });
 
     it('has Received mail, marked on every page of the mail', () => {
-        expect(items.mail.href).toBe('/mail');
-        expect(items.mail.label).toBe('Received mail');
-        expect(items.mail.hint).toBe(
+        expect(items.mail?.href).toBe('/mail');
+        expect(items.mail?.label).toBe('Received mail');
+        expect(items.mail?.hint).toBe(
             'The mail that arrived at the address for bills',
         );
         expect(items.sections.some((item) => item.section === 'mail')).toBe(
@@ -102,5 +108,146 @@ describe('navigationItems', () => {
             hint: 'It reaches who makes Fameja.app',
             icon: MessageSquareWarning,
         });
+    });
+});
+
+describe('the registry of the sections', () => {
+    it('lists the items in the order the menus use', () => {
+        expect(allItems(navigationItems()).map((item) => item.section)).toEqual(
+            [
+                'home',
+                'agenda',
+                'areas',
+                'documents',
+                'budget',
+                'family',
+                'toSort',
+                'mail',
+                'settings',
+            ],
+        );
+    });
+
+    it('has one entry per section, each with a group', () => {
+        expect(SECTIONS.map((entry) => entry.key)).toEqual(
+            allItems(navigationItems()).map((item) => item.section),
+        );
+        expect(
+            SECTIONS.filter((entry) => entry.key !== 'settings').map(
+                (entry) => entry.group,
+            ),
+        ).toEqual([
+            'home',
+            'every-day',
+            'archive',
+            'archive',
+            'every-day',
+            'archive',
+            'incoming',
+            'incoming',
+        ]);
+    });
+
+    it('leaves out a section whose feature is off, and keeps the others', () => {
+        const entries = SECTIONS.map((entry) =>
+            entry.key === 'documents'
+                ? { ...entry, feature: 'gallery' as const }
+                : entry,
+        );
+        const names = (features: { gallery?: boolean } | null): string[] =>
+            allItems(
+                navigationItems(
+                    features === null
+                        ? null
+                        : { budget: true, mail: true, ...features },
+                    entries,
+                ),
+            ).map((item) => item.section);
+
+        expect(names(null)).toContain('documents');
+        expect(names({ gallery: true })).toContain('documents');
+        expect(names({ gallery: false })).not.toContain('documents');
+        expect(names({ gallery: false })).toHaveLength(8);
+    });
+
+    it('leaves out To sort and Received mail when their feature is off', () => {
+        const entries = SECTIONS.map((entry) =>
+            entry.key === 'mail'
+                ? { ...entry, feature: 'gallery' as const }
+                : entry,
+        );
+        const off = navigationItems({ gallery: false }, entries);
+
+        expect(off.mail).toBeUndefined();
+        expect(off.toSort).toBeDefined();
+        expect(allItems(off).map((item) => item.section)).not.toContain('mail');
+        expect(navigationItems({ gallery: true }, entries).mail).toBeDefined();
+    });
+
+    it('does not break on a list without To sort, Mail or Settings', () => {
+        const items = navigationItems(null, SECTIONS.slice(0, 2));
+
+        expect(items.toSort).toBeUndefined();
+        expect(items.settings.section).toBe('settings');
+    });
+
+    it('puts Home, Budget and Areas in the bar of the phone', () => {
+        expect(barItems(navigationItems()).map((item) => item.section)).toEqual(
+            ['home', 'budget', 'areas'],
+        );
+    });
+
+    it('takes the item marked as fallback when one of the bar is missing', () => {
+        const items = navigationItems();
+        const withoutBudget = {
+            ...items,
+            sections: items.sections.filter(
+                (item) => item.section !== 'budget',
+            ),
+        };
+
+        expect(barItems(withoutBudget).map((item) => item.section)).toEqual([
+            'home',
+            'agenda',
+            'areas',
+        ]);
+    });
+
+    it('puts Home, Agenda and Areas in the bar of the phone while the Budget is off', () => {
+        const off = navigationItems({ budget: false });
+
+        expect(barItems(off).map((item) => item.section)).toEqual([
+            'home',
+            'agenda',
+            'areas',
+        ]);
+        expect(off.sections.map((item) => item.section)).not.toContain(
+            'budget',
+        );
+        expect(allItems(off).map((item) => item.section)).not.toContain(
+            'budget',
+        );
+    });
+
+    it('has no Received mail in the menu while the Mail is off', () => {
+        const off = navigationItems({ budget: true, mail: false });
+        const on = navigationItems({ budget: true, mail: true });
+
+        expect(off.mail).toBeUndefined();
+        expect(allItems(off).map((item) => item.section)).not.toContain('mail');
+        expect(on.mail?.section).toBe('mail');
+    });
+
+    it('offers New expense in Add only with the Budget on', () => {
+        const labels = (features: { budget: boolean } | null): string[] =>
+            navigationItems(features).add.map((item) => item.label);
+
+        expect(labels({ budget: true })).toContain('New expense');
+        expect(labels(null)).toContain('New expense');
+        expect(labels({ budget: false })).toEqual([
+            'Upload a file',
+            'Scan a sheet',
+            'New task',
+        ]);
     });
 });

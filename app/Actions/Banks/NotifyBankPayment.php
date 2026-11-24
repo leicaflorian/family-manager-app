@@ -35,9 +35,9 @@ final readonly class NotifyBankPayment
         $account = $transaction->financialAccount->name ?? $payment->financialAccount->name ?? '';
         $far = ! $deadline->occurrence->estimated && $this->isFar($amount, $planned);
 
-        User::query()->where('family_id', $transaction->family_id)->when($except !== null, static fn ($query) => $query->whereKeyNot($except))->orderBy('id')->get()
+        User::query()->inFamily($transaction->family_id)->when($except !== null, static fn ($query) => $query->whereKeyNot($except))->get()
             ->each(function (User $user) use ($transaction, $amount, $planned, $account, $far): void {
-                $locale = $user->locale ?? config()->string('app.locale');
+                $locale = $user->mailLocale();
                 $lines = [Translated::text(':amount from :account', ['amount' => Money::euro($amount), 'account' => $account], $locale)];
 
                 if ($far) {

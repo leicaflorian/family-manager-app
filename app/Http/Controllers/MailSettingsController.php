@@ -9,6 +9,7 @@ use App\Data\MailSettingsData;
 use App\Http\Requests\UpdateMailSettingsRequest;
 use App\Models\FamilySetting;
 use App\Models\User;
+use App\Services\FamilyFeatures;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -28,7 +29,7 @@ final class MailSettingsController extends Controller
      */
     public function edit(#[CurrentUser] User $user): Response
     {
-        return Inertia::render('settings/Mail', ['settings' => MailSettingsData::fromSettings($this->settings(), $user)]);
+        return Inertia::render('settings/Mail', ['settings' => MailSettingsData::fromSettings(FamilySetting::current(), $user)]);
     }
 
     /**
@@ -38,7 +39,7 @@ final class MailSettingsController extends Controller
      */
     public function update(UpdateMailSettingsRequest $request): RedirectResponse
     {
-        $this->settings()->update([
+        FamilySetting::current()->update([
             'mail_inbox_notify' => $request->notify(),
             'mail_inbox_notify_attachments_only' => $request->boolean('attachments_only'),
         ]);
@@ -54,20 +55,11 @@ final class MailSettingsController extends Controller
      */
     public function address(#[CurrentUser] User $user, RegenerateMailAddress $regenerate): RedirectResponse
     {
-        Gate::authorize('update', $this->settings());
-        $domain = config('services.mailgun.inbox_domain');
-        abort_unless(is_string($domain) && trim($domain) !== '', 404);
+        Gate::authorize('update', FamilySetting::current());
+        abort_unless(resolve(FamilyFeatures::class)->mailDomain() !== null, 404);
 
         $regenerate->handle($user->family);
 
         return to_route('mail-settings.edit');
-    }
-
-    /**
-     * The settings of the family, created when an old family has none yet.
-     */
-    private function settings(): FamilySetting
-    {
-        return FamilySetting::query()->firstOrCreate([]);
     }
 }

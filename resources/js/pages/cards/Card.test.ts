@@ -220,6 +220,100 @@ describe('A card', () => {
         }
     });
 
+    it('shows no payments nor consumption of a utility with the Budget off', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                card: luceRow,
+                heading: 'Electricity · Casa di via Roma',
+                dates: [],
+                budget: null,
+                consumption: null,
+            },
+            linkable: [],
+        });
+
+        for (const text of [
+            'To pay',
+            'Expected expenses',
+            'Bills paid',
+            'Record payment',
+            'See the consumption',
+        ]) {
+            expect(screen.queryByText(text)).not.toBeInTheDocument();
+        }
+        expect(screen.getByText('Data')).toBeInTheDocument();
+    });
+
+    it('shows the instalment, the total and the instalments past of a loan with the Budget off, without payments', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                heading: 'Loan · BPER Banca',
+                dates: [],
+                budget: {
+                    kind: 'expense',
+                    next: null,
+                    next_label: '',
+                    installment_number: null,
+                    installments_count: 240,
+                    installments_paid: 23,
+                    paid_amount: 14950,
+                    left_amount: 141050,
+                    numbers: [
+                        {
+                            label: 'Instalment',
+                            amount: 650,
+                            count: null,
+                            hint: null,
+                            hint_amount: null,
+                            text: null,
+                            tone: null,
+                        },
+                        {
+                            label: 'Total to pay',
+                            amount: 156000,
+                            count: null,
+                            hint: null,
+                            hint_amount: null,
+                            text: null,
+                            tone: null,
+                        },
+                    ],
+                    due_label: null,
+                    due: [],
+                    planned_label: null,
+                    planned: [],
+                    can_add_planned: false,
+                    payments_label: null,
+                    payments_more: '',
+                    payments: [],
+                    pay: [],
+                    can_pay: false,
+                    can_add_expense: false,
+                    payments_previous: null,
+                    payments_next: null,
+                },
+            },
+            linkable: [],
+        });
+
+        expect(screen.getByText('Instalment')).toBeInTheDocument();
+        expect(screen.getByText('Total to pay')).toBeInTheDocument();
+        expect(
+            screen.getByRole('progressbar', { name: 'Instalments paid' }),
+        ).toHaveAttribute('aria-valuenow', '23');
+        expect(screen.getByText('23 of 240')).toBeInTheDocument();
+        for (const text of [
+            'Next instalment',
+            'Expected expenses',
+            'Instalments paid in the year',
+            'Record payment',
+        ]) {
+            expect(screen.queryByText(text)).not.toBeInTheDocument();
+        }
+    });
+
     it('has the documents as a section, with Link document and Upload as plain links', () => {
         renderPage(Card, {
             card: policyDetail,

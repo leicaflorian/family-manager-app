@@ -10,7 +10,6 @@
  */
 import { Head } from '@inertiajs/vue3';
 import { Plus, Shapes } from '@lucide/vue';
-import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -20,10 +19,9 @@ import FmFold from '@/components/fm/FmFold.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { newCardUrl } from '@/lib/cards';
 import { areaSummary } from '@/lib/cardTexts';
-import { areas } from '@/routes';
 import { edit as areasSettings } from '@/routes/settings/areas';
 
 const {
@@ -45,10 +43,11 @@ const {
     can_show?: boolean;
 }>();
 
-usePageTrail(() => [
-    { label: trans('Areas'), href: areas().url },
-    { label: area.label },
-]);
+const { title, head } = usePageMeta({
+    info: 'area',
+    title: () => area.label,
+    parent: 'areas',
+});
 
 /** The cards still open. */
 const open = computed(() => area.cards.filter((card) => !card.closed));
@@ -86,11 +85,11 @@ const closed = computed(() => area.cards.filter((card) => card.closed));
 </script>
 
 <template>
-    <Head :title="area.label" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="area.label"
+            :title="title"
             :subtitle="areaSummary(area.count, area.overdue)"
         >
             <template v-if="canCreate" #actions>

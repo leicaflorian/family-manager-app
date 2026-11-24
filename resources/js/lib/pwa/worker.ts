@@ -9,7 +9,7 @@ export const OFFLINE_PAGE = '/offline.html';
 /** Its cache. */
 export const OFFLINE_CACHE = 'fm-offline';
 /** The address of *Share* in the manifest (`share_target`). */
-export const SHARE_PATH = '/scan/share';
+const SHARE_PATH = '/scan/share';
 /** Where *Share* ends: the *Scan* page, which finds the files. */
 const SHARED_PAGE = '/scan?shared=1';
 

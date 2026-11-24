@@ -28,7 +28,7 @@ const props = {
         },
     ],
     roles: [
-        { value: 'parent', label: 'Parent', help: null },
+        { value: 'parent', label: 'Adult / Parent', help: null },
         { value: 'other', label: 'Other', help: null },
     ],
 };

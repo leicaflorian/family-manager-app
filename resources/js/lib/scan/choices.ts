@@ -16,20 +16,20 @@ export type Resolution = { dots: number; name: string; bytes: number };
  * The three resolutions (a function: the names follow the language of the page, which is known after start). The weight at 200 dots was measured on 10/10/2026 (0.6-0.7 MB); the other two are
  * estimated from the number of dots, and a grey side was never weighed: it counts as a colour one.
  */
-export const resolutions = (): Resolution[] => [
+const resolutions = (): Resolution[] => [
     { dots: 150, name: trans('Light'), bytes: 0.4 * MB },
     { dots: 200, name: trans('Normal'), bytes: 0.65 * MB },
     { dots: 300, name: trans('High'), bytes: 1.5 * MB },
 ];
 
 /** What holds until something is chosen. */
-export const DEFAULT_RESOLUTION = 150;
+const DEFAULT_RESOLUTION = 150;
 /**
  * Grey since 11/10/2026, asked by the owner: most sheets are text, and a colour one is chosen when it is needed.
  * For the same reason the colour is not remembered: after one scan in colour the page would open in colour.
  */
-export const DEFAULT_COLOUR: Colour = 'grey';
-export const DEFAULT_SOURCE: Source = 'feeder';
+const DEFAULT_COLOUR: Colour = 'grey';
+const DEFAULT_SOURCE: Source = 'feeder';
 
 /** The name of a colour choice, in the language of the page. */
 export function colourName(colour: Colour): string {

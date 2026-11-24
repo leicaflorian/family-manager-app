@@ -45,6 +45,9 @@ final class LinkedDevice extends FamilyModel
 
     use MassPrunable;
 
+    /** The key of the session that holds the id of the linked phone: while it is there, only the *Scan* opens. */
+    public const string SESSION_KEY = 'linked_device_id';
+
     /** Days without entries after which a phone is forgotten. */
     public const int EXPIRES_AFTER_DAYS = 180;
 

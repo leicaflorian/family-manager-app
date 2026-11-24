@@ -16,6 +16,7 @@ use App\Policies\FamilyPolicy;
 use App\Services\Banks\EnableBankingFeed;
 use App\Services\Banks\FakeBankFeed;
 use App\Services\Banks\OffBankFeed;
+use App\Services\FamilyFeatures;
 use App\Services\Reading\AiDocumentReader;
 use App\Services\ReleaseNotes;
 use App\Support\CurrentFamily;
@@ -56,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
         // One per request too: the loan observer keeps it quiet while it writes the planned expense of a loan
         $this->app->scoped(LoanPlanObserver::class);
 
+        // One per request too: what it read of a family is forgotten when the family is saved
+        $this->app->scoped(FamilyFeatures::class);
+
         // The documents are read through the Laravel AI SDK; the tests of the queue bind FakeDocumentReader instead
         $this->app->bind(DocumentReader::class, AiDocumentReader::class);
 
@@ -77,6 +81,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configurePolicies();
+
+        // What FamilyFeatures read of a family goes stale when the family changes
+        Family::saved(static fn (Family $family) => resolve(FamilyFeatures::class)->forget($family));
+        Family::deleted(static fn (Family $family) => resolve(FamilyFeatures::class)->forget($family));
 
         // The head of every page written by the server, for search engines and link previews that run no JavaScript
         View::composer('app', fn (ViewContract $view) => $view->with('head', resolve(PageMeta::class)->for(request())));

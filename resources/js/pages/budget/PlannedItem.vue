@@ -32,7 +32,7 @@ import FmRow from '@/components/fm/FmRow.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useFormat } from '@/composables/useFormat';
 import {
     capitalized,
@@ -42,7 +42,6 @@ import {
     skippedMonthsText,
 } from '@/lib/budget';
 import type { RecurrenceUnit } from '@/lib/budget';
-import { budget } from '@/routes';
 import { show as showMovement } from '@/routes/budget/movements';
 import { index, edit } from '@/routes/budget/planned';
 import { show as showCard } from '@/routes/cards';
@@ -75,11 +74,11 @@ const row = computed(() => detail.row);
 /** Whether it is an income. */
 const income = computed(() => row.value.kind === 'income');
 
-usePageTrail(() => [
-    { label: trans('Budget'), href: budget().url },
-    { label: trans('Recurring'), href: index().url },
-    { label: row.value.title },
-]);
+const { title, head } = usePageMeta({
+    info: 'planned-item',
+    title: () => row.value.title,
+    parent: ['budget', { label: trans('Recurring'), href: index().url }],
+});
 
 /** How it repeats, as `recurrenceText` writes it. */
 function repeats(withEnd: boolean): string {
@@ -310,10 +309,10 @@ const exceptionIcons = {
 </script>
 
 <template>
-    <Head :title="row.title" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmTitle :title="row.title" :subtitle="summary">
+        <FmTitle :title="title" :subtitle="summary">
             <template #overline>
                 <span class="flex items-center gap-1.5 text-label text-warning">
                     <FmIcon :icon="Repeat" :size="16" />

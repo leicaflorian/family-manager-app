@@ -50,7 +50,7 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { useReadingPoll } from '@/composables/useReadingPoll';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { capitalized, longMonth, monthName } from '@/lib/budget';
@@ -65,7 +65,7 @@ import {
 import { formatNumber, formatQuantity, unitLabel } from '@/lib/format';
 import { rowLink } from '@/lib/rows';
 import { cn } from '@/lib/utils';
-import { budget, upload } from '@/routes';
+import { upload } from '@/routes';
 import { consumption as consumptionRoute } from '@/routes/budget';
 import { read as readRoute } from '@/routes/budget/consumption';
 import { show as documentPage } from '@/routes/documents';
@@ -88,10 +88,11 @@ const [DefineBadges, ReuseBadges] = createReusableTemplate<{
     paid?: boolean;
 }>();
 
-usePageTrail(() => [
-    { label: trans('Budget'), href: budget().url },
-    { label: trans('Usage') },
-]);
+const { title, head } = usePageMeta({
+    info: 'consumption',
+    title: () => trans('Usage'),
+    parent: 'budget',
+});
 
 /** The panel of a consumption is open. */
 const sheetOpen = ref(false);
@@ -448,7 +449,7 @@ const emptyText = computed((): string =>
 </script>
 
 <template>
-    <Head :title="$t('Usage')" />
+    <Head :title="head" />
 
     <DefineBadges v-slot="{ bill, paid }">
         <span
@@ -801,7 +802,7 @@ const emptyText = computed((): string =>
     </DefineDetail>
 
     <div class="flex max-w-[1120px] flex-col gap-3.5 wide:gap-5">
-        <FmTitle :title="$t('Usage')">
+        <FmTitle :title="title">
             <template v-if="wide && hasBills && consumption.canCreate" #actions>
                 <FmButton
                     variant="neutral"

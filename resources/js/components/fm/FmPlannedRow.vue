@@ -51,7 +51,7 @@ const subtitle = computed(() =>
         <template #after>
             <span class="flex items-center gap-5">
                 <span
-                    class="hidden w-28 truncate text-body-sm text-ink-soft lg:block"
+                    class="hidden w-28 truncate text-body-sm text-ink-soft wide:block"
                     >{{ row.person ?? $t('Whole family') }}</span
                 >
                 <span

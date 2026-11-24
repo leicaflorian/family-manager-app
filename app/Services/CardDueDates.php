@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Cards\CardType;
+use App\Enums\Feature;
 use App\Models\Employment;
 use App\Models\Enrollment;
 use App\Models\Home;
@@ -36,7 +37,11 @@ final readonly class CardDueDates
     /** The models of the cards a planned expense refers to with its pair `card_type`, `card_id`. */
     private const array PLANNED_CARDS = [Utility::class, InsurancePolicy::class, Loan::class, Enrollment::class, Home::class, Vehicle::class, Subscription::class];
 
-    public function __construct(private Deadlines $deadlines) {}
+    /**
+     * @param  Deadlines  $deadlines  reads the open due dates
+     * @param  FamilyFeatures  $features  tells whether the family uses the Budget
+     */
+    public function __construct(private Deadlines $deadlines, private FamilyFeatures $features) {}
 
     /**
      * For the rows of *An area*: the next open due date of each card, late or in the next {@see self::AHEAD_MONTHS}
@@ -45,7 +50,7 @@ final readonly class CardDueDates
      * @param  CardType  $type  the type of the cards
      * @param  iterable<Model>  $cards  the cards of that type
      * @param  CarbonImmutable  $today  today in Rome
-     * @return array<int, array{amount: float, late: bool}> by id of the card; the cards without one are missing
+     * @return array<int, array{amount: float, late: bool}> by id of the card; the cards without one are missing, all of them with the Budget off
      */
     public function of(CardType $type, iterable $cards, CarbonImmutable $today): array
     {
@@ -57,7 +62,7 @@ final readonly class CardDueDates
 
         $income = $type->model() === Employment::class;
 
-        if ($ids === [] || (! $income && ! in_array($type->model(), self::PLANNED_CARDS, true))) {
+        if ($ids === [] || ! $this->features->on(Feature::Budget) || (! $income && ! in_array($type->model(), self::PLANNED_CARDS, true))) {
             return [];
         }
 

@@ -6,6 +6,7 @@ namespace App\Actions\Mail;
 
 use App\Models\Family;
 use App\Models\FamilySetting;
+use App\Services\FamilyFeatures;
 use App\Support\CurrentFamily;
 use App\Support\Mail\MailAddress;
 use Closure;
@@ -32,23 +33,23 @@ final readonly class AssignMailAddress
      */
     public function handle(Family $family): ?string
     {
-        $domain = config('services.mailgun.inbox_domain');
+        $domain = resolve(FamilyFeatures::class)->mailDomain();
 
-        if (! is_string($domain) || trim($domain) === '') {
+        if ($domain === null) {
             return null;
         }
 
         $maker = $this->maker ?? MailAddress::make(...);
 
         for ($try = 0; $try < self::MAX_TRIES; $try++) {
-            $address = strtolower($maker($family->name, trim($domain)));
+            $address = strtolower($maker($family->name, $domain));
 
             if (FamilySetting::addressTaken($address)) {
                 continue;
             }
 
             CurrentFamily::using($family->id, function () use ($address): void {
-                FamilySetting::query()->firstOrCreate([])->forceFill(['mail_inbox_recipient' => $address])->save();
+                FamilySetting::current()->forceFill(['mail_inbox_recipient' => $address])->save();
             });
 
             return $address;

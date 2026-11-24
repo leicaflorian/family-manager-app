@@ -9,6 +9,7 @@ use App\Cards\CardRules;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
 use App\Cards\FieldKind;
+use App\Enums\Feature;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\IntervalUnit;
 use App\Http\Requests\Concerns\LinksDocuments;
@@ -16,6 +17,7 @@ use App\Http\Requests\Concerns\UploadsFiles;
 use App\Models\Expense;
 use App\Models\InsurancePolicy;
 use App\Rules\OfFamily;
+use App\Services\FamilyFeatures;
 use Closure;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Database\Eloquent\Model;
@@ -29,7 +31,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * The form of a card, new or changed (only an `admin`). The fields and their
  * rules come from the description of the card type in the route; new or
  * changed, it can also bring the files of its documents and the documents to
- * link to it or unlink from it, chosen in the form.
+ * link to it or unlink from it, chosen in the form. With the Budget off a card
+ * plans no expense and moves no payment.
  */
 final class SaveCardRequest extends FormRequest
 {
@@ -128,8 +131,8 @@ final class SaveCardRequest extends FormRequest
     }
 
     /**
-     * The payment just made that moves to the new policy, or null when there is none or it is not a payment of the
-     * premium of one of the policies replaced.
+     * The payment just made that moves to the new policy, or null when there is none, it is not a payment of the
+     * premium of one of the policies replaced or the Budget is off.
      *
      * A payment deleted meanwhile, or of another family, is not found and ignored.
      */
@@ -138,7 +141,7 @@ final class SaveCardRequest extends FormRequest
         $id = $this->input('replace_payment');
         $old = $this->policiesToReplace();
 
-        if (! is_numeric($id) || $old->isEmpty()) {
+        if (! is_numeric($id) || $old->isEmpty() || ! $this->budgetOn()) {
             return null;
         }
 
@@ -274,11 +277,19 @@ final class SaveCardRequest extends FormRequest
     }
 
     /**
-     * Whether the form can create a planned expense: a new subscription.
+     * Whether the form can create a planned expense: a new subscription, with the Budget on.
      */
     private function canPlan(): bool
     {
-        return $this->cardType()->type() === 'subscription' && ! $this->card() instanceof Model;
+        return $this->cardType()->type() === 'subscription' && ! $this->card() instanceof Model && $this->budgetOn();
+    }
+
+    /**
+     * Whether the family uses the Budget.
+     */
+    private function budgetOn(): bool
+    {
+        return resolve(FamilyFeatures::class)->on(Feature::Budget);
     }
 
     /**

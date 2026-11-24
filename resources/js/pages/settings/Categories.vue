@@ -18,10 +18,9 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { errors } from '@/lib/errors';
-import { settings } from '@/routes';
 import { destroy, store, update } from '@/routes/categories';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { categories, cardTypes, canEdit } = defineProps<{
     /** The tree, from the main ones. */
@@ -207,19 +206,20 @@ function deleteCategory(): void {
     }
 }
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans('Document categories') },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-categories',
+    title: () => trans('Document categories'),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('Document categories')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="categories">
         <template #title>
             <FmTitle
-                :title="$t('Document categories')"
+                :title="title"
                 :subtitle="
                     $t(
                         'They say what kind of document it is; whose it is and what it refers to is said by the links',

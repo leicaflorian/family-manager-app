@@ -21,10 +21,10 @@ import type { Pixels } from './crop';
  * Directus allowed for the same work, so a slow phone finishes and only a worker
  * that is really stuck is cut.
  */
-export const DEWARP_TIMEOUT_MS = 60_000;
+const DEWARP_TIMEOUT_MS = 60_000;
 
 /** The same for loading the engine and downloading the model (about 46 MB over wifi). */
-export const LOAD_TIMEOUT_MS = 120_000;
+const LOAD_TIMEOUT_MS = 120_000;
 
 /** What the page tells the worker. */
 export type ToWorker =

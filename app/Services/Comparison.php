@@ -151,7 +151,7 @@ final readonly class Comparison
      */
     private function unpaid(array $deadlines, CarbonImmutable $today): array
     {
-        $open = array_values(array_filter($deadlines, static fn (Deadline $deadline): bool => ! $deadline->isPaid()));
+        $open = array_values(array_filter($deadlines, static fn (Deadline $deadline): bool => $deadline->isDue()));
         // A stable sort: the late ones move up and keep the order of their dates
         usort($open, static fn (Deadline $a, Deadline $b): int => $b->isLate($today) <=> $a->isLate($today));
 

@@ -13,11 +13,11 @@ import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { areaOf, areaTile } from '@/lib/areas';
 import { cardIcon } from '@/lib/cards';
 import { cn } from '@/lib/utils';
-import { areas, upload } from '@/routes';
+import { upload } from '@/routes';
 import { create } from '@/routes/cards';
 
 const { types, document = null } = defineProps<{
@@ -39,10 +39,11 @@ function formUrl(type: string): string {
     }).url;
 }
 
-usePageTrail(() => [
-    { label: trans('Areas'), href: areas().url },
-    { label: trans('New card') },
-]);
+const { title, head } = usePageMeta({
+    info: 'card-new',
+    title: () => trans('New card'),
+    parent: 'areas',
+});
 
 /** The types grouped by area, the areas in the order they first appear. */
 const groups = computed(() => {
@@ -72,13 +73,10 @@ function tile(area: string): string {
 </script>
 
 <template>
-    <Head :title="$t('New card')" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
-        <FmTitle
-            :title="$t('New card')"
-            :subtitle="$t('What do you want to add?')"
-        />
+        <FmTitle :title="title" :subtitle="$t('What do you want to add?')" />
 
         <Link
             v-if="document === null"

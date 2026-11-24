@@ -119,7 +119,7 @@ export default defineConfig({
             'resources/release/notes.json',
         ],
         sortTailwindcss: {
-            functions: ['clsx', 'cn', 'cva'],
+            functions: ['clsx', 'cn'],
             stylesheet: 'resources/css/app.css',
         },
     },

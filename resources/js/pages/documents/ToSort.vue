@@ -30,6 +30,8 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { trans } from 'laravel-vue-i18n';
+import { usePageMeta } from '@/composables/usePageMeta';
 import ToSortFileRow from '@/components/documents/ToSortFileRow.vue';
 import ToSortSelectionBar from '@/components/documents/ToSortSelectionBar.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -44,6 +46,7 @@ import FmLinkPhoneSheet from '@/components/fm/FmLinkPhoneSheet.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFileUpload } from '@/composables/useFileUpload';
+import { useFeature } from '@/composables/useFeatures';
 import { useFilterBox } from '@/composables/useFilterBox';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import { useReadingPoll } from '@/composables/useReadingPoll';
@@ -67,6 +70,9 @@ const props = defineProps<{
 
 /** The layout of the window: it decides the header, the filters, the rows and the bars. */
 const mode = useLayoutMode();
+
+/** Whether the family has the mail for the bills: the texts talk about it only then. */
+const mailOn = useFeature('mail');
 
 /** The phone layout. */
 const phone = computed((): boolean => mode.value === 'phone');
@@ -193,14 +199,19 @@ function confirmDelete(): void {
         },
     });
 }
+
+const { title, head } = usePageMeta({
+    info: 'to-sort',
+    title: () => trans('To sort'),
+});
 </script>
 
 <template>
-    <Head :title="$t('To sort')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-4 wide:gap-6">
         <FmTitle
-            :title="$t('To sort')"
+            :title="title"
             :subtitle="
                 waiting === 0
                     ? undefined
@@ -310,9 +321,13 @@ function confirmDelete(): void {
                     :icon="Inbox"
                     :title="$t('Nothing to sort')"
                     :text="
-                        $t(
-                            'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
-                        )
+                        mailOn
+                            ? $t(
+                                  'The files you upload, or that arrive by mail or from the phone, wait here until they become a document.',
+                              )
+                            : $t(
+                                  'The files you upload, or that arrive from the phone, wait here until they become a document.',
+                              )
                     "
                 />
 
@@ -385,9 +400,13 @@ function confirmDelete(): void {
                     class="m-0 text-body-sm text-ink-soft"
                 >
                     {{
-                        $t(
-                            'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
-                        )
+                        mailOn
+                            ? $t(
+                                  'The files that arrived by mail, from the phone or uploaded here stay until you import or delete them.',
+                              )
+                            : $t(
+                                  'The files that arrived from the phone or uploaded here stay until you import or delete them.',
+                              )
                     }}
                 </p>
             </div>

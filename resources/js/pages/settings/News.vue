@@ -9,8 +9,7 @@ import { trans } from 'laravel-vue-i18n';
 import FmSettingsPage from '@/components/fm/FmSettingsPage.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
-import { usePageTrail } from '@/composables/usePageTrail';
-import { settings } from '@/routes';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { release, notes } = defineProps<{
     /** The version that runs (`dev` in development). */
@@ -21,19 +20,20 @@ const { release, notes } = defineProps<{
 
 const { date } = useFormat();
 
-usePageTrail(() => [
-    { label: trans('Settings'), href: settings().url },
-    { label: trans("What's new") },
-]);
+const { title, head } = usePageMeta({
+    info: 'settings-news',
+    title: () => trans("What's new"),
+    parent: 'settings',
+});
 </script>
 
 <template>
-    <Head :title="$t('What\'s new')" />
+    <Head :title="head" />
 
     <FmSettingsPage current="news">
         <template #title>
             <FmTitle
-                :title="$t('What\'s new')"
+                :title="title"
                 :subtitle="$t('What changes in the app, version by version')"
             />
         </template>

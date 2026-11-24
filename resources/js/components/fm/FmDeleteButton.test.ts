@@ -69,10 +69,10 @@ describe('FmDeleteButton', () => {
     });
 
     it('takes the place the page gives it, like the button on the left of a row', () => {
-        renderPage(FmDeleteButton, { ...props, class: 'lg:mr-auto' });
+        renderPage(FmDeleteButton, { ...props, class: 'wide:mr-auto' });
 
         expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass(
-            'lg:mr-auto',
+            'wide:mr-auto',
         );
     });
 

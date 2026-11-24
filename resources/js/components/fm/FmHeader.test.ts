@@ -11,9 +11,13 @@ describe('FmHeader', () => {
             },
         });
 
-        expect(
-            screen.getByRole('heading', { level: 1, name: 'Hi, Rosa' }),
-        ).toBeInTheDocument();
+        const heading = screen.getByRole('heading', {
+            level: 1,
+            name: 'Hi, Rosa',
+        });
+        expect(heading).toBeInTheDocument();
+        // larger with the layout of the computer, as the card of `AuthLayout`
+        expect(heading).toHaveClass('text-title-mobile', 'computer:text-title');
         expect(screen.getByText('Marco invited you.')).toBeInTheDocument();
     });
 });

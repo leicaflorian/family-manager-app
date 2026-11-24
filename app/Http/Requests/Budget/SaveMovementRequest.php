@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Budget;
 
+use App\Enums\Feature;
 use App\Enums\IncomeType;
 use App\Http\Requests\Concerns\LinksDocuments;
 use App\Http\Requests\Concerns\ReadsCard;
@@ -13,7 +14,7 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Rules\OfFamily;
-use App\Services\Banks\BankFeedAvailability;
+use App\Services\FamilyFeatures;
 use App\Services\Movements;
 use App\Support\LocalPath;
 use App\Support\PlannedKind;
@@ -248,7 +249,7 @@ final class SaveMovementRequest extends FormRequest
      */
     private function bankTransactionRule(string $attribute, mixed $value, Closure $fail): void
     {
-        $transaction = BankFeedAvailability::on() && is_numeric($value) ? BankTransaction::query()->unsorted()->find((int) $value) : null;
+        $transaction = resolve(FamilyFeatures::class)->on(Feature::BankFeed) && is_numeric($value) ? BankTransaction::query()->unsorted()->find((int) $value) : null;
 
         if (! $transaction instanceof BankTransaction || $transaction->kind() !== $this->kind()) {
             $fail(__('This movement from the bank is not to sort any more.'));

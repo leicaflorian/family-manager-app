@@ -17,8 +17,8 @@ import FmPager from '@/components/fm/FmPager.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
-import { dashboard, notices } from '@/routes';
+import { usePageMeta } from '@/composables/usePageMeta';
+import { notices } from '@/routes';
 import { readAll } from '@/routes/notices';
 
 const props = defineProps<{
@@ -36,10 +36,11 @@ const props = defineProps<{
     hasNotices: boolean;
 }>();
 
-usePageTrail(() => [
-    { label: trans('Home'), href: dashboard().url },
-    { label: trans('Notices') },
-]);
+const { title, head } = usePageMeta({
+    info: 'notices',
+    title: () => trans('Notices'),
+    parent: 'home',
+});
 
 const page = usePage();
 
@@ -76,10 +77,10 @@ function markAll(): void {
 </script>
 
 <template>
-    <Head :title="$t('Notices')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="$t('Notices')">
+        <FmTitle :title="title">
             <template v-if="anyUnread" #actions>
                 <FmSectionLink @click="markAll">{{
                     $t('Mark all as read')

@@ -11,6 +11,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitLinkedDevice;
 use App\Http\Middleware\LimitVisit;
 use App\Http\Middleware\RecordLastSeen;
+use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\SeparateHosts;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\SignInLinkedDevice;
@@ -50,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // First of the group: a page of the app on the host of the panel answers 404 before a session or a sign-in
             SeparateHosts::class,
         ]);
+
+        $middleware->alias(['feature' => RequireFeature::class]);
 
         // Laravel sorts the middleware by priority and `auth` would run before this one: the phone must enter first
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: SignInLinkedDevice::class);

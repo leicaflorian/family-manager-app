@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Families\ChangeFeatures;
 use App\Actions\Families\CreateFamily;
 use App\Actions\Mail\AssignMailAddress;
 use App\Models\Family;
@@ -17,10 +18,14 @@ function settingsOf(Family $family): ?FamilySetting
     return FamilySetting::query()->withoutGlobalScopes()->where('family_id', $family->id)->first();
 }
 
-test('a new family gets its address at sign-up', function (): void {
+test('a new family has no address: it gets one when the Mail turns on', function (): void {
     config(['services.mailgun.inbox_domain' => 'bollette.familymanager.test']);
 
     $admin = resolve(CreateFamily::class)->handle('De Luca', 'Anna', 'De Luca', 'anna@example.test', 'password-1234');
+
+    expect(settingsOf($admin->family)?->mail_inbox_recipient)->toBeNull();
+
+    resolve(ChangeFeatures::class)->handle($admin->family, false, true);
 
     expect(settingsOf($admin->family)?->mail_inbox_recipient)
         ->toMatch('/^deluca\.[a-hjkmnp-z2-9]{6}@bollette\.familymanager\.test$/');

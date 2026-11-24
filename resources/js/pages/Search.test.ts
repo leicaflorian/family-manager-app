@@ -10,8 +10,16 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { computed } from 'vue';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Search from './Search.vue';
+
+const shared = vi.hoisted(() => ({ budget: true }));
+
+vi.mock('@/composables/useFeatures', () => ({
+    useFeature: () => computed((): boolean => shared.budget),
+    useFeatures: () => computed(() => ({ budget: shared.budget })),
+}));
 
 /**
  * A result as the server sends it.
@@ -216,6 +224,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    shared.budget = true;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -462,6 +471,23 @@ describe('Search', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
+    it('on the phone, has the «i» of the page beside the box', () => {
+        renderPage(Search, { results: panda });
+
+        expect(
+            screen.getByRole('button', { name: 'What is this page' }),
+        ).toBeInTheDocument();
+    });
+
+    it('on the computer, has the «i» once, beside the title', () => {
+        wide(true);
+        renderPage(Search, { results: panda });
+
+        expect(
+            screen.getAllByRole('button', { name: 'What is this page' }),
+        ).toHaveLength(1);
+    });
+
     it('on the phone, draws no Back of its own: the layout draws the link to the Home', () => {
         renderPage(Search, { results: panda });
 
@@ -529,5 +555,17 @@ describe('Search', () => {
                 name: '10 results for «Panda»',
             }),
         ).toBeVisible();
+    });
+
+    it('does not name the expenses in the help while the Budget is off', () => {
+        const help = /^I search in the names/;
+        const first = renderPage(Search, { results: panda });
+        expect(screen.getByText(help)).toHaveTextContent('expenses');
+        first.unmount();
+
+        shared.budget = false;
+        renderPage(Search, { results: panda });
+
+        expect(screen.getByText(help)).not.toHaveTextContent('expenses');
     });
 });

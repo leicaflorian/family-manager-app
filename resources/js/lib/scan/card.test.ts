@@ -5,6 +5,7 @@ import {
     improveCanvas,
     layout,
     millimetreOf,
+    roundedRect,
     sizeOf,
 } from './card';
 import { improveSide } from './improve';
@@ -243,5 +244,32 @@ describe('improveCanvas', () => {
                 improveSide(before, { angle: 0, enhance: 0, grey: true }).data,
             ),
         );
+    });
+});
+
+describe('roundedRect', () => {
+    it('draws a closed path with the four corners rounded by the radius', () => {
+        const calls: string[] = [];
+        const context = new Proxy(
+            {},
+            {
+                get:
+                    (_target, name: string) =>
+                    (...args: number[]) =>
+                        calls.push(`${name}(${args.join(',')})`),
+            },
+        ) as CanvasRenderingContext2D;
+
+        roundedRect(context, 10, 20, 100, 50, 5);
+
+        expect(calls).toEqual([
+            'beginPath()',
+            'moveTo(15,20)',
+            'arcTo(110,20,110,70,5)',
+            'arcTo(110,70,10,70,5)',
+            'arcTo(10,70,10,20,5)',
+            'arcTo(10,20,110,20,5)',
+            'closePath()',
+        ]);
     });
 });

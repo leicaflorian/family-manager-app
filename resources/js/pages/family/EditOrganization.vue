@@ -18,8 +18,7 @@ import { errors, listErrors } from '@/lib/errors';
 import { organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
-import { usePageTrail } from '@/composables/usePageTrail';
-import { family } from '@/routes';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const { organization, types } = defineProps<{
     /** The organization to change, or null for a new one. */
@@ -54,35 +53,27 @@ function save(): void {
 
 useSaveShortcut(save, () => !form.processing);
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('Organizations'), href: index().url },
-    ...(organization ? [{ label: organization.name, href: back.value }] : []),
-    {
-        label: organization
+const { title, head } = usePageMeta({
+    info: 'organization-form',
+    title: () =>
+        organization
             ? trans('Edit :name', { name: organization.name })
             : trans('New organization'),
-    },
-]);
+    parent: () => [
+        'family',
+        { label: trans('Organizations'), href: index().url },
+        ...(organization
+            ? [{ label: organization.name, href: back.value }]
+            : []),
+    ],
+});
 </script>
 
 <template>
-    <Head
-        :title="
-            organization
-                ? $t('Edit :name', { name: organization.name })
-                : $t('New organization')
-        "
-    />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle
-            :title="
-                organization
-                    ? $t('Edit :name', { name: organization.name })
-                    : $t('New organization')
-            "
-        />
+        <FmTitle :title="title" />
         <div
             class="flex flex-col gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start"
         >

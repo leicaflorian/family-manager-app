@@ -35,6 +35,7 @@ import {
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, shallowRef, watch } from 'vue';
+import { usePageMeta } from '@/composables/usePageMeta';
 import AgendaCalendar from '@/components/agenda/AgendaCalendar.vue';
 import AgendaCalendarLinkPanel from '@/components/agenda/AgendaCalendarLinkPanel.vue';
 import FmAgendaFilters from '@/components/fm/FmAgendaFilters.vue';
@@ -447,12 +448,17 @@ const payAction = computed((): string =>
               { query: { from_agenda: 1 } },
           ),
 );
+
+const { title, head } = usePageMeta({
+    info: 'agenda',
+    title: () => trans('Agenda'),
+});
 </script>
 
 <template>
-    <Head v-if="!embedded" :title="$t('Agenda')" />
+    <Head v-if="!embedded" :title="head" />
 
-    <FmTitle :title="$t('Agenda')">
+    <FmTitle :title="title">
         <template v-if="month === null" #beside>
             <FmTabs
                 variant="pill"

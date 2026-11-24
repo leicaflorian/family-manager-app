@@ -323,3 +323,10 @@ test('after the copy the open automatic reminders take the new title and the don
             ->and($done->title)->toBe('Documento in scadenza · Tessera sanitaria · scade il 01/06/2026');
     });
 });
+
+test('a family copied from Directus has budget and mail on', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    $family = DB::table('families')->where('name', 'Verdi')->sole();
+    expect((bool) $family->budget_enabled)->toBeTrue()->and((bool) $family->mail_enabled)->toBeTrue();
+});

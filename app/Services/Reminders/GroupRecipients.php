@@ -7,7 +7,6 @@ namespace App\Services\Reminders;
 use App\Models\Person;
 use App\Models\ReminderGroup;
 use App\Models\User;
-use App\Support\CurrentFamily;
 use App\Support\Reminders\Notices;
 use App\Support\Reminders\NotificationRule;
 use Illuminate\Support\Collection;
@@ -104,6 +103,6 @@ final class GroupRecipients
      */
     private function accounts(): Collection
     {
-        return $this->accounts ??= User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
+        return $this->accounts ??= User::ofCurrentFamily();
     }
 }

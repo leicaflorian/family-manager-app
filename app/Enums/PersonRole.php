@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Data\OptionData;
 use App\Enums\Concerns\HasLabel;
 
 /**
@@ -16,4 +17,14 @@ enum PersonRole: string
     case Parent = 'parent';
     case Child = 'child';
     case Other = 'other';
+
+    /**
+     * The roles as the options of a menu on a page.
+     *
+     * @return list<OptionData>
+     */
+    public static function optionData(): array
+    {
+        return OptionData::list(self::options());
+    }
 }

@@ -695,15 +695,24 @@ export function sizeOf(card: Pick<Card, 'cut' | 'turns' | 'millimetre'>): Size {
         : { width, height };
 }
 
-/** A rectangle with its corners rounded by `radius`, as the path of the canvas. */
-function outline(
+/**
+ * A rectangle with its corners rounded by `radius`, as the path of the canvas: to clip a card, whose corners are round.
+ *
+ * @param context - the canvas to draw the path on
+ * @param x - the left side
+ * @param y - the top side
+ * @param width - the width
+ * @param height - the height
+ * @param radius - the radius of the corners
+ */
+export function roundedRect(
     context: CanvasRenderingContext2D,
     x: number,
     y: number,
     width: number,
     height: number,
     radius: number,
-) {
+): void {
     context.beginPath();
     context.moveTo(x + radius, y);
     context.arcTo(x + width, y, x + width, y + height, radius);
@@ -764,7 +773,7 @@ export async function sheetCanvas(cards: Card[]): Promise<HTMLCanvasElement> {
             );
             context.rotate((card.turns * Math.PI) / 2);
             context.scale(zoom, zoom);
-            outline(
+            roundedRect(
                 context,
                 -box.width / 2,
                 -box.height / 2,

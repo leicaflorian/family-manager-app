@@ -28,8 +28,7 @@ import {
 } from '@/routes/documents';
 import type { Action } from '@/lib/actions';
 import { destroy, edit, index } from '@/routes/organizations';
-import { usePageTrail } from '@/composables/usePageTrail';
-import { family } from '@/routes';
+import { usePageMeta } from '@/composables/usePageMeta';
 
 const {
     organization,
@@ -109,19 +108,19 @@ const actions = computed((): Action[] => [
         : []),
 ]);
 
-usePageTrail(() => [
-    { label: trans('Family'), href: family().url },
-    { label: trans('Organizations'), href: index().url },
-    { label: organization.name },
-]);
+const { title, head } = usePageMeta({
+    info: 'organization',
+    title: () => organization.name,
+    parent: ['family', { label: trans('Organizations'), href: index().url }],
+});
 </script>
 
 <template>
-    <Head :title="organization.name" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-5">
         <FmTitle
-            :title="organization.name"
+            :title="title"
             :subtitle="
                 organization.type_labels.length > 0
                     ? organization.type_labels.join(', ')

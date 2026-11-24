@@ -52,12 +52,12 @@ const {
 }>();
 
 /** The widths of the panel on the computer. */
-export type SheetSize = 'md' | 'lg';
+type SheetSize = 'md' | 'lg';
 
 /** The widest the panel gets on the computer, for each size. */
 const widths: Record<SheetSize, string> = {
-    md: cn('lg:max-w-[560px]'),
-    lg: cn('lg:max-w-[640px]'),
+    md: cn('wide:max-w-[560px]'),
+    lg: cn('wide:max-w-[640px]'),
 };
 
 /** Open or closed. */
@@ -149,12 +149,12 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                 @escape-key-down="keepOpenForMenu"
                 @open-auto-focus="focusMarked"
                 :class="[above ? 'z-[70]' : 'z-50', widths[size]]"
-                class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-sheet bg-card px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none lg:inset-x-auto lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-sheet lg:p-7 lg:shadow-dialog lg:fade-in-0 lg:fade-out-0 lg:zoom-in-95 lg:zoom-out-95 lg:slide-in-from-bottom-2 lg:slide-out-to-bottom-2"
+                class="fixed inset-x-0 bottom-0 flex max-h-[90dvh] flex-col gap-3.5 overflow-y-auto rounded-t-sheet bg-card px-5 pt-2.5 pb-[max(20px,env(safe-area-inset-bottom))] text-ink duration-200 outline-none slide-in-from-bottom slide-out-to-bottom data-[state=closed]:animate-out data-[state=open]:animate-in motion-reduce:animate-none wide:inset-x-auto wide:top-1/2 wide:bottom-auto wide:left-1/2 wide:w-full wide:-translate-x-1/2 wide:-translate-y-1/2 wide:rounded-sheet wide:p-7 wide:shadow-dialog wide:fade-in-0 wide:fade-out-0 wide:zoom-in-95 wide:zoom-out-95 wide:slide-in-from-bottom-2 wide:slide-out-to-bottom-2"
             >
                 <DialogClose
                     :aria-label="$t('Close the panel')"
                     tabindex="-1"
-                    class="mx-auto flex h-5 w-16 items-center justify-center lg:hidden"
+                    class="mx-auto flex h-5 w-16 items-center justify-center wide:hidden"
                 >
                     <span class="h-[5px] w-10 rounded-full bg-edge" />
                 </DialogClose>
@@ -162,9 +162,10 @@ function keepOpenForMenu(event: KeyboardEvent): void {
                     title
                 }}</DialogTitle>
                 <div v-else class="flex items-center justify-between gap-3">
-                    <DialogTitle class="m-0 text-sheet-title lg:text-stat-lg">{{
-                        title
-                    }}</DialogTitle>
+                    <DialogTitle
+                        class="m-0 text-sheet-title wide:text-stat-lg"
+                        >{{ title }}</DialogTitle
+                    >
                     <DialogClose
                         :aria-label="$t('Close')"
                         class="-mr-2.5 flex size-11 shrink-0 items-center justify-center text-ink-soft"

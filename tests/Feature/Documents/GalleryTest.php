@@ -258,10 +258,10 @@ it('answers 404 for the favourite of another family', function (): void {
 
 it('shares whether the family has a gallery, for the sidebar', function (): void {
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('has_gallery', true));
+        ->where('family.features.gallery', true));
 
     $this->galleryCategory->update(['gallery' => false]);
 
     $this->get(route('dashboard'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('has_gallery', false));
+        ->where('family.features.gallery', false));
 });

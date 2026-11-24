@@ -68,16 +68,6 @@ final class AgendaRequest extends FormRequest
     }
 
     /**
-     * The view of the Agenda: the one the address asks for, `todo` when it asks for none.
-     *
-     * @return 'todo'|'done'|'calendar'
-     */
-    public function view(): string
-    {
-        return $this->askedView() ?? 'todo';
-    }
-
-    /**
      * The month of the calendar: the first day of `?month=yyyy-mm`, the month of today when it is missing, wrong
      * or more than `MAX_MONTHS_AWAY` months before or after the month of today (a far month would make the calendar
      * look through years of due dates).

@@ -91,6 +91,21 @@ describe('useImportChoices', () => {
         });
     });
 
+    it('sends no target for the expense when the proposal has none, as with the Budget off', () => {
+        const { choices } = mount({
+            proposal: { ...ferriProposal, movement: null, consumption: null },
+        });
+
+        expect(choices.also.value).toEqual({
+            movement: false,
+            event: true,
+            records: ['organization'],
+            targets: { event: 'auto', records: {} },
+            policy: 'auto',
+            card_type: null,
+        });
+    });
+
     it('says for which card of the category the choices were made', () => {
         const { choices } = mount({ proposal: homeProposal });
 

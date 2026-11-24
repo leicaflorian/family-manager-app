@@ -76,7 +76,7 @@ watch(open, (opened) => {
         <div class="flex flex-col gap-5" :class="desktop && 'bg-card p-6'">
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 flex-col gap-1">
-                    <h2 class="m-0 text-sheet-title lg:text-stat-lg">
+                    <h2 class="m-0 text-sheet-title wide:text-stat-lg">
                         {{ title }}
                     </h2>
                     <span class="text-body-sm text-ink-soft">{{

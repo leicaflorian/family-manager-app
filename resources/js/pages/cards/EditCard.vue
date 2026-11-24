@@ -7,7 +7,9 @@
  * which *Upload* opens to file them; the documents chosen in *Link* and those
  * marked to unlink go with the card too, and change only when it is saved.
  * On the computer, below them, the planned expenses and the payments of the
- * card (`FmCardPayments`), as the board *Modifica-pc*.
+ * card (`FmCardPayments`), as the board *Modifica-pc*. With the Budget off
+ * a new subscription has no section *Planned expense* and the old policy
+ * replaced keeps its premium.
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/vue3';
@@ -19,12 +21,12 @@ import FmCardPayments from '@/components/fm/FmCardPayments.vue';
 import FmCardForm from '@/components/fm/FmCardForm.vue';
 import FmSubscriptionPlanned from '@/components/fm/FmSubscriptionPlanned.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
-import { usePageTrail } from '@/composables/usePageTrail';
+import { useFeature } from '@/composables/useFeatures';
+import { usePageMeta } from '@/composables/usePageMeta';
 import { listErrors } from '@/lib/errors';
 import { withMethod } from '@/lib/forms';
 import { replaceableFor, replaceOptions } from '@/lib/policies';
 import { emptyPlan, type SubscriptionPlan } from '@/lib/subscriptionPlan';
-import { areas } from '@/routes';
 import { show as showArea } from '@/routes/areas';
 import { show, store, update } from '@/routes/cards';
 
@@ -86,8 +88,13 @@ const {
 /** The box *Cancel the policy* exists only for a new policy. */
 const canReplace = computed(() => !card && type.type === 'insurance_policy');
 
-/** The section *Planned expense* exists only for a new subscription. */
-const canPlan = computed(() => !card && type.type === 'subscription');
+/** Whether the family uses the Budget: without it a card plans no expense and moves no premium. */
+const budgetOn = useFeature('budget');
+
+/** The section *Planned expense* exists only for a new subscription, with the Budget on. */
+const canPlan = computed(
+    () => budgetOn.value && !card && type.type === 'subscription',
+);
 
 /** The values of the section *Planned expense*. */
 const plan = ref<SubscriptionPlan>(emptyPlan());
@@ -132,31 +139,30 @@ const unlink = ref<number[]>([]);
 /** The messages of the files refused (`files.0`, …), all in one notice. */
 const fileErrors = computed(() => listErrors(serverErrors.value, 'files'));
 
-/** The title of the page. */
-const title = computed(() =>
-    card
-        ? trans('Edit the :type', { type: type.label.toLowerCase() })
-        : trans('New :type', { type: type.label.toLowerCase() }),
-);
-
 /** Where *Cancel* goes, and the page above in the trail: the card, or the area of a new one. */
 const back = computed(() =>
     card ? show.url({ type: card.type, id: card.id }) : showArea.url(type.area),
 );
 
-usePageTrail(() => [
-    { label: trans('Areas'), href: areas().url },
-    { label: type.area_label, href: showArea.url(type.area) },
-    ...(card
-        ? [
-              {
-                  label: card.label,
-                  href: show.url({ type: card.type, id: card.id }),
-              },
-          ]
-        : []),
-    { label: title.value },
-]);
+const { title, head } = usePageMeta({
+    info: 'card-form',
+    title: () =>
+        card
+            ? trans('Edit the :type', { type: type.label.toLowerCase() })
+            : trans('New :type', { type: type.label.toLowerCase() }),
+    parent: () => [
+        'areas',
+        { label: type.area_label, href: showArea.url(type.area) },
+        ...(card
+            ? [
+                  {
+                      label: card.label,
+                      href: show.url({ type: card.type, id: card.id }),
+                  },
+              ]
+            : []),
+    ],
+});
 
 /**
  * The policies to replace and their payment, only the ids still offered with
@@ -218,7 +224,7 @@ function save(data: Record<string, unknown>): void {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="title" />
@@ -268,7 +274,7 @@ function save(data: Record<string, unknown>): void {
                             name="replace_policies"
                             :options="
                                 replaceOptions(offered(live), {
-                                    premiumMoves: true,
+                                    premiumMoves: budgetOn,
                                 })
                             "
                         />

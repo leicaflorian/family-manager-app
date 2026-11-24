@@ -12,6 +12,7 @@ use App\Data\MovementData;
 use App\Data\MovementFiltersData;
 use App\Data\OptionData;
 use App\Enums\BankMatchSource;
+use App\Enums\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\MovementIndexRequest;
 use App\Http\Requests\Budget\SaveMovementRequest;
@@ -23,8 +24,8 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
-use App\Services\Banks\BankFeedAvailability;
 use App\Services\BudgetFormOptions;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Services\LinkableDocuments;
 use App\Services\Movements;
@@ -253,7 +254,7 @@ final class MovementController extends Controller
     {
         $id = BankTransactionId::parse($id);
 
-        if (! BankFeedAvailability::on() || $id === null) {
+        if (! resolve(FamilyFeatures::class)->on(Feature::BankFeed) || $id === null) {
             return null;
         }
 

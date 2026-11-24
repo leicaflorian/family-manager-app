@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Feature;
+use App\Services\FamilyFeatures;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReminderNoticeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -43,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder<static>|ReminderNotice newModelQuery()
  * @method static Builder<static>|ReminderNotice newQuery()
  * @method static Builder<static>|ReminderNotice query()
+ * @method static Builder<static>|ReminderNotice shown()
  * @method static Builder<static>|ReminderNotice unread()
  *
  * @mixin \Eloquent
@@ -77,6 +80,27 @@ final class ReminderNotice extends FamilyModel
     protected function unread(Builder $query): void
     {
         $query->whereNull('read_at');
+    }
+
+    /**
+     * The notices the bell shows: the ones about the bank only while the Budget, where the bank lives, is on, and the ones about the mail only while the Mail is on.
+     *
+     * @param  Builder<ReminderNotice>  $query
+     */
+    #[Scope]
+    protected function shown(Builder $query): void
+    {
+        if (! resolve(FamilyFeatures::class)->on(Feature::Budget)) {
+            $query->whereNull('bank_transaction_id')->whereNull('bank_connection_id');
+        }
+
+        if (! resolve(FamilyFeatures::class)->on(Feature::Mail)) {
+            // a mail notice is the one with no reminder and nothing of the bank (the mail itself, or the mails limit)
+            $query->where(static fn (Builder $notices): Builder => $notices
+                ->whereNotNull('reminder_id')
+                ->orWhereNotNull('bank_transaction_id')
+                ->orWhereNotNull('bank_connection_id'));
+        }
     }
 
     /**

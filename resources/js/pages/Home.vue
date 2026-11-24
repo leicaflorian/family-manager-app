@@ -9,12 +9,15 @@
  * with the page that uploads it). *Mail that arrived* (on the right, between the incomes and
  * what is missing, only when mail with files arrived) lists the last three mails with the card their documents are
  * linked to, each opening *Received mail*. The recently uploaded documents come with their own item.
+ * *To begin* counts its steps with a bar; *Hide* hides it for the account, *Not needed* takes away *Add whoever
+ * lives with you* or *Invite whoever lives with you* for the family, and an `admin` with the Budget or the Mail off
+ * finds at its end the way to *Settings › What you use*.
  *
  * The greeting is the `FmTitle` of the page: on the phone it draws the magnifier and the bell of the notices beside it; on
  * the tablet and the computer they are in the top bar of the layout.
  */
-import { Head } from '@inertiajs/vue3';
-import { getActiveLanguage, trans } from 'laravel-vue-i18n';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { getActiveLanguage, trans, transChoice } from 'laravel-vue-i18n';
 import { ArrowRight, Mail } from '@lucide/vue';
 import { computed } from 'vue';
 import FmAgendaRow from '@/components/fm/FmAgendaRow.vue';
@@ -28,12 +31,17 @@ import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
+import { usePageMeta } from '@/composables/usePageMeta';
+import { useFeature, useMailAvailable } from '@/composables/useFeatures';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
 import { create as newCard } from '@/routes/cards';
 import { index as receivedMail } from '@/routes/mail';
 import { create as invite } from '@/routes/family/invitations';
+import { hide, skip } from '@/routes/dashboard/checklist';
+import { index as people } from '@/routes/people';
+import { edit as editFeatures } from '@/routes/settings/features';
 
 const { home } = defineProps<{
     /** What the Home shows, as the server sends it. */
@@ -48,48 +56,107 @@ const wide = useWideLayout();
 /**
  * The step of *To begin* for a step of the server: its text and where it leads.
  *
- * @param step - the step, with the name to invite for `invite`
+ * @param step - the step, with the names of the people for `people` and the name to invite for `invite`
  * @returns the step for `FmChecklist`
  */
 function toStep(step: App.Data.ChecklistStepData): ChecklistStep {
-    const done = step.done;
+    const { key, done } = step;
 
-    switch (step.key) {
+    switch (key) {
+        case 'people':
+            return {
+                key,
+                title: trans('Add whoever lives with you'),
+                subtitle: done
+                    ? trans('Done in the Welcome: :names', {
+                          names: new Intl.ListFormat(getActiveLanguage(), {
+                              type: 'conjunction',
+                          }).format(step.names),
+                      })
+                    : trans('Partner, children and anyone else at home'),
+                href: people().url,
+                done,
+                skippable: true,
+            };
         case 'utilities':
             return {
+                key,
                 title: trans('The bills of the house'),
                 subtitle: trans(
-                    'Electricity, gas, water and internet are already in the areas',
+                    'Electricity, gas, water and internet: add them as cards of the house',
                 ),
                 href: areas().url,
                 done,
             };
         case 'first_bill':
             return {
-                title: trans('Upload the first bill'),
-                subtitle: trans('Take a photo or choose the PDF'),
+                key,
+                title: trans('Upload the first document'),
+                subtitle: trans('A photo or a PDF: we read it'),
                 href: upload().url,
                 done,
             };
         case 'card':
             return {
-                title: trans('Add the car, a policy or a subscription'),
-                subtitle: trans('Every item is a card, with its deadlines'),
+                key,
+                title: trans('Create the first card'),
+                subtitle: trans(
+                    'The car, a policy, the house: each with its deadlines',
+                ),
                 href: newCard().url,
+                done,
+            };
+        case 'mail':
+            return {
+                key,
+                title: trans('Send the bills to the address of the family'),
+                subtitle: trans(
+                    'The ones that arrive there upload on their own',
+                ),
+                href: receivedMail().url,
                 done,
             };
         default:
             return {
+                key,
                 title:
                     step.name === null
-                        ? trans('Invite a family member')
+                        ? trans('Invite whoever lives with you')
                         : trans('Invite :name', { name: step.name }),
-                subtitle: trans('So they get the alerts too'),
+                subtitle: trans(
+                    'So they see the documents and get the notices',
+                ),
                 href: invite().url,
                 done,
+                skippable: true,
             };
     }
 }
+
+/** Whether the family has the mail for the bills. */
+const mail = useFeature('mail');
+
+/** Whether this server can offer the mail: without its domain *To begin* does not mention it. */
+const mailAvailable = useMailAvailable();
+
+/**
+ * Hides *To begin* for the account.
+ */
+function hideChecklist(): void {
+    router.post(hide().url, {}, { preserveScroll: true });
+}
+
+/**
+ * Takes a step of *To begin* away for the whole family (*Not needed*).
+ *
+ * @param step - the key of the step, `people` or `invite`
+ */
+function skipStep(step: string): void {
+    router.post(skip().url, { step }, { preserveScroll: true });
+}
+
+/** Whether the family has the Budget: without it the Home shows no money. */
+const budget = useFeature('budget');
 
 /** The steps of *To begin*; empty when all are done. */
 const steps = computed(() => home.checklist.map(toStep));
@@ -97,10 +164,25 @@ const steps = computed(() => home.checklist.map(toStep));
 /** Whether the family is still beginning: the incomes tell how they will show. */
 const beginning = computed(() => steps.value.length > 0);
 
+/** *To begin* says how many steps there are, in words, as the board does. */
+const checklistIntro = computed(() =>
+    transChoice(
+        '{1} One thing to get started. Tick it off when it is done.|{2} Two things to get started. Tick them off as you go.|{3} Three things to get started. Tick them off as you go.|{4} Four things to get started. Tick them off as you go.|{5} Five things to get started. Tick them off as you go.|[6,*] Six things to get started. Tick them off as you go.',
+        steps.value.length,
+    ),
+);
+
+/** Whether *To begin* ends with the way to *Settings › What you use*: only for whoever can turn on a feature that is off. */
+const featuresLink = computed(
+    () =>
+        home.can_change_features &&
+        (!budget.value || (mailAvailable.value && !mail.value)),
+);
+
 /** Whether the right column has something to show; without it the left one takes the whole width. */
 const hasRightColumn = computed(
     () =>
-        home.incoming.length > 0 ||
+        (budget.value && home.incoming.length > 0) ||
         home.missing.length > 0 ||
         home.mails.length > 0 ||
         beginning.value,
@@ -134,13 +216,19 @@ function mailTitle(mail: App.Data.HomeMailData): string {
         ? mail.sender
         : `${mail.sender} · ${mail.subject}`;
 }
+
+const { title, head } = usePageMeta({
+    info: 'home',
+    title: () => trans('Hi, :name', { name: home.first_name }),
+    head: () => trans('Home'),
+});
 </script>
 
 <template>
-    <Head :title="$t('Home')" />
+    <Head :title="head" />
 
     <div class="flex flex-col gap-5">
-        <FmTitle :title="$t('Hi, :name', { name: home.first_name })">
+        <FmTitle :title="title">
             <template #overline>
                 <span class="text-body-sm text-ink-soft">{{ day }}</span>
             </template>
@@ -195,6 +283,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                 :class="hasRightColumn ? 'wide:col-span-3' : 'wide:col-span-5'"
             >
                 <FmTotal
+                    v-if="home.total !== null"
                     :total="home.total"
                     :payments="home.payments"
                     :late="home.late"
@@ -218,7 +307,36 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                     </template>
                 </FmCard>
 
-                <FmChecklist v-if="beginning" :steps="steps" />
+                <FmChecklist
+                    v-if="beginning"
+                    :steps="steps"
+                    :intro="checklistIntro"
+                    @hide="hideChecklist"
+                    @skip="skipStep"
+                >
+                    <template v-if="featuresLink" #footer>
+                        {{
+                            mailAvailable
+                                ? $t(
+                                      'Do you also need the Budget or the Mail for the bills?',
+                                  )
+                                : $t('Do you also need the Budget?')
+                        }}
+                        <Link
+                            :href="editFeatures().url"
+                            class="text-meta-strong text-action no-underline hover:text-action-dark"
+                            >{{
+                                mailAvailable
+                                    ? $t(
+                                          'Turn them on from Settings › What you use.',
+                                      )
+                                    : $t(
+                                          'Turn it on from Settings › What you use.',
+                                      )
+                            }}</Link
+                        >
+                    </template>
+                </FmChecklist>
             </div>
 
             <div
@@ -232,7 +350,7 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                 }"
             >
                 <FmCard
-                    v-if="home.incoming.length > 0"
+                    v-if="budget && home.incoming.length > 0"
                     :title="$t('Incoming')"
                     list
                 >
@@ -243,7 +361,11 @@ function mailTitle(mail: App.Data.HomeMailData): string {
                         layout="home"
                     />
                 </FmCard>
-                <FmCard v-else :title="$t('Incoming')" class="not-wide:hidden">
+                <FmCard
+                    v-else-if="budget"
+                    :title="$t('Incoming')"
+                    class="not-wide:hidden"
+                >
                     <p class="m-0 text-body-sm text-ink-soft">
                         {{
                             $t(

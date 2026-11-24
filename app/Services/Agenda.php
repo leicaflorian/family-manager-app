@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Cards\CardTypes;
-use App\Cards\DeadlineSources;
 use App\Data\AgendaData;
 use App\Data\AgendaEntryData;
 use App\Data\AgendaReminderData;
 use App\Enums\AgendaReminderState;
+use App\Enums\Feature;
 use App\Enums\ReminderStatus;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
@@ -21,7 +21,6 @@ use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Queries\CardDeadlines;
 use App\Support\CardDeadline;
-use App\Support\CurrentFamily;
 use App\Support\Deadline;
 use App\Support\ModelId;
 use App\Support\PlannedKind;
@@ -49,6 +48,7 @@ final readonly class Agenda
         private Deadlines $deadlines,
         private CardSummaries $cards,
         private CardBudgets $budgets,
+        private FamilyFeatures $features,
     ) {}
 
     /**
@@ -111,7 +111,7 @@ final readonly class Agenda
         $paymentsFrom = $today->subDays($paymentsBack)->toDateString();
         $payments = array_values(array_filter(
             $dueDates,
-            static fn (Deadline $due): bool => ! $due->isPaid() && $due->occurrence->date->toDateString() >= $paymentsFrom,
+            static fn (Deadline $due): bool => $due->isDue() && $due->occurrence->date->toDateString() >= $paymentsFrom,
         ));
         $paid = $this->paidByCard($dueDates);
         $deadlines = $this->cardDeadlines->between($today->subDays($deadlinesBack), $until, $today);
@@ -182,6 +182,11 @@ final readonly class Agenda
      */
     public function paidBetween(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        // Without the Budget there are no payments to show
+        if (! $this->features->on(Feature::Budget)) {
+            return ['entries' => [], 'reminders' => []];
+        }
+
         $paid = array_values(array_filter(
             $this->deadlines->between(PlannedExpense::query()->with('organization')->get()->all(), $from->startOfDay(), $to),
             static fn (Deadline $deadline): bool => $deadline->isPaid(),
@@ -228,7 +233,7 @@ final readonly class Agenda
         $byCard = [];
 
         foreach ($reminders as $reminder) {
-            $source = $reminder->source_field === null ? null : DeadlineSources::find($reminder->source_field);
+            $source = $reminder->deadlineSource();
             $card = $reminder->link?->subject;
 
             if ($card instanceof Model && ($source?->hasExpense === true || $reminder->source_field === Renewals::FIELD)) {
@@ -241,7 +246,7 @@ final readonly class Agenda
 
     /**
      * The due dates of the planned expenses and incomes of the family between two days, paid or not; the skipped
-     * ones are not there.
+     * ones are not there. With the Budget off there are none.
      *
      * @param  CarbonImmutable  $from  the first day
      * @param  CarbonImmutable  $to  the last day
@@ -249,6 +254,11 @@ final readonly class Agenda
      */
     private function dueDates(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        // Without the Budget nothing is to pay or to receive, and no entry may link to a page of the Budget
+        if (! $this->features->on(Feature::Budget)) {
+            return [];
+        }
+
         $planned = [
             ...PlannedExpense::query()->with('organization')->get()->all(),
             ...PlannedIncome::query()->with('organization')->get()->all(),
@@ -444,7 +454,7 @@ final readonly class Agenda
      */
     public function accounts(): Collection
     {
-        return User::query()->where('family_id', CurrentFamily::id())->with('person')->orderBy('id')->get();
+        return User::ofCurrentFamily();
     }
 
     /**

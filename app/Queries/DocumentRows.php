@@ -103,17 +103,6 @@ final readonly class DocumentRows
     }
 
     /**
-     * The last documents uploaded, the most recent first.
-     *
-     * @param  int  $count  how many
-     * @return list<DocumentData>
-     */
-    public function latest(int $count): array
-    {
-        return $this->rows(Document::query()->withLinked()->with(self::RELATIONS)->latest()->orderByDesc('id')->limit($count)->get());
-    }
-
-    /**
      * The rows of some documents already found, in their order (the documents linked to a new card from the start).
      *
      * @param  Collection<int, Document>  $documents  the documents
