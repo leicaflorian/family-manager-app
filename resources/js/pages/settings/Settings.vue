@@ -88,6 +88,7 @@ const subtitleProps = computed(() => ({
     areaCount,
     hiddenAreas,
     bankCount,
+    features: features.value,
     release,
     releasedOn,
     date,

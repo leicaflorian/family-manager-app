@@ -53,6 +53,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceWorkerController;
 use App\Http\Controllers\Settings\BankController;
 use App\Http\Controllers\Settings\FamilyNameController;
+use App\Http\Controllers\Settings\FeatureSettingsController;
 use App\Http\Controllers\Settings\SupportSettingsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ToSortController;
@@ -252,6 +253,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::post('settings/calendar', [CalendarSettingsController::class, 'store'])->name('calendar.store');
         Route::delete('settings/calendar', [CalendarSettingsController::class, 'destroy'])->name('calendar.destroy');
         Route::post('settings/calendar/reset', [CalendarSettingsController::class, 'reset'])->name('calendar.reset');
+        Route::get('settings/features', [FeatureSettingsController::class, 'edit'])->name('settings.features.edit');
+        Route::put('settings/features', [FeatureSettingsController::class, 'update'])->middleware('throttle:20,1,settings-features')->name('settings.features.update');
         Route::get('settings/support', [SupportSettingsController::class, 'edit'])->name('settings.support.edit');
         Route::get('settings/news', ReleaseNotesController::class)->name('settings.news');
         Route::post('settings/support', [SupportSettingsController::class, 'store'])->name('settings.support.store');

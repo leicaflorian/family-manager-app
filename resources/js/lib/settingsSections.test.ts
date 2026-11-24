@@ -12,6 +12,7 @@ describe('settingsSections', () => {
             'account',
             'calendar',
             'family',
+            'features',
             'notices',
             'mail',
             'banks',
@@ -66,6 +67,7 @@ describe('settingsSections', () => {
             hiddenAreas: 0,
             bankCount: 2,
             release: '1.2.0',
+            features: { budget: true, mail: false },
             releasedOn: null,
             date: (value: string): string => value,
         } as unknown as Parameters<
@@ -79,6 +81,7 @@ describe('settingsSections', () => {
         );
         expect(rows['areas']!.subtitle?.(props)).toBe('9 areas');
         expect(rows['news']!.subtitle?.(props)).toBe('Version 1.2.0');
+        expect(rows['features']!.subtitle?.(props)).toBe('Budget on');
         expect(rows['mail']!.subtitle?.(props)).toBe(
             'The bills arrive by email by themselves',
         );

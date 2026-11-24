@@ -16,6 +16,7 @@ import {
     Mail,
     Sparkles,
     Tags,
+    ToggleRight,
     User,
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
@@ -30,6 +31,7 @@ import { edit as mail } from '@/routes/mail-settings';
 import { news } from '@/routes/settings';
 import { edit as areas } from '@/routes/settings/areas';
 import { edit as family } from '@/routes/settings/family';
+import { edit as featuresPage } from '@/routes/settings/features';
 import { edit as notices } from '@/routes/settings/notices';
 import { edit as support } from '@/routes/settings/support';
 
@@ -37,6 +39,7 @@ import { edit as support } from '@/routes/settings/support';
 export type SettingsKey =
     | 'account'
     | 'family'
+    | 'features'
     | 'notices'
     | 'mail'
     | 'banks'
@@ -64,6 +67,8 @@ export type SettingsSubtitleProps = {
     hiddenAreas: number;
     /** How many banks the family linked. */
     bankCount: number;
+    /** The features of the family, or null without a family. */
+    features: Features | null;
     /** The version that runs. */
     release: string;
     /** The day the version came out (`yyyy-mm-dd`), or null. */
@@ -125,6 +130,29 @@ export function settingsSections(features: Features | null): SettingsSection[] {
             href: family().url,
             group: 'family',
             subtitle: (props) => props.account.family,
+        },
+        {
+            key: 'features',
+            label: trans('What you use'),
+            icon: ToggleRight,
+            href: featuresPage().url,
+            group: 'family',
+            subtitle: ({ features }) => {
+                const budget = featureOn(features, 'budget');
+                const mail = featureOn(features, 'mail');
+
+                if (budget && mail) {
+                    return trans('Budget and Mail for the bills on');
+                }
+
+                if (budget) {
+                    return trans('Budget on');
+                }
+
+                return mail
+                    ? trans('Mail for the bills on')
+                    : trans('Budget and Mail for the bills off');
+            },
         },
         {
             key: 'notices',

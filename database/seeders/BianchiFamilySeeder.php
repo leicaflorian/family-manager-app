@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Actions\Banks\StoreBankEntries;
 use App\Actions\Consumption\ConsumptionValues;
 use App\Actions\Consumption\SaveConsumption;
+use App\Actions\Families\ChangeFeatures;
 use App\Actions\Families\CreateFamily;
 use App\Actions\Reminders\SyncReminders;
 use App\Data\Reading\Extraction;
@@ -214,7 +215,9 @@ final class BianchiFamilySeeder extends Seeder
             // The Bianchis have already done the Welcome: they go straight to the Home.
             $marco->family->update(['welcomed_at' => now()]);
             // The link to the bank is on for them: with `BANK_FEED_PROVIDER=fake` they can try it
-            $marco->family->forceFill(['bank_feed_enabled' => true, 'budget_enabled' => true, 'mail_enabled' => true])->save();
+            $marco->family->forceFill(['bank_feed_enabled' => true])->save();
+            // The Budget and the mail too, through the action, so the family gets its address if it has none
+            resolve(ChangeFeatures::class)->handle($marco->family, budget: true, mail: true);
         }));
     }
 

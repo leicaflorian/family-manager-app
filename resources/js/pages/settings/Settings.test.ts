@@ -167,6 +167,7 @@ describe('Settings', () => {
                 .map((link) => link.getAttribute('href')),
         ).toEqual([
             '/settings/family',
+            '/settings/features',
             '/settings/notices',
             '/settings/mail',
             '/settings/categories',

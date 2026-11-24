@@ -74,6 +74,7 @@ describe('FmSettingsPage', () => {
             'My account',
             'Calendar',
             'Family name',
+            'What you use',
             'Notices',
             'Address for the bills',
             'Document categories',
@@ -88,6 +89,7 @@ describe('FmSettingsPage', () => {
                 .map((link) => link.textContent?.trim()),
         ).toEqual([
             'Family name',
+            'What you use',
             'Notices',
             'Address for the bills',
             'Document categories',
@@ -121,9 +123,14 @@ describe('FmSettingsPage', () => {
         ).getAllByRole('link');
 
         expect(
-            links.map((link) => link.textContent?.trim()).slice(0, 3),
-        ).toEqual(['Family name', 'Notices', 'Address for the bills']);
-        expect(links[3]?.textContent?.trim()).toBe('Linked banks');
+            links.map((link) => link.textContent?.trim()).slice(0, 4),
+        ).toEqual([
+            'Family name',
+            'What you use',
+            'Notices',
+            'Address for the bills',
+        ]);
+        expect(links[4]?.textContent?.trim()).toBe('Linked banks');
         expect(
             within(nav).getByRole('link', { name: 'Linked banks' }),
         ).toHaveAttribute('aria-current', 'page');

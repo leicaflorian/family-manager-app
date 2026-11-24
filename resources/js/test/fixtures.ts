@@ -35,7 +35,13 @@ export const sharedPageProps: InertiaConfig['sharedPageProps'] = {
     },
     family: {
         name: 'Bianchi',
-        features: { bank_feed: false, consumption: false, gallery: false },
+        features: {
+            budget: true,
+            mail: true,
+            bank_feed: false,
+            consumption: false,
+            gallery: false,
+        },
     },
     areas: [],
     unread_notices: 0,

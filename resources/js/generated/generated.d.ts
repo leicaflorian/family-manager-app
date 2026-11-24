@@ -429,6 +429,11 @@ readonly name: string,
 readonly people: number,
 readonly organizations: number,
 };
+export type FeatureSettingsData = {
+readonly budget: boolean,
+readonly mail: boolean,
+readonly can_change: boolean,
+};
 export type FileData = {
 readonly name: string,
 readonly mime_type: string,
