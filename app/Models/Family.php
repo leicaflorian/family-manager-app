@@ -37,6 +37,8 @@ use Illuminate\Support\Facades\Crypt;
  * @property CarbonImmutable|null $support_until
  * @property int|null $reading_limit Readings a month for this family; empty means the limit of everyone
  * @property bool $bank_feed_enabled The owner turns the link to the bank on for the family
+ * @property bool $budget_enabled Whether the family has the Budget
+ * @property bool $mail_enabled Whether the family has the mail for the bills
  * @property-read Collection<int, OwnerAction> $ownerActions
  * @property-read int|null $owner_actions_count
  * @property-read Collection<int, Person> $people
@@ -224,6 +226,8 @@ final class Family extends Model
             'support_until' => 'datetime',
             'reading_limit' => 'integer',
             'bank_feed_enabled' => 'boolean',
+            'budget_enabled' => 'boolean',
+            'mail_enabled' => 'boolean',
             'calendar_token' => 'encrypted',
         ];
     }

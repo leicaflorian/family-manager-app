@@ -18,8 +18,8 @@ use App\Support\CurrentFamily;
  */
 final class FamilyFeatures
 {
-    /** @var array<int, bool> whether the owner switched the link to the bank on, by family id */
-    private array $bankSwitch = [];
+    /** @var array<int, array{budget: bool, mail: bool, bank_feed: bool}> the switches of the family, by family id */
+    private array $switches = [];
 
     /**
      * Whether the current family has a feature. Without a family (nobody signed in) nothing is on.
@@ -34,7 +34,7 @@ final class FamilyFeatures
             return false;
         }
 
-        return $this->resolve($feature, $id, fn (): bool => $this->bankSwitch[$id] ??= (bool) Family::query()->whereKey($id)->value('bank_feed_enabled'));
+        return $this->resolve($feature, $id, fn (): array => $this->switches($id));
     }
 
     /**
@@ -45,7 +45,11 @@ final class FamilyFeatures
      */
     public function for(Family $family, Feature $feature): bool
     {
-        return $this->resolve($feature, $family->id, static fn (): bool => $family->bank_feed_enabled);
+        return $this->resolve($feature, $family->id, static fn (): array => [
+            'budget' => $family->budget_enabled,
+            'mail' => $family->mail_enabled,
+            'bank_feed' => $family->bank_feed_enabled,
+        ]);
     }
 
     /**
@@ -72,7 +76,7 @@ final class FamilyFeatures
      */
     public function forget(Family $family): void
     {
-        unset($this->bankSwitch[$family->id]);
+        unset($this->switches[$family->id]);
     }
 
     /**
@@ -86,18 +90,42 @@ final class FamilyFeatures
     }
 
     /**
+     * The switches of a family, read once from `families` and remembered.
+     *
+     * @param  int  $id  the family id
+     * @return array{budget: bool, mail: bool, bank_feed: bool}
+     */
+    private function switches(int $id): array
+    {
+        if (! isset($this->switches[$id])) {
+            $row = Family::query()->whereKey($id)->first(['budget_enabled', 'mail_enabled', 'bank_feed_enabled']);
+
+            $this->switches[$id] = [
+                'budget' => (bool) $row?->budget_enabled,
+                'mail' => (bool) $row?->mail_enabled,
+                'bank_feed' => (bool) $row?->bank_feed_enabled,
+            ];
+        }
+
+        return $this->switches[$id];
+    }
+
+    /**
      * Decides a feature for a family id. The data of the family is read as that family, whoever is signed in.
      *
      * @param  Feature  $feature  the feature
      * @param  int  $id  the family id
-     * @param  callable(): bool  $bankSwitch  reads whether the owner switched the link to the bank on
+     * @param  callable(): array{budget: bool, mail: bool, bank_feed: bool}  $switches  reads the switches of the family
      */
-    private function resolve(Feature $feature, int $id, callable $bankSwitch): bool
+    private function resolve(Feature $feature, int $id, callable $switches): bool
     {
         return match ($feature) {
-            Feature::BankFeed => resolve(BankFeed::class)->isActive() && $bankSwitch(),
+            Feature::Budget => $switches()['budget'],
+            Feature::Mail => $switches()['mail'] && $this->mailDomain() !== null,
+            // The link to the bank and the consumption live in the Budget: with it off they are off
+            Feature::BankFeed => $switches()['budget'] && resolve(BankFeed::class)->isActive() && $switches()['bank_feed'],
             // An electricity, gas or water utility: the Consumption page exists only then
-            Feature::Consumption => CurrentFamily::using($id, static fn (): bool => Utility::query()->whereIn('type', UtilityType::measured())->exists()),
+            Feature::Consumption => $switches()['budget'] && CurrentFamily::using($id, static fn (): bool => Utility::query()->whereIn('type', UtilityType::measured())->exists()),
             // A gallery category: the sidebar shows *Drawings and crafts* under *Documents*
             Feature::Gallery => CurrentFamily::using($id, static fn (): bool => DocumentCategory::query()->where('gallery', true)->exists()),
         };

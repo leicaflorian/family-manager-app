@@ -104,6 +104,17 @@ class FamilyPolicy
     }
 
     /**
+     * Whether the account can turn the Budget and the mail for the bills on or off: an administrator.
+     *
+     * @param  User  $user  whoever signed in
+     * @param  Family  $family  the family
+     */
+    public function manageFeatures(User $user, Family $family): bool
+    {
+        return $user->isAdmin() && $family->id === $user->family_id;
+    }
+
+    /**
      * Whether the row belongs to the family of whoever signed in.
      *
      * @param  User  $user  whoever signed in

@@ -11,6 +11,7 @@ use App\Enums\MailOutcome;
 use App\Models\FamilySetting;
 use App\Models\Organization;
 use App\Models\ReceivedMail;
+use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Support\Mail\AttachmentRules;
 use App\Support\Mail\MailAddress;
@@ -81,8 +82,7 @@ final readonly class BianchiMails
      */
     private function address(): string
     {
-        $domain = config('services.mailgun.inbox_domain');
-        $domain = is_string($domain) && trim($domain) !== '' ? trim($domain) : self::DEFAULT_DOMAIN;
+        $domain = resolve(FamilyFeatures::class)->mailDomain() ?? self::DEFAULT_DOMAIN;
 
         if (app()->environment('local', 'testing')) {
             return self::ADDRESS_NAME.'@'.$domain;

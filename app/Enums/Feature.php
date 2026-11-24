@@ -13,6 +13,8 @@ enum Feature: string
 {
     use HasLabel;
 
+    case Budget = 'budget';
+    case Mail = 'mail';
     case BankFeed = 'bank_feed';
     case Consumption = 'consumption';
     case Gallery = 'gallery';

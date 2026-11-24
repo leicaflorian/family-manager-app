@@ -100,7 +100,7 @@ final class Copier
                 DB::table('families')->where('id', $existing)->delete();
             }
 
-            $familyId = DB::table('families')->insertGetId(['name' => $family, 'welcomed_at' => now(), 'copied_from_directus_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+            $familyId = DB::table('families')->insertGetId(['name' => $family, 'welcomed_at' => now(), 'copied_from_directus_at' => now(), 'budget_enabled' => true, 'mail_enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
 
             try {
                 foreach (DirectusMap::order() as $table) {

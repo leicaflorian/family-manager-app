@@ -214,7 +214,7 @@ final class BianchiFamilySeeder extends Seeder
             // The Bianchis have already done the Welcome: they go straight to the Home.
             $marco->family->update(['welcomed_at' => now()]);
             // The link to the bank is on for them: with `BANK_FEED_PROVIDER=fake` they can try it
-            $marco->family->forceFill(['bank_feed_enabled' => true])->save();
+            $marco->family->forceFill(['bank_feed_enabled' => true, 'budget_enabled' => true, 'mail_enabled' => true])->save();
         }));
     }
 

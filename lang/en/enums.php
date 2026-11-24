@@ -283,6 +283,8 @@ return [
         'other' => 'Other',
     ],
     'feature' => [
+        'budget' => 'Budget',
+        'mail' => 'Mail for the bills',
         'bank_feed' => 'Link to the bank',
         'consumption' => 'Consumption',
         'gallery' => 'Drawings and crafts',

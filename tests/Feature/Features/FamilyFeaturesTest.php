@@ -73,7 +73,7 @@ it('has the gallery and the consumption only with the data they need', function 
 
     expect($features->for($family, Feature::Gallery))->toBeTrue()
         ->and($features->for($family, Feature::Consumption))->toBeTrue()
-        ->and($features->all($family))->toBe(['bank_feed' => false, 'consumption' => true, 'gallery' => true]);
+        ->and($features->all($family))->toBe(['budget' => true, 'mail' => true, 'bank_feed' => false, 'consumption' => true, 'gallery' => true]);
 });
 
 it('reads the mail domain trimmed, null when empty', function (): void {

@@ -283,6 +283,8 @@ return [
         'other' => 'Altro',
     ],
     'feature' => [
+        'budget' => 'Bilancio',
+        'mail' => 'Posta per le bollette',
         'bank_feed' => 'Collegamento alla banca',
         'consumption' => 'Consumi',
         'gallery' => 'Disegni e lavoretti',

@@ -44,7 +44,7 @@ final readonly class CreateFamily
     public function handle(string $familyName, string $firstName, string $lastName, string $email, string $password): User
     {
         return DB::transaction(function () use ($familyName, $firstName, $lastName, $email, $password): User {
-            $family = Family::query()->create(['name' => $familyName]);
+            $family = Family::query()->create(['name' => $familyName, 'budget_enabled' => false, 'mail_enabled' => false]);
 
             return CurrentFamily::using($family->id, function () use ($family, $firstName, $lastName, $email, $password): User {
                 $account = User::query()->create([

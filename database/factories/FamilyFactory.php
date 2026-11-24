@@ -22,6 +22,16 @@ final class FamilyFactory extends Factory
         return [
             'name' => fake()->lastName(),
             'welcomed_at' => now(),
+            'budget_enabled' => true,
+            'mail_enabled' => true,
         ];
+    }
+
+    /**
+     * A family with the Budget and the mail off, as a new one starts.
+     */
+    public function withoutFeatures(): static
+    {
+        return $this->state(['budget_enabled' => false, 'mail_enabled' => false]);
     }
 }
