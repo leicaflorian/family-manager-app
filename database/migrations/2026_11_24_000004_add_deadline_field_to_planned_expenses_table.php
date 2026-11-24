@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\VehicleDeadlineFromTitle;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +26,14 @@ return new class extends Migration
             });
         }
 
-        $this->fill('vehicles.road_tax_due_date', ['bollo', 'road tax']);
-        $this->fill('vehicles.inspection_due_date', ['revision', 'inspection']);
+        DB::table('planned_expenses')->where('card_type', 'vehicle')->whereNull('deadline_field')->get(['id', 'title'])
+            ->each(static function (object $row): void {
+                $field = VehicleDeadlineFromTitle::of($row->title);
+
+                if ($field !== null) {
+                    DB::table('planned_expenses')->where('id', $row->id)->update(['deadline_field' => $field]);
+                }
+            });
     }
 
     /**
@@ -37,24 +44,5 @@ return new class extends Migration
         Schema::table('planned_expenses', function (Blueprint $table): void {
             $table->dropColumn('deadline_field');
         });
-    }
-
-    /**
-     * Gives a deadline to the planned expenses of vehicles without one whose title holds one of the words.
-     *
-     * @param  string  $field  the deadline
-     * @param  list<string>  $words  the words of the title, in lower case
-     */
-    private function fill(string $field, array $words): void
-    {
-        DB::table('planned_expenses')
-            ->where('card_type', 'vehicle')
-            ->whereNull('deadline_field')
-            ->where(function ($query) use ($words): void {
-                foreach ($words as $word) {
-                    $query->orWhereRaw('LOWER(title) LIKE ?', ['%'.$word.'%']);
-                }
-            })
-            ->update(['deadline_field' => $field]);
     }
 };

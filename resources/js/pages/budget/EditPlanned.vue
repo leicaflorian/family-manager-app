@@ -77,7 +77,7 @@ const { label: cardLabel, choices: cardChoices } = useCardChoice(
     },
 );
 
-/** The deadlines the card chosen can have paid, with «No deadline» in front; none when its type has none. */
+/** The deadlines the card chosen can have paid, with «No deadline» last; none when its type has none. */
 const deadlineChoices = computed(() => {
     const type = form.card?.split(':')[0] ?? '';
     const fields = options.deadline_fields[type] ?? [];
@@ -85,8 +85,8 @@ const deadlineChoices = computed(() => {
     return fields.length === 0
         ? []
         : [
-              { value: '', label: trans('No deadline') },
               ...fields.map(({ value, label }) => ({ value, label })),
+              { value: '', label: trans('No deadline') },
           ];
 });
 
@@ -336,6 +336,13 @@ onMounted(() => {
                     :label="$t('Pays the deadline')"
                     name="deadline_field"
                     :options="deadlineChoices"
+                    :help="
+                        form.deadline_field
+                            ? $t(
+                                  'The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.',
+                              )
+                            : undefined
+                    "
                     :errors="errors(form.errors.deadline_field)"
                 />
                 <FormKit

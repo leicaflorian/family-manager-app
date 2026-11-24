@@ -164,8 +164,11 @@ test('a vehicle gets no notice about the missing planned expense: its section sh
     expect(collect(cardNoticesOf($vehicle))->pluck('title')->all())->not->toContain('The planned expense is missing');
 });
 
-test('the Panda, which has its planned expense, does not warn', function (): void {
-    expect(collect(cardNoticesOf(noticePanda()))->pluck('title')->all())->not->toContain('The planned expense is missing');
+test('a policy that has its planned expense does not warn', function (): void {
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
+    noticeReminder($policy, 'insurance_policies.expiry_date', '2026-11-21');
+
+    expect(collect(cardNoticesOf($policy))->pluck('title')->all())->not->toContain('The planned expense is missing');
 });
 
 test('a member does not get Add on the missing planned expense, which only an admin creates', function (): void {

@@ -181,6 +181,14 @@ it('copies the card of a planned expense as a pair', function (): void {
         ->and($planned->card_id)->toBe(DB::table('vehicles')->where('name', 'Panda')->value('id'));
 });
 
+it('gives the deadline to the planned expense of a vehicle from its title', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    expect(DB::table('planned_expenses')->where('title', 'Bollo auto')->value('deadline_field'))->toBe('vehicles.road_tax_due_date')
+        ->and(DB::table('planned_expenses')->where('title', 'Retta danza')->value('deadline_field'))->toBeNull()
+        ->and(DB::table('planned_expenses')->where('title', 'Luce e auto')->value('deadline_field'))->toBeNull();
+});
+
 it('keeps the first card of a planned expense with two', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
 

@@ -2693,5 +2693,5 @@
     "Budget off": "Bilancio spento",
     "Pays the deadline": "Paga la scadenza",
     "No deadline": "Nessuna",
-    "The payment closes the reminder of that deadline.": "Il pagamento chiude il promemoria di quella scadenza."
+    "The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.": "Il pagamento chiude il promemoria di questa scadenza. La data nella scheda la aggiorni tu, e la spesa la segue."
 }

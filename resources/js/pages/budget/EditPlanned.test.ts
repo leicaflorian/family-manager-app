@@ -104,9 +104,14 @@ describe('Edit a planned expense', () => {
         expect(
             screen.getByRole('button', { name: 'Pays the deadline' }),
         ).toHaveTextContent('Inspection');
+        expect(
+            screen.getByText(
+                'The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.',
+            ),
+        ).toBeInTheDocument();
         const list = await openMenu('Pays the deadline');
 
-        expect(shown(list)).toEqual(['No deadline', 'Road tax', 'Inspection']);
+        expect(shown(list)).toEqual(['Road tax', 'Inspection', 'No deadline']);
         await userEvent.click(
             within(list).getByRole('option', { name: 'Road tax' }),
         );
