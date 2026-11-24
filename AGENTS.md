@@ -102,6 +102,7 @@ Tutto gira con Sail (Docker), perché sul Mac PHP è più vecchio:
 | `./vendor/bin/sail artisan mail-inbox:try <indirizzo> --file=…` | Manda una mail di prova alla rotta di Mailgun, firmata, senza Mailgun (solo in locale; `--subject=`) |
 | `./vendor/bin/sail artisan mail-inbox:calls` | Il registro delle chiamate di Mailgun, senza testo (`--family=`, `--outcome=`, `--since=`) |
 | `./vendor/bin/sail npm run og-image` | Ridisegna l'immagine delle anteprime dei link (`resources/design/og-image.svg` → `public/fameja-app-og-1200x630.png`) |
+| `./vendor/bin/sail npm run app-icons` | Ridisegna le icone dell'app dal logo (`public/icons/icon-*.png`, `icon-maskable-*.png` e `public/apple-touch-icon.png`), sempre quadrati pieni: macOS, iPhone e Android danno loro la forma, e un'icona con gli angoli trasparenti finisce rimpicciolita su una piastra bianca (`AppIconsTest`) |
 | `./vendor/bin/sail npm run splash-screens` | Ridisegna gli splash screen di iPhone e iPad (`public/splash/`, chiaro e scuro, verticale e orizzontale) dalle misure di `resources/design/splash-screens.json`: un iPhone o un iPad nuovo prende la sua riga lì, poi si rilancia (`SplashScreensTest` fallisce se un'immagine manca o ha la misura sbagliata) |
 | `./vendor/bin/sail artisan owner:create` | Crea un account del proprietario per il pannello `/admin` (nome, email, password con conferma) |
 | `./vendor/bin/sail artisan user:password <email>` | Imposta una password nuova per un account di una famiglia (la chiede due volte, almeno 10 caratteri; i telefoni collegati dell'account escono) |
