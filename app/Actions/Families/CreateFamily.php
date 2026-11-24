@@ -5,19 +5,18 @@ declare(strict_types=1);
 namespace App\Actions\Families;
 
 use App\Actions\Mail\AssignMailAddress;
+use App\Actions\People\SavePerson;
 use App\Enums\PersonRole;
 use App\Enums\Role;
 use App\Models\DocumentCategory;
 use App\Models\ExpenseCategory;
 use App\Models\Family;
 use App\Models\FamilySetting;
-use App\Models\Person;
 use App\Models\ReminderGroup;
 use App\Models\User;
 use App\Support\CurrentFamily;
 use App\Support\DefaultCategories;
 use App\Support\DefaultReminderGroups;
-use App\Support\Initials;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,8 +26,9 @@ final readonly class CreateFamily
 {
     /**
      * @param  AssignMailAddress  $assignMailAddress  Gives the family its address for the bills.
+     * @param  SavePerson  $savePerson  Saves the first person of the family.
      */
-    public function __construct(private AssignMailAddress $assignMailAddress) {}
+    public function __construct(private AssignMailAddress $assignMailAddress, private SavePerson $savePerson) {}
 
     /**
      * Creates in one transaction the family, the `admin` account, its person, the
@@ -55,10 +55,9 @@ final readonly class CreateFamily
                     'role' => Role::Admin,
                 ]);
 
-                Person::query()->create([
+                $this->savePerson->handle([
                     'first_name' => $firstName,
                     'last_name' => $lastName,
-                    'initials' => Initials::of($firstName, $lastName),
                     'role' => PersonRole::Parent,
                     'user_id' => $account->id,
                 ]);

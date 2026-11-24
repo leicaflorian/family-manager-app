@@ -39,8 +39,8 @@ final class SendInvitationRequest extends FormRequest
             'role' => ['required', Rule::enum(Role::class)],
             // A person of the family who has no account yet.
             'person_id' => ['nullable', 'integer', new OfFamily('people'), Rule::exists('people', 'id')->whereNull('user_id')],
-            'first_name' => ['required_without:person_id', 'nullable', 'string', 'max:255'],
-            'last_name' => ['required_without:person_id', 'nullable', 'string', 'max:255'],
+            'first_name' => ['required_without:person_id', 'nullable', 'string', 'max:100'],
+            'last_name' => ['required_without:person_id', 'nullable', 'string', 'max:100'],
             'person_role' => ['nullable', Rule::enum(PersonRole::class)],
         ];
     }

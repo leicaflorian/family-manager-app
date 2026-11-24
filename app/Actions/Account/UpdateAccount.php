@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Actions\Account;
 
+use App\Actions\People\SavePerson;
 use App\Models\User;
-use App\Support\Initials;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Changes the first name, last name and email of an account, and the name on its person too.
  */
-final class UpdateAccount
+final readonly class UpdateAccount
 {
+    /**
+     * @param  SavePerson  $savePerson  saves the person of the account
+     */
+    public function __construct(private SavePerson $savePerson) {}
+
     /**
      * Saves the data. A new email has to be verified again.
      *
@@ -31,7 +36,9 @@ final class UpdateAccount
             }
 
             $user->save();
-            $user->person?->update(['first_name' => $firstName, 'last_name' => $lastName, 'initials' => Initials::of($firstName, $lastName)]);
+            if ($user->person !== null) {
+                $this->savePerson->handle(['first_name' => $firstName, 'last_name' => $lastName], $user->person);
+            }
         });
 
         if ($user->email_verified_at === null) {

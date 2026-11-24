@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Family;
 
+use App\Concerns\PersonValidationRules;
 use App\Enums\PersonRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
  */
 final class WelcomeRequest extends FormRequest
 {
+    use PersonValidationRules;
+
     /**
      * The rules of the fields.
      *
@@ -24,8 +27,7 @@ final class WelcomeRequest extends FormRequest
     {
         return [
             'people' => ['present', 'array', 'max:20'],
-            'people.*.first_name' => ['required', 'string', 'max:255'],
-            'people.*.last_name' => ['required', 'string', 'max:255'],
+            ...$this->personRules('people.*.'),
             'people.*.role' => ['required', Rule::enum(PersonRole::class)],
             'home' => ['nullable', 'array'],
             'home.name' => ['required_with:home', 'string', 'max:255'],

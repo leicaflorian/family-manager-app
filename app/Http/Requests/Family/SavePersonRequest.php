@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Family;
 
+use App\Concerns\PersonValidationRules;
 use App\Enums\PersonRole;
 use App\Http\Requests\Concerns\UploadsImage;
 use App\Models\Person;
 use App\Support\ImageUpload;
-use App\Support\Initials;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,6 +18,7 @@ use Illuminate\Validation\Rule;
  */
 final class SavePersonRequest extends FormRequest
 {
+    use PersonValidationRules;
     use UploadsImage;
 
     /** The columns of the person the form fills. */
@@ -43,12 +44,9 @@ final class SavePersonRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:100'],
-            'last_name' => ['required', 'string', 'max:100'],
+            ...$this->personRules(),
             'initials' => ['nullable', 'string', 'max:3'],
             'role' => ['required', Rule::enum(PersonRole::class)],
-            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
-            'tax_code' => ['nullable', 'string', 'max:16'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'photo' => ['nullable', ...ImageUpload::RULES],
             'remove_photo' => ['boolean'],
@@ -74,18 +72,13 @@ final class SavePersonRequest extends FormRequest
     }
 
     /**
-     * The validated columns of the person. Without initials, they come from the name.
+     * The validated columns of the person (`SavePerson` fills in the initials).
      *
-     * @return array<string, mixed>
+     * @return array{first_name: string, last_name: string, role: string, initials?: ?string, birth_date?: ?string, tax_code?: ?string, notes?: ?string}
      */
     public function fields(): array
     {
-        $fields = $this->safe()->only(self::FIELDS);
-
-        if (! $this->filled('initials')) {
-            $fields['initials'] = Initials::of($this->string('first_name')->toString(), $this->string('last_name')->toString());
-        }
-
-        return $fields;
+        /** @var array{first_name: string, last_name: string, role: string, initials?: ?string, birth_date?: ?string, tax_code?: ?string, notes?: ?string} */
+        return $this->safe()->only(self::FIELDS);
     }
 }

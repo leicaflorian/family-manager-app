@@ -37,7 +37,7 @@ final class InvitationController extends Controller
             'people' => Person::query()->whereNull('user_id')->orderBy('first_name')->get()
                 ->map(PersonSummaryData::fromPerson(...))->values()->all(),
             'levels' => OptionData::list(Role::options()),
-            'roles' => OptionData::list(PersonRole::options()),
+            'roles' => PersonRole::optionData(),
         ]);
     }
 

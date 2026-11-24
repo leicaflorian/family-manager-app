@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
+use App\Concerns\PersonValidationRules;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 
 /**
@@ -14,6 +16,8 @@ use Illuminate\Validation\Rule;
  */
 final class UpdateAccountRequest extends FormRequest
 {
+    use PersonValidationRules;
+
     /**
      * The rules of the fields: the email cannot be the one of another account.
      *
@@ -22,8 +26,7 @@ final class UpdateAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            ...Arr::only($this->personRules(), ['first_name', 'last_name']),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($this->user()?->id)],
         ];
     }
