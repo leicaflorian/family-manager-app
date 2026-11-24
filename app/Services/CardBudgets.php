@@ -474,8 +474,7 @@ final readonly class CardBudgets
             kind: $kind,
             next: $next === null ? null : $data($next),
             next_label: $nextLabel,
-            installment_number: $loan === null || ! $next instanceof Deadline || $next->planned->start_date === null ? null
-                : $this->loans->installmentsBetween($next->planned->start_date, $next->occurrence->originalDate),
+            installment_number: $this->installmentNumber($card, $loan, $next),
             installments_count: $loan['count'] ?? null,
             installments_paid: $loan['paid'] ?? null,
             paid_amount: $loan['paid_amount'] ?? null,
@@ -493,6 +492,22 @@ final readonly class CardBudgets
             can_pay: $paymentsLabel !== null && $payable !== [] && $user->can('create', $income ? Income::class : Expense::class),
             can_add_expense: $addExpense && $user->can('create', Expense::class),
         );
+    }
+
+    /**
+     * The number of the next instalment of a loan, as in «Instalment 26 of 36»: counted from the start of the loan,
+     * since its planned expense may start later (created when the Budget was turned on).
+     *
+     * @param  Model  $card  the card
+     * @param  ?array<string, mixed>  $loan  the progress of the loan, null when the card is not one
+     * @param  ?Deadline  $next  the due date of the box at the top
+     */
+    private function installmentNumber(Model $card, ?array $loan, ?Deadline $next): ?int
+    {
+        $start = $card instanceof Loan && $card->start_date !== null ? $card->start_date : $next?->planned->start_date;
+
+        return $loan === null || ! $next instanceof Deadline || $start === null ? null
+            : $this->loans->installmentsBetween($start, $next->occurrence->originalDate);
     }
 
     /**

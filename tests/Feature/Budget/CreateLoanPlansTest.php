@@ -10,6 +10,7 @@ use App\Models\Family;
 use App\Models\Loan;
 use App\Models\PlannedExpense;
 use App\Models\User;
+use App\Services\CardBudgets;
 use App\Services\Deadlines;
 use App\Services\FamilyFeatures;
 use Carbon\CarbonImmutable;
@@ -161,6 +162,28 @@ test('a loan on the 31st keeps its day every month when the first instalment fal
         // The figures of the loan count from its own start, untouched
         ->and(insideFamilyOf($this->marco, fn (): ?int => Loan::query()->findOrFail($loan->id)->installments_paid))->toBe(25);
 });
+
+test('the card numbers the instalments of a late planned expense from the start of the loan', function (string $today, int $expected): void {
+    $loan = insideFamilyOf($this->marco, fn (): Loan => Loan::query()->create([
+        'name' => 'Prestito auto',
+        'status' => LoanStatus::Active,
+        'start_date' => '2025-01-31',
+        'installments_count' => 36,
+        'installment_amount' => 300,
+    ]));
+    $this->travelTo(CarbonImmutable::parse($today.' 10:00', 'Europe/Rome'));
+    createLoanPlansTurnOn($this);
+
+    $budget = insideFamilyOf($this->marco, fn () => resolve(CardBudgets::class)->of(Loan::query()->findOrFail($loan->id), $this->marco, CarbonImmutable::today('Europe/Rome')));
+
+    expect($budget?->installment_number)->toBe($expected)
+        ->and($budget?->installments_count)->toBe(36);
+})->with([
+    // 28/02/2027, the instalment of its own before the monthly series, is the 26th of the loan
+    'the instalment on a short month' => ['2027-02-10', 26],
+    // 31/03/2027, the first of the monthly series, is the 27th
+    'the first of the monthly series' => ['2027-03-01', 27],
+]);
 
 test('it reads only the loans of the current family', function (): void {
     $rossi = registerFamily('Rossi', 'rossi@example.com');
