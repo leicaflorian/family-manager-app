@@ -130,7 +130,7 @@ const classes = computed((): string =>
         !label && 'h-control rounded-control',
         styles[variant],
         compact &&
-            'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label lg:h-10 lg:flex-none lg:px-3.5',
+            'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label wide:h-10 wide:flex-none wide:px-3.5',
         rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas

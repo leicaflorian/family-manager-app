@@ -138,8 +138,8 @@ const distanceClass = computed((): string =>
               'inline-flex h-6 items-center rounded-lg bg-action-soft px-2 text-caption text-action-dark',
           )
         : late.value
-          ? cn('text-caption text-overdue', !compact && 'lg:text-label')
-          : cn('text-caption text-ink-soft', !compact && 'lg:text-body-sm'),
+          ? cn('text-caption text-overdue', !compact && 'wide:text-label')
+          : cn('text-caption text-ink-soft', !compact && 'wide:text-body-sm'),
 );
 
 /** The first letter of the first name, for the circle of the person. */
@@ -240,15 +240,15 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             type="button"
             :class="
                 cn(
-                    'flex w-full min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent py-3 pr-3.5 pl-2 text-left text-inherit lg:gap-x-4 lg:px-4',
+                    'flex w-full min-w-0 flex-1 items-center gap-2.5 border-0 bg-transparent py-3 pr-3.5 pl-2 text-left text-inherit wide:gap-x-4 wide:px-4',
                     rowLink,
                 )
             "
             @click="emit('open')"
         >
-            <span class="flex w-9 shrink-0 flex-col items-center lg:w-10">
+            <span class="flex w-9 shrink-0 flex-col items-center wide:w-10">
                 <span
-                    class="text-sheet-title lg:text-stat"
+                    class="text-sheet-title wide:text-stat"
                     :class="late && !done ? 'text-overdue' : 'text-ink'"
                     >{{ day }}</span
                 >
@@ -259,18 +259,18 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 >
             </span>
             <span
-                class="flex size-8 shrink-0 items-center justify-center rounded-md lg:size-9"
+                class="flex size-8 shrink-0 items-center justify-center rounded-md wide:size-9"
                 :class="areaTile[area]"
             >
                 <FmIcon :icon="areaIcon(area)" :size="20" />
             </span>
             <span
-                class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] lg:gap-y-1"
+                class="flex min-w-0 grow flex-wrap items-center gap-x-1.5 gap-y-[3px] wide:gap-y-1"
             >
                 <span
                     :class="
                         cn(
-                            'min-w-0 truncate text-row lg:text-body-strong',
+                            'min-w-0 truncate text-row wide:text-body-strong',
                             checked && 'text-ink-soft line-through',
                         )
                     "
@@ -287,19 +287,19 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </span>
                 <span
                     v-if="done"
-                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
+                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft wide:text-body-sm"
                 >
                     <FmIcon class="text-paid" :icon="Check" :size="14" />
                     <span class="truncate">{{ doneLine }}</span>
                 </span>
                 <span
                     v-else
-                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft lg:text-body-sm"
+                    class="flex min-w-0 basis-full items-center gap-1.5 text-meta text-ink-soft wide:text-body-sm"
                 >
                     <span class="truncate">{{ entry.detail }}</span>
                     <FmAvatar
                         v-if="entry.person"
-                        class="lg:hidden"
+                        class="wide:hidden"
                         :initials="personAvatar?.initials ?? initial"
                         :photo="personAvatar?.photo ?? null"
                         :size="18"
@@ -309,7 +309,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
             </span>
             <!-- Said to screen readers always, seen only on the computer -->
             <span
-                class="sr-only lg:not-sr-only lg:flex lg:w-[104px] lg:shrink-0 lg:items-center lg:gap-2 lg:text-body-sm lg:text-ink-soft"
+                class="sr-only wide:not-sr-only wide:flex wide:w-[104px] wide:shrink-0 wide:items-center wide:gap-2 wide:text-body-sm wide:text-ink-soft"
             >
                 <template v-if="entry.person">
                     <FmAvatar
@@ -322,15 +322,15 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </template>
             </span>
             <span
-                class="flex shrink-0 flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4"
+                class="flex shrink-0 flex-col items-end gap-1 wide:flex-row wide:items-center wide:gap-4"
             >
                 <span
                     v-if="!done"
-                    class="order-2 flex lg:order-none lg:w-[104px]"
+                    class="order-2 flex wide:order-none wide:w-[104px]"
                 >
                     <span
                         v-if="checked"
-                        class="text-caption whitespace-nowrap text-paid lg:text-body-sm"
+                        class="text-caption whitespace-nowrap text-paid wide:text-body-sm"
                         >✓ {{ $t('Done') }}</span
                     >
                     <span
@@ -342,11 +342,11 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </span>
                 <span
                     v-if="!done"
-                    class="order-1 flex justify-end lg:order-none lg:w-[110px]"
+                    class="order-1 flex justify-end wide:order-none wide:w-[110px]"
                 >
                     <span
                         v-if="entry.amount !== null"
-                        class="text-row-amount whitespace-nowrap tabular-nums lg:text-amount"
+                        class="text-row-amount whitespace-nowrap tabular-nums wide:text-amount"
                     >
                         <FmAmount
                             :amount="entry.amount"
@@ -357,7 +357,7 @@ const area = computed((): Area => areaOf(entry.area) ?? 'general');
                 </span>
                 <FmIcon
                     v-if="!reopenable"
-                    class="hidden text-ink-faint lg:block"
+                    class="hidden text-ink-faint wide:block"
                     :icon="ChevronRight"
                     :size="18"
                 />
