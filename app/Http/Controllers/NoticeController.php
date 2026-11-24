@@ -53,6 +53,8 @@ final class NoticeController extends Controller
     {
         // 404, not 403: a notice of somebody else must not be told apart from one that does not exist
         throw_unless(Gate::allows('update', $notice), NotFoundHttpException::class);
+        // A notice the bell does not show (a bank notice with the Budget off) does not exist either
+        throw_unless(ReminderNotice::query()->shown()->whereKey($notice->id)->exists(), NotFoundHttpException::class);
 
         $notice->read_at ??= now();
         $notice->save();
@@ -68,7 +70,7 @@ final class NoticeController extends Controller
     {
         Gate::authorize('viewAny', ReminderNotice::class);
 
-        ReminderNotice::query()->where('user_id', $user->id)->unread()->update(['read_at' => now()]);
+        ReminderNotice::query()->shown()->where('user_id', $user->id)->unread()->update(['read_at' => now()]);
 
         return back(fallback: route('notices'));
     }

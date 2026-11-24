@@ -170,3 +170,31 @@ test('the bell has no notices of the bank with the Budget off', function (): voi
         ->where('unread', [])->where('seen', [])->where('hasNotices', false)->where('unread_notices', 0));
     expect($notice->exists)->toBeTrue();
 });
+
+test('with the Budget off, Mark all as read leaves a bank notice unread and opening it is 404', function (): void {
+    $notice = insideFamilyOf($this->admin, function (): ReminderNotice {
+        $expense = Expense::factory()->create(['family_id' => $this->admin->family_id]);
+        $transaction = BankTransaction::factory()->create(['family_id' => $this->admin->family_id, 'expense_id' => $expense->id, 'matched_by' => BankMatchSource::Rule]);
+
+        return ReminderNotice::factory()->create([
+            'family_id' => $this->admin->family_id,
+            'user_id' => $this->admin->id,
+            'reminder_id' => null,
+            'due_date' => null,
+            'offset' => null,
+            'bank_transaction_id' => $transaction->id,
+            'lines' => ['72,40 €'],
+            'sent_at' => CarbonImmutable::now(),
+        ]);
+    });
+    budgetOffSwitch($this->admin, false);
+    $admin = $this->admin->fresh();
+
+    $this->actingAs($admin)->post(route('notices.read', $notice))->assertNotFound();
+    $this->actingAs($admin)->post(route('notices.read-all'))->assertRedirect();
+
+    expect(insideFamilyOf($admin, fn () => ReminderNotice::query()->whereKey($notice->id)->value('read_at')))->toBeNull();
+
+    budgetOffSwitch($this->admin, true);
+    $this->actingAs($this->admin->fresh())->post(route('notices.read', $notice))->assertRedirect();
+});
