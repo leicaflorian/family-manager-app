@@ -96,6 +96,26 @@ describe('Upload', () => {
         );
     });
 
+    it('keeps the category it was opened with when it sends the files', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Upload, {
+            ...props,
+            presetLinks: [{ type: 'vehicle', id: 1 }],
+            presetCategory: 5,
+        });
+
+        const file = new File(['%PDF-1.4'], 'Libretto.pdf', {
+            type: 'application/pdf',
+        });
+        await fireEvent.change(screen.getByLabelText('Choose the files'), {
+            target: { files: [file] },
+        });
+
+        expect(decodeURIComponent(`${post.mock.calls[0]?.[0] as string}`)).toBe(
+            '/upload?link=vehicle:1&category=5',
+        );
+    });
+
     it('only takes the files: there is no form, the files are checked in Import', () => {
         renderPage(Upload, { ...props });
 

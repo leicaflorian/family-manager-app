@@ -64,6 +64,8 @@ const props = defineProps<
         failures: Record<number, string>;
         /** The card the files come from: the import goes back to it. */
         presetLinks: DocumentLink[];
+        /** The document category already chosen (the registration document of a vehicle): every form starts with it, over the one the reading finds. */
+        presetCategory?: number | null;
         /** What each file does too, by the id of the file; the one looked at is asked again with the choices. */
         proposals?: Record<number, App.Data.Reading.ProposalData>;
         /** What the files imported the last time say (a policy not linked), by the id of the file. */
@@ -274,7 +276,30 @@ useReadingPoll(() => anyReading.value, ['files']);
  * @returns the values the form starts from
  */
 function initialValues(file: App.Data.PendingFileData): DocumentFormValues {
-    return { ...newDocument(file.title), links: file.links };
+    return {
+        ...newDocument(file.title),
+        links: file.links,
+        ...(props.presetCategory
+            ? { category_id: String(props.presetCategory) }
+            : {}),
+    };
+}
+
+/**
+ * What the reading proposes for the form of a file, except the category when the upload was opened with one: the
+ * person (or the page) chose it, the reading does not change it.
+ *
+ * @param file - the file
+ * @returns the values the reading found, if it is done
+ */
+function proposalFor(
+    file: App.Data.PendingFileData,
+): Partial<DocumentFormValues> | undefined {
+    const proposal = proposalOf(file.reading_status, file.proposal);
+
+    return proposal && props.presetCategory
+        ? { ...proposal, category_id: String(props.presetCategory) }
+        : proposal;
 }
 
 /**
@@ -455,7 +480,7 @@ function save(): void {
     listError.value = undefined;
     const sent = included.value;
     router.post(
-        store(linkQuery(preset.value)).url,
+        store(linkQuery(preset.value, props.presetCategory)).url,
         {
             files: included.value.map((file) => {
                 const also = choices.get(file.id)?.also.value;
@@ -792,9 +817,7 @@ const { title, head } = usePageMeta({
                         :key="file.id"
                         :initial="initialValues(file)"
                         :options="options"
-                        :proposal="
-                            proposalOf(file.reading_status, file.proposal)
-                        "
+                        :proposal="proposalFor(file)"
                         proposal-is-start
                         :errors="fieldErrorsOf(file)"
                         :needed="file.id === current.id ? needed : []"

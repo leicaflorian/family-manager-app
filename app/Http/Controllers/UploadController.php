@@ -12,6 +12,7 @@ use App\Models\File;
 use App\Models\User;
 use App\Services\FileStore;
 use App\Support\ImportPage;
+use App\Support\PresetCategory;
 use App\Support\PresetLink;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
@@ -28,12 +29,13 @@ final class UploadController extends Controller
 {
     /**
      * The page that takes the files, with the card the person comes from (`?link=<type>:<id>`), if it is one
-     * of the family.
+     * of the family, and the document category already chosen (`?category=<id>`).
      */
     public function index(Request $request): Response
     {
         return Inertia::render('documents/Upload', [
             'presetLinks' => array_filter([PresetLink::fromUpload($request->query('link'))]),
+            'presetCategory' => PresetCategory::from($request->query('category')),
         ]);
     }
 
@@ -57,7 +59,7 @@ final class UploadController extends Controller
 
         return $request->boolean('stay')
             ? to_route('to-sort')
-            : ImportPage::open($ids, $request->query('link'));
+            : ImportPage::open($ids, $request->query('link'), $request->query('category'));
     }
 
     /**

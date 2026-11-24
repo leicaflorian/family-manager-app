@@ -450,6 +450,36 @@ describe('Import', () => {
         );
     });
 
+    it('starts the form with the category the upload was opened with, over the one the reading found, and keeps it on the address', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(Import, {
+            ...props([light], {}, [{ type: 'vehicle', id: 1 }]),
+            categories: [
+                {
+                    id: 4,
+                    name: 'Vehicle registration document',
+                    parent_id: null,
+                    color: null,
+                    icon: null,
+                    documents_count: 0,
+                    children: [],
+                },
+            ],
+            presetCategory: 4,
+        });
+        await settle();
+        await fireEvent.click(importButton('Import the file'));
+
+        const [url, body] = post.mock.calls[0] as unknown as [
+            string,
+            { files: { document: { category_id: number | null } }[] },
+        ];
+        expect(body.files[0]?.document.category_id).toBe(4);
+        expect(decodeURIComponent(url)).toBe(
+            '/import?link=vehicle:1&category=4',
+        );
+    });
+
     it('counts the files on the button', () => {
         renderPage(Import, props([light, gas, warranty]));
 
