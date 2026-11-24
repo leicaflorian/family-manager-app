@@ -165,19 +165,32 @@ it('shows the income of a job', function (): void {
         ->and($budget->payments[0]->count)->toBe(9);
 });
 
-it('sums what a vehicle costs with its policies', function (): void {
+it('sums what a vehicle costs with its policies at the top of its expenses', function (): void {
     $budget = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
     assert($budget instanceof CardBudgetData);
-    $cost = budgetNumber($budget, 'What you pay');
+    $cost = $budget->summary;
 
-    // Fuel 12 × 80,00, the road tax 198,00 and the policy 418,00: the board leaves out the road tax and the fuel.
-    expect($cost->amount)->toBe(1576.0)
-        ->and($cost->hint)->toBe('in the next 12 months')
-        ->and($budget->next_label)->toBe('Next due date')
-        ->and($budget->next?->title)->toBe('Carburante')
-        ->and($budget->next?->date)->toBe('2026-11-01')
+    // Fuel 12 × 80,00, the road tax 198,00 and the policy 418,00; the due dates are in the section *Deadlines*.
+    expect($cost?->label)->toBe('In the next 12 months')
+        ->and($cost?->amount)->toBe(1576.0)
+        ->and($cost?->estimated)->toBeTrue()
+        ->and($cost?->hint)->toBe('carburante, assicurazione auto, bollo auto')
+        ->and($budget->numbers)->toBe([])
+        ->and($budget->next)->toBeNull()
         ->and($budget->planned_label)->toBeNull()
         ->and($budget->payments_label)->toBe('Expenses');
+});
+
+it('names at most three planned expenses in the cost of a vehicle', function (): void {
+    insideBianchi(function (): void {
+        $panda = Vehicle::query()->sole();
+        foreach (['Lavaggio', 'Parcheggio box'] as $title) {
+            PlannedExpense::factory()->forCard($panda)->create(['family_id' => CurrentFamily::id(), 'title' => $title, 'amount' => 10, 'start_date' => '2027-03-01']);
+        }
+    });
+    $budget = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+
+    expect($budget?->summary?->hint)->toBe('carburante, assicurazione auto, bollo auto +2');
 });
 
 it('sums what a home costs with its utilities', function (): void {

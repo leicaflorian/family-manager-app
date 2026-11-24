@@ -18,7 +18,7 @@ final class CardDetailData extends Data
     /**
      * @param  CardData  $card  the row of the card
      * @param  string  $heading  the line under the name, for example «Car · 40/123456 · policyholder Marco»
-     * @param  list<CardDateData>  $dates  the dates of the tiles
+     * @param  list<CardDateData>  $dates  the dates of the tiles; none on a card with `deadlines`
      * @param  list<CardNoticeData>  $notices  the notices of the card: what its data and its reminders say
      * @param  list<CardValueData>  $values  the data, without the empty fields
      * @param  list<CardData>  $related  the first five open linked cards, in both directions
@@ -30,8 +30,10 @@ final class CardDetailData extends Data
      * @param  bool  $can_delete  whether whoever looks can delete the card
      * @param  bool  $can_delete_documents  whether whoever looks can delete the documents of the card
      * @param  CardBudgetData|null  $budget  the payments of the card, null for the types without any
-     * @param  CardNumberData|null  $status  the status of the card as a figure beside its dates, null when it has none
+     * @param  CardNumberData|null  $status  the status of the card as a figure beside its dates, null when it has none or
+     *                                       when the card has `deadlines` (its status is then the first line of its data)
      * @param  array{quantity: float, unit: string, price: float|null, href: string}|null  $consumption  the last 12 months of consumption of a utility with a unit, null for any other card
+     * @param  list<CardDeadlineData>|null  $deadlines  the section *Deadlines* of a vehicle, by date; null for the other types
      */
     public function __construct(
         public readonly CardData $card,
@@ -56,5 +58,7 @@ final class CardDetailData extends Data
         public readonly ?CardBudgetData $budget = null,
         public readonly ?CardNumberData $status = null,
         public readonly ?array $consumption = null,
+        #[DataCollectionOf(CardDeadlineData::class)]
+        public readonly ?array $deadlines = null,
     ) {}
 }

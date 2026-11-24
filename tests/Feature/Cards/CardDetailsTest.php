@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Cards\CardTypes;
 use App\Data\CardData;
+use App\Data\CardDeadlineData;
 use App\Data\CardValueData;
 use App\Data\DocumentData;
 use App\Enums\Role;
@@ -13,6 +14,7 @@ use App\Models\HealthEvent;
 use App\Models\Home;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\Vehicle;
@@ -220,4 +222,86 @@ test('it links to all the linked cards when one is closed', function (): void {
     $detail = insideBianchi(fn () => $this->details->of($c4, $this->marco));
 
     expect($detail->related)->toHaveCount(1)->and($detail->related_more['count'])->toBe(2);
+});
+
+/**
+ * The deadlines of the Panda of the Bianchi as rows of label, date, detail, amount and estimate.
+ *
+ * @param  list<CardDeadlineData>|null  $deadlines  the deadlines of the card
+ * @return list<array{0: string, 1: ?string, 2: ?string, 3: ?float, 4: bool}>
+ */
+function cardDetailsDeadlineRows(?array $deadlines): array
+{
+    return array_map(fn (CardDeadlineData $row): array => [$row->label, $row->date, $row->detail, $row->amount, $row->estimated], $deadlines ?? []);
+}
+
+test('a vehicle lists its deadlines by date, with the planned expenses of its policies', function (): void {
+    $detail = insideBianchi(fn () => $this->details->of($this->panda, $this->marco));
+    $fuel = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Carburante')->sole());
+
+    expect(cardDetailsDeadlineRows($detail->deadlines))->toBe([
+        ['Carburante', '2026-11-01', 'every month', 80.0, true],
+        ['Assicurazione auto', '2026-11-21', 'RC auto Panda', 418.0, false],
+        ['Inspection', '2027-01-09', null, null, false],
+        ['Road tax', '2027-01-31', null, 198.0, false],
+    ])
+        ->and($detail->deadlines[0]->href)->toBe(route('budget.planned.show', ['kind' => 'expense', 'id' => $fuel->id]))
+        ->and($detail->deadlines[0]->add_expense_href)->toBeNull()
+        ->and($detail->deadlines[2]->href)->toBeNull()
+        ->and($detail->deadlines[2]->add_expense_href)->toBe(route('budget.planned.create', ['kind' => 'expense', 'card' => 'vehicle:'.$this->panda->id, 'deadline' => 'vehicles.inspection_due_date']))
+        ->and($detail->deadlines[3]->add_expense_href)->toBeNull();
+});
+
+test('a vehicle has no tiles of dates: its status is the first line of its data', function (): void {
+    $detail = insideBianchi(fn () => $this->details->of($this->panda, $this->marco));
+
+    expect($detail->dates)->toBe([])
+        ->and($detail->status)->toBeNull()
+        ->and($detail->values[0]->label)->toBe('Status')
+        ->and($detail->values[0]->text)->toBe('Active')
+        ->and($detail->values[0]->tone)->toBe('open')
+        ->and(collect($detail->values)->pluck('label')->all())->not->toContain('Road tax')
+        ->and($detail->budget?->next)->toBeNull()
+        ->and($detail->budget?->numbers)->toBe([]);
+});
+
+test('a vehicle without the date of its road tax asks for it at the bottom', function (): void {
+    insideBianchi(fn () => $this->panda->update(['road_tax_due_date' => null]));
+    $detail = insideBianchi(fn () => $this->details->of($this->panda->refresh(), $this->marco));
+    $last = $detail->deadlines[array_key_last($detail->deadlines)];
+
+    expect(array_column(cardDetailsDeadlineRows($detail->deadlines), 0))->toBe(['Carburante', 'Assicurazione auto', 'Inspection', 'Road tax'])
+        ->and($last->date)->toBeNull()
+        ->and($last->amount)->toBeNull()
+        ->and($last->add_date_href)->toBe(route('cards.edit', ['type' => 'vehicle', 'id' => $this->panda->id]));
+});
+
+test('a member sees the deadlines without the links to add what is missing', function (): void {
+    $rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
+    insideBianchi(fn () => $this->panda->update(['road_tax_due_date' => null]));
+    $deadlines = insideBianchi(fn () => $this->details->of($this->panda->refresh(), $rosa))->deadlines;
+
+    expect($deadlines)->toHaveCount(4)
+        ->and(collect($deadlines)->pluck('add_expense_href')->filter()->all())->toBe([])
+        ->and(collect($deadlines)->pluck('add_date_href')->filter()->all())->toBe([]);
+});
+
+test('a sold vehicle asks for nothing', function (): void {
+    insideBianchi(fn () => $this->panda->update(['status' => 'sold', 'road_tax_due_date' => null]));
+    $deadlines = insideBianchi(fn () => $this->details->of($this->panda->refresh(), $this->marco))->deadlines;
+
+    // The planned expense of the road tax still runs, so its row stays; the dates of the card no longer count
+    expect(collect($deadlines)->pluck('label')->all())->toBe(['Carburante', 'Assicurazione auto', 'Road tax'])
+        ->and(collect($deadlines)->pluck('date')->all())->not->toContain(null)
+        ->and(collect($deadlines)->filter(fn (CardDeadlineData $row): bool => $row->add_expense_href !== null || $row->add_date_href !== null)->all())->toBe([]);
+});
+
+test('a policy keeps its tiles, its status and its next due date', function (): void {
+    $detail = insideBianchi(fn () => $this->details->of($this->policy, $this->marco));
+
+    expect($detail->deadlines)->toBeNull()
+        ->and($detail->dates)->not->toBe([])
+        ->and($detail->status?->text)->toBe('Active')
+        ->and($detail->budget?->next?->date)->toBe('2026-11-21')
+        ->and($detail->budget?->summary)->toBeNull();
 });

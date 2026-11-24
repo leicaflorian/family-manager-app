@@ -9,7 +9,9 @@
  * a planned item it says to create it first, unless the card has no planned
  * items of its own (a loan makes its instalment by itself). A card that only
  * has expenses linked to it (a belonging, a maintenance job, a filing, a
- * health event) offers *Add expense* instead.
+ * health event) offers *Add expense* instead. With a `summary` (what a
+ * vehicle costs in the next 12 months, with the planned expenses that make it
+ * up) the payments start with it.
  *
  * @group sections
  */
@@ -19,6 +21,7 @@ import { computed } from 'vue';
 import { create as createMovement } from '@/routes/budget/movements';
 import { create, show as showPlanned } from '@/routes/budget/planned';
 import { payments as cardPayments } from '@/routes/cards';
+import FmAmount from './FmAmount.vue';
 import FmCard from './FmCard.vue';
 import FmPager from './FmPager.vue';
 import FmPayButton from './FmPayButton.vue';
@@ -74,6 +77,28 @@ const addExpenseUrl = computed(
 
     <div v-if="budget.payments_label" class="flex flex-col gap-2">
         <FmCard :title="budget.payments_label" list>
+            <div
+                v-if="budget.summary && budget.summary.amount !== null"
+                data-summary
+                class="flex items-center justify-between gap-3 px-4 py-3.5"
+            >
+                <span class="flex min-w-0 flex-col gap-0.5">
+                    <span class="text-meta-strong text-ink-soft">{{
+                        budget.summary.label
+                    }}</span>
+                    <span
+                        v-if="budget.summary.hint"
+                        class="text-meta text-ink-soft"
+                        >{{ budget.summary.hint }}</span
+                    >
+                </span>
+                <span class="shrink-0 text-stat whitespace-nowrap">
+                    <FmAmount
+                        :amount="budget.summary.amount"
+                        :estimated="budget.summary.estimated"
+                    />
+                </span>
+            </div>
             <template v-if="budget.can_pay" #actions>
                 <FmPayButton
                     :deadlines="budget.pay"

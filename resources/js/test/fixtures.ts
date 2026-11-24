@@ -521,7 +521,7 @@ export const policyDetail: App.Data.CardDetailData = {
     heading: 'Car · policyholder Marco Bianchi',
     dates: [{ label: 'Expiry', date: '2026-11-20', expires: true }],
     notices: [],
-    values: [{ label: 'Type', text: 'Car', href: null }],
+    values: [{ label: 'Type', text: 'Car', href: null, tone: null }],
     related: [pandaRow],
     related_more: null,
     addable: [],
@@ -539,8 +539,67 @@ export const policyDetail: App.Data.CardDetailData = {
         hint_amount: null,
         text: 'Active',
         tone: 'open',
+        estimated: false,
     },
     consumption: null,
+    deadlines: null,
+};
+
+/** The Fiat Panda of the Bianchi on 26/10/2026, with its section *Deadlines* and its status first in the data, as the server sends it. */
+export const pandaDetail: App.Data.CardDetailData = {
+    ...policyDetail,
+    card: pandaRow,
+    heading: 'Vehicle · GH 482 TK · account holder Marco',
+    dates: [],
+    values: [
+        { label: 'Status', text: 'Active', href: null, tone: 'open' },
+        { label: 'Name', text: 'Fiat Panda', href: null, tone: null },
+    ],
+    related: [],
+    status: null,
+    deadlines: [
+        {
+            label: 'Carburante',
+            date: '2026-11-01',
+            detail: 'every month',
+            amount: 80,
+            estimated: true,
+            href: '/budget/planned/expense/11',
+            add_expense_href: null,
+            add_date_href: null,
+        },
+        {
+            label: 'Assicurazione auto',
+            date: '2026-11-21',
+            detail: 'RC auto Panda',
+            amount: 418,
+            estimated: false,
+            href: '/budget/planned/expense/12',
+            add_expense_href: null,
+            add_date_href: null,
+        },
+        {
+            label: 'Inspection',
+            date: '2027-01-09',
+            detail: null,
+            amount: null,
+            estimated: false,
+            href: null,
+            add_expense_href:
+                '/budget/planned/expense/create?card=vehicle%3A1&deadline=vehicles.inspection_due_date',
+            add_date_href: null,
+        },
+        {
+            label: 'Road tax',
+            date: null,
+            detail: null,
+            amount: null,
+            estimated: false,
+            href: null,
+            add_expense_href: null,
+            add_date_href: '/cards/vehicle/1/edit',
+        },
+    ],
 };
 
 /** The nine areas with their active cards, as the sidebar receives them. */
@@ -894,18 +953,30 @@ export const danceDetail: App.Data.PlannedDetailData = {
     ],
     exceptions: danceExceptions,
     values: [
-        { label: 'Category', text: 'Scuola e attività › Sport', href: null },
+        {
+            label: 'Category',
+            text: 'Scuola e attività › Sport',
+            href: null,
+            tone: null,
+        },
         {
             label: 'Organization',
             text: 'Scuola Passo a Due',
             href: '/family/organizations/5',
+            tone: null,
         },
-        { label: 'Bank account', text: 'Carta Laura', href: null },
-        { label: 'Holder', text: 'Giulia', href: '/family/people/4' },
+        { label: 'Bank account', text: 'Carta Laura', href: null, tone: null },
+        {
+            label: 'Holder',
+            text: 'Giulia',
+            href: '/family/people/4',
+            tone: null,
+        },
         {
             label: 'Refers to',
             text: 'Danza Giulia',
             href: '/cards/enrollment/1',
+            tone: null,
         },
     ],
     payments: [{ year: 2026, total: 135, count: 3, payments: [danceMovement] }],
@@ -1292,6 +1363,7 @@ export const luceBudget: App.Data.CardBudgetData = {
             hint_amount: null,
             text: null,
             tone: null,
+            estimated: false,
         },
         {
             label: 'Paid in 2026',
@@ -1301,6 +1373,7 @@ export const luceBudget: App.Data.CardBudgetData = {
             hint_amount: null,
             text: null,
             tone: null,
+            estimated: false,
         },
     ],
     due_label: 'To pay',
@@ -1316,6 +1389,7 @@ export const luceBudget: App.Data.CardBudgetData = {
     can_add_expense: false,
     payments_previous: null,
     payments_next: null,
+    summary: null,
 };
 
 /** The policy of the Panda with its renewal, its premium and the premium paid in 2025. */
@@ -1344,6 +1418,7 @@ export const policyBudget: App.Data.CardBudgetData = {
             hint_amount: null,
             text: null,
             tone: null,
+            estimated: false,
         },
     ],
     due_label: null,

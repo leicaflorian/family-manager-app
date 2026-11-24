@@ -14,6 +14,7 @@ use App\Models\Utility;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * The figures of the payments of a card: what was paid in a year, the average payment, what the due dates of the
@@ -21,6 +22,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class CardPaymentFigures
 {
+    /** How many planned expenses the line under *In the next 12 months* names before «+N». */
+    private const int NAMED = 3;
+
     /**
      * The figures of *Payments of a card*: what was paid this year and the average payment with what is planned.
      *
@@ -130,11 +134,47 @@ final class CardPaymentFigures
      */
     public static function inYear(array $found, CarbonImmutable $today, string $label, callable $hint): CardNumberData
     {
-        $first = $today->toDateString();
-        $last = $today->addYear()->subDay()->toDateString();
-        $inYear = array_filter($found, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() >= $first && $deadline->occurrence->date->toDateString() <= $last);
+        $inYear = self::nextYear($found, $today);
 
         return new CardNumberData($label, self::sum($inYear), hint: $hint(count($inYear)));
+    }
+
+    /**
+     * *In the next 12 months*, at the top of the expenses of a vehicle: what the due dates of the next 12 months add
+     * up to, estimated when one of them is, with the titles of their planned expenses below, by their first due date,
+     * at most three and then «+N».
+     *
+     * @param  list<Deadline>  $found  the due dates
+     * @param  CarbonImmutable  $today  today in Rome
+     */
+    public static function comingYear(array $found, CarbonImmutable $today): CardNumberData
+    {
+        $inYear = self::nextYear($found, $today);
+        usort($inYear, static fn (Deadline $a, Deadline $b): int => $a->occurrence->date->toDateString() <=> $b->occurrence->date->toDateString());
+        $titles = array_values(array_unique(array_map(static fn (Deadline $deadline): string => Str::lcfirst((string) $deadline->planned->title), $inYear)));
+        $hint = implode(', ', array_slice($titles, 0, self::NAMED)).(count($titles) > self::NAMED ? ' +'.(count($titles) - self::NAMED) : '');
+
+        return new CardNumberData(
+            __('In the next 12 months'),
+            self::sum($inYear),
+            hint: $hint === '' ? null : $hint,
+            estimated: array_any($inYear, static fn (Deadline $deadline): bool => $deadline->occurrence->estimated),
+        );
+    }
+
+    /**
+     * The due dates of the next 12 months, from today to the same day a year later less one day.
+     *
+     * @param  list<Deadline>  $found  the due dates
+     * @param  CarbonImmutable  $today  today in Rome
+     * @return list<Deadline>
+     */
+    private static function nextYear(array $found, CarbonImmutable $today): array
+    {
+        $first = $today->toDateString();
+        $last = $today->addYear()->subDay()->toDateString();
+
+        return array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() >= $first && $deadline->occurrence->date->toDateString() <= $last));
     }
 
     /**

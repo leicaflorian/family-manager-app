@@ -27,6 +27,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\Vehicle;
 use App\Queries\DocumentRows;
 use App\Services\Reminders\CardNotices;
 use App\Support\Linkables;
@@ -65,8 +66,9 @@ final readonly class CardDetails
      * @param  CardNotices  $notices  its notices
      * @param  ConsumptionPage  $consumption  the consumption of a utility
      * @param  FamilyFeatures  $features  tells whether the family uses the Budget
+     * @param  VehicleDeadlines  $vehicleDeadlines  the section *Deadlines* of a vehicle
      */
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption, private FamilyFeatures $features) {}
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption, private FamilyFeatures $features, private VehicleDeadlines $vehicleDeadlines) {}
 
     /**
      * The detail of a card.
@@ -96,17 +98,21 @@ final readonly class CardDetails
             $card instanceof Loan => $this->budgets->loanFigures($card, $user, $today),
             default => null,
         };
-        $dates = $this->dates($type, $card);
+        // A vehicle lists its dates in the section *Deadlines*, and its status goes to the top of its data
+        $deadlines = $card instanceof Vehicle ? $this->vehicleDeadlines->of($card, $user, $today) : null;
         $status = $this->status($type, $card);
+        $values = $this->values($type, $card, $this->shown($type, $card, $status));
         $related = $this->related($type, $card);
         $openRelated = array_values(array_filter($related, static fn (CardData $row): bool => ! $row->closed));
 
         return new CardDetailData(
             card: $row,
             heading: $this->heading($type, $card, $row),
-            dates: $dates,
+            dates: $deadlines === null ? $this->dates($type, $card) : [],
             notices: [...$type->notices($card), ...$this->notices->for($card, $today, $user)],
-            values: $this->values($type, $card, $this->shown($type, $card, $status)),
+            values: $deadlines !== null && $status instanceof CardNumberData
+                ? [new CardValueData($status->label, (string) $status->text, tone: $status->tone), ...$values]
+                : $values,
             related: array_slice($openRelated, 0, self::RELATED_SHOWN),
             related_more: count($openRelated) > self::RELATED_SHOWN || count($openRelated) < count($related)
                 ? ['href' => route('cards.related', ['type' => $type->type(), 'id' => $row->id]), 'count' => count($related)]
@@ -118,8 +124,9 @@ final readonly class CardDetails
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
             budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, $address) : null,
-            status: $status,
+            status: $deadlines === null ? $status : null,
             consumption: $budgetOn && $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
+            deadlines: $deadlines,
         );
     }
 

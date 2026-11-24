@@ -111,17 +111,24 @@ const summary = computed(() => {
 
 /** The lines of the box *Data* that the head does not say, then the ones of the server. */
 const values = computed((): App.Data.CardValueData[] => [
-    { label: trans('Amount'), text: amountText.value, href: null },
+    { label: trans('Amount'), text: amountText.value, href: null, tone: null },
     {
         label: trans('How often'),
         text: capitalized(repeats(false)),
         href: null,
+        tone: null,
     },
-    { label: trans('From'), text: date(row.value.start_date), href: null },
+    {
+        label: trans('From'),
+        text: date(row.value.start_date),
+        href: null,
+        tone: null,
+    },
     {
         label: trans('Until'),
         text: row.value.end_date === null ? '—' : date(row.value.end_date),
         href: null,
+        tone: null,
     },
     ...detail.values,
 ]);

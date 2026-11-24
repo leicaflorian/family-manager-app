@@ -3,19 +3,29 @@
  * The lines of the box *Data* of a page: the label on the left, the value on
  * the right. A value that is a person, an organization or a card is a link,
  * in the primary colour; `newTab` opens it in a new tab, so the page it comes
- * from stays open.
+ * from stays open. A status is coloured by its tone, as the figures of a card.
  *
  * @group rows
  */
 import type { LucideIcon } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
+import { cn } from '@/lib/utils';
 import FmIcon from './FmIcon.vue';
 import FmNewTabLink from './FmNewTabLink.vue';
 
 /** A line: the value of a card, with an icon to show before the text when it needs one (the bell of a reminder). */
-export type ValueLine = App.Data.CardValueData & {
+export type ValueLine = Omit<App.Data.CardValueData, 'tone'> & {
+    /** The colour of a status: green open, red overdue, grey closed; none for the other values. */
+    tone?: App.Data.CardValueData['tone'];
     /** The icon before the text. */
     icon?: LucideIcon;
+};
+
+/** The colour of a status for each tone: green open, red overdue, grey closed, as the figures of a card. */
+const toneColor: Record<NonNullable<ValueLine['tone']>, string> = {
+    open: cn('text-paid'),
+    overdue: cn('text-overdue'),
+    closed: cn('text-ink-soft'),
 };
 
 const { values, newTab = false } = defineProps<{
@@ -58,6 +68,9 @@ const { values, newTab = false } = defineProps<{
                     />
                     <span>{{ value.text }}</span>
                 </span>
+                <span v-else-if="value.tone" :class="toneColor[value.tone]">{{
+                    value.text
+                }}</span>
                 <template v-else>{{ value.text }}</template>
             </dd>
         </template>

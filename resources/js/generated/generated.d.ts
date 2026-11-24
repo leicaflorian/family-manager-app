@@ -172,6 +172,7 @@ readonly can_pay: boolean,
 readonly can_add_expense: boolean,
 readonly payments_previous: string | null,
 readonly payments_next: string | null,
+readonly summary: App.Data.CardNumberData | null,
 };
 export type CardChoiceData = {
 readonly value: string,
@@ -200,6 +201,16 @@ readonly label: string,
 readonly date: string,
 readonly expires: boolean,
 };
+export type CardDeadlineData = {
+readonly label: string,
+readonly date: string | null,
+readonly detail: string | null,
+readonly amount: number | null,
+readonly estimated: boolean,
+readonly href: string | null,
+readonly add_expense_href: string | null,
+readonly add_date_href: string | null,
+};
 export type CardDetailData = {
 readonly card: App.Data.CardData,
 readonly heading: string,
@@ -225,6 +236,7 @@ unit: string,
 price: number | null,
 href: string,
 } | null,
+readonly deadlines: App.Data.CardDeadlineData[] | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -251,6 +263,7 @@ readonly hint: string | null,
 readonly hint_amount: number | null,
 readonly text: string | null,
 readonly tone: 'open' | 'overdue' | 'closed' | null,
+readonly estimated: boolean,
 };
 export type CardTypeData = {
 readonly type: string,
@@ -264,6 +277,7 @@ export type CardValueData = {
 readonly label: string,
 readonly text: string,
 readonly href: string | null,
+readonly tone: 'open' | 'overdue' | 'closed' | null,
 };
 export type CategoryComparisonData = {
 readonly name: string,

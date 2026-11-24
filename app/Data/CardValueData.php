@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data;
 
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -17,10 +18,13 @@ final class CardValueData extends Data
      * @param  string  $label  the label of the field
      * @param  string  $text  the value, for example `15/10/2026` or `84,20 €`
      * @param  string|null  $href  the address of the person or of the organization, when the value is one
+     * @param  'open'|'overdue'|'closed'|null  $tone  the colour of a status: green, red or grey; null for the others
      */
     public function __construct(
         public readonly string $label,
         public readonly string $text,
         public readonly ?string $href = null,
+        #[LiteralTypeScriptType("'open' | 'overdue' | 'closed' | null")]
+        public readonly ?string $tone = null,
     ) {}
 }

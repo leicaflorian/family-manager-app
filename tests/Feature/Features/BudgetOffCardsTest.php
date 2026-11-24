@@ -174,3 +174,19 @@ test('a loan saved with the Budget off creates no planned expense, and works out
 
     expect(insideFamilyOf($marco, fn (): int => PlannedExpense::query()->count()))->toBe(0);
 });
+
+test('a vehicle lists only its dates and those of its policies, without amounts, with the Budget off', function (): void {
+    $this->travelTo('2026-10-26 10:00:00');
+    $marco = budgetOffCardsBianchi();
+    $panda = insideBianchi(fn (): Vehicle => Vehicle::query()->sole());
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
+
+    $this->actingAs($marco)->get(route('cards.show', ['type' => 'vehicle', 'id' => $panda->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->component('cards/Card')
+        ->where('card.budget', null)
+        ->where('card.deadlines', fn ($rows): bool => collect($rows)->map(fn (array $row): array => [$row['label'], $row['date'], $row['detail'], $row['amount'], $row['href'], $row['add_expense_href']])->all() === [
+            ['Policy renewal', '2026-11-21', 'RC auto Panda', null, route('cards.show', ['type' => 'insurance_policy', 'id' => $policy->id]), null],
+            ['Inspection', '2027-01-09', null, null, null, null],
+            ['Road tax', '2027-01-31', null, null, null, null],
+        ]));
+});

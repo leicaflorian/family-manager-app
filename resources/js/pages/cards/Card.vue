@@ -3,7 +3,11 @@
  * *A card*: the coloured top with its name and data, with *Edit* and the ⋯
  * menu (Delete, for an `admin`, after asking); then the notices (the deadline
  * near or past, the missing planned expense, the documents that expire or are
- * missing, each with its action if it has one), the
+ * missing, each with its action if it has one); on a vehicle the section
+ * *Deadlines* (each planned expense with its next due date and amount, the
+ * dates of the card still without their planned expense, with *Add the
+ * expense*, and the missing ones last, with *Add the date*), and its status
+ * first in the data; the
  * payments of the card around its dates and data (`FmCardBudget`: the next
  * due date, the figures, the due dates to pay), the data of the card (the
  * person, the organization and the card it names open in a new tab) and the
@@ -29,6 +33,7 @@ import {
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import FmActions from '@/components/fm/FmActions.vue';
+import FmAmount from '@/components/fm/FmAmount.vue';
 import FmCard from '@/components/fm/FmCard.vue';
 import FmCardBudget from '@/components/fm/FmCardBudget.vue';
 import FmCardHeader from '@/components/fm/FmCardHeader.vue';
@@ -43,13 +48,19 @@ import FmLinkDocumentSheet from '@/components/fm/FmLinkDocumentSheet.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
+import FmRow from '@/components/fm/FmRow.vue';
 import FmSectionLink from '@/components/fm/FmSectionLink.vue';
 import FmUploadSheet from '@/components/fm/FmUploadSheet.vue';
 import FmValueList from '@/components/fm/FmValueList.vue';
 import { useFormat } from '@/composables/useFormat';
 import { usePageMeta } from '@/composables/usePageMeta';
 import type { Action } from '@/lib/actions';
-import { formatQuantity, unitLabel } from '@/lib/format';
+import {
+    daysFromToday,
+    formatQuantity,
+    relativeDays,
+    unitLabel,
+} from '@/lib/format';
 import { show as showArea } from '@/routes/areas';
 import { destroy, edit } from '@/routes/cards';
 import { store as linkDocument } from '@/routes/cards/documents';
@@ -80,8 +91,39 @@ const linking = ref(false);
 /** The panel with the zone for the files to upload is open. */
 const uploading = ref(false);
 
-/** Writes the amounts. */
-const { euro } = useFormat();
+/** Writes the amounts and the days. */
+const { date, euro } = useFormat();
+
+/**
+ * The line under a deadline: the day, how far it is and how often it repeats
+ * (or its policy); for a missing date, that it is missing.
+ *
+ * @param deadline - the row of the section *Deadlines*
+ */
+function deadlineLine(deadline: App.Data.CardDeadlineData): string {
+    if (deadline.date === null) {
+        return trans('The date of the next deadline is missing');
+    }
+
+    return [date(deadline.date), relativeDays(deadline.date), deadline.detail]
+        .filter((part) => part)
+        .join(' · ');
+}
+
+/**
+ * Where a deadline leads: its planned expense (or its policy), else the form
+ * that adds what is missing; nowhere for a plain date.
+ *
+ * @param deadline - the row of the section *Deadlines*
+ */
+function deadlineHref(deadline: App.Data.CardDeadlineData): string | undefined {
+    return (
+        deadline.href ??
+        deadline.add_expense_href ??
+        deadline.add_date_href ??
+        undefined
+    );
+}
 
 /** The icon of the unit of the consumption: a bolt for kWh, a flame for gas, a drop for water. */
 const consumptionIcon = computed(() =>
@@ -194,6 +236,56 @@ function link(id: number): void {
             class="grid gap-5 wide:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] wide:items-start"
         >
             <div class="flex min-w-0 flex-col gap-5">
+                <FmCard
+                    v-if="card.deadlines && card.deadlines.length > 0"
+                    :title="$t('Deadlines')"
+                    list
+                >
+                    <FmRow
+                        v-for="(deadline, index) in card.deadlines"
+                        :key="`${deadline.label}-${index}`"
+                        :title="deadline.label"
+                        :subtitle="deadlineLine(deadline)"
+                        :tone="
+                            deadline.date !== null &&
+                            daysFromToday(deadline.date) < 0
+                                ? 'overdue'
+                                : 'normal'
+                        "
+                        :href="deadlineHref(deadline)"
+                        :arrow="false"
+                    >
+                        <template
+                            v-if="
+                                deadline.amount !== null ||
+                                deadline.add_expense_href ||
+                                deadline.add_date_href
+                            "
+                            #after
+                        >
+                            <FmAmount
+                                v-if="deadline.amount !== null"
+                                :amount="deadline.amount"
+                                :estimated="deadline.estimated"
+                            />
+                            <span
+                                v-else-if="deadline.add_expense_href"
+                                class="inline-flex items-center gap-1 rounded-tag bg-warning-soft px-2 py-1 text-meta-strong text-warning"
+                                ><FmIcon :icon="Plus" :size="14" />{{
+                                    $t('Add the expense')
+                                }}</span
+                            >
+                            <span
+                                v-else
+                                class="inline-flex items-center gap-1 rounded-tag bg-action-soft px-2 py-1 text-meta-strong text-action"
+                                ><FmIcon :icon="Plus" :size="14" />{{
+                                    $t('Add the date')
+                                }}</span
+                            >
+                        </template>
+                    </FmRow>
+                </FmCard>
+
                 <FmCardBudget :budget="card.budget" :card="address">
                     <template
                         v-if="card.dates.length > 0 || card.status"

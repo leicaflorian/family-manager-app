@@ -2701,5 +2701,9 @@
     "First the cards with a date coming, then the others, the most recent first. The closed ones (cancelled, sold, expired) are at the bottom.": "Prima le schede con una scadenza in arrivo, poi le altre dalla più recente. Le schede chiuse (disdette, vendute, scadute) stanno in fondo.",
     "All the cards that go with this one, in one list.": "Tutte le schede che vanno con questa, in un elenco solo.",
     "Add creates a new card already linked to this one.": "Aggiungi crea una scheda nuova già collegata a questa.",
-    "The cards with a date coming are first. The closed ones are at the bottom.": "In alto le schede con una scadenza in arrivo. Quelle chiuse stanno in fondo."
+    "The cards with a date coming are first. The closed ones are at the bottom.": "In alto le schede con una scadenza in arrivo. Quelle chiuse stanno in fondo.",
+    "In the next 12 months": "Nei prossimi 12 mesi",
+    "The date of the next deadline is missing": "Manca la data della prossima scadenza",
+    "Add the expense": "Aggiungi la spesa",
+    "Add the date": "Aggiungi la data"
 }

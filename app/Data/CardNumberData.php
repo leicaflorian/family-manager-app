@@ -23,6 +23,7 @@ final class CardNumberData extends Data
      * @param  float|null  $hint_amount  the amount the page writes in place of `:amount` in the hint
      * @param  string|null  $text  the word, when the figure is neither an amount nor a number (*Active*)
      * @param  'open'|'overdue'|'closed'|null  $tone  the colour of the word: green, red or grey
+     * @param  bool  $estimated  whether the amount is an estimate, written with «~»
      */
     public function __construct(
         public readonly string $label,
@@ -33,5 +34,6 @@ final class CardNumberData extends Data
         public readonly ?string $text = null,
         #[LiteralTypeScriptType("'open' | 'overdue' | 'closed' | null")]
         public readonly ?string $tone = null,
+        public readonly bool $estimated = false,
     ) {}
 }
