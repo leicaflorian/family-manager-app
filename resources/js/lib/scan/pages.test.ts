@@ -406,4 +406,13 @@ describe('checkWeight', () => {
         expect(() => checkWeight(file, 'The PDF')).toThrow(ScanTooHeavyError);
         expect(() => checkWeight(file, 'The PDF')).toThrow(/^The PDF weighs/);
     });
+
+    it('writes the weight the Italian way in every language', () => {
+        document.documentElement.lang = 'en';
+        const file = new File([new Uint8Array(26_528_000)], 'a.pdf');
+
+        expect(() => checkWeight(file, 'The PDF')).toThrow(
+            'The PDF weighs 25,3 MB: the most is 25 MB.',
+        );
+    });
 });
