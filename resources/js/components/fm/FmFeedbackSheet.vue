@@ -483,7 +483,7 @@ function send(): void {
             <FmNotice>{{ note }}</FmNotice>
 
             <div
-                class="flex flex-col gap-1 lg:flex-row-reverse lg:justify-start lg:gap-2.5"
+                class="flex flex-col gap-1 wide:flex-row-reverse wide:justify-start wide:gap-2.5"
             >
                 <FmButton type="submit" :icon="Send" :disabled="processing">{{
                     $t('Send')

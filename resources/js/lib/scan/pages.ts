@@ -4,6 +4,7 @@
  * sheet) sits behind `Backend`, which `canvas.ts` fills in the browser and the tests fill with a fake.
  */
 import { transChoice, trans } from 'laravel-vue-i18n';
+import { formatNumber } from '@/lib/format';
 import { canvasBackend } from './canvas';
 import {
     CARD_CORNER,
@@ -87,12 +88,7 @@ export class ScanTooHeavyError extends Error {
         super(
             trans(':name weighs :size MB: the most is 25 MB.', {
                 name: label,
-                size: new Intl.NumberFormat(
-                    typeof document === 'undefined'
-                        ? 'en'
-                        : document.documentElement.lang || 'en',
-                    { maximumFractionDigits: 1 },
-                ).format(bytes / 1048576),
+                size: formatNumber(bytes / 1048576),
             }),
         );
         this.name = 'ScanTooHeavyError';

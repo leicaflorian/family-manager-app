@@ -141,7 +141,7 @@ describe('FmAgendaRow', () => {
             expect(link).toHaveTextContent('in 4 days');
             expect(screen.getAllByText('MB')).toHaveLength(1);
             expect(within(link).getByText('Marco')).toHaveClass('sr-only');
-            expect(container.querySelector('[class*="lg:"]')).toBeNull();
+            expect(container.querySelector('[class*="wide:"]')).toBeNull();
         });
 
         it('strikes the title and says Done with compact and checked', () => {

@@ -139,7 +139,7 @@ const shownGroup = computed(
                 cn(
                     'flex flex-col gap-4',
                     !compact &&
-                        'gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] lg:items-start',
+                        'gap-6 wide:grid wide:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] wide:items-start',
                 )
             "
         >

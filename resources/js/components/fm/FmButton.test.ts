@@ -180,7 +180,11 @@ describe('FmButton', () => {
         // On the phone: as tall as a control, sharing the line with the other button
         expect(button).toHaveClass('h-control', 'flex-1', 'basis-0', 'px-0');
         // On the computer: its own width, 40 px with 14 px at the sides
-        expect(button).toHaveClass('lg:h-10', 'lg:flex-none', 'lg:px-3.5');
+        expect(button).toHaveClass(
+            'wide:h-10',
+            'wide:flex-none',
+            'wide:px-3.5',
+        );
         expect(button).toHaveClass('text-label', 'rounded-lg', 'gap-[7px]');
         expect(button).not.toHaveClass('text-body', 'px-5', 'gap-2');
     });

@@ -8,8 +8,8 @@ import { WIDE_QUERY } from '@/composables/useWideLayout';
  * inside a page, as `useWideLayout()`) and `computer:` (the computer layout of
  * `useLayoutMode()`). Their conditions are written in `app.css`, and this test
  * keeps them equal to those of the composables, so there is still one
- * condition each. `lg:` (1024 px, without the height) is not used in pages and
- * layouts any more.
+ * condition each. `lg:` (1024 px, without the height) is not used in pages,
+ * layouts and components any more.
  */
 
 /**
@@ -31,7 +31,7 @@ const appCss = readFileSync('resources/css/app.css', 'utf8');
 
 // No type argument on the glob: see `.claude/learnings.md`.
 const files: Record<string, string> = import.meta.glob(
-    ['../pages/**/*.vue', '../layouts/**/*.vue'],
+    ['../pages/**/*.vue', '../layouts/**/*.vue', '../components/**/*.vue'],
     { query: '?raw', import: 'default', eager: true },
 );
 
@@ -44,9 +44,11 @@ describe('Breakpoints', () => {
         expect(variantQuery('computer')).toBe(COMPUTER_QUERY);
     });
 
-    it('has no lg: in the pages and the layouts', () => {
+    it('has no lg: in the pages, the layouts and the components', () => {
         const withLg = Object.entries(files)
-            .filter(([, source]) => /(^|[\s'"`:])(max-)?lg:/m.test(source))
+            .filter(([, source]) =>
+                /(^|[\s'"`:])(max-)?lg:[a-z[-]/m.test(source),
+            )
             .map(([path]) => path);
 
         expect(withLg).toEqual([]);
