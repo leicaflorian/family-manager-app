@@ -155,9 +155,12 @@ describe('the registry of the sections', () => {
                 : entry,
         );
         const names = (features: { gallery?: boolean } | null): string[] =>
-            allItems(navigationItems(features, entries)).map(
-                (item) => item.section,
-            );
+            allItems(
+                navigationItems(
+                    features === null ? null : { budget: true, ...features },
+                    entries,
+                ),
+            ).map((item) => item.section);
 
         expect(names(null)).toContain('documents');
         expect(names({ gallery: true })).toContain('documents');
@@ -205,6 +208,35 @@ describe('the registry of the sections', () => {
             'home',
             'agenda',
             'areas',
+        ]);
+    });
+
+    it('puts Home, Agenda and Areas in the bar of the phone while the Budget is off', () => {
+        const off = navigationItems({ budget: false });
+
+        expect(barItems(off).map((item) => item.section)).toEqual([
+            'home',
+            'agenda',
+            'areas',
+        ]);
+        expect(off.sections.map((item) => item.section)).not.toContain(
+            'budget',
+        );
+        expect(allItems(off).map((item) => item.section)).not.toContain(
+            'budget',
+        );
+    });
+
+    it('offers New expense in Add only with the Budget on', () => {
+        const labels = (features: { budget: boolean } | null): string[] =>
+            navigationItems(features).add.map((item) => item.label);
+
+        expect(labels({ budget: true })).toContain('New expense');
+        expect(labels(null)).toContain('New expense');
+        expect(labels({ budget: false })).toEqual([
+            'Upload a file',
+            'Scan a sheet',
+            'New task',
         ]);
     });
 });

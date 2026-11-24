@@ -40,7 +40,7 @@ final class NoticeController extends Controller
             'search' => $search,
             'nextPage' => $page->nextPageUrl(),
             'previousPage' => $page->previousPageUrl(),
-            'hasNotices' => $search === '' ? $page->total() > 0 : ReminderNotice::query()->where('user_id', $user->id)->exists(),
+            'hasNotices' => $search === '' ? $page->total() > 0 : ReminderNotice::query()->shown()->where('user_id', $user->id)->exists(),
         ]);
     }
 

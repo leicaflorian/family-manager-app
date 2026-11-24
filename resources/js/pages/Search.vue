@@ -24,6 +24,7 @@ import FmSearchMenu from '@/components/fm/FmSearchMenu.vue';
 import FmSearchResult from '@/components/fm/FmSearchResult.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { useAppName } from '@/composables/useAppName';
+import { useFeature } from '@/composables/useFeatures';
 import {
     SEARCH_MENU_ID,
     SEARCH_PAGE_FIELD,
@@ -35,6 +36,8 @@ import { search } from '@/routes';
 
 /** The name of the app, for the texts that say it. */
 const appName = useAppName();
+/** The expenses are searched only with the Budget on: the help does not name them otherwise. */
+const budgetOn = useFeature('budget');
 
 const { results } = defineProps<{
     /** What was searched and what was found, in groups. */
@@ -285,9 +288,13 @@ const { head } = usePageMeta({
 
         <p class="m-0 text-body-sm text-ink-soft">
             {{
-                $t(
-                    'I search in the names of the cards, in the titles, labels and read text of the documents, in the expenses, in the organizations and in the people.',
-                )
+                budgetOn
+                    ? $t(
+                          'I search in the names of the cards, in the titles, labels and read text of the documents, in the expenses, in the organizations and in the people.',
+                      )
+                    : $t(
+                          'I search in the names of the cards, in the titles, labels and read text of the documents, in the organizations and in the people.',
+                      )
             }}
         </p>
     </div>

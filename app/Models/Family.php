@@ -142,12 +142,12 @@ final class Family extends Model
     }
 
     /**
-     * Whether the banks of the family are read: the owner turned the link to the bank on and the family is not
-     * blocked. The same as {@see self::bankFeedOn()}, for a family already read.
+     * Whether the banks of the family are read: the owner turned the link to the bank on, the Budget (where the
+     * banks live) is on and the family is not blocked. The same as {@see self::bankFeedOn()}, for a family already read.
      */
     public function hasBankFeedOn(): bool
     {
-        return $this->bank_feed_enabled && ! $this->isBlocked();
+        return $this->bank_feed_enabled && $this->budget_enabled && ! $this->isBlocked();
     }
 
     /**
@@ -158,7 +158,7 @@ final class Family extends Model
     #[Scope]
     protected function bankFeedOn(Builder $query): void
     {
-        $query->notBlocked()->where('bank_feed_enabled', true);
+        $query->notBlocked()->where('bank_feed_enabled', true)->where('budget_enabled', true);
     }
 
     /**

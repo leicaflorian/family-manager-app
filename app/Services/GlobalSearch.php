@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Data\Search\SearchGroupData;
 use App\Data\Search\SearchResultsData;
+use App\Enums\Feature;
 use App\Enums\SearchGroup;
 use App\Services\Search\CardResults;
 use App\Services\Search\ContactResults;
@@ -29,8 +30,24 @@ final readonly class GlobalSearch
         MovementResults $movements,
         DueResults $dues,
         ContactResults $contacts,
+        private FamilyFeatures $features,
     ) {
         $this->groups = [$cards, $documents, $movements, $dues, $contacts];
+    }
+
+    /**
+     * The groups the family can search: *Movements* and *Dues* belong to the Budget.
+     *
+     * @return list<GroupResults>
+     */
+    private function available(): array
+    {
+        $budget = $this->features->on(Feature::Budget);
+
+        return array_values(array_filter(
+            $this->groups,
+            static fn (GroupResults $results): bool => $budget || ! in_array($results->group(), [SearchGroup::Movements, SearchGroup::Dues], true),
+        ));
     }
 
     /**
@@ -48,20 +65,21 @@ final readonly class GlobalSearch
 
         /** @var array<int, int> $counts the matches of each group, by position */
         $counts = [];
+        $groups = $this->available();
 
-        foreach ($this->groups as $i => $results) {
+        foreach ($groups as $i => $results) {
             $counts[$i] = $results->count($terms);
         }
 
         // A group that found nothing cannot be narrowed to: the page lists all the groups instead of an empty one
-        if ($only instanceof SearchGroup && ! $this->found($only, $counts)) {
+        if ($only instanceof SearchGroup && ! $this->found($only, $groups, $counts)) {
             $only = null;
         }
 
-        $groups = [];
+        $found = [];
         $total = 0;
 
-        foreach ($this->groups as $i => $results) {
+        foreach ($groups as $i => $results) {
             $count = $counts[$i];
 
             if ($count === 0) {
@@ -70,7 +88,7 @@ final readonly class GlobalSearch
 
             $total += $count;
             $group = $results->group();
-            $groups[] = new SearchGroupData(
+            $found[] = new SearchGroupData(
                 group: $group,
                 label: $group->label(),
                 count: $count,
@@ -78,18 +96,19 @@ final readonly class GlobalSearch
             );
         }
 
-        return new SearchResultsData($terms->query, $only, $total, $groups);
+        return new SearchResultsData($terms->query, $only, $total, $found);
     }
 
     /**
      * Whether a group found something.
      *
      * @param  SearchGroup  $group  the group to look at
+     * @param  list<GroupResults>  $groups  the groups searched
      * @param  array<int, int>  $counts  the matches of each group, by position
      */
-    private function found(SearchGroup $group, array $counts): bool
+    private function found(SearchGroup $group, array $groups, array $counts): bool
     {
-        foreach ($this->groups as $i => $results) {
+        foreach ($groups as $i => $results) {
             if ($results->group() === $group) {
                 return $counts[$i] > 0;
             }

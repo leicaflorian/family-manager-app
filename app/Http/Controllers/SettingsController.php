@@ -27,17 +27,17 @@ final class SettingsController extends Controller
      * The entries there are in this stage: my account, the settings of the family and, under *The app*,
      * the version with the day it was released (none for a version without notes, as `dev`).
      */
-    public function __invoke(#[CurrentUser] User $user, FamilyAreas $areas, ReleaseNotes $releaseNotes): Response
+    public function __invoke(#[CurrentUser] User $user, FamilyAreas $areas, ReleaseNotes $releaseNotes, FamilyFeatures $features): Response
     {
         $release = config()->string('app.version');
 
         return Inertia::render('settings/Settings', [
             'account' => AccountData::fromUser($user),
             'mainCategories' => DocumentCategory::query()->whereNull('parent_id')->count(),
-            'mainExpenseCategories' => ExpenseCategory::query()->whereNull('parent_id')->count(),
+            'mainExpenseCategories' => $features->on(Feature::Budget) ? ExpenseCategory::query()->whereNull('parent_id')->count() : 0,
             'areaCount' => count(Area::cases()),
             'hiddenAreas' => count($areas->hidden()),
-            'bankCount' => resolve(FamilyFeatures::class)->on(Feature::BankFeed) ? BankConnection::query()->count() : 0,
+            'bankCount' => $features->on(Feature::BankFeed) ? BankConnection::query()->count() : 0,
             'release' => $release,
             'releasedOn' => $releaseNotes->released($release, app()->getLocale())?->date,
         ]);

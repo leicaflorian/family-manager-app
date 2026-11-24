@@ -205,6 +205,7 @@ export function settingsSections(features: Features | null): SettingsSection[] {
             label: trans('Expense categories'),
             icon: Tags,
             href: expenseCategories().url,
+            feature: 'budget',
             group: 'family',
             subtitle: ({ mainExpenseCategories }) =>
                 transChoice(

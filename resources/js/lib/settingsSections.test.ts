@@ -8,7 +8,7 @@ function keys(features: Record<string, boolean> | null): string[] {
 
 describe('settingsSections', () => {
     it('lists the sections of the settings in the order of the board, with the bank on', () => {
-        expect(keys({ bank_feed: true })).toEqual([
+        expect(keys({ budget: true, bank_feed: true })).toEqual([
             'account',
             'calendar',
             'family',
@@ -27,6 +27,14 @@ describe('settingsSections', () => {
     it('leaves out Linked banks while the bank is off', () => {
         expect(keys({ bank_feed: false })).not.toContain('banks');
         expect(keys({})).not.toContain('banks');
+    });
+
+    it('leaves out the banks and the expense categories while the Budget is off', () => {
+        const off = keys({ budget: false, bank_feed: false });
+
+        expect(off).not.toContain('banks');
+        expect(off).not.toContain('expense-categories');
+        expect(off).toContain('categories');
     });
 
     it('has everything on without a family', () => {

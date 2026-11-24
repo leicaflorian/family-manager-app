@@ -91,6 +91,7 @@ export const SECTIONS: readonly SectionEntry[] = [
     { key: 'documents', group: 'archive', pages: ['documents/Documents'] },
     {
         key: 'budget',
+        feature: 'budget',
         bar: 1,
         group: 'every-day',
         pages: [
@@ -142,6 +143,8 @@ export type AddItem = {
     href: string;
     /** The Lucide icon. */
     icon: LucideIcon;
+    /** The feature of the family that offers it; without one, it is always there. */
+    feature?: App.Enums.Feature;
 };
 
 /** An item that opens a panel instead of a page. */
@@ -283,6 +286,35 @@ export function navigationItems(
     const toSortItem = shown('toSort');
     const mailItem = shown('mail');
 
+    const add: AddItem[] = [
+        {
+            label: trans('Upload a file'),
+            hint: trans('PDF or photos from the phone'),
+            href: upload().url,
+            icon: Upload,
+        },
+        {
+            label: trans('Scan a sheet'),
+            hint: trans('Photograph a sheet with the camera'),
+            // the page tries to open the camera at once: Android lets it, Safari on the iPhone waits for a tap
+            href: scan({ query: { camera: 1 } }).url,
+            icon: ScanLine,
+        },
+        {
+            label: trans('New expense'),
+            hint: trans('An expense already made, without a document'),
+            href: newMovement().url,
+            icon: Receipt,
+            feature: 'budget',
+        },
+        {
+            label: trans('New task'),
+            hint: trans('Something to remember, with the date'),
+            href: newReminder().url,
+            icon: BellPlus,
+        },
+    ];
+
     return {
         sections: entries
             .filter(
@@ -295,33 +327,7 @@ export function navigationItems(
         ...(toSortItem ? { toSort: toSortItem } : {}),
         ...(mailItem ? { mail: mailItem } : {}),
         upload: upload().url,
-        add: [
-            {
-                label: trans('Upload a file'),
-                hint: trans('PDF or photos from the phone'),
-                href: upload().url,
-                icon: Upload,
-            },
-            {
-                label: trans('Scan a sheet'),
-                hint: trans('Photograph a sheet with the camera'),
-                // the page tries to open the camera at once: Android lets it, Safari on the iPhone waits for a tap
-                href: scan({ query: { camera: 1 } }).url,
-                icon: ScanLine,
-            },
-            {
-                label: trans('New expense'),
-                hint: trans('An expense already made, without a document'),
-                href: newMovement().url,
-                icon: Receipt,
-            },
-            {
-                label: trans('New task'),
-                hint: trans('Something to remember, with the date'),
-                href: newReminder().url,
-                icon: BellPlus,
-            },
-        ],
+        add: add.filter((item) => featureOn(features, item.feature)),
         logout: logout().url,
         feedback: {
             label: trans('Report a problem or an idea'),

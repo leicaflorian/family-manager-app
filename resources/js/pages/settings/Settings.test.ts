@@ -15,7 +15,11 @@ vi.mock('@/composables/useBankFeed', () => ({
     useBankFeed: () => computed(() => bankFeed.share),
 }));
 vi.mock('@/composables/useFeatures', () => ({
-    useFeatures: () => computed(() => ({ bank_feed: bankFeed.share !== null })),
+    useFeatures: () =>
+        computed(() => ({
+            budget: true,
+            bank_feed: bankFeed.share !== null,
+        })),
 }));
 
 afterEach(() => {

@@ -870,6 +870,7 @@
     "the name of who sent it: :first, :second": "il nome di chi l'ha mandato: :first, :second",
     "an amount or a date: :amount, :date": "un importo o una data: :amount, :date",
     "I search in the names of the cards, in the titles, labels and read text of the documents, in the expenses, in the organizations and in the people.": "Cerco nei nomi delle schede, nei titoli, nelle etichette e nel testo letto dei documenti, nelle spese, negli enti e nelle persone.",
+    "I search in the names of the cards, in the titles, labels and read text of the documents, in the organizations and in the people.": "Cerco nei nomi delle schede, nei titoli, nelle etichette e nel testo letto dei documenti, negli enti e nelle persone.",
     "Period": "Periodo",
     "Period: :from – :to": "Periodo: :from – :to",
     "{1} :count month|[2,*] :count months": "{1} :count mese|[2,*] :count mesi",

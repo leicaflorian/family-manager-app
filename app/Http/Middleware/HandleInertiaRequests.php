@@ -72,7 +72,7 @@ class HandleInertiaRequests extends Middleware
             'linked_phone' => false,
             'family' => fn (): ?FamilyData => $this->family($request),
             'areas' => fn (): array => $request->user() instanceof User ? $this->summaries->counts() : [],
-            'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->where('user_id', $request->user()->id)->unread()->count() : 0,
+            'unread_notices' => fn (): int => $request->user() instanceof User ? ReminderNotice::query()->shown()->where('user_id', $request->user()->id)->unread()->count() : 0,
             // The menu of the bell: sent only when a page asks for it (`only: ['bell_notices']`)
             'bell_notices' => Inertia::optional(fn (): array => $request->user() instanceof User
                 ? $this->notices->latest($request->user()->id, CarbonImmutable::today('Europe/Rome'))

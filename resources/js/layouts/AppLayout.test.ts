@@ -43,6 +43,7 @@ vi.mock('@inertiajs/vue3', async (original) => ({
             family: {
                 name: 'Bianchi',
                 features: {
+                    budget: true,
                     bank_feed: false,
                     consumption: page.hasConsumption,
                     gallery: false,

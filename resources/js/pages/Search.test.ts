@@ -10,8 +10,15 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
+import { computed } from 'vue';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import Search from './Search.vue';
+
+const shared = vi.hoisted(() => ({ budget: true }));
+
+vi.mock('@/composables/useFeatures', () => ({
+    useFeature: () => computed((): boolean => shared.budget),
+}));
 
 /**
  * A result as the server sends it.
@@ -216,6 +223,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    shared.budget = true;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -529,5 +537,17 @@ describe('Search', () => {
                 name: '10 results for «Panda»',
             }),
         ).toBeVisible();
+    });
+
+    it('does not name the expenses in the help while the Budget is off', () => {
+        const help = /^I search in the names/;
+        const first = renderPage(Search, { results: panda });
+        expect(screen.getByText(help)).toHaveTextContent('expenses');
+        first.unmount();
+
+        shared.budget = false;
+        renderPage(Search, { results: panda });
+
+        expect(screen.getByText(help)).not.toHaveTextContent('expenses');
     });
 });

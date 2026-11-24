@@ -9,6 +9,7 @@ use App\Cards\CardTypes;
 use App\Data\DocumentLinkData;
 use App\Data\LinkGroupData;
 use App\Data\OptionData;
+use App\Enums\Feature;
 use App\Models\Document;
 use App\Support\Linkables;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -31,8 +32,14 @@ final class DocumentLinks
     public function groups(): array
     {
         $groups = [];
+        $budget = resolve(FamilyFeatures::class)->on(Feature::Budget);
 
         foreach (array_keys(Linkables::WITH_DOCUMENTS) as $type) {
+            // Expenses and income are pages of the Budget: with it off a document does not link to them
+            if (! $budget && in_array($type, ['expense', 'income'], true)) {
+                continue;
+            }
+
             $class = Linkables::TYPES[$type];
             $options = [];
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Feature;
+use App\Services\FamilyFeatures;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReminderNoticeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -43,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @method static Builder<static>|ReminderNotice newModelQuery()
  * @method static Builder<static>|ReminderNotice newQuery()
  * @method static Builder<static>|ReminderNotice query()
+ * @method static Builder<static>|ReminderNotice shown()
  * @method static Builder<static>|ReminderNotice unread()
  *
  * @mixin \Eloquent
@@ -77,6 +80,19 @@ final class ReminderNotice extends FamilyModel
     protected function unread(Builder $query): void
     {
         $query->whereNull('read_at');
+    }
+
+    /**
+     * The notices the bell shows: the ones about the bank only while the Budget, where the bank lives, is on.
+     *
+     * @param  Builder<ReminderNotice>  $query
+     */
+    #[Scope]
+    protected function shown(Builder $query): void
+    {
+        if (! resolve(FamilyFeatures::class)->on(Feature::Budget)) {
+            $query->whereNull('bank_transaction_id')->whereNull('bank_connection_id');
+        }
     }
 
     /**

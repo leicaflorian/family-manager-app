@@ -104,6 +104,7 @@ final readonly class NoticeList
     private function query(int $userId): Builder
     {
         return ReminderNotice::query()
+            ->shown()
             ->where('user_id', $userId)
             ->with($this->relations())
             ->orderByRaw('read_at IS NOT NULL')
