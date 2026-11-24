@@ -452,7 +452,7 @@ readonly url: string,
 export type HomeData = {
 readonly first_name: string,
 readonly today: string,
-readonly total: number,
+readonly total: number | null,
 readonly payments: number,
 readonly late: number,
 readonly entries: App.Data.AgendaEntryData[],

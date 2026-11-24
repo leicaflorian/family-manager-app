@@ -18,7 +18,7 @@ final class HomeData extends Data
     /**
      * @param  string  $first_name  the first name of whoever signed in
      * @param  string  $today  today in Rome, `yyyy-mm-dd`
-     * @param  float  $total  the sum of the payments to make, late ones included
+     * @param  float|null  $total  the sum of the payments to make, late ones included; null with the Budget off, when the Home shows no money
      * @param  int  $payments  how many payments
      * @param  int  $late  how many of them are late
      * @param  list<AgendaEntryData>  $entries  payments and deadlines, the late ones first, ten at most
@@ -32,7 +32,7 @@ final class HomeData extends Data
     public function __construct(
         public readonly string $first_name,
         public readonly string $today,
-        public readonly float $total,
+        public readonly ?float $total,
         public readonly int $payments,
         public readonly int $late,
         public readonly array $entries,

@@ -36,6 +36,17 @@ final class AgendaEntries
     }
 
     /**
+     * What is to do: everything but the payments (the incomes are not in the lists that ask for this).
+     *
+     * @param  array<AgendaEntryData>  $entries  the entries
+     * @return list<AgendaEntryData>
+     */
+    public static function withoutPayments(array $entries): array
+    {
+        return self::where($entries, static fn (AgendaEntryData $entry): bool => $entry->kind !== 'payment');
+    }
+
+    /**
      * What is to do or to pay: everything but the incomes.
      *
      * @param  array<AgendaEntryData>  $entries  the entries

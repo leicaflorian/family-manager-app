@@ -29,6 +29,7 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import FmTotal from '@/components/fm/FmTotal.vue';
 import { capitalized } from '@/lib/budget';
 import { usePageMeta } from '@/composables/usePageMeta';
+import { useFeature } from '@/composables/useFeatures';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { formatLongDate, relativeDays } from '@/lib/format';
 import { agenda, areas, toSort, upload } from '@/routes';
@@ -92,6 +93,9 @@ function toStep(step: App.Data.ChecklistStepData): ChecklistStep {
     }
 }
 
+/** Whether the family has the Budget: without it the Home shows no money. */
+const budget = useFeature('budget');
+
 /** The steps of *To begin*; empty when all are done. */
 const steps = computed(() => home.checklist.map(toStep));
 
@@ -101,7 +105,7 @@ const beginning = computed(() => steps.value.length > 0);
 /** Whether the right column has something to show; without it the left one takes the whole width. */
 const hasRightColumn = computed(
     () =>
-        home.incoming.length > 0 ||
+        (budget.value && home.incoming.length > 0) ||
         home.missing.length > 0 ||
         home.mails.length > 0 ||
         beginning.value,
@@ -201,6 +205,7 @@ const { title, head } = usePageMeta({
                 :class="hasRightColumn ? 'wide:col-span-3' : 'wide:col-span-5'"
             >
                 <FmTotal
+                    v-if="home.total !== null"
                     :total="home.total"
                     :payments="home.payments"
                     :late="home.late"
@@ -238,7 +243,7 @@ const { title, head } = usePageMeta({
                 }"
             >
                 <FmCard
-                    v-if="home.incoming.length > 0"
+                    v-if="budget && home.incoming.length > 0"
                     :title="$t('Incoming')"
                     list
                 >
@@ -249,7 +254,11 @@ const { title, head } = usePageMeta({
                         layout="home"
                     />
                 </FmCard>
-                <FmCard v-else :title="$t('Incoming')" class="not-wide:hidden">
+                <FmCard
+                    v-else-if="budget"
+                    :title="$t('Incoming')"
+                    class="not-wide:hidden"
+                >
                     <p class="m-0 text-body-sm text-ink-soft">
                         {{
                             $t(

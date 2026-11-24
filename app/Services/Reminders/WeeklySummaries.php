@@ -30,8 +30,8 @@ final readonly class WeeklySummaries
 
         $late = AgendaEntries::before($entries, $start);
         $rest = AgendaEntries::from($entries, $start);
-        $toPay = array_values(array_filter($rest, static fn (AgendaEntryData $entry): bool => $entry->amount !== null));
-        $tasks = array_values(array_filter($rest, static fn (AgendaEntryData $entry): bool => $entry->amount === null));
+        $toPay = AgendaEntries::payments($rest);
+        $tasks = AgendaEntries::withoutPayments($rest);
 
         $counted = [...$late, ...$toPay];
 

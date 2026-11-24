@@ -16,6 +16,7 @@ import Home from './Home.vue';
 const shared = vi.hoisted(() => ({
     name: 'Fameja.app',
     unread_notices: 0,
+    family: undefined as { features: { budget: boolean } } | undefined,
     bell_notices: undefined as
         | { unread: unknown[]; seen: unknown[] }
         | undefined,
@@ -190,6 +191,24 @@ describe('Home', () => {
         expect(rows[0]).toHaveTextContent('Late by 26 days · 30/09/2026');
         expect(rows[1]).toHaveTextContent('Bolletta gas');
         expect(rows[1]).toHaveTextContent('in 4 days');
+    });
+
+    it('has no money with the Budget off: no total and no incomes box', () => {
+        shared.family = { features: { budget: false } };
+        renderPage(Home, {
+            home: { ...home, total: null, payments: 0, late: 0, incoming: [] },
+        });
+
+        expect(
+            screen.queryByRole('region', {
+                name: 'To pay in the next 30 days',
+            }),
+        ).toBeNull();
+        expect(screen.queryByText('Incoming')).toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'The deadlines' }),
+        ).toBeInTheDocument();
+        shared.family = undefined;
     });
 
     it('offers the Agenda only when there are more than the ones shown', () => {

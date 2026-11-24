@@ -8,6 +8,7 @@ use App\Data\ChecklistStepData;
 use App\Data\HomeData;
 use App\Data\HomeMailData;
 use App\Data\MissingDocumentData;
+use App\Enums\Feature;
 use App\Enums\PersonRole;
 use App\Models\Document;
 use App\Models\File;
@@ -43,7 +44,7 @@ final readonly class HomeSummary
     /** How many mails *Arrived by mail* shows. */
     private const int MAILS = 3;
 
-    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails) {}
+    public function __construct(private Agenda $agenda, private ExpectedDocuments $expected, private ReceivedMails $mails, private FamilyFeatures $features) {}
 
     /**
      * The data of the Home of an account.
@@ -66,7 +67,7 @@ final readonly class HomeSummary
         return new HomeData(
             first_name: $user->person->first_name ?? $user->name,
             today: $todayDate,
-            total: AgendaEntries::total($payments),
+            total: $this->features->on(Feature::Budget) ? AgendaEntries::total($payments) : null,
             payments: count($payments),
             late: count(AgendaEntries::before($payments, $todayDate)),
             entries: array_slice($ordered, 0, self::ENTRIES),
