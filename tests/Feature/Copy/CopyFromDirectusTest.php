@@ -73,7 +73,7 @@ function verdiCounts(): array
 
 /** The counts of the fake Directus, once copied. */
 const VERDI_COUNTS = [
-    'files' => 5, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 3, 'documents' => 5,
+    'files' => 5, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 4, 'documents' => 5,
     'utilities' => 1, 'reminders' => 4, 'family_settings' => 1, 'documentables' => 2, 'remindables' => 3,
 ];
 
@@ -161,6 +161,19 @@ test('a file missing in the uploads is listed, with its storage when it is not l
     $contract = DB::table('documents')->where('title', 'Contratto luce')->value('file_id');
 
     $this->actingAs($laura)->get(route('files.show', $contract))->assertNotFound();
+});
+
+test('the copied family gets the categories with a role, also when made again with --replace', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+    $this->artisan('directus:copy', ['--family' => 'Verdi', '--replace' => true])->assertSuccessful()->run();
+
+    $family = DB::table('families')->where('name', 'Verdi')->value('id');
+    $registration = DB::table('document_categories')->where('family_id', $family)->where('role', 'vehicle_registration')->sole();
+
+    // The categories of Directus have no Vehicles with its card: it goes before every main category
+    expect($registration->name)->toBe('Vehicle registration document')
+        ->and($registration->parent_id)->toBeNull()
+        ->and($registration->sort)->toBeLessThan(DB::table('document_categories')->where('family_id', $family)->whereNull('parent_id')->whereNull('role')->min('sort'));
 });
 
 it('fills the occurrence of the copied expenses', function (): void {

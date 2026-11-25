@@ -12,6 +12,7 @@ use App\Models\FamilySetting;
 use App\Services\FamilyFeatures;
 use App\Services\FileStore;
 use App\Support\CurrentFamily;
+use App\Support\GiveDocumentRoles;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +31,8 @@ use Throwable;
  * organizations use are copied; a file missing in the uploads keeps its row,
  * without content, and is listed. The accounts are those of the people:
  * administrators with a random password, who enter with *Forgot password*.
- * Payments of a planned expense or income get the due date they settle at the end.
+ * Payments of a planned expense or income get the due date they settle at the end, and
+ * the family gets the document categories with a role (`GiveDocumentRoles`).
  */
 final class Copier
 {
@@ -109,6 +111,8 @@ final class Copier
                 }
 
                 $this->writeDeferred();
+                // Directus has no roles: the family gets its categories with a role as the migration gave them to the others
+                GiveDocumentRoles::family($familyId);
                 CurrentFamily::using($familyId, function (): void {
                     $this->occurrenceDates->handle();
                     // Open automatic reminders take the new title; the done ones keep the one of Directus
