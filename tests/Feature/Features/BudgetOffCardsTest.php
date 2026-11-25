@@ -185,7 +185,7 @@ test('a vehicle lists only its dates and those of its policies, without amounts,
         ->component('cards/Card')
         ->where('card.budget', null)
         ->where('card.deadlines', fn ($rows): bool => collect($rows)->map(fn (array $row): array => [$row['label'], $row['date'], $row['detail'], $row['amount'], $row['href'], $row['add_expense_href']])->all() === [
-            ['Policy renewal', '2026-11-21', 'RC auto Panda', null, route('cards.show', ['type' => 'insurance_policy', 'id' => $policy->id]), null],
+            ['Car insurance', '2026-11-21', 'RC auto Panda', null, route('cards.show', ['type' => 'insurance_policy', 'id' => $policy->id]), null],
             ['Inspection', '2027-01-09', null, null, null, null],
             ['Road tax', '2027-01-31', null, null, null, null],
         ]));

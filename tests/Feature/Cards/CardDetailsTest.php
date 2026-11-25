@@ -243,7 +243,7 @@ test('a vehicle lists its deadlines by date, with the planned expenses of its po
         ['Carburante', '2026-11-01', 'every month', 80.0, true],
         ['Assicurazione auto', '2026-11-21', 'RC auto Panda', 418.0, false],
         ['Inspection', '2027-01-09', null, null, false],
-        ['Road tax', '2027-01-31', null, 198.0, false],
+        ['Road tax', '2027-01-31', null, 198.0, true],
     ])
         ->and($detail->deadlines[0]->href)->toBe(route('budget.planned.show', ['kind' => 'expense', 'id' => $fuel->id]))
         ->and($detail->deadlines[0]->add_expense_href)->toBeNull()

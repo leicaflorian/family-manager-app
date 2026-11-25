@@ -292,6 +292,7 @@ describe('A card', () => {
                             hint_amount: null,
                             text: null,
                             tone: null,
+                            estimated: false,
                         },
                         {
                             label: 'Total to pay',
@@ -301,6 +302,7 @@ describe('A card', () => {
                             hint_amount: null,
                             text: null,
                             tone: null,
+                            estimated: false,
                         },
                     ],
                     due_label: null,

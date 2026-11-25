@@ -17,6 +17,7 @@ const props = {
             hint_amount: null,
             text: null,
             tone: null,
+            estimated: false,
         },
         {
             label: 'On average',
@@ -26,6 +27,7 @@ const props = {
             hint_amount: 72,
             text: null,
             tone: null,
+            estimated: false,
         },
     ],
     counts: { 2026: '3 bills', 2025: '1 bill' },

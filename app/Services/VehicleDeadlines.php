@@ -14,6 +14,7 @@ use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\Deadline;
+use App\Support\PlannedPreset;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -54,7 +55,7 @@ final readonly class VehicleDeadlines
         $budgetOn = $this->features->on(Feature::Budget);
         $sources = DeadlineSources::ownExpenseFor(Vehicle::class);
         // A date missing on the card is asked for in its own row, which takes the place of the planned expense that pays it
-        $missing = array_values(array_filter($sources, fn (DeadlineSource $source): bool => $this->isMissing($source, $vehicle)));
+        $missing = DeadlineSources::missingOwnExpense($vehicle);
         $planned = $budgetOn ? $this->budgets->vehicleExpenses($vehicle) : [];
 
         $rows = [
@@ -121,22 +122,21 @@ final readonly class VehicleDeadlines
     }
 
     /**
-     * With the Budget off: the expiry of each active policy of the vehicle, which opens the policy.
+     * With the Budget off: the expiry of each active policy of the vehicle, named as its planned expense would be
+     * («Car insurance»), which opens the policy.
      *
      * @param  Vehicle  $vehicle  the vehicle
      * @return list<CardDeadlineData>
      */
     private function policyRows(Vehicle $vehicle): array
     {
-        $label = __('Policy renewal');
-
         return array_values(InsurancePolicy::query()
             ->where('vehicle_id', $vehicle->id)
             ->where('status', InsurancePolicyStatus::Active)
             ->whereNotNull('expiry_date')
             ->get()
             ->map(static fn (InsurancePolicy $policy): CardDeadlineData => new CardDeadlineData(
-                label: $label,
+                label: PlannedPreset::policyTitle($policy->type),
                 date: $policy->expiry_date?->toDateString(),
                 detail: $policy->title,
                 href: route('cards.show', ['type' => 'insurance_policy', 'id' => $policy->id]),
@@ -191,17 +191,5 @@ final readonly class VehicleDeadlines
         return array_any($planned, static fn (PlannedExpense $item): bool => $item->deadline_field === $source->field
             && $item->card_type === $vehicle->getMorphClass() && $item->card_id === $vehicle->id
             && ($item->end_date === null || $item->end_date->toDateString() >= $today->toDateString()));
-    }
-
-    /**
-     * Whether the date is missing on a vehicle that still has it: empty, and the vehicle in a status in which it counts.
-     *
-     * @param  DeadlineSource  $source  the date
-     * @param  Vehicle  $vehicle  the vehicle
-     */
-    private function isMissing(DeadlineSource $source, Vehicle $vehicle): bool
-    {
-        return $vehicle->getAttribute($source->column) === null
-            && ($source->activeStatuses === [] || in_array($vehicle->status, $source->activeStatuses, true));
     }
 }

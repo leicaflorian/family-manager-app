@@ -142,24 +142,43 @@ final class CardPaymentFigures
     /**
      * *In the next 12 months*, at the top of the expenses of a vehicle: what the due dates of the next 12 months add
      * up to, estimated when one of them is, with the titles of their planned expenses below, by their first due date,
-     * at most three and then «+N».
+     * at most three and then «+N»; null when no due date falls in the next 12 months. A title starts in lowercase,
+     * unless it starts with an acronym («RCA Panda»).
      *
      * @param  list<Deadline>  $found  the due dates
      * @param  CarbonImmutable  $today  today in Rome
      */
-    public static function comingYear(array $found, CarbonImmutable $today): CardNumberData
+    public static function comingYear(array $found, CarbonImmutable $today): ?CardNumberData
     {
         $inYear = self::nextYear($found, $today);
+
+        if ($inYear === []) {
+            return null;
+        }
+
         usort($inYear, static fn (Deadline $a, Deadline $b): int => $a->occurrence->date->toDateString() <=> $b->occurrence->date->toDateString());
-        $titles = array_values(array_unique(array_map(static fn (Deadline $deadline): string => Str::lcfirst((string) $deadline->planned->title), $inYear)));
+        $titles = array_values(array_unique(array_map(static fn (Deadline $deadline): string => self::lowerFirst((string) $deadline->planned->title), $inYear)));
         $hint = implode(', ', array_slice($titles, 0, self::NAMED)).(count($titles) > self::NAMED ? ' +'.(count($titles) - self::NAMED) : '');
 
         return new CardNumberData(
             __('In the next 12 months'),
             self::sum($inYear),
-            hint: $hint === '' ? null : $hint,
+            hint: $hint,
             estimated: array_any($inYear, static fn (Deadline $deadline): bool => $deadline->occurrence->estimated),
         );
+    }
+
+    /**
+     * A title with its first letter in lowercase, as in the middle of a sentence, unless it starts with an acronym:
+     * the second letter is not lowercase either («RCA Panda»).
+     *
+     * @param  string  $title  the title
+     */
+    private static function lowerFirst(string $title): string
+    {
+        $second = mb_substr($title, 1, 1);
+
+        return $second !== '' && mb_strtolower($second) === $second ? Str::lcfirst($title) : $title;
     }
 
     /**

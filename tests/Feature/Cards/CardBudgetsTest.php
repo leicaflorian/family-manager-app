@@ -193,6 +193,27 @@ it('names at most three planned expenses in the cost of a vehicle', function ():
     expect($budget?->summary?->hint)->toBe('carburante, assicurazione auto, bollo auto +2');
 });
 
+it('leaves the road tax out of the cost of a vehicle without its date', function (): void {
+    insideBianchi(fn () => Vehicle::query()->sole()->update(['road_tax_due_date' => null]));
+    $budget = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+
+    expect($budget?->summary?->amount)->toBe(1378.0)
+        ->and($budget?->summary?->hint)->toBe('carburante, assicurazione auto');
+});
+
+it('keeps an acronym at the start of a title in the cost of a vehicle', function (): void {
+    insideBianchi(fn () => PlannedExpense::query()->where('title', 'Assicurazione auto')->sole()->update(['title' => 'RCA Panda']));
+    $budget = budgetOf(fn (): Vehicle => Vehicle::query()->sole());
+
+    expect($budget?->summary?->hint)->toBe('carburante, RCA Panda, bollo auto');
+});
+
+it('has no cost at the top of a vehicle without due dates in the next 12 months', function (): void {
+    $budget = budgetOf(fn (): Vehicle => Vehicle::factory()->create(['family_id' => CurrentFamily::id()]));
+
+    expect($budget?->summary)->toBeNull();
+});
+
 it('sums what a home costs with its utilities', function (): void {
     $budget = budgetOf(fn (): Home => Home::query()->sole());
     assert($budget instanceof CardBudgetData);

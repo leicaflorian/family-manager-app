@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Actions\Loans\RefreshLoan;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
@@ -340,8 +342,24 @@ final readonly class CardBudgets
         return $this->budget($vehicle, $this->vehicleExpenses($vehicle), $user, $today,
             paymentsLabel: __('Expenses'),
             paymentsMore: __('See all the expenses, year by year'),
-            summary: fn (array $found): CardNumberData => CardPaymentFigures::comingYear($found, $today),
+            summary: fn (array $found): ?CardNumberData => CardPaymentFigures::comingYear($this->withoutMissingDates($found, $vehicle), $today),
         );
+    }
+
+    /**
+     * The due dates without those of the planned expenses that pay a date missing on the vehicle: with no date to
+     * pay, they are not counted in what it costs, as the section *Deadlines* asks for the date instead.
+     *
+     * @param  list<Deadline>  $found  the due dates
+     * @param  Vehicle  $vehicle  the vehicle
+     * @return list<Deadline>
+     */
+    private function withoutMissingDates(array $found, Vehicle $vehicle): array
+    {
+        $missing = array_map(static fn (DeadlineSource $source): string => $source->field, DeadlineSources::missingOwnExpense($vehicle));
+
+        return array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->planned instanceof PlannedExpense
+            || ! in_array($deadline->planned->deadline_field, $missing, true)));
     }
 
     /**
@@ -451,7 +469,7 @@ final readonly class CardBudgets
      *                                 false for only the expenses linked to the card
      * @param  array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}|null  $loan  the figures of a loan
      * @param  bool  $addExpense  whether the payments offer *Add expense*, on the cards without planned items
-     * @param  (callable(list<Deadline>): CardNumberData)|null  $summary  the figure at the top of the payments, from the due dates; null for none
+     * @param  (callable(list<Deadline>): ?CardNumberData)|null  $summary  the figure at the top of the payments, from the due dates; null for none
      * @return CardBudgetData the payments of the card
      */
     private function budget(

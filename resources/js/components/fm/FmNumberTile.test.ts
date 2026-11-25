@@ -14,6 +14,7 @@ describe('FmNumberTile', () => {
                 hint_amount: null,
                 text: null,
                 tone: null,
+                estimated: false,
             },
         });
 
@@ -32,6 +33,7 @@ describe('FmNumberTile', () => {
                 hint_amount: 8000,
                 text: null,
                 tone: null,
+                estimated: false,
             },
         });
 
@@ -54,6 +56,7 @@ describe('FmNumberTile', () => {
                     hint_amount: null,
                     text,
                     tone,
+                    estimated: false,
                 },
             });
 
@@ -72,6 +75,7 @@ describe('FmNumberTile', () => {
                 hint_amount: null,
                 text: null,
                 tone: null,
+                estimated: false,
             },
         });
 

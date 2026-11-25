@@ -283,11 +283,12 @@ final class PlannedPreset
     }
 
     /**
-     * The title of a planned expense for a policy, from its type.
+     * The title of a planned expense for a policy, from its type; also the name of the expiry of a policy in the
+     * section *Deadlines* of a vehicle with the Budget off.
      *
      * @param  InsurancePolicyType  $type  the type of the policy
      */
-    private static function policyTitle(InsurancePolicyType $type): string
+    public static function policyTitle(InsurancePolicyType $type): string
     {
         return match ($type) {
             InsurancePolicyType::Car => __('Car insurance'),

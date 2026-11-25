@@ -80,6 +80,18 @@ final class DeadlineSources
     }
 
     /**
+     * The kinds of deadline of a card paid by a planned expense of its own whose date is missing on the card, while
+     * the card still has them: its planned expense has no date to pay, so it is left out of what the card costs.
+     *
+     * @param  Model  $card  the card
+     * @return list<DeadlineSource>
+     */
+    public static function missingOwnExpense(Model $card): array
+    {
+        return array_values(array_filter(self::ownExpenseFor($card::class), static fn (DeadlineSource $source): bool => $source->isMissing($card)));
+    }
+
+    /**
      * The kind of deadline of a field.
      *
      * @param  string  $field  the key, like `vehicles.road_tax_due_date`

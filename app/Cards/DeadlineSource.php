@@ -88,6 +88,20 @@ final readonly class DeadlineSource
     }
 
     /**
+     * Whether the date is missing on a card that still has the deadline: the column is empty and the card is in a
+     * status in which the date counts.
+     *
+     * @param  Model  $card  a card of the model of this kind
+     */
+    public function isMissing(Model $card): bool
+    {
+        $status = $card->getAttribute('status');
+
+        return $card->getAttribute($this->column) === null
+            && ($this->activeStatuses === [] || in_array($status, $this->activeStatuses, true));
+    }
+
+    /**
      * The date of a card when it wants a reminder: the card has the deadline
      * (see `current()`) and the date is today or later (or any date, for a
      * kind that is overdue).
