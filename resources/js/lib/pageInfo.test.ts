@@ -140,6 +140,19 @@ describe('pageInfo', () => {
         expect(info.steps.length).toBeGreaterThan(0);
     });
 
+    it('explains the deadlines of a vehicle, with the expense to add only with the Budget on, and its registration document', () => {
+        const on = texts(pageInfo('card', null)).join(' ');
+        const off = texts(pageInfo('card', BUDGET_OFF)).join(' ');
+
+        expect(on).toContain('Add the expense');
+        expect(off).not.toContain('Add the expense');
+        for (const all of [on, off]) {
+            expect(all).toContain('Deadlines');
+            expect(all).toContain('Add the date');
+            expect(all).toContain('Vehicle registration document');
+        }
+    });
+
     it('has a title, a purpose and at least one step for every page', () => {
         for (const key of PAGE_INFO_KEYS) {
             const info = pageInfo(key, null);

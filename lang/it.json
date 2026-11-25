@@ -2705,5 +2705,10 @@
     "In the next 12 months": "Nei prossimi 12 mesi",
     "The date of the next deadline is missing": "Manca la data della prossima scadenza",
     "Add the expense": "Aggiungi la spesa",
-    "Add the date": "Aggiungi la data"
+    "Add the date": "Aggiungi la data",
+    "On a vehicle, Deadlines lines up what is coming by date, with the amount: road tax, inspection, insurance and the other planned expenses.": "Su un veicolo, Scadenze mette in fila per data quello che arriva, con l'importo: bollo, revisione, assicurazione e le altre spese fisse.",
+    "On a vehicle, Deadlines lines up by date the road tax, the inspection and the expiry of the insurance.": "Su un veicolo, Scadenze mette in fila per data il bollo, la revisione e la scadenza dell'assicurazione.",
+    "Add the expense, beside a date, creates the planned expense that pays it, already filled in.": "Aggiungi la spesa, accanto a una data, crea la spesa fissa che la paga, già compilata.",
+    "Add the date, at the bottom, takes you to the form to write a date the vehicle is missing.": "Aggiungi la data, in fondo, ti porta al modulo per scrivere una data che manca al veicolo.",
+    "A vehicle expects its registration document: it counts when it is in the category Vehicle registration document, or in one under it, even if you rename it.": "Un veicolo aspetta il suo libretto: conta quando sta nella categoria Libretto di circolazione, o in una sotto di lei, anche se la rinomini."
 }

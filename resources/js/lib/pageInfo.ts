@@ -562,10 +562,34 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
                     'Under the documents you find its planned expenses and payments.',
                 ),
             ),
+            only(
+                'budget',
+                trans(
+                    'On a vehicle, Deadlines lines up what is coming by date, with the amount: road tax, inspection, insurance and the other planned expenses.',
+                ),
+            ),
+            unless(
+                'budget',
+                trans(
+                    'On a vehicle, Deadlines lines up by date the road tax, the inspection and the expiry of the insurance.',
+                ),
+            ),
+            only(
+                'budget',
+                trans(
+                    'Add the expense, beside a date, creates the planned expense that pays it, already filled in.',
+                ),
+            ),
+            trans(
+                'Add the date, at the bottom, takes you to the form to write a date the vehicle is missing.',
+            ),
         ],
         notes: [
             trans(
                 'The dates of the card become deadlines in the Agenda and in the notices, by themselves.',
+            ),
+            trans(
+                'A vehicle expects its registration document: it counts when it is in the category Vehicle registration document, or in one under it, even if you rename it.',
             ),
             trans(
                 'The + beside the linked cards adds a new card already linked.',
