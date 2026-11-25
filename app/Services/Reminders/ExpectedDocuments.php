@@ -19,6 +19,7 @@ use App\Models\Filing;
 use App\Models\FinancialAccount;
 use App\Models\Vehicle;
 use App\Services\CategoryTree;
+use App\Support\CurrentFamily;
 use App\Support\ModelId;
 use App\Support\Translated;
 use Carbon\CarbonImmutable;
@@ -32,6 +33,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class ExpectedDocuments
 {
+    /** @var array<int, array{id: int, tree: list<int>}|null> the registration document category and the ids under it, by family, read once per instance */
+    private array $registration = [];
+
     /**
      * What a card expects and what of it is still missing.
      *
@@ -96,7 +100,27 @@ final class ExpectedDocuments
      */
     public function categoryFor(Model $card): ?int
     {
-        return $card instanceof Vehicle ? DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration)?->id : null;
+        return $card instanceof Vehicle ? $this->registration()['id'] ?? null : null;
+    }
+
+    /**
+     * The registration document category of the current family with the ids of it and of all those under it, read
+     * once: the Home and the notices ask for it once per vehicle.
+     *
+     * @return array{id: int, tree: list<int>}|null null when the family has deleted the category of the role
+     */
+    private function registration(): ?array
+    {
+        $family = CurrentFamily::id() ?? 0;
+
+        if (! array_key_exists($family, $this->registration)) {
+            $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
+            $this->registration[$family] = $category instanceof DocumentCategory
+                ? ['id' => $category->id, 'tree' => (new CategoryTree)->withDescendants($category->id)]
+                : null;
+        }
+
+        return $this->registration[$family];
     }
 
     /**
@@ -118,13 +142,17 @@ final class ExpectedDocuments
      */
     private function ofVehicle(Vehicle $vehicle): array
     {
-        $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
-
-        if ($vehicle->status !== VehicleStatus::Active || ! $category instanceof DocumentCategory) {
+        if ($vehicle->status !== VehicleStatus::Active) {
             return [];
         }
 
-        $ids = (new CategoryTree)->withDescendants($category->id);
+        $category = $this->registration();
+
+        if ($category === null) {
+            return [];
+        }
+
+        $ids = $category['tree'];
 
         return ['registration' => [
             'name' => Translated::text('Vehicle registration document'),

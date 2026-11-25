@@ -20,6 +20,7 @@ use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -163,6 +164,21 @@ test('missingFor lists what is missing in every active vehicle and open ISEE, wi
 
         expectedLinkedDocument($panda, ['title' => 'Libretto', 'category_id' => $category->id]);
         expect(collect(resolve(ExpectedDocuments::class)->missingFor($this->today))->where('card', 'Fiat Panda')->count())->toBe(0);
+    });
+});
+
+test('the category with the role is looked for once, however many vehicles miss their registration document', function (): void {
+    insideBianchi(function (): void {
+        Vehicle::factory()->count(2)->create(['family_id' => CurrentFamily::id()]);
+        $expected = resolve(ExpectedDocuments::class);
+
+        DB::enableQueryLog();
+        $missing = $expected->missingFor($this->today);
+        $lookups = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], 'from `document_categories` where `role` = ?'));
+        DB::disableQueryLog();
+
+        expect(collect($missing)->where('document', 'Vehicle registration document'))->toHaveCount(3)
+            ->and($lookups)->toHaveCount(1);
     });
 });
 
