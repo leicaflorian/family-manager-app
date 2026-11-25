@@ -20,7 +20,7 @@ final class CardDeadlineData extends Data
      * @param  string|null  $detail  how often it repeats or the policy it belongs to, for example «every month» or «RC auto Panda»
      * @param  float|null  $amount  the amount of the due date, null without a planned expense or with the Budget off
      * @param  bool  $estimated  whether the amount is an estimate
-     * @param  string|null  $href  the page of the planned expense (with the Budget off, of the policy); null for a date of the card
+     * @param  string|null  $href  the page of the planned expense (with the Budget off, of the policy); null for a date of the card without its planned expense
      * @param  string|null  $add_expense_href  *Add the expense*: the new planned expense already filled in; null when not missing, with the Budget off or for whoever may not create one
      * @param  string|null  $add_date_href  *Add the date*: the form of the card; null when the date is there or for whoever may not edit the card
      */

@@ -276,6 +276,19 @@ test('a vehicle without the date of its road tax asks for it at the bottom', fun
         ->and($last->add_date_href)->toBe(route('cards.edit', ['type' => 'vehicle', 'id' => $this->panda->id]));
 });
 
+test('a date paid by a planned expense with no due date open in the next months keeps its row, from the card', function (): void {
+    // Like an inspection every two years just paid: the next due date of the road tax falls after the 24 months read
+    $tax = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Bollo auto')->sole());
+    PlannedExpense::query()->withoutGlobalScopes()->whereKey($tax->id)->update(['start_date' => '2029-01-31']);
+    $detail = insideBianchi(fn () => $this->details->of($this->panda->refresh(), $this->marco));
+    $row = collect($detail->deadlines)->firstWhere('label', 'Road tax');
+
+    expect($row)->toBeInstanceOf(CardDeadlineData::class)
+        ->and(cardDetailsDeadlineRows([$row]))->toBe([['Road tax', '2027-01-31', null, null, false]])
+        ->and($row->add_expense_href)->toBeNull()
+        ->and($row->href)->toBe(route('budget.planned.show', ['kind' => 'expense', 'id' => $tax->id]));
+});
+
 test('a member sees the deadlines without the links to add what is missing', function (): void {
     $rosa = User::factory()->for(Family::query()->where('name', 'Bianchi')->sole())->create(['role' => Role::Member]);
     insideBianchi(fn () => $this->panda->update(['road_tax_due_date' => null]));

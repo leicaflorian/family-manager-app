@@ -22,7 +22,8 @@ use Illuminate\Database\Eloquent\Collection;
  * The section *Deadlines* of a vehicle, one row per deadline, by date, the ones without a date last:
  * - each planned expense of the vehicle and of its policies, with its first due date not paid;
  * - each date of the card paid by a planned expense of its own (road tax, inspection) that still has none, with
- *   *Add the expense*;
+ *   *Add the expense*, or whose planned expense has no due date open in the months read (an inspection every two
+ *   years, just paid), which opens that planned expense;
  * - each of those dates missing on an active vehicle, with *Add the date*.
  *
  * With the Budget off the rows are only the dates of the card and the expiry of its active policies, without amounts.
@@ -58,9 +59,11 @@ final readonly class VehicleDeadlines
         $missing = DeadlineSources::missingOwnExpense($vehicle);
         $planned = $budgetOn ? $this->budgets->vehicleExpenses($vehicle) : [];
 
+        $expenseRows = $budgetOn ? $this->expenseRows($planned, $missing, $today) : [];
+
         $rows = [
-            ...($budgetOn ? $this->expenseRows($planned, $missing, $today) : $this->policyRows($vehicle)),
-            ...$this->dateRows($vehicle, $sources, $planned, $user, $today, $budgetOn),
+            ...($budgetOn ? array_values($expenseRows) : $this->policyRows($vehicle)),
+            ...$this->dateRows($vehicle, $sources, $planned, array_keys($expenseRows), $user, $today, $budgetOn),
             ...array_map(static fn (DeadlineSource $source): CardDeadlineData => new CardDeadlineData(
                 label: (string) $source->label,
                 date: null,
@@ -81,7 +84,7 @@ final readonly class VehicleDeadlines
      * @param  list<PlannedExpense>  $planned  the planned expenses of the vehicle and of its policies
      * @param  list<DeadlineSource>  $missing  the dates missing on the card, whose planned expense is left out
      * @param  CarbonImmutable  $today  today in Rome
-     * @return list<CardDeadlineData>
+     * @return array<int, CardDeadlineData> the rows by the id of their planned expense
      */
     private function expenseRows(array $planned, array $missing, CarbonImmutable $today): array
     {
@@ -104,7 +107,7 @@ final readonly class VehicleDeadlines
             $source = $item->deadline_field === null ? null : DeadlineSources::find($item->deadline_field);
             $own = $source instanceof DeadlineSource && $source->ownExpense;
 
-            $rows[] = new CardDeadlineData(
+            $rows[$item->id] = new CardDeadlineData(
                 label: $own ? (string) $source->label : $item->title,
                 date: $next->occurrence->date->toDateString(),
                 detail: match (true) {
@@ -146,32 +149,36 @@ final readonly class VehicleDeadlines
 
     /**
      * The dates of the card paid by a planned expense of its own. With the Budget on, only the ones still without
-     * that planned expense, with *Add the expense* for whoever may create one.
+     * that planned expense, with *Add the expense* for whoever may create one, and the ones whose planned expense
+     * has no row of its own (no due date open in the months read), which open that planned expense.
      *
      * @param  Vehicle  $vehicle  the vehicle
      * @param  list<DeadlineSource>  $sources  the dates paid by a planned expense of their own
      * @param  list<PlannedExpense>  $planned  the planned expenses of the vehicle and of its policies
+     * @param  list<int>  $shown  the ids of the planned expenses that have a row of their own
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable  $today  today in Rome
      * @param  bool  $budgetOn  whether the family uses the Budget
      * @return list<CardDeadlineData>
      */
-    private function dateRows(Vehicle $vehicle, array $sources, array $planned, User $user, CarbonImmutable $today, bool $budgetOn): array
+    private function dateRows(Vehicle $vehicle, array $sources, array $planned, array $shown, User $user, CarbonImmutable $today, bool $budgetOn): array
     {
         $canAdd = $budgetOn && $user->can('create', PlannedExpense::class);
         $rows = [];
 
         foreach ($sources as $source) {
             $date = $source->current($vehicle, $today);
+            $own = $budgetOn ? $this->ownExpenses($source, $vehicle, $planned, $today) : [];
 
-            if (! $date instanceof CarbonImmutable || ($budgetOn && $this->hasOwnExpense($source, $vehicle, $planned, $today))) {
+            if (! $date instanceof CarbonImmutable || array_any($own, static fn (PlannedExpense $item): bool => in_array($item->id, $shown, true))) {
                 continue;
             }
 
             $rows[] = new CardDeadlineData(
                 label: (string) $source->label,
                 date: $date->toDateString(),
-                add_expense_href: $canAdd ? route('budget.planned.create', ['kind' => 'expense', 'card' => 'vehicle:'.$vehicle->id, 'deadline' => $source->field]) : null,
+                href: $own === [] ? null : route('budget.planned.show', ['kind' => 'expense', 'id' => $own[0]->id]),
+                add_expense_href: $canAdd && $own === [] ? route('budget.planned.create', ['kind' => 'expense', 'card' => 'vehicle:'.$vehicle->id, 'deadline' => $source->field]) : null,
             );
         }
 
@@ -179,17 +186,18 @@ final readonly class VehicleDeadlines
     }
 
     /**
-     * Whether a planned expense of the vehicle in progress pays the date, as {@see Reminders\MissingExpenses} reads it.
+     * The planned expenses of the vehicle in progress that pay the date, as {@see Reminders\MissingExpenses} reads them.
      *
      * @param  DeadlineSource  $source  the date
      * @param  Vehicle  $vehicle  the vehicle
      * @param  list<PlannedExpense>  $planned  the planned expenses of the vehicle and of its policies
      * @param  CarbonImmutable  $today  today in Rome: a planned expense that ends today is still in progress
+     * @return list<PlannedExpense>
      */
-    private function hasOwnExpense(DeadlineSource $source, Vehicle $vehicle, array $planned, CarbonImmutable $today): bool
+    private function ownExpenses(DeadlineSource $source, Vehicle $vehicle, array $planned, CarbonImmutable $today): array
     {
-        return array_any($planned, static fn (PlannedExpense $item): bool => $item->deadline_field === $source->field
+        return array_values(array_filter($planned, static fn (PlannedExpense $item): bool => $item->deadline_field === $source->field
             && $item->card_type === $vehicle->getMorphClass() && $item->card_id === $vehicle->id
-            && ($item->end_date === null || $item->end_date->toDateString() >= $today->toDateString()));
+            && ($item->end_date === null || $item->end_date->toDateString() >= $today->toDateString())));
     }
 }
