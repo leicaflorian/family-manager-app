@@ -18,10 +18,10 @@ use Carbon\CarbonImmutable;
 final class BankDuplicates
 {
     /** How many days apart the recorded payment and the bank transaction can be. */
-    private const int DAYS = 5;
+    public const int DAYS = 7;
 
     /**
-     * The payment of the planned item with the same amount to the cent, dated within 5 days of the bank transaction,
+     * The payment of the planned item with the same amount to the cent, dated within 7 days of the bank transaction,
      * and not already linked to another bank transaction. The closest date wins.
      *
      * @param  BankTransaction  $transaction  The bank transaction.

@@ -60,11 +60,12 @@ final readonly class SettleFromBank
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
      * @param  BankMatchSource  $by  How it was recognised: by a rule, or by the person.
+     * @param  CarbonImmutable|null  $occurrence  The due date the person chose (the date the rules give), instead of the one the matcher finds.
      * @return Expense|Income|null the payment it is now linked to, or null when it stays to sort (or is not to sort any more)
      */
-    public function handle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, BankMatchSource $by): Expense|Income|null
+    public function handle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, BankMatchSource $by, ?CarbonImmutable $occurrence = null): Expense|Income|null
     {
-        return DB::transaction(function () use ($transaction, $planned, $by): Expense|Income|null {
+        return DB::transaction(function () use ($transaction, $planned, $by, $occurrence): Expense|Income|null {
             // A person who assigns it settles it even after *It was not this one*; a rule never takes it again
             $current = BankTransaction::query()->unsorted()
                 ->when($by !== BankMatchSource::Assigned, static fn (Builder $query): Builder => $query->whereNull('declined_at'))
@@ -82,7 +83,12 @@ final readonly class SettleFromBank
                 return $this->link($current, $existing, BankMatchSource::Duplicate);
             }
 
-            $deadline = $this->matcher->deadline($current, $planned);
+            try {
+                $deadline = $occurrence instanceof CarbonImmutable ? $this->deadlines->find($planned, $occurrence) : $this->matcher->deadline($current, $planned);
+            } catch (NotFoundHttpException) {
+                // The date the person chose is not (or not any more) a due date of the planned item
+                return null;
+            }
 
             if (! $deadline instanceof Deadline) {
                 return null;

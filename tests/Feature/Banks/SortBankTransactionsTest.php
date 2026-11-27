@@ -266,6 +266,42 @@ test('assigning pays the closest open due date of the chosen planned expense', f
     });
 });
 
+test('assign with a movement links it as a duplicate', function (): void {
+    $transaction = bankSortOne(['amount' => '-72.40']);
+    $expense = insideBianchi(fn (): Expense => Expense::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'title' => 'Luce a mano', 'amount' => 72.4, 'date' => '2026-10-01']));
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'movement_id' => $expense->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('toast.message', 'Linked: Luce a mano');
+
+    insideBianchi(function () use ($transaction, $expense): void {
+        $transaction->refresh();
+
+        expect($transaction->expense_id)->toBe($expense->id)
+            ->and($transaction->matched_by)->toBe(BankMatchSource::Duplicate)
+            ->and(Expense::query()->count())->toBe(1);
+    });
+});
+
+test('assign with an occurrence pays that due date and not the closest', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-10-05'])
+        ->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $luce->id)->sole()->occurrence_date?->toDateString())->toBe('2026-10-05'));
+});
+
+test('a member can link a recorded expense', function (): void {
+    $transaction = bankSortOne(['amount' => '-72.40']);
+    $expense = insideBianchi(fn (): Expense => Expense::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'amount' => 72.4]));
+
+    $this->actingAs($this->laura)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'movement_id' => $expense->id])->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect($transaction->refresh()->expense_id)->toBe($expense->id));
+});
+
 test('assigning a credit pays a planned income and an income of a debit is refused', function (): void {
     $salary = insideBianchi(fn (): PlannedIncome => PlannedIncome::factory()->create([
         'family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'title' => 'Stipendio', 'amount' => 1500, 'start_date' => '2026-01-27', 'financial_account_id' => null, 'end_date' => null,

@@ -17,6 +17,8 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         late: false,
         amount: 72,
         estimated: true,
+        paid_on: null,
+        ended: false,
     },
     {
         kind: 'expense',
@@ -27,6 +29,8 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         late: true,
         amount: 84.2,
         estimated: true,
+        paid_on: null,
+        ended: false,
     },
     {
         kind: 'expense',
@@ -37,6 +41,8 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         late: false,
         amount: 29.9,
         estimated: false,
+        paid_on: null,
+        ended: false,
     },
     {
         kind: 'expense',
@@ -47,6 +53,8 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         late: false,
         amount: 40,
         estimated: false,
+        paid_on: null,
+        ended: false,
     },
 ];
 

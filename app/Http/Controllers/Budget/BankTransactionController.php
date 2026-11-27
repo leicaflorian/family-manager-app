@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
+use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\RefreshBanks;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
@@ -14,12 +15,14 @@ use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
+use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankMatcher;
 use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankTransactionId;
@@ -30,6 +33,7 @@ use App\Support\PaymentTitle;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -99,18 +103,41 @@ final class BankTransactionController extends Controller
     }
 
     /**
-     * *It belongs to a planned expense*: the person says which planned item the transaction pays. The closest open due
-     * date it has is paid, as a rule would pay it. An admin who can change the planned item and finds it without a rule
+     * The search of *It belongs to an expense*: the planned items and the recorded expenses (or incomes, for a credit)
+     * the transaction can be linked to, for the words in `q`.
+     *
+     * @return JsonResponse `{planned: [...], recorded: [...]}`
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     */
+    public function candidates(BankCandidatesRequest $request, BankLinkSearch $search): JsonResponse
+    {
+        return response()->json($search->search($request->transaction(), $request->searchText()));
+    }
+
+    /**
+     * *It belongs to an expense*: the person says which planned item the transaction pays, or which expense or income
+     * already recorded it is. Of a planned item, the due date chosen is paid, or else the closest open one, as a rule
+     * would pay it. An admin who can change the planned item and finds it without a rule
      * goes on to its form, with the sheet that writes the rule open from this transaction; everyone else stays here.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the planned item is not of the family
-     * @throws ValidationException (`planned_id`) when the planned item has no due date to pay
+     * @throws ValidationException (`planned_id`) when the planned item has no due date to pay; (`movement_id`) when the recorded movement cannot be linked
      */
-    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle): RedirectResponse
+    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle, LinkRecordedMovement $link): RedirectResponse
     {
         $transaction = $request->transaction();
+        $movement = $request->movement();
+
+        if ($movement instanceof Expense || $movement instanceof Income) {
+            $linked = $link->handle($transaction, $movement);
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Linked: :title', ['title' => $linked instanceof Expense ? $linked->title : $linked->label()])]);
+
+            return to_route('budget.bank.index');
+        }
+
         $planned = $request->planned();
-        $payment = $settle->handle($transaction, $planned, BankMatchSource::Assigned);
+        $payment = $settle->handle($transaction, $planned, BankMatchSource::Assigned, $request->occurrence());
 
         if (! $payment instanceof Expense && ! $payment instanceof Income) {
             // Linked, put aside or declared pending meanwhile: it is not in the list any more, nothing to pay twice

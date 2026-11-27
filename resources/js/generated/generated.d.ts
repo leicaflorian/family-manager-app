@@ -124,6 +124,16 @@ readonly due_on: string,
 readonly late: boolean,
 readonly amount: number,
 readonly estimated: boolean,
+readonly paid_on: string | null,
+readonly ended: boolean,
+};
+export type BankRecordedChoiceData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly organization: string | null,
+readonly date: string,
+readonly amount: number,
 };
 export type BankTransactionData = {
 readonly id: number,

@@ -28,14 +28,20 @@ function bankDuplicatesSetup(): array
     return [$planned, $transaction];
 }
 
-test('a payment recorded by hand with the same amount within five days is found', function (): void {
+test('finds the payment recorded seven days before', function (): void {
     insideBianchi(function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
-        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-05']);
+        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-03']);
 
         expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+    });
+});
 
-        $hand->update(['date' => '2026-11-04']);
+test('does not find the one of eight days before', function (): void {
+    insideBianchi(function (): void {
+        [$planned, $transaction] = bankDuplicatesSetup();
+        Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-02']);
+
         expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
     });
 });

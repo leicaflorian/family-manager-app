@@ -498,6 +498,8 @@ describe('Budget, From the bank, sorting', () => {
                 late: false,
                 amount: 72,
                 estimated: true,
+                paid_on: null,
+                ended: false,
             },
             {
                 kind: 'expense',
@@ -508,6 +510,8 @@ describe('Budget, From the bank, sorting', () => {
                 late: true,
                 amount: 84.2,
                 estimated: true,
+                paid_on: null,
+                ended: false,
             },
         ];
         renderPage(BankTransactions, props({ planned_options: choices }));
@@ -566,6 +570,8 @@ describe('Budget, From the bank, sorting', () => {
                         late: false,
                         amount: 72,
                         estimated: false,
+                        paid_on: null,
+                        ended: false,
                     },
                 ],
             }),

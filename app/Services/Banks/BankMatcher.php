@@ -25,7 +25,7 @@ final readonly class BankMatcher
     /** The most days a due date can be from the transaction, whatever the period. */
     private const int MAX_REACH = 45;
 
-    public function __construct(private Deadlines $deadlines, private Occurrences $occurrences) {}
+    public function __construct(private Deadlines $deadlines, private Occurrences $occurrences, private BankDuplicates $duplicates) {}
 
     /**
      * The planned item the transaction pays: among the planned expenses (for money out) or incomes (for money in)
@@ -116,6 +116,40 @@ final readonly class BankMatcher
             $this->deadlines->unpaidUntil([$planned], $day, $day, withWaived: true),
             static fn (Deadline $deadline): bool => $deadline->occurrence->date->toDateString() < $day->toDateString(),
         );
+    }
+
+    /**
+     * The due date a person who looks for the planned item by hand would pay, at any distance: the one of `deadline()`
+     * when it is open or paid by hand with a payment no other bank transaction has (the transaction links to it);
+     * otherwise the open due date closest to the day of the transaction, before or after it, at most 12 months back and
+     * 24 ahead. A skipped due date is never taken.
+     *
+     * @param  BankTransaction  $transaction  The transaction.
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     */
+    public function deadlineAnywhere(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): ?Deadline
+    {
+        $day = $transaction->booked_on;
+
+        if (! $day instanceof CarbonImmutable) {
+            return null;
+        }
+
+        $near = $this->deadline($transaction, $planned);
+
+        if ($near instanceof Deadline && ! $near->isSkipped() && (! $near->isPaid() || ($near->payment !== null && $this->duplicates->isFree($near->payment, $transaction)))) {
+            return $near;
+        }
+
+        $open = array_values(array_filter(
+            $this->deadlines->unpaidUntil([$planned], $day->addMonthsNoOverflow(24), $day, withWaived: true),
+            static fn (Deadline $deadline): bool => ! $deadline->isSkipped(),
+        ));
+
+        // In order of date: on a tie the earlier due date stays first
+        usort($open, fn (Deadline $a, Deadline $b): int => abs($this->days($a, $day)) <=> abs($this->days($b, $day)));
+
+        return $open[0] ?? null;
     }
 
     /**

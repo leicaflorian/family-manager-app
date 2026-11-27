@@ -27,6 +27,8 @@ final class BankPlannedChoiceData extends Data
      * @param  bool  $late  the due date is already over
      * @param  float  $amount  what it is planned for, commission included
      * @param  bool  $estimated  the amount is an estimate
+     * @param  string|null  $paid_on  the day of the payment already recorded for the due date, which the transaction would link to instead of paying (`yyyy-mm-dd`)
+     * @param  bool  $ended  the planned item has ended
      */
     public function __construct(
         public readonly string $kind,
@@ -37,13 +39,15 @@ final class BankPlannedChoiceData extends Data
         public readonly bool $late,
         public readonly float $amount,
         public readonly bool $estimated,
+        public readonly ?string $paid_on = null,
+        public readonly bool $ended = false,
     ) {}
 
     /**
      * The choice of a planned item and the due date it offers. It reads the organization, so the caller loads it.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  the planned item
-     * @param  Deadline  $deadline  the open due date a transaction would settle
+     * @param  Deadline  $deadline  the due date a transaction would settle: open, or paid by hand with a payment it would link to
      * @param  CarbonImmutable  $today  today in Rome
      */
     public static function fromDeadline(PlannedExpense|PlannedIncome $planned, Deadline $deadline, CarbonImmutable $today): self
@@ -59,6 +63,8 @@ final class BankPlannedChoiceData extends Data
             late: $deadline->isLate($today),
             amount: round((float) $planned->amount + $fee, 2),
             estimated: (bool) $planned->is_estimated,
+            paid_on: $deadline->payment?->date?->toDateString(),
+            ended: $planned->end_date !== null && $planned->end_date->toDateString() < $today->toDateString(),
         );
     }
 }
