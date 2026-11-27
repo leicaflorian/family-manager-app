@@ -12,6 +12,7 @@ use App\Services\Deadlines;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-27 10:00', 'Europe/Rome'));
@@ -87,6 +88,17 @@ test('a document waiting on one planned expense and already paid is not moved ag
     });
 });
 
+test('a bill waiting on two planned expenses with a hand-linked expense still moves to the paid one', function (): void {
+    waitsOnPlansIn(function (int $familyId, PlannedExpense $electricity, PlannedExpense $gas, Document $bill): void {
+        $account = FinancialAccount::factory()->create(['family_id' => $familyId]);
+        $bill->expenses()->attach(Expense::factory()->create(['family_id' => $familyId, 'planned_expense_id' => null])->id);
+
+        $expense = resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($gas, CarbonImmutable::parse('2026-11-30')), CarbonImmutable::parse('2026-11-21'), 69.40, $account->id, null);
+
+        expect($expense->documents()->pluck('documents.id')->all())->toBe([$bill->id]);
+    });
+});
+
 test('waiting on the same planned expense twice adds no row', function (): void {
     waitsOnPlansIn(function (int $familyId, PlannedExpense $electricity, PlannedExpense $gas, Document $bill): void {
         $bill->waitOn($gas);
@@ -110,13 +122,30 @@ test('a document without a wait writes only the column', function (): void {
 });
 
 test('a bill of another family never shows among the waiting ones', function (): void {
-    $otherId = Family::factory()->create()->id;
-    CurrentFamily::using($otherId, function () use ($otherId): void {
-        $gas = PlannedExpense::factory()->create(['family_id' => $otherId, 'title' => 'Gas']);
-        Document::factory()->create(['family_id' => $otherId, 'planned_expense_id' => $gas->id])->waitOn(PlannedExpense::factory()->create(['family_id' => $otherId]));
-    });
-
     waitsOnPlansIn(function (int $familyId, PlannedExpense $electricity, PlannedExpense $gas, Document $bill): void {
-        expect(Document::query()->waitingFor([$electricity->id, $gas->id])->pluck('id')->all())->toBe([$bill->id]);
+        $otherId = Family::factory()->create()->id;
+        // Family B's documents point at family A's gas, in the column and in the table: only the family scope hides them
+        CurrentFamily::using($otherId, function () use ($otherId, $gas): void {
+            Document::factory()->create(['family_id' => $otherId, 'title' => 'Bolletta dei Rossi', 'date' => '2026-11-30', 'planned_expense_id' => $gas->id]);
+            $inTable = Document::factory()->create(['family_id' => $otherId, 'title' => 'Bolletta dei Rossi', 'date' => '2026-11-30']);
+            DB::table('document_planned_expense')->insert(['document_id' => $inTable->id, 'planned_expense_id' => $gas->id]);
+        });
+
+        expect(Document::query()->waitingFor([$electricity->id, $gas->id])->pluck('id')->all())->toBe([$bill->id])
+            ->and(resolve(Deadlines::class)->find($gas, CarbonImmutable::parse('2026-11-30'))->title)->toBe('Bolletta luce e gas novembre 2026');
+    });
+});
+
+test('a document cannot wait on a planned expense of another family', function (): void {
+    $otherId = Family::factory()->create()->id;
+    $foreign = CurrentFamily::using($otherId, fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $otherId]));
+
+    waitsOnPlansIn(function (int $familyId, PlannedExpense $electricity, PlannedExpense $gas, Document $bill) use ($foreign): void {
+        $other = Document::factory()->create(['family_id' => $familyId]);
+
+        expect(fn () => $other->waitOn($foreign))->toThrow(LogicException::class)
+            ->and(fn () => $bill->waitOn($foreign))->toThrow(LogicException::class)
+            ->and($other->refresh()->planned_expense_id)->toBeNull()
+            ->and($bill->waitingPlans()->pluck('planned_expenses.id')->all())->toBe([$gas->id]);
     });
 });

@@ -349,7 +349,7 @@ final readonly class Deadlines
     /**
      * The rows grouped by the planned item they belong to.
      *
-     * @template T of Expense|Income|Document
+     * @template T of Expense|Income
      *
      * @param  Collection<int, T>  $rows  The rows.
      * @param  string  $column  The column that holds the planned item's id.

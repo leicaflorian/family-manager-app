@@ -23,7 +23,8 @@ final readonly class MovePlannedDocuments
      * Links to the expense the documents of the planned expense that have no expense yet: all of them for a one-off
      * planned expense, those from one period before the due date to half a period after for a recurring one. A
      * document that waits on more planned expenses (a bill of electricity and gas) already has the expense of the
-     * other one, so it counts as paid only when it has an expense of this planned expense.
+     * other one, so it counts as paid only when it has an expense of this planned expense; any other expense linked to
+     * it, even one linked by hand without a planned expense, does not keep it from moving.
      *
      * @param  PlannedExpense  $planned  The planned expense.
      * @param  CarbonImmutable  $occurrenceDate  The due date being paid.
@@ -34,7 +35,7 @@ final readonly class MovePlannedDocuments
         $query = Document::query()->waitingFor([$planned->id])->where(static function (Builder $query) use ($planned): void {
             $query->whereDoesntHave('expenses')->orWhere(static function (Builder $query) use ($planned): void {
                 $query->has('waitingPlans')->whereDoesntHave('expenses', static function (Builder $query) use ($planned): void {
-                    $query->where('planned_expense_id', $planned->id);
+                    $query->where('expenses.planned_expense_id', $planned->id);
                 });
             });
         });

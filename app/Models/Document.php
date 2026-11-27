@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 /**
  * A document with its file, linked to the records through `documentables`.
@@ -283,9 +284,15 @@ final class Document extends FamilyModel
      * already waits on another one. Doing it twice for the same planned expense changes nothing.
      *
      * @param  PlannedExpense  $planned  The planned expense it waits on.
+     *
+     * @throws LogicException When the planned expense belongs to another family.
      */
     public function waitOn(PlannedExpense $planned): void
     {
+        if ($planned->family_id !== $this->family_id) {
+            throw new LogicException("Document {$this->id} cannot wait on planned expense {$planned->id} of another family.");
+        }
+
         if ($this->planned_expense_id === null) {
             $this->planned_expense_id = $planned->id;
             $this->save();
