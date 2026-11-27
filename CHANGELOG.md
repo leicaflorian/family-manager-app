@@ -2,6 +2,34 @@
 
 All notable changes to Fameja.app.
 
+## [2.8.2] - 2026-11-27
+
+### Vehicles
+- New *Deadlines* section on the vehicle card, ordered by date, with amounts when the Budget is on, plus *Add the expense* and *Add the date* for what is missing
+- The vehicle's expenses start with the total *In the next 12 months*
+
+### Budget
+- A planned expense can say which deadline it pays; existing vehicle expenses get it from their title (road tax, inspection)
+- When the road tax or inspection date changes on the card, the planned expense that pays it follows
+
+### Documents
+- The vehicle registration document is now recognised by its category (fixed role *Vehicle registration document*), no longer by a title containing «libretto»
+- Every family gets that category, or the one already so called is marked; the copy from Directus does the same
+- Upload and Import keep the category passed in the address, so the form starts with it
+
+### Cards
+- A card shows its first 5 documents, with a link to Documents filtered on that card
+- A card shows up to 5 open linked cards; all of them, closed ones included, are on a new page
+- For utilities, jobs and enrollments the form shows the composed title as you choose the fields
+- A «+» beside the organization menu adds a new organization with name and types, and selects it
+- Updated «i» help texts for the card, the card form and the linked cards page
+
+### App
+- App icons are full squares with maskable versions, so macOS no longer shrinks them onto a white plate (`npm run app-icons`)
+
+### Database
+- Two migrations: `deadline_field` on planned expenses (filled for existing vehicle expenses) and `role` on document categories (adds or marks the category in every family)
+
 ## [2.8.1] - 2026-11-24
 
 ### Tests

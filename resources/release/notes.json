@@ -1,5 +1,29 @@
 [
     {
+        "version": "2.8.2",
+        "date": "2026-11-27",
+        "notes": {
+            "it": [
+                "Nella scheda di un veicolo trovi Scadenze, con le prossime date in ordine. Con il Bilancio vedi anche gli importi e il totale dei prossimi 12 mesi.",
+                "Con il Bilancio, se cambi la data del bollo o della revisione nella scheda, la spesa collegata la segue.",
+                "Per far contare il libretto di un veicolo, mettilo nella categoria Libretto di circolazione: il titolo può essere quello che vuoi.",
+                "Nelle schede vedi i primi documenti e collegamenti, e da lì puoi aprire l'elenco completo.",
+                "Quando compili un'utenza, un lavoro o un'iscrizione, in cima vedi come verrà il titolo.",
+                "Se puoi aggiungere enti, ora ne crei uno con il + mentre compili una scheda.",
+                "L'icona dell'app è stata ridisegnata per riempire bene il suo spazio, senza il bordo bianco nel Dock del Mac."
+            ],
+            "en": [
+                "A vehicle card now has Deadlines, with the coming dates in order. With the Budget you also see the amounts and the total for the next 12 months.",
+                "With the Budget, if you change the road tax or inspection date on the card, the linked expense follows it.",
+                "To have a vehicle's registration document count, put it in the category Vehicle registration document: you can give it any title.",
+                "On a card you see the first documents and linked cards, and from there you can open the full list.",
+                "When you fill in a utility, a job or an enrollment, you see at the top what the title will be.",
+                "If you can add organizations, you can now create one with the + while filling in a card.",
+                "The app icon has been redrawn to fill its space properly, with no white border in the Mac Dock."
+            ]
+        }
+    },
+    {
         "version": "2.8.1",
         "date": "2026-11-24",
         "notes": {
