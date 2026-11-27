@@ -2,6 +2,15 @@
 
 All notable changes to Fameja.app.
 
+## [2.8.4] - 2026-11-27
+
+### Release
+- Meant to put the 2.8.2 changes online: going by the commit, v2.8.3 stopped in CI, so neither 2.8.2 nor 2.8.3 should be live (the workflow runs were not checked)
+- Check before confirming: the two 2.8.2 migrations (`deadline_field` on planned expenses, `role` on document categories) should run with this deploy, but `./release` counts none as new since v2.8.3 and will not dump the production database, so back it up by hand
+
+### CI
+- An option now carries its short title only when one is given, so all other options keep their old shape; this addresses the two tests that failed in CI
+
 ## [2.8.3] - 2026-11-27
 
 ### Release
