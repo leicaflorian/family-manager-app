@@ -2226,6 +2226,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         read_at: '2026-11-06T08:00',
         bank_status: 'pending',
         transfer: null,
+        account_id: 4,
     },
     {
         id: 2,
@@ -2245,6 +2246,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         read_at: '2026-11-06T08:00',
         bank_status: 'booked',
         transfer: null,
+        account_id: 4,
     },
     {
         id: 1,
@@ -2264,6 +2266,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         read_at: '2026-11-06T08:00',
         bank_status: 'booked',
         transfer: null,
+        account_id: 4,
     },
 ];
 

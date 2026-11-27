@@ -39,6 +39,7 @@ const row: App.Data.BankTransactionData = {
     read_at: '2026-11-27T07:00',
     bank_status: 'booked',
     transfer: null,
+    account_id: 4,
 };
 
 describe('BankRawPanel', () => {

@@ -2807,5 +2807,6 @@
     "Mark as a transfer": "Segna come trasferimento",
     "to :account": "a :account",
     "from :account": "da :account",
-    "with the other half": "con l'altra metà"
+    "with the other half": "con l'altra metà",
+    "You have no other account yet.": "Non hai ancora un altro conto."
 }

@@ -361,3 +361,14 @@ test('the page sends the accounts of the family to choose a transfer from, with 
         ->where('accounts_all.1.id', $savings->id)
         ->where('accounts_all.1.connected', false));
 });
+
+test('the accounts to choose from are sent only to the list to sort, and each row carries its account id', function (): void {
+    bankTransfersSignIn();
+    [$savings] = insideBianchi(bankTransfersAccounts(...));
+    insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-10.00', '2026-11-10'));
+
+    $this->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn ($page) => $page
+        ->where('accounts_all', [])
+        ->where('rows.0.account_id', $savings->id));
+    $this->get(route('budget.bank.index'))->assertInertia(fn ($page) => $page->has('accounts_all', 2)->where('rows.0.account_id', $savings->id));
+});

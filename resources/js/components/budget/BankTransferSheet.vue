@@ -47,9 +47,9 @@ const { money, date } = useFormat();
 /** Whether it is a credit: the money came from the other account. */
 const income = computed(() => transaction.amount > 0);
 
-/** The accounts offered: every one but the account of the transaction (its name is written the same way). */
+/** The accounts offered: every one but the account of the transaction. */
 const others = computed(() =>
-    accounts.filter((account) => account.name !== transaction.account),
+    accounts.filter((account) => account.id !== transaction.account_id),
 );
 
 /** The id of the account the person tapped, null while the first one stands. */
@@ -151,6 +151,12 @@ function confirm(): void {
                     </span>
                 </label>
             </div>
+            <p
+                v-if="others.length === 0"
+                class="m-0 text-body-sm text-ink-soft"
+            >
+                {{ $t('You have no other account yet.') }}
+            </p>
             <Link
                 :href="create({ query: { card: 'financial_account' } }).url"
                 class="inline-flex min-h-11 items-center gap-2 self-start text-body text-action"

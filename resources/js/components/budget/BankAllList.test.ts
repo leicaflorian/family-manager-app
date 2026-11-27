@@ -24,6 +24,7 @@ const base: App.Data.BankTransactionData = {
     read_at: '2026-11-25T07:00',
     bank_status: 'booked',
     transfer: null,
+    account_id: 4,
 };
 
 const linked: App.Data.BankTransactionData = {

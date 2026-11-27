@@ -34,6 +34,7 @@ final class BankTransactionData extends Data
      * @param  string  $read_at  when it was read from the bank (`yyyy-mm-ddThh:mm`, Rome)
      * @param  string  $bank_status  whether the bank booked it (a `BankTransactionStatus` value)
      * @param  BankTransferData|null  $transfer  the account on the other side, when it is a transfer between the family's own accounts
+     * @param  int|null  $account_id  the account of the transaction (`financial_account_id`)
      */
     public function __construct(
         public readonly int $id,
@@ -53,6 +54,7 @@ final class BankTransactionData extends Data
         public readonly string $read_at,
         public readonly string $bank_status,
         public readonly ?BankTransferData $transfer = null,
+        public readonly ?int $account_id = null,
     ) {}
 
     /**
@@ -84,6 +86,7 @@ final class BankTransactionData extends Data
             ($transaction->created_at ?? now())->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             $transaction->status->value,
             $transaction->transfer_account_id === null ? null : BankTransferData::fromTransaction($transaction),
+            $transaction->financial_account_id,
         );
     }
 

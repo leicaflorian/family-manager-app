@@ -6,7 +6,10 @@ import { renderPage, settle } from '@/test/page';
 import BankTransferSheet from './BankTransferSheet.vue';
 
 /** A payment, on the account named «Conto BancoPosta ·· 3307». */
-const debit = bankTransactions[1]!;
+const debit: App.Data.BankTransactionData = {
+    ...bankTransactions[1]!,
+    account_id: 4,
+};
 
 /** A credit on the same account. */
 const credit: App.Data.BankTransactionData = { ...debit, id: 9, amount: 500 };
@@ -32,6 +35,40 @@ async function open(
 }
 
 describe('BankTransferSheet', () => {
+    it('hides only the account of the transaction when two accounts have the same name', async () => {
+        const view = renderPage(BankTransferSheet, {
+            open: true,
+            transaction: credit,
+            accounts: [
+                { id: 4, name: 'Conto', connected: true },
+                { id: 7, name: 'Conto', connected: false },
+            ],
+        });
+        await settle();
+        void view;
+
+        expect(
+            within(screen.getByRole('group')).getAllByRole('radio'),
+        ).toHaveLength(1);
+        expect(screen.getByText('Not linked to the bank')).toBeInTheDocument();
+    });
+
+    it('says so when the family has no other account', async () => {
+        renderPage(BankTransferSheet, {
+            open: true,
+            transaction: credit,
+            accounts: [accounts[0]],
+        });
+        await settle();
+
+        expect(
+            screen.getByText('You have no other account yet.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'Add an account' }),
+        ).toBeInTheDocument();
+    });
+
     it('asks «From which account does it come?» for a credit', async () => {
         await open(credit);
 

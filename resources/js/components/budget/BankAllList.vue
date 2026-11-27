@@ -3,13 +3,12 @@
  * The list of the tab *All* of *From the bank*, as the boards *Dalla banca, tutti i movimenti* draw it: every
  * transaction the bank gave with its day, its text, the amount, the tag of what it is (`BankRowState`) and the one
  * action it has: *It was not this one* on a linked one (when the server says it can be taken back) and *Put back among
- * the movements* on one set aside or marked as a transfer. On a computer a row is a grid (day, text, amount, action); on the phone the day and
- * the account go under the text and the action under the tag. The text opens the transaction as the bank gave it. The
+ * the movements* on one set aside or marked as a transfer. On a computer a row is a grid (day, text, amount, action);
+ * on the phone the day and the account go under the text and the action under the tag. The text opens the transaction as the bank gave it. The
  * last line says how long the movements not linked to an expense are kept. The list only says what the person did
  * (`open`, `undo`, `restore`): the page asks the server.
  *
- * Under a row the slot `under` receives the row: that is where the commission of a debit and the transfer between two
- * accounts are drawn by tasks 7 and 10, once the server sends them.
+ * Under a row the slot `under` receives the row, for what goes with it (the commission of a debit).
  *
  * @group rows
  */

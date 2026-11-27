@@ -46,6 +46,7 @@ const row = (id: number, day: string, amount: number) =>
         read_at: '2026-11-06T08:00',
         bank_status: 'booked',
         transfer: null,
+        account_id: 4,
     }) satisfies App.Data.BankTransactionData;
 
 beforeEach(() => {

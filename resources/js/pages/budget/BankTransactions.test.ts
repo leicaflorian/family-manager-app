@@ -759,6 +759,9 @@ describe('Budget, From the bank, sorting', () => {
         const menuButton = within(row).getByRole('button', {
             name: 'More actions',
         });
+        // As the board: transparent, 44 px, ink-soft
+        expect(menuButton.parentElement).toHaveClass('text-ink-soft');
+        expect(menuButton).toHaveClass('size-control-md', 'bg-transparent');
         expect(menuButton).not.toHaveClass('border');
     });
 

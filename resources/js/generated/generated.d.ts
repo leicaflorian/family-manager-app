@@ -171,6 +171,7 @@ readonly provider_id: string,
 readonly read_at: string,
 readonly bank_status: string,
 readonly transfer: App.Data.BankTransferData | null,
+readonly account_id: number | null,
 };
 export type BankTransferData = {
 readonly account: string,

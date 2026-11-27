@@ -783,21 +783,25 @@ const { title, head } = usePageMeta({
                                         >{{ assignLabel(row) }}</FmButton
                                     >
                                 </template>
-                                <FmMenu v-if="!row.pending" plain>
-                                    <FmMenuItem
-                                        v-if="sortable(row)"
-                                        :icon="ArrowLeftRight"
-                                        @select="openTransfer(row)"
-                                        >{{
-                                            $t('It is a transfer')
-                                        }}</FmMenuItem
-                                    >
-                                    <FmMenuItem
-                                        :icon="EyeOff"
-                                        @select="toggleIgnored(row)"
-                                        >{{ $t('Ignore') }}</FmMenuItem
-                                    >
-                                </FmMenu>
+                                <span
+                                    v-if="!row.pending"
+                                    class="flex text-ink-soft [&_button]:text-ink-soft"
+                                    ><FmMenu plain>
+                                        <FmMenuItem
+                                            v-if="sortable(row)"
+                                            :icon="ArrowLeftRight"
+                                            @select="openTransfer(row)"
+                                            >{{
+                                                $t('It is a transfer')
+                                            }}</FmMenuItem
+                                        >
+                                        <FmMenuItem
+                                            :icon="EyeOff"
+                                            @select="toggleIgnored(row)"
+                                            >{{ $t('Ignore') }}</FmMenuItem
+                                        >
+                                    </FmMenu></span
+                                >
                             </span>
                         </template>
                     </span>
@@ -848,7 +852,9 @@ const { title, head } = usePageMeta({
                                     >{{ assignLabel(row) }}</FmButton
                                 >
                             </template>
-                            <span v-if="!row.pending" class="ml-auto flex"
+                            <span
+                                v-if="!row.pending"
+                                class="ml-auto flex text-ink-soft [&_button]:text-ink-soft"
                                 ><FmMenu plain>
                                     <FmMenuItem
                                         v-if="sortable(row)"
