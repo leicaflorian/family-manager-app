@@ -42,15 +42,27 @@ final class SaveOrganizationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:150'],
-            'types' => ['nullable', 'array'],
-            'types.*' => ['required', 'distinct', Rule::enum(OrganizationType::class)],
+            ...self::nameAndTypesRules(),
             'email' => ['nullable', 'email', 'max:150'],
             'phone' => ['nullable', 'string', 'max:50'],
             'website' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'logo' => ['nullable', ...ImageUpload::RULES],
             'remove_logo' => ['boolean'],
+        ];
+    }
+
+    /**
+     * The rules of the name and the types, shared with the quick form of a card.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public static function nameAndTypesRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:150'],
+            'types' => ['nullable', 'array'],
+            'types.*' => ['required', 'distinct', Rule::enum(OrganizationType::class)],
         ];
     }
 

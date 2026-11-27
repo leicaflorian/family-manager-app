@@ -22,6 +22,7 @@ use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\Organization;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Queries\DocumentRows;
@@ -95,6 +96,7 @@ final class CardController extends Controller
                 ...($card->model() === Subscription::class && $this->features->on(Feature::Budget) ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkableDocuments->props($request, []),
                 'linked' => $this->documents->ofModels($documents),
+                'canCreateOrganization' => Gate::allows('create', Organization::class),
             ]);
         }
 
@@ -179,6 +181,7 @@ final class CardController extends Controller
             'fields' => fn (): array => $form()['fields'],
             'values' => fn (): array => $form()['values'],
             'titleParts' => fn (): array => $form()['titleParts'],
+            'canCreateOrganization' => Gate::allows('create', Organization::class),
             ...$this->loanFigures($request, $description, $card),
             'card' => $row,
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),

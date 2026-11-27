@@ -320,6 +320,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::redirect('family', '/family/people')->name('family');
         Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');
+        Route::post('family/organizations/quick', [OrganizationController::class, 'quick'])->middleware('throttle:30,1,organization-quick')->name('organizations.quick');
         Route::resource('family/organizations', OrganizationController::class)->names('organizations');
     });
 });
