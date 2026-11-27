@@ -345,3 +345,15 @@ test('the types of the cards and their options for the menus, in the order of Ne
         ->and(CardTypes::options()[0]->label)->toBe(CardTypes::all()[0]->label())
         ->and(CardTypes::options()[0]->help)->toBeNull();
 });
+
+test('the types whose name is composed describe its parts, the others none', function (): void {
+    $composed = [
+        'utility' => [['type'], ['organization_id', 'home_id']],
+        'employment' => [['person_id'], ['organization_id']],
+        'enrollment' => [['person_id'], ['type'], ['organization_id']],
+    ];
+
+    foreach (CardTypes::all() as $card) {
+        expect($card->titleParts())->toBe($composed[$card->type()] ?? []);
+    }
+});

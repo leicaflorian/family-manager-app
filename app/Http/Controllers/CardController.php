@@ -178,6 +178,7 @@ final class CardController extends Controller
             'type' => fn (): CardTypeData => $form()['type'],
             'fields' => fn (): array => $form()['fields'],
             'values' => fn (): array => $form()['values'],
+            'titleParts' => fn (): array => $form()['titleParts'],
             ...$this->loanFigures($request, $description, $card),
             'card' => $row,
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),

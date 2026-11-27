@@ -77,6 +77,19 @@ abstract class CardType
     abstract public function subtitle(Model $card): string;
 
     /**
+     * How the name of the card is composed, when it is not typed in a field of
+     * its own: the parts in order, each a list of columns where the first one
+     * with a value gives the text. The form shows the name before it is saved,
+     * and it must read like the `label()` of the model.
+     *
+     * @return list<list<string>>
+     */
+    public function titleParts(): array
+    {
+        return [];
+    }
+
+    /**
      * The type of the morph map, for example `insurance_policy`.
      *
      * @throws LogicException if the model is not in the morph map

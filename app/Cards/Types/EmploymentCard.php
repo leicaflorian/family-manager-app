@@ -48,6 +48,16 @@ final class EmploymentCard extends CardType
         return Employment::class;
     }
 
+    /**
+     * The name the card gets: see the `label()` of the model.
+     *
+     * {@inheritDoc}
+     */
+    public function titleParts(): array
+    {
+        return [['person_id'], ['organization_id']];
+    }
+
     /** {@inheritDoc} */
     public function fields(): array
     {

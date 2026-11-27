@@ -48,6 +48,16 @@ final class UtilityCard extends CardType
         return Utility::class;
     }
 
+    /**
+     * The name the card gets: see the `label()` of the model.
+     *
+     * {@inheritDoc}
+     */
+    public function titleParts(): array
+    {
+        return [['type'], ['organization_id', 'home_id']];
+    }
+
     /** {@inheritDoc} */
     public function fields(): array
     {

@@ -7,6 +7,8 @@ use App\Enums\ExceptionType;
 use App\Enums\Role;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Document;
+use App\Models\Employment;
+use App\Models\Enrollment;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\File;
@@ -14,9 +16,12 @@ use App\Models\Loan;
 use App\Models\PlannedExpenseException;
 use App\Models\Reminder;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\Vehicle;
 use App\Services\FamilyAreas;
 use App\Support\CurrentFamily;
+use App\Support\Linkables;
+use BackedEnum;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -643,4 +648,56 @@ test('the linked cards page answers 404 for a card of another family', function 
     $this->actingAs(registerFamily('Rossi', 'mario@rossi.example'));
 
     $this->get(route('cards.related', $this->pandaUrl))->assertNotFound();
+});
+
+test('the form of a utility sends how its name is composed, new and edit', function (): void {
+    $this->actingAs($this->marco);
+    $utility = insideBianchi(fn (): Utility => Utility::query()->firstOrFail());
+
+    $this->get(route('cards.create', ['card' => 'utility']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('titleParts', [['type'], ['organization_id', 'home_id']]));
+    $this->get(route('cards.edit', ['type' => 'utility', 'id' => $utility->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('titleParts', [['type'], ['organization_id', 'home_id']]));
+    $this->get(route('cards.create', ['card' => 'vehicle']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('titleParts', []));
+});
+
+test('a person option carries the first name the title uses', function (): void {
+    $this->actingAs($this->marco);
+
+    $this->get(route('cards.create', ['card' => 'employment']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('fields.0.options.0.title', fn (string $title): bool => $title !== '' && ! str_contains($title, ' '))
+        ->where('fields.1.options.0.title', null));
+});
+
+test('the option texts of the form join into the name of every composed card of the seeder', function (): void {
+    $this->actingAs($this->marco);
+
+    foreach ([Utility::class, Employment::class, Enrollment::class] as $model) {
+        $cards = insideBianchi(fn (): Collection => $model::query()->get());
+        expect($cards)->not->toBeEmpty();
+
+        foreach ($cards as $card) {
+            $type = Linkables::typeOf($model);
+            $props = [];
+            $this->get(route('cards.edit', ['type' => $type, 'id' => $card->id]))
+                ->assertInertia(function (AssertableInertia $page) use (&$props): void {
+                    $props = $page->toArray()['props'];
+                });
+            $text = function (string $column) use ($props, $card): ?string {
+                $value = $card->getAttribute($column);
+                $value = $value instanceof BackedEnum ? $value->value : $value;
+                $field = collect($props['fields'])->firstWhere('column', $column);
+                $option = collect($field['options'])->firstWhere('value', (string) $value);
+
+                return $option === null ? null : ($option['title'] ?? $option['label']);
+            };
+            $parts = array_map(
+                static fn (array $columns): ?string => collect($columns)->map($text)->first(static fn (?string $part): bool => $part !== null && $part !== ''),
+                $props['titleParts'],
+            );
+
+            expect(implode(' - ', array_filter($parts)))->toBe(insideBianchi(fn (): string => $model::query()->findOrFail($card->id)->label()));
+        }
+    }
 });

@@ -136,7 +136,7 @@ final readonly class CardDetails
      * @param  CardType  $type  the description of the card type
      * @param  Model|null  $card  the card to edit, or null for a new one
      * @param  array<string, mixed>  $preset  values from the address (`?vehicle_id=3`); the ones that are not fields are ignored
-     * @return array{type: CardTypeData, fields: list<CardFieldData>, values: array<string, mixed>}
+     * @return array{type: CardTypeData, fields: list<CardFieldData>, values: array<string, mixed>, titleParts: list<list<string>>}
      */
     public function form(CardType $type, ?Model $card, array $preset): array
     {
@@ -147,6 +147,7 @@ final readonly class CardDetails
             'type' => CardTypeData::fromCardType($type),
             'fields' => array_map($this->fieldData(...), $fields),
             'values' => $values,
+            'titleParts' => $type->titleParts(),
         ];
     }
 
@@ -482,7 +483,7 @@ final readonly class CardDetails
         return match ($field->kind) {
             FieldKind::Choice, FieldKind::Dropdown => OptionData::list($this->enumOptions($field)),
             FieldKind::Person => array_values(Person::query()->orderBy('first_name')->orderBy('last_name')->get()
-                ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}"))->all()),
+                ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}", title: $person->first_name))->all()),
             FieldKind::Organization => array_values(Organization::query()->orderBy('name')->get()
                 ->map(static fn (Organization $organization): OptionData => new OptionData((string) $organization->id, $organization->name))->all()),
             FieldKind::Card => $this->cardOptions($field),
