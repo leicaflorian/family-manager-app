@@ -6,6 +6,7 @@ namespace App\Services\Banks;
 
 use App\Enums\BankRowStatus;
 use App\Enums\BankTransactionStatus;
+use App\Enums\FinancialAccountStatus;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Models\BankTransaction;
 use App\Models\FinancialAccount;
@@ -69,6 +70,27 @@ final class BankRows
             ->map(static fn (FinancialAccount $account): array => [
                 'id' => $account->id,
                 'name' => $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits,
+            ]);
+
+        return array_values($accounts->all());
+    }
+
+    /**
+     * The accounts of the family a transfer can go to or come from, by name: the ones that are open, with whether the
+     * bank gives their transactions (then the other half of a transfer may be on the list too).
+     *
+     * @return list<array{id: int, name: string, connected: bool}>
+     */
+    public function transferAccounts(): array
+    {
+        $accounts = FinancialAccount::query()
+            ->where('status', FinancialAccountStatus::Active)
+            ->orderBy('name')
+            ->get()
+            ->map(static fn (FinancialAccount $account): array => [
+                'id' => $account->id,
+                'name' => $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits,
+                'connected' => $account->bank_connection_id !== null,
             ]);
 
         return array_values($accounts->all());

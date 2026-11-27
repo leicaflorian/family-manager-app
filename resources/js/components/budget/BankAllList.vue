@@ -3,7 +3,7 @@
  * The list of the tab *All* of *From the bank*, as the boards *Dalla banca, tutti i movimenti* draw it: every
  * transaction the bank gave with its day, its text, the amount, the tag of what it is (`BankRowState`) and the one
  * action it has: *It was not this one* on a linked one (when the server says it can be taken back) and *Put back among
- * the movements* on one set aside. On a computer a row is a grid (day, text, amount, action); on the phone the day and
+ * the movements* on one set aside or marked as a transfer. On a computer a row is a grid (day, text, amount, action); on the phone the day and
  * the account go under the text and the action under the tag. The text opens the transaction as the bank gave it. The
  * last line says how long the movements not linked to an expense are kept. The list only says what the person did
  * (`open`, `undo`, `restore`): the page asks the server.
@@ -60,6 +60,16 @@ const { money } = useFormat();
  */
 function undoable(row: App.Data.BankTransactionData): boolean {
     return canSort && row.link?.undo_url != null;
+}
+
+/**
+ * Whether a row has *Put back among the movements*: one set aside or marked as a transfer.
+ *
+ * @param row - the transaction
+ * @returns true for a row that goes back to the movements to sort
+ */
+function putBack(row: App.Data.BankTransactionData): boolean {
+    return row.ignored || row.status === 'transfer';
 }
 </script>
 
@@ -122,7 +132,7 @@ function undoable(row: App.Data.BankTransactionData): boolean {
                     >{{ $t('It was not this one') }}</FmButton
                 >
                 <FmButton
-                    v-else-if="canSort && row.ignored"
+                    v-else-if="canSort && putBack(row)"
                     variant="neutral"
                     row-action
                     :icon="RotateCcw"
@@ -131,7 +141,7 @@ function undoable(row: App.Data.BankTransactionData): boolean {
                 >
             </span>
             <div
-                v-else-if="canSort && (undoable(row) || row.ignored)"
+                v-else-if="canSort && (undoable(row) || putBack(row))"
                 class="flex flex-wrap items-center gap-2"
             >
                 <FmButton

@@ -19,6 +19,7 @@
  */
 import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
 import {
+    ArrowLeftRight,
     ChevronRight,
     EyeOff,
     Funnel,
@@ -35,6 +36,8 @@ import { computed, ref, watch } from 'vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
+import FmMenu from '@/components/fm/FmMenu.vue';
+import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
@@ -44,6 +47,7 @@ import BankAllList from '@/components/budget/BankAllList.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import type { BankAssignChoice } from '@/lib/bankAssign';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
+import BankTransferSheet from '@/components/budget/BankTransferSheet.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
@@ -56,6 +60,7 @@ import {
     index as bankIndex,
     restore,
     sync,
+    transfer,
 } from '@/routes/budget/bank';
 import { create } from '@/routes/budget/movements';
 import { create as createPlanned } from '@/routes/budget/planned';
@@ -86,6 +91,8 @@ const props = defineProps<{
     total?: { count: number; sum: number } | null;
     /** The tab *All*: the accounts that have transactions, to filter by. */
     accounts?: { id: number; name: string }[];
+    /** The open accounts of the family, for *It is a transfer*, with whether the bank gives their transactions. */
+    accounts_all?: { id: number; name: string; connected: boolean }[];
 }>();
 
 /** The filters of the tab *All*, each null while it is not on. */
@@ -335,6 +342,71 @@ function assignTo(choice: BankAssignChoice): void {
             assignProcessing.value = false;
         },
     });
+}
+
+/** The transaction the sheet *It is a transfer* is open for, null while it is closed. */
+const transferring = ref<App.Data.BankTransactionData | null>(null);
+
+/** The sheet is open. */
+const transferOpen = computed({
+    get: () => transferring.value !== null,
+    set: (value: boolean) => {
+        if (!value) {
+            transferring.value = null;
+        }
+    },
+});
+
+/** What the server said when it refused the account. */
+const transferError = ref<string | null>(null);
+
+/** The account is being sent. */
+const transferProcessing = ref(false);
+
+/**
+ * Opens the sheet *It is a transfer* for a row.
+ *
+ * @param row - the transaction
+ */
+function openTransfer(row: App.Data.BankTransactionData): void {
+    transferError.value = null;
+    transferring.value = row;
+}
+
+/**
+ * Sends the account chosen in the sheet: the row is a transfer and leaves the list to sort.
+ *
+ * @param accountId - the account on the other side
+ */
+function markTransfer(accountId: number): void {
+    const row = transferring.value;
+
+    if (row === null) {
+        return;
+    }
+
+    router.post(
+        transfer(row.id).url,
+        { account_id: accountId },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                transferError.value = null;
+                transferProcessing.value = true;
+            },
+            onSuccess: () => {
+                gone.value = [...gone.value, row.id];
+                transferring.value = null;
+            },
+            onError: (messages) => {
+                transferError.value =
+                    messages.account_id ?? Object.values(messages)[0] ?? null;
+            },
+            onFinish: () => {
+                transferProcessing.value = false;
+            },
+        },
+    );
 }
 
 /** The tab *All*: the filters in use, none when the server did not send them. */
@@ -711,15 +783,21 @@ const { title, head } = usePageMeta({
                                         >{{ assignLabel(row) }}</FmButton
                                     >
                                 </template>
-                                <FmButton
-                                    v-if="!row.pending"
-                                    variant="text"
-                                    row-action
-                                    muted
-                                    :icon="EyeOff"
-                                    @click="toggleIgnored(row)"
-                                    >{{ $t('Ignore') }}</FmButton
-                                >
+                                <FmMenu v-if="!row.pending" plain>
+                                    <FmMenuItem
+                                        v-if="sortable(row)"
+                                        :icon="ArrowLeftRight"
+                                        @select="openTransfer(row)"
+                                        >{{
+                                            $t('It is a transfer')
+                                        }}</FmMenuItem
+                                    >
+                                    <FmMenuItem
+                                        :icon="EyeOff"
+                                        @select="toggleIgnored(row)"
+                                        >{{ $t('Ignore') }}</FmMenuItem
+                                    >
+                                </FmMenu>
                             </span>
                         </template>
                     </span>
@@ -770,15 +848,23 @@ const { title, head } = usePageMeta({
                                     >{{ assignLabel(row) }}</FmButton
                                 >
                             </template>
-                            <FmButton
-                                v-if="!row.pending"
-                                class="ml-auto"
-                                :icon="EyeOff"
-                                :label="$t('Ignore')"
-                                plain
-                                muted
-                                @click="toggleIgnored(row)"
-                            />
+                            <span v-if="!row.pending" class="ml-auto flex"
+                                ><FmMenu plain>
+                                    <FmMenuItem
+                                        v-if="sortable(row)"
+                                        :icon="ArrowLeftRight"
+                                        @select="openTransfer(row)"
+                                        >{{
+                                            $t('It is a transfer')
+                                        }}</FmMenuItem
+                                    >
+                                    <FmMenuItem
+                                        :icon="EyeOff"
+                                        @select="toggleIgnored(row)"
+                                        >{{ $t('Ignore') }}</FmMenuItem
+                                    >
+                                </FmMenu></span
+                            >
                         </template>
                     </div>
                     <div
@@ -821,6 +907,15 @@ const { title, head } = usePageMeta({
             :error="assignError"
             :processing="assignProcessing"
             @assign="assignTo"
+        />
+        <BankTransferSheet
+            v-if="transferring"
+            v-model:open="transferOpen"
+            :transaction="transferring"
+            :accounts="accounts_all ?? []"
+            :error="transferError"
+            :processing="transferProcessing"
+            @choose="markTransfer"
         />
     </div>
 </template>

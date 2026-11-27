@@ -477,6 +477,74 @@ describe('Budget, From the bank', () => {
     });
 });
 
+describe('Budget, From the bank, the menu of a row', () => {
+    it('the menu of a row has It is a transfer next to Ignore', async () => {
+        renderPage(BankTransactions, props());
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+
+        const items = screen.getAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'It is a transfer',
+            'Ignore',
+        ]);
+    });
+
+    it('opens the sheet for the row and posts the account chosen', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(
+            BankTransactions,
+            props({
+                accounts_all: [
+                    {
+                        id: 4,
+                        name: 'Conto BancoPosta ·· 3307',
+                        connected: true,
+                    },
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as a transfer' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/transfer',
+            { account_id: 6 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.queryByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            ),
+        ).not.toBeInTheDocument();
+    });
+});
+
 describe('Budget, From the bank, ignoring', () => {
     it('ignores a transaction and the row goes', async () => {
         const post = vi
@@ -492,8 +560,9 @@ describe('Budget, From the bank, ignoring', () => {
             .closest('li')!;
 
         await userEvent.click(
-            within(row).getByRole('button', { name: 'Ignore' }),
+            within(row).getByRole('button', { name: 'More actions' }),
         );
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Ignore' }));
 
         expect(post).toHaveBeenCalledWith(
             '/budget/bank/2/ignore',
@@ -555,7 +624,7 @@ describe('Budget, From the bank, ignoring', () => {
         renderPage(BankTransactions, props({ can_sort: false }));
 
         expect(
-            screen.queryByRole('button', { name: 'Ignore' }),
+            screen.queryByRole('button', { name: 'More actions' }),
         ).not.toBeInTheDocument();
     });
 });
@@ -629,7 +698,7 @@ describe('Budget, From the bank, sorting', () => {
         const pending = screen.getByText(/Q8 STAZIONE/).closest('li')!;
 
         expect(
-            within(pending).queryByRole('button', { name: 'Ignore' }),
+            within(pending).queryByRole('button', { name: 'More actions' }),
         ).not.toBeInTheDocument();
     });
 
@@ -678,7 +747,7 @@ describe('Budget, From the bank, sorting', () => {
         renderPage(BankTransactions, props());
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
-        // As the board *Dalla banca-pc*: the buttons of a row, and Ignore grey without an edge
+        // As the board *Dalla banca-pc*: the buttons of a row, and the ⋯ menu (It is a transfer, Ignore) grey without an edge
         expect(
             within(row).getByRole('link', { name: 'Create the expense' }),
         ).toHaveClass('text-body-sm', 'border-edge-soft');
@@ -687,11 +756,10 @@ describe('Budget, From the bank, sorting', () => {
                 name: 'It belongs to an expense',
             }),
         ).toHaveClass('text-body-sm', 'border-edge-soft');
-        const ignoreButton = within(row).getByRole('button', {
-            name: 'Ignore',
+        const menuButton = within(row).getByRole('button', {
+            name: 'More actions',
         });
-        expect(ignoreButton).toHaveClass('text-body-sm', 'text-ink-soft');
-        expect(ignoreButton).not.toHaveClass('border');
+        expect(menuButton).not.toHaveClass('border');
     });
 
     it('posts the planned due date chosen in the sheet, with its original date', async () => {

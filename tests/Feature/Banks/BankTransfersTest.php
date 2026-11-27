@@ -343,3 +343,21 @@ test('a marked transfer leaves the list to sort and stays in the list all', func
     $this->get(route('budget.bank.index'))->assertInertia(fn ($page) => $page->has('rows', 0));
     $this->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn ($page) => $page->has('rows', 1)->where('rows.0.status', 'transfer'));
 });
+
+test('the page sends the accounts of the family to choose a transfer from, with the ones linked to the bank', function (): void {
+    bankTransfersSignIn();
+    [$savings, $current] = insideBianchi(bankTransfersAccounts(...));
+    insideBianchi(function () use ($current): void {
+        $connection = BankConnection::factory()->create(['family_id' => $current->family_id]);
+        $current->forceFill(['bank_connection_id' => $connection->id, 'last_four_digits' => '5521'])->save();
+        // An account of another family never shows
+        FinancialAccount::factory()->create(['family_id' => Family::factory()->create()->id, 'name' => 'Not ours']);
+    });
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn ($page) => $page
+        ->has('accounts_all', 2)
+        ->where('accounts_all.0.name', 'Current account ·· 5521')
+        ->where('accounts_all.0.connected', true)
+        ->where('accounts_all.1.id', $savings->id)
+        ->where('accounts_all.1.connected', false));
+});

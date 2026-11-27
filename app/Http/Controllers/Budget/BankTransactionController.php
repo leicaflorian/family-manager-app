@@ -91,6 +91,8 @@ final class BankTransactionController extends Controller
             'total' => fn (): ?array => $show === 'all' ? $all->total($filters) : null,
             'filters' => fn (): ?array => $show === 'all' ? $filters->chosen() : null,
             'accounts' => fn (): array => $show === 'all' ? $all->accounts() : [],
+            // *It is a transfer*: the open accounts of the family, to choose the one on the other side
+            'accounts_all' => $all->transferAccounts(...),
             'banks_to_reconnect' => fn (): array => BankConnection::query()
                 ->where('status', BankConnectionStatus::NeedsReconnect)
                 ->orderBy('institution_name')

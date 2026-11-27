@@ -2795,5 +2795,17 @@
     "No movement yet": "Ancora nessun movimento",
     "The movements the bank gives you appear here.": "I movimenti che ti dà la banca compaiono qui.",
     "Choose another account: this movement is already on this one.": "Scegli un altro conto: questo movimento è già su questo.",
-    "Marked as a transfer between your accounts.": "Segnato come trasferimento tra i tuoi conti."
+    "Marked as a transfer between your accounts.": "Segnato come trasferimento tra i tuoi conti.",
+    "It is a transfer": "È un trasferimento",
+    "From which account does it come?": "Da quale conto arrivano?",
+    "To which account does it go?": "A quale conto vanno?",
+    "Linked to the bank": "Collegato alla banca",
+    "Not linked to the bank": "Non collegato alla banca",
+    "Add an account": "Aggiungi un conto",
+    "A transfer is not an expense or an income: it does not count in the Budget.": "Un trasferimento non è una spesa né un'entrata: non conta nel Bilancio.",
+    "If the other account is linked to the bank too, the two halves are sorted together: once this one is marked, the other becomes a transfer by itself.": "Se anche l'altro conto è collegato alla banca, le due metà si sistemano insieme: segnata questa, l'altra diventa un trasferimento da sola.",
+    "Mark as a transfer": "Segna come trasferimento",
+    "to :account": "a :account",
+    "from :account": "da :account",
+    "with the other half": "con l'altra metà"
 }
