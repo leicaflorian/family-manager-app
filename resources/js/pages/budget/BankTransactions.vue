@@ -24,6 +24,7 @@ import {
     EyeOff,
     Funnel,
     Landmark,
+    Link as LinkIcon,
     List,
     Plus,
     RefreshCw,
@@ -47,6 +48,7 @@ import BankAllList from '@/components/budget/BankAllList.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import type { BankAssignChoice } from '@/lib/bankAssign';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
+import BankFeeSheet from '@/components/budget/BankFeeSheet.vue';
 import BankTransferSheet from '@/components/budget/BankTransferSheet.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
@@ -56,6 +58,7 @@ import { dayOf, lastReadText, readTimes } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import {
     assign,
+    fee as feeRoute,
     ignore,
     index as bankIndex,
     restore,
@@ -257,6 +260,11 @@ const recurClass = cn(
     'flex items-center gap-2 rounded-md bg-action-soft px-3 py-2 text-label text-action-dark',
 );
 
+/** The tag *Commission* of a commission left alone, grey on the white of the board. */
+const orphanTagClass = cn(
+    'inline-flex self-start rounded-tag bg-card-sunken px-2 py-[3px] text-meta-strong whitespace-nowrap text-ink-soft',
+);
+
 /**
  * The words of the offer for a payment or a credit.
  *
@@ -404,6 +412,71 @@ function markTransfer(accountId: number): void {
             },
             onFinish: () => {
                 transferProcessing.value = false;
+            },
+        },
+    );
+}
+
+/** The commission the sheet *It is the commission of…* is open for, null while it is closed. */
+const feeing = ref<App.Data.BankTransactionData | null>(null);
+
+/** The sheet is open. */
+const feeOpen = computed({
+    get: () => feeing.value !== null,
+    set: (value: boolean) => {
+        if (!value) {
+            feeing.value = null;
+        }
+    },
+});
+
+/** What the server said when it refused the expense. */
+const feeError = ref<string | null>(null);
+
+/** The expense is being sent. */
+const feeProcessing = ref(false);
+
+/**
+ * Opens the sheet *It is the commission of…* for a row.
+ *
+ * @param row - the commission left alone
+ */
+function openFee(row: App.Data.BankTransactionData): void {
+    feeError.value = null;
+    feeing.value = row;
+}
+
+/**
+ * Sends the expense chosen in the sheet: the commission joins it and leaves the list to sort.
+ *
+ * @param expenseId - the expense the commission belongs to
+ */
+function attachFee(expenseId: number): void {
+    const row = feeing.value;
+
+    if (row === null) {
+        return;
+    }
+
+    router.post(
+        feeRoute(row.id).url,
+        { expense_id: expenseId },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                feeError.value = null;
+                feeProcessing.value = true;
+            },
+            onSuccess: () => {
+                gone.value = [...gone.value, row.id];
+                feeing.value = null;
+            },
+            onError: (messages) => {
+                feeError.value =
+                    messages.expense_id ?? Object.values(messages)[0] ?? null;
+            },
+            onFinish: () => {
+                feeProcessing.value = false;
             },
         },
     );
@@ -740,6 +813,17 @@ const { title, head } = usePageMeta({
                                 />
                             </Link>
                             <span
+                                v-if="wide && row.orphan_fee"
+                                class="flex flex-wrap items-center gap-2"
+                            >
+                                <span :class="orphanTagClass">{{
+                                    $t('Commission')
+                                }}</span>
+                                <span class="text-meta text-ink-soft">{{
+                                    $t('Left without its direct debit')
+                                }}</span>
+                            </span>
+                            <span
                                 v-if="wide && row.pending"
                                 class="flex flex-wrap items-center gap-2"
                             >
@@ -792,7 +876,17 @@ const { title, head } = usePageMeta({
                                 v-else
                                 class="flex flex-nowrap items-center gap-2"
                             >
-                                <template v-if="sortable(row)">
+                                <FmButton
+                                    v-if="sortable(row) && row.orphan_fee"
+                                    variant="neutral"
+                                    row-action
+                                    :icon="LinkIcon"
+                                    @click="openFee(row)"
+                                    >{{
+                                        $t('It is the commission of…')
+                                    }}</FmButton
+                                >
+                                <template v-else-if="sortable(row)">
                                     <FmButton
                                         variant="neutral"
                                         row-action
@@ -863,7 +957,15 @@ const { title, head } = usePageMeta({
                             >{{ $t('Put back among the movements') }}</FmButton
                         >
                         <template v-else>
-                            <template v-if="sortable(row)">
+                            <FmButton
+                                v-if="sortable(row) && row.orphan_fee"
+                                variant="neutral"
+                                row-action
+                                :icon="LinkIcon"
+                                @click="openFee(row)"
+                                >{{ $t('It is the commission of…') }}</FmButton
+                            >
+                            <template v-else-if="sortable(row)">
                                 <FmButton
                                     variant="neutral"
                                     row-action
@@ -901,6 +1003,17 @@ const { title, head } = usePageMeta({
                                 </FmMenu></span
                             >
                         </template>
+                    </div>
+                    <div
+                        v-if="!wide && row.orphan_fee"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <span :class="orphanTagClass">{{
+                            $t('Commission')
+                        }}</span>
+                        <span class="text-meta text-ink-soft">{{
+                            $t('Left without its direct debit')
+                        }}</span>
                     </div>
                     <div
                         v-if="!wide && row.pending"
@@ -942,6 +1055,14 @@ const { title, head } = usePageMeta({
             :error="assignError"
             :processing="assignProcessing"
             @assign="assignTo"
+        />
+        <BankFeeSheet
+            v-if="feeing"
+            v-model:open="feeOpen"
+            :transaction="feeing"
+            :error="feeError"
+            :processing="feeProcessing"
+            @choose="attachFee"
         />
         <BankTransferSheet
             v-if="transferring"

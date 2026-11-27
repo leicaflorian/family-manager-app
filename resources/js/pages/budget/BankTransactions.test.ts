@@ -982,3 +982,113 @@ describe('Budget, From the bank, a text that comes back every month', () => {
         }
     });
 });
+
+describe('Budget, From the bank, a commission left alone', () => {
+    const fee: App.Data.BankTransactionData = {
+        ...bankTransactions[1]!,
+        id: 14,
+        text: 'COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A.',
+        counterparty: null,
+        amount: -0.4,
+        orphan_fee: true,
+    };
+
+    const satispay: App.Data.BankRecordedChoiceData[] = [
+        {
+            kind: 'expense',
+            id: 41,
+            title: 'Ricarica Satispay',
+            organization: 'Satispay',
+            date: '2026-08-25',
+            amount: 10,
+        },
+    ];
+
+    it('an orphan commission has only It is the commission of… and the menu', () => {
+        renderPage(BankTransactions, props({ rows: [fee] }));
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        expect(
+            within(row).getByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        ).toBeInTheDocument();
+        expect(within(row).getByText('Commission')).toBeInTheDocument();
+        expect(
+            within(row).getByText('Left without its direct debit'),
+        ).toBeInTheDocument();
+        expect(
+            within(row).queryByRole('link', { name: 'Create the expense' }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(row).queryByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(row).getByRole('button', { name: 'More actions' }),
+        ).toBeInTheDocument();
+    });
+
+    it('a commission with its debit has no such button', () => {
+        renderPage(
+            BankTransactions,
+            props({ rows: [{ ...fee, orphan_fee: false }] }),
+        );
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        expect(
+            within(row).queryByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('posts the expense chosen', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            planned: [],
+                            recorded: satispay,
+                            organization: 'Satispay',
+                        }),
+                }),
+            ),
+        );
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props({ rows: [fee] }));
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Link the commission' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/14/fee',
+            { expense_id: 41 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.queryByText(/COMMISSIONI DOMICILIAZIONE/),
+        ).not.toBeInTheDocument();
+    });
+});

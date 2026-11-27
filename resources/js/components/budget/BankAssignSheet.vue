@@ -5,7 +5,9 @@
  * due date each would settle) and the movements already recorded (*Recorded expenses*). The panel asks the server
  * (`budget.bank.candidates`) when it opens and 250 ms after the last key; an answer to an older text never replaces a
  * newer one. The first row is chosen; the panel only says which one was chosen (`assign`), the page sends it and shows
- * what the server answers in `error`.
+ * what the server answers in `error`. With `fee` it is the sheet *It is the commission of…* (the boards *Dalla banca,
+ * è la commissione di*): only the expenses already recorded, the ones of the organization named in the commission
+ * first, and the line under the list says what the expense becomes with the commission added (`BankFeeSheet`).
  *
  * @group panels
  */
@@ -33,6 +35,7 @@ const {
     transaction,
     error = null,
     processing = false,
+    fee = false,
 } = defineProps<{
     /** The transaction to assign. */
     transaction: App.Data.BankTransactionData;
@@ -40,6 +43,8 @@ const {
     error?: string | null;
     /** The choice is being sent. */
     processing?: boolean;
+    /** The transaction is a commission left alone: it joins an expense already recorded. */
+    fee?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -55,13 +60,19 @@ const { money, date } = useFormat();
 /** The id of the search box, for the visible label over it. */
 const searchId = useId();
 
-/** Whether it is a credit: it belongs to an income. */
-const income = computed(() => transaction.amount > 0);
+/** Whether it is a credit: it belongs to an income (a commission is never one). */
+const income = computed(() => !fee && transaction.amount > 0);
 
 /** What the box searches, as the visible label and the name of the box. */
-const searchLabel = computed(() =>
-    income.value ? trans('Search an income') : trans('Search an expense'),
-);
+const searchLabel = computed(() => {
+    if (fee) {
+        return trans('Search the expense');
+    }
+
+    return income.value
+        ? trans('Search an income')
+        : trans('Search an expense');
+});
 
 /** The text in the search box. */
 const search = ref('');
@@ -71,6 +82,9 @@ const planned = ref<App.Data.BankPlannedChoiceData[] | null>(null);
 
 /** The recorded movements of the last answer. */
 const recorded = ref<App.Data.BankRecordedChoiceData[]>([]);
+
+/** The organization the server started from for a commission, kept while the person types. */
+const feeOrganization = ref<string | null>(null);
 
 /** The search did not get an answer. */
 const failed = ref(false);
@@ -101,7 +115,10 @@ async function ask(text: string): Promise<void> {
     try {
         const response = await fetch(
             candidates(transaction.id, {
-                query: text.trim() === '' ? {} : { q: text.trim() },
+                query: {
+                    ...(fee ? { fee: 1 } : {}),
+                    ...(text.trim() === '' ? {} : { q: text.trim() }),
+                },
             }).url,
             {
                 headers: { Accept: 'application/json' },
@@ -116,9 +133,12 @@ async function ask(text: string): Promise<void> {
         const answer = (await response.json()) as {
             planned: App.Data.BankPlannedChoiceData[];
             recorded: App.Data.BankRecordedChoiceData[];
+            organization?: string | null;
         };
 
         if (mine === sequence) {
+            feeOrganization.value =
+                answer.organization ?? feeOrganization.value;
             planned.value = answer.planned;
             recorded.value = answer.recorded;
             failed.value = false;
@@ -141,6 +161,7 @@ watch(
             picked.value = null;
             planned.value = null;
             recorded.value = [];
+            feeOrganization.value = null;
             failed.value = false;
             void ask('');
         }
@@ -280,6 +301,21 @@ const effect = computed(() => {
         return '';
     }
 
+    if (fee && row.group === 'recorded') {
+        const cents = Math.round(Math.abs(transaction.amount) * 100);
+
+        return trans(
+            'The expense becomes :amount, of which :fee of commission.',
+            {
+                amount: money(
+                    (Math.round(row.item.amount * 100) + cents) / 100,
+                    'EUR',
+                ),
+                fee: money(cents / 100, 'EUR'),
+            },
+        );
+    }
+
     if (row.group === 'recorded') {
         return income.value
             ? trans(
@@ -309,6 +345,10 @@ const effect = computed(() => {
 
 /** The label of the button under the list. */
 const confirmLabel = computed(() => {
+    if (fee) {
+        return trans('Link the commission');
+    }
+
     if (links.value) {
         return trans('Link the transaction');
     }
@@ -341,9 +381,11 @@ function confirm(): void {
     <FmBottomSheet
         v-model:open="open"
         :title="
-            income
-                ? $t('It belongs to an income')
-                : $t('It belongs to an expense')
+            fee
+                ? $t('It is the commission of…')
+                : income
+                  ? $t('It belongs to an income')
+                  : $t('It belongs to an expense')
         "
     >
         <div class="flex items-start gap-3 rounded-card bg-canvas px-3.5 py-3">
@@ -383,13 +425,17 @@ function confirm(): void {
             />
             <p class="m-0 text-meta text-ink-soft">
                 {{
-                    income
+                    fee
                         ? $t(
-                              'Searches all the incomes, fixed and recorded, even old ones: by name, organization or amount.',
+                              'I show you the expenses with the same organization as the commission. You can search by name, organization or amount.',
                           )
-                        : $t(
-                              'Searches all the expenses, fixed and recorded, even old ones: by name, organization or amount.',
-                          )
+                        : income
+                          ? $t(
+                                'Searches all the incomes, fixed and recorded, even old ones: by name, organization or amount.',
+                            )
+                          : $t(
+                                'Searches all the expenses, fixed and recorded, even old ones: by name, organization or amount.',
+                            )
                 }}
             </p>
         </div>
@@ -424,7 +470,11 @@ function confirm(): void {
                             list: recordedRows,
                             title: income
                                 ? $t('Recorded incomes')
-                                : $t('Recorded expenses'),
+                                : fee && feeOrganization
+                                  ? $t('Expenses with :organization', {
+                                        organization: feeOrganization,
+                                    })
+                                  : $t('Recorded expenses'),
                         },
                     ]"
                     :key="group.id"

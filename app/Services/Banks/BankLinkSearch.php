@@ -6,11 +6,14 @@ namespace App\Services\Banks;
 
 use App\Data\BankPlannedChoiceData;
 use App\Data\BankRecordedChoiceData;
+use App\Enums\BankMatchSource;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Support\Banks\BankMatch;
 use App\Support\Deadline;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,6 +31,9 @@ final readonly class BankLinkSearch
 
     /** How many days around the transaction the empty search looks for a recorded movement of the same amount. */
     private const int RECENT_DAYS = 30;
+
+    /** The shortest name of an organization that counts as found in a text (a shorter one is in everything). */
+    private const int MIN_NAME = 3;
 
     public function __construct(private BankMatcher $matcher) {}
 
@@ -56,6 +62,48 @@ final readonly class BankLinkSearch
         $words = $this->words($query);
 
         return ['planned' => $this->planned($transaction, $words), 'recorded' => $this->recorded($transaction, $words, $this->cents($query))];
+    }
+
+    /**
+     * The search of *It is the commission of…*: only the expenses somebody recorded, even the ones a bank transaction
+     * is linked to already (the debit of the commission is there), without the ones that have a commission from the
+     * bank. With words: by title, organization or amount. Without: the expenses of the organizations whose name is in
+     * the text of the commission, the newest first; `organization` is the name of the first of them.
+     *
+     * @param  BankTransaction  $fee  The commission.
+     * @param  string  $query  What the person wrote.
+     * @return array{planned: list<BankPlannedChoiceData>, recorded: list<BankRecordedChoiceData>, organization: string|null}
+     */
+    public function searchForFee(BankTransaction $fee, string $query): array
+    {
+        if (! $fee->booked_on instanceof CarbonImmutable || $fee->currency !== 'EUR' || $fee->kind() !== 'expense') {
+            return ['planned' => [], 'recorded' => [], 'organization' => null];
+        }
+
+        $words = $this->words($query);
+
+        if ($words !== []) {
+            return ['planned' => [], 'recorded' => $this->recorded($fee, $words, $this->cents($query), fee: true), 'organization' => null];
+        }
+
+        $text = BankMatch::normalize($fee->text.' '.$fee->counterparty);
+        $organizations = Organization::query()->orderBy('name')->get()->filter(static function (Organization $organization) use ($text): bool {
+            $name = BankMatch::normalize($organization->name);
+
+            return mb_strlen($name) >= self::MIN_NAME && str_contains($text, $name);
+        })->values();
+
+        $found = $organizations->isEmpty() ? [] : Expense::query()
+            ->with('organization')
+            ->whereIn('organization_id', $organizations->pluck('id'))
+            ->whereNotIn('id', BankTransaction::query()->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id')->select('expense_id'))
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->limit(self::LIMIT)
+            ->get()
+            ->all();
+
+        return ['planned' => [], 'recorded' => array_values(array_map(BankRecordedChoiceData::fromMovement(...), $found)), 'organization' => $organizations->first()?->name];
     }
 
     /**
@@ -98,17 +146,23 @@ final readonly class BankLinkSearch
      * @param  BankTransaction  $transaction  The transaction.
      * @param  list<string>  $words  The words of the query.
      * @param  int|null  $cents  The query as an amount, when it is a number written the Italian way.
+     * @param  bool  $fee  The transaction is a commission: expenses already linked to a transaction are listed too, only those that have a commission are left out.
      * @return list<BankRecordedChoiceData>
      */
-    private function recorded(BankTransaction $transaction, array $words, ?int $cents): array
+    private function recorded(BankTransaction $transaction, array $words, ?int $cents, bool $fee = false): array
     {
         $isExpense = $transaction->kind() === 'expense';
         $column = $isExpense ? 'expense_id' : 'income_id';
         $own = (int) round(abs((float) $transaction->amount) * 100);
         $day = $transaction->booked_on?->toDateString() ?? CarbonImmutable::today('Europe/Rome')->toDateString();
         $query = ($isExpense ? Expense::query() : Income::query())
-            ->with('organization')
-            ->whereNotIn('id', BankTransaction::query()->whereNotNull($column)->select($column));
+            ->with('organization');
+
+        if ($fee) {
+            $query->whereNotIn('id', BankTransaction::query()->where('matched_by', BankMatchSource::Fee)->whereNotNull($column)->select($column));
+        } else {
+            $query->whereNotIn('id', BankTransaction::query()->whereNotNull($column)->select($column));
+        }
 
         if ($words === []) {
             $around = $transaction->booked_on ?? CarbonImmutable::today('Europe/Rome');
@@ -126,7 +180,7 @@ final readonly class BankLinkSearch
 
         /** @var list<Expense|Income> $found */
         $found = $query
-            ->orderByRaw('round(amount * 100) = ? desc', [$own])
+            ->orderByRaw('round(amount * 100) = ? desc', [$fee ? -1 : $own])
             ->orderByRaw('abs(datediff(date, ?))', [$day])
             ->orderByDesc('id')
             ->limit(self::LIMIT)

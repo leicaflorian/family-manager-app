@@ -2809,5 +2809,14 @@
     "to :account": "a :account",
     "from :account": "da :account",
     "with the other half": "con l'altra metà",
-    "You have no other account yet.": "Non hai ancora un altro conto."
+    "You have no other account yet.": "Non hai ancora un altro conto.",
+    "It is the commission of…": "È la commissione di…",
+    "Search the expense": "Cerca la spesa",
+    "I show you the expenses with the same organization as the commission. You can search by name, organization or amount.": "Ti mostro le spese con lo stesso ente della commissione. Puoi cercare per nome, ente o importo.",
+    "Expenses with :organization": "Spese con :organization",
+    "The expense becomes :amount, of which :fee of commission.": "La spesa diventa :amount, di cui :fee di commissione.",
+    "Link the commission": "Collega",
+    "Left without its direct debit": "Rimasta senza il suo addebito",
+    "This expense already has a commission from the bank.": "Questa spesa ha già una commissione della banca.",
+    "This movement is not a commission to sort.": "Questo movimento non è una commissione da sistemare."
 }

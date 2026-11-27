@@ -28,13 +28,13 @@ final class BankCandidatesRequest extends FormRequest
     }
 
     /**
-     * The rules: the words to look for, which may be none.
+     * The rules: the words to look for, which may be none, and whether the search is for a commission (`fee`).
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        return ['q' => ['nullable', 'string', 'max:100']];
+        return ['q' => ['nullable', 'string', 'max:100'], 'fee' => ['nullable', 'boolean']];
     }
 
     /**
@@ -43,6 +43,14 @@ final class BankCandidatesRequest extends FormRequest
     public function searchText(): string
     {
         return trim($this->string('q')->toString());
+    }
+
+    /**
+     * Whether the search is *It is the commission of…*: only recorded expenses.
+     */
+    public function forFee(): bool
+    {
+        return $this->boolean('fee');
     }
 
     /**

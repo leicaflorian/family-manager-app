@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
+use App\Actions\Banks\AttachBankFee;
 use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\MarkBankTransfer;
 use App\Actions\Banks\RefreshBanks;
@@ -16,6 +17,7 @@ use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
+use App\Http\Requests\Banks\AttachBankFeeRequest;
 use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
@@ -29,6 +31,7 @@ use App\Services\Banks\BankFees;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
+use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
 use App\Support\PaymentTitle;
@@ -124,13 +127,15 @@ final class BankTransactionController extends Controller
      * The search of *It belongs to an expense*: the planned items and the recorded expenses (or incomes, for a credit)
      * the transaction can be linked to, for the words in `q`.
      *
-     * @return JsonResponse `{planned: [...], recorded: [...]}`
+     * @return JsonResponse `{planned: [...], recorded: [...]}`; with `fee=1` (the commission left alone) only the recorded expenses, and `organization`, the name that gave the first list
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
      */
     public function candidates(BankCandidatesRequest $request, BankLinkSearch $search): JsonResponse
     {
-        return response()->json($search->search($request->transaction(), $request->searchText()));
+        return response()->json($request->forFee()
+            ? $search->searchForFee($request->transaction(), $request->searchText())
+            : $search->search($request->transaction(), $request->searchText()));
     }
 
     /**
@@ -279,6 +284,34 @@ final class BankTransactionController extends Controller
     {
         $mark->handle($request->transaction(), $request->account());
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
+
+        return to_route('budget.bank.index');
+    }
+
+    /**
+     * *It is the commission of…*: the person says which expense a commission left alone belongs to; its amount joins
+     * the amount and the fee of the expense.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the expense is not of the family
+     * @throws ValidationException (`expense_id`) when the movement is not a commission to sort or the expense has a commission from the bank
+     */
+    public function fee(AttachBankFeeRequest $request, AttachBankFee $attach): RedirectResponse
+    {
+        $transaction = $request->transaction();
+        $expense = $request->expense();
+
+        // The action checks under its locks that the commission is still to sort and the expense has none
+        $attached = BankText::isFee($transaction->text) && $attach->handle($transaction, $expense);
+
+        if (! $attached) {
+            $taken = BankTransaction::query()->where('expense_id', $expense->id)->where('matched_by', BankMatchSource::Fee)->exists();
+
+            throw ValidationException::withMessages(['expense_id' => $taken
+                ? __('This expense already has a commission from the bank.')
+                : __('This movement is not a commission to sort.')]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Linked: :title', ['title' => $expense->title])]);
 
         return to_route('budget.bank.index');
     }
