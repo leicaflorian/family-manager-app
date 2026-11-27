@@ -2793,5 +2793,6 @@
     "{0} No movements|{1} :count movement · :sum|[2,*] :count movements · :sum": "{0} Nessun movimento|{1} :count movimento · :sum|[2,*] :count movimenti · :sum",
     "Movements not linked to an expense are kept 12 months.": "I movimenti non collegati a una spesa si tengono 12 mesi.",
     "No movement yet": "Ancora nessun movimento",
-    "The movements the bank gives you appear here.": "I movimenti che ti dà la banca compaiono qui."
+    "The movements the bank gives you appear here.": "I movimenti che ti dà la banca compaiono qui.",
+    "Choose another account: this movement is already on this one.": "Scegli un altro conto: questo movimento è già su questo."
 }

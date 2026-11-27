@@ -110,6 +110,11 @@ readonly last_synced_at: string | null,
 readonly accounts: string[],
 readonly syncing: boolean,
 };
+export type BankFeeData = {
+readonly id: number,
+readonly amount: number,
+readonly booked_on: string | null,
+};
 export type BankInstitutionData = {
 readonly name: string,
 readonly country: string,
@@ -165,6 +170,11 @@ readonly link: App.Data.BankLinkData | null,
 readonly provider_id: string,
 readonly read_at: string,
 readonly bank_status: string,
+};
+export type BankTransferData = {
+readonly account: string,
+readonly direction: string,
+readonly paired: boolean,
 };
 export type CalendarSettingsData = {
 readonly on: boolean,
@@ -1273,6 +1283,8 @@ namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
+export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
+export type BankFilterFee = 'auto' | 'words' | 'none';
 export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
 export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';

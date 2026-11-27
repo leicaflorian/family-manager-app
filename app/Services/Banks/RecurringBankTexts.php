@@ -7,6 +7,7 @@ namespace App\Services\Banks;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 
@@ -101,7 +102,7 @@ final class RecurringBankTexts
             ->get();
 
         foreach ($rows as $row) {
-            if (BankMatch::signature($row->text) !== '') {
+            if (BankMatch::signature($row->text) !== '' && ! BankText::isFee($row->text)) {
                 $groups[$this->key($row)][] = $row;
             }
         }

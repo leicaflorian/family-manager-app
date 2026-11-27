@@ -82,5 +82,54 @@
         "text": "BONIFICO AFFITTO SETTEMBRE",
         "counterparty": "Rossi Immobiliare",
         "booked": true
+    },
+    {
+        "days_ago": 4,
+        "amount": -10.0,
+        "text": "DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 3,
+        "amount": -0.4,
+        "text": "COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 34,
+        "amount": -10.0,
+        "text": "DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 33,
+        "amount": -0.4,
+        "text": "COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 64,
+        "amount": -10.0,
+        "text": "DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 63,
+        "amount": -0.4,
+        "text": "COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900",
+        "counterparty": "Satispay Europe S.A.",
+        "booked": true
+    },
+    {
+        "days_ago": 12,
+        "amount": -0.4,
+        "text": "COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Gym Club S.r.l. CID.IT12ZZZ0000012345678901 MAN.GYM000456",
+        "counterparty": "Gym Club S.r.l.",
+        "booked": true
     }
 ]

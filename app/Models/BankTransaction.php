@@ -36,6 +36,10 @@ use Illuminate\Support\Facades\Config;
  * @property BankMatchSource|null $matched_by
  * @property CarbonImmutable|null $ignored_at
  * @property CarbonImmutable|null $declined_at
+ * @property int|null $bank_filter_id
+ * @property int|null $transfer_account_id The account on the other side, when the transaction is a transfer between the family's own accounts
+ * @property int|null $transfer_pair_id The other half of the transfer, when both accounts are read from the bank
+ * @property array<string, mixed>|null $rejected_proposals
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -45,6 +49,8 @@ use Illuminate\Support\Facades\Config;
  * @property-read Family $family
  * @property-read FinancialAccount $financialAccount
  * @property-read Income|null $income
+ * @property-read FinancialAccount|null $transferAccount
+ * @property-read BankTransaction|null $transferPair
  *
  * @method static BankTransactionFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankTransaction ignored()
@@ -55,7 +61,7 @@ use Illuminate\Support\Facades\Config;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at'])]
+#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at', 'bank_filter_id', 'transfer_account_id', 'transfer_pair_id', 'rejected_proposals'])]
 final class BankTransaction extends FamilyModel
 {
     /** @use HasFactory<BankTransactionFactory> */
@@ -65,7 +71,8 @@ final class BankTransaction extends FamilyModel
 
     /**
      * The transactions not linked to an expense or an income and older than the months the app keeps them, of every
-     * family: pruning runs without a signed-in family, so the scope is off.
+     * family: pruning runs without a signed-in family, so the scope is off. A transfer between the family's own
+     * accounts stays: it has no expense or income to be kept by, and it is what the person decided.
      *
      * @return Builder<BankTransaction>
      */
@@ -76,11 +83,12 @@ final class BankTransaction extends FamilyModel
         return self::query()->withoutGlobalScopes()
             ->whereNull('expense_id')
             ->whereNull('income_id')
+            ->whereNull('transfer_account_id')
             ->whereRaw('coalesce(booked_on, created_at) < ?', [$limit]);
     }
 
     /**
-     * The transactions still to sort: booked, in euros, not linked and not ignored.
+     * The transactions still to sort: booked, in euros, not linked, not ignored and not a transfer between the family's own accounts.
      *
      * @param  Builder<BankTransaction>  $query
      */
@@ -91,6 +99,7 @@ final class BankTransaction extends FamilyModel
             ->whereNull('expense_id')
             ->whereNull('income_id')
             ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
             ->where('currency', 'EUR');
     }
 
@@ -177,6 +186,26 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
+     * The account on the other side, when the transaction is a transfer between the family's own accounts.
+     *
+     * @return BelongsTo<FinancialAccount, $this>
+     */
+    public function transferAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinancialAccount::class, 'transfer_account_id');
+    }
+
+    /**
+     * The other half of the transfer, read from the account on the other side.
+     *
+     * @return BelongsTo<BankTransaction, $this>
+     */
+    public function transferPair(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'transfer_pair_id');
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -191,6 +220,7 @@ final class BankTransaction extends FamilyModel
             'matched_by' => BankMatchSource::class,
             'ignored_at' => 'immutable_datetime',
             'declined_at' => 'immutable_datetime',
+            'rejected_proposals' => 'array',
         ];
     }
 }
