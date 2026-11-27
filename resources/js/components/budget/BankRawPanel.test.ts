@@ -40,6 +40,8 @@ const row: App.Data.BankTransactionData = {
     bank_status: 'booked',
     fee: null,
     orphan_fee: false,
+    transfer: null,
+    account_id: 4,
 };
 
 describe('BankRawPanel', () => {

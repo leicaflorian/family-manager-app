@@ -172,6 +172,8 @@ readonly read_at: string,
 readonly bank_status: string,
 readonly fee: App.Data.BankFeeData | null,
 readonly orphan_fee: boolean,
+readonly transfer: App.Data.BankTransferData | null,
+readonly account_id: number | null,
 };
 export type BankTransferData = {
 readonly account: string,

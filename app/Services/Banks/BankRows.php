@@ -7,6 +7,7 @@ namespace App\Services\Banks;
 use App\Enums\BankMatchSource;
 use App\Enums\BankRowStatus;
 use App\Enums\BankTransactionStatus;
+use App\Enums\FinancialAccountStatus;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Models\BankTransaction;
 use App\Models\FinancialAccount;
@@ -33,7 +34,7 @@ final class BankRows
     public function page(BankListRequest $filters, int $page): array
     {
         $rows = $this->filtered($filters)
-            ->with(['financialAccount', 'expense', 'income.organization'])
+            ->with(['financialAccount', 'transferAccount', 'expense', 'income.organization'])
             ->orderByRaw('coalesce(booked_on, value_on) desc')
             ->orderByDesc('id')
             ->skip((max(1, $page) - 1) * self::PER_PAGE)
@@ -70,6 +71,27 @@ final class BankRows
             ->map(static fn (FinancialAccount $account): array => [
                 'id' => $account->id,
                 'name' => $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits,
+            ]);
+
+        return array_values($accounts->all());
+    }
+
+    /**
+     * The accounts of the family a transfer can go to or come from, by name: the ones that are open, with whether the
+     * bank gives their transactions (then the other half of a transfer may be on the list too).
+     *
+     * @return list<array{id: int, name: string, connected: bool}>
+     */
+    public function transferAccounts(): array
+    {
+        $accounts = FinancialAccount::query()
+            ->where('status', FinancialAccountStatus::Active)
+            ->orderBy('name')
+            ->get()
+            ->map(static fn (FinancialAccount $account): array => [
+                'id' => $account->id,
+                'name' => $account->last_four_digits === null ? $account->name : $account->name.' ·· '.$account->last_four_digits,
+                'connected' => $account->bank_connection_id !== null,
             ]);
 
         return array_values($accounts->all());
@@ -114,7 +136,7 @@ final class BankRows
     }
 
     /**
-     * Keeps the transactions of a status: pending first, then put aside, linked, else to sort (as the row says it).
+     * Keeps the transactions of a status: pending first, then transfer, put aside, linked, else to sort (as the row says it).
      *
      * @param  Builder<BankTransaction>  $query  the query
      * @param  BankRowStatus  $status  the status
@@ -130,12 +152,12 @@ final class BankRows
         $query->where('status', '!=', BankTransactionStatus::Pending);
 
         match ($status) {
-            BankRowStatus::Ignored => $query->whereNotNull('ignored_at'),
+            BankRowStatus::Ignored => $query->whereNotNull('ignored_at')->whereNull('transfer_account_id'),
+            BankRowStatus::Transfer => $query->whereNotNull('transfer_account_id'),
             // A commission joined to the expense of its debit is a fee, not the transaction the expense came from
-            BankRowStatus::Linked => $query->whereNull('ignored_at')->withoutFees()->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
-            BankRowStatus::Fee => $query->whereNull('ignored_at')->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id'),
-            BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('expense_id')->whereNull('income_id'),
-            // No transaction is a transfer until the columns that say so are read
+            BankRowStatus::Linked => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->withoutFees()->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
+            BankRowStatus::Fee => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id'),
+            BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->whereNull('expense_id')->whereNull('income_id'),
             default => $query->whereRaw('1 = 0'),
         };
     }

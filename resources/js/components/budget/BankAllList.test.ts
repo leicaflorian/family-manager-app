@@ -25,6 +25,8 @@ const base: App.Data.BankTransactionData = {
     bank_status: 'booked',
     fee: null,
     orphan_fee: false,
+    transfer: null,
+    account_id: 4,
 };
 
 const linked: App.Data.BankTransactionData = {
@@ -50,6 +52,27 @@ const ignored: App.Data.BankTransactionData = {
     text: 'PRELIEVO ATM',
     status: 'ignored',
     ignored: true,
+};
+
+const transferOut: App.Data.BankTransactionData = {
+    ...base,
+    id: 4,
+    text: 'POSTAGIRO A LIBRETTO',
+    amount: -200,
+    status: 'transfer',
+    transfer: { account: 'Buddy Bank ·· 5521', direction: 'to', paired: true },
+};
+
+const transferIn: App.Data.BankTransactionData = {
+    ...transferOut,
+    id: 5,
+    text: 'POSTAGIRO DA LIBRETTO',
+    amount: 500,
+    transfer: {
+        account: 'Libretto postale',
+        direction: 'from',
+        paired: false,
+    },
 };
 
 describe('BankAllList', () => {
@@ -97,6 +120,44 @@ describe('BankAllList', () => {
                 }),
             );
             expect(view.emitted('restore')?.[0]).toEqual([ignored]);
+        });
+
+        it(`a transfer says from or to which account and With the other half (${where})`, () => {
+            screenWidth(wide);
+            renderPage(BankAllList, {
+                rows: [transferOut, transferIn],
+                canSort: true,
+            });
+            const out = screen.getByText('POSTAGIRO A LIBRETTO').closest('li')!;
+            const into = screen
+                .getByText('POSTAGIRO DA LIBRETTO')
+                .closest('li')!;
+
+            expect(within(out).getByText('Transfer')).toBeInTheDocument();
+            expect(
+                within(out).getByText('Buddy Bank ·· 5521'),
+            ).toBeInTheDocument();
+            expect(out).toHaveTextContent(
+                /to Buddy Bank ·· 5521 · with the other half/,
+            );
+            expect(into).toHaveTextContent(/from Libretto postale/);
+            expect(into).not.toHaveTextContent('with the other half');
+        });
+
+        it(`a transfer has Put back among the movements (${where})`, async () => {
+            screenWidth(wide);
+            const view = renderPage(BankAllList, {
+                rows: [transferOut],
+                canSort: true,
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', {
+                    name: 'Put back among the movements',
+                }),
+            );
+
+            expect(view.emitted('restore')?.[0]).toEqual([transferOut]);
         });
     }
 

@@ -34,6 +34,8 @@ export function bankRow(
         bank_status: 'booked',
         fee: null,
         orphan_fee: false,
+        transfer: null,
+        account_id: 4,
     };
 }
 

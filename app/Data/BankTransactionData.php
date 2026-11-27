@@ -36,6 +36,8 @@ final class BankTransactionData extends Data
      * @param  string  $bank_status  whether the bank booked it (a `BankTransactionStatus` value)
      * @param  BankFeeData|null  $fee  the commission the bank charged for this direct debit, shown under it
      * @param  bool  $orphan_fee  the row is a commission whose direct debit is not among the ones to sort
+     * @param  BankTransferData|null  $transfer  the account on the other side, when it is a transfer between the family's own accounts
+     * @param  int|null  $account_id  the account of the transaction (`financial_account_id`)
      */
     public function __construct(
         public readonly int $id,
@@ -56,12 +58,14 @@ final class BankTransactionData extends Data
         public readonly string $bank_status,
         public readonly ?BankFeeData $fee = null,
         public readonly bool $orphan_fee = false,
+        public readonly ?BankTransferData $transfer = null,
+        public readonly ?int $account_id = null,
     ) {}
 
     /**
      * The data of a transaction of the current family.
      *
-     * @param  BankTransaction  $transaction  the transaction, with its account loaded
+     * @param  BankTransaction  $transaction  the transaction, with its account (and the account of its transfer) loaded
      * @param  bool  $recurring  its text comes back every month
      * @param  bool  $withLink  whether to read the expense or income it is linked to (the list *All* does; they must be loaded)
      * @param  BankTransaction|null  $fee  the commission paired with this direct debit
@@ -90,12 +94,14 @@ final class BankTransactionData extends Data
             $transaction->status->value,
             $fee instanceof BankTransaction ? BankFeeData::fromTransaction($fee) : null,
             $orphanFee,
+            $transaction->transfer_account_id === null ? null : BankTransferData::fromTransaction($transaction),
+            $transaction->financial_account_id,
         );
     }
 
     /**
-     * What the transaction is: pending while the bank has not booked it, then put aside, a commission joined to the
-     * expense of its debit, linked, else to sort.
+     * What the transaction is: pending while the bank has not booked it, then a transfer, put aside, a commission joined
+     * to the expense of its debit, linked, else to sort.
      *
      * @param  BankTransaction  $transaction  the transaction
      */
@@ -103,6 +109,7 @@ final class BankTransactionData extends Data
     {
         return match (true) {
             $transaction->status === BankTransactionStatus::Pending => BankRowStatus::Pending,
+            $transaction->transfer_account_id !== null => BankRowStatus::Transfer,
             $transaction->ignored_at !== null => BankRowStatus::Ignored,
             $transaction->matched_by === BankMatchSource::Fee && $transaction->expense_id !== null => BankRowStatus::Fee,
             $transaction->expense_id !== null || $transaction->income_id !== null => BankRowStatus::Linked,
