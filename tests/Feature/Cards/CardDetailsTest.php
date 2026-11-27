@@ -133,10 +133,11 @@ test('it shows the status as a figure, coloured by where it stands', function (s
         ->and($figure->tone)->toBe($tone)
         ->and($figure->amount)->toBeNull();
 })->with([
-    'active' => ['active', now()->addMonth()->toDateString(), 'Active', 'open'],
-    'cancelled' => ['cancelled', now()->addMonth()->toDateString(), 'Cancelled', 'closed'],
+    // Fixed dates around the travelled day (26/10/2026): a dataset is built before beforeEach travels
+    'active' => ['active', '2026-11-26', 'Active', 'open'],
+    'cancelled' => ['cancelled', '2026-11-26', 'Cancelled', 'closed'],
     // An active policy past its date turns expired when saved: the renewal is still to do
-    'expired by itself' => ['active', now()->subMonth()->toDateString(), 'Expired', 'overdue'],
+    'expired by itself' => ['active', '2026-09-26', 'Expired', 'overdue'],
 ]);
 
 test('the dates of the tiles and the status leave the data', function (): void {
