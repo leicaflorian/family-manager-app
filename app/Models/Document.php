@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +49,8 @@ use Illuminate\Support\Facades\DB;
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
  * @property-read UtilityConsumption|null $consumption
+ * @property-read Collection<int, UtilityConsumption> $consumptions
+ * @property-read int|null $consumptions_count
  * @property-read Collection<int, Employment> $employments
  * @property-read int|null $employments_count
  * @property-read Collection<int, Enrollment> $enrollments
@@ -128,6 +131,16 @@ final class Document extends FamilyModel
     public function consumption(): HasOne
     {
         return $this->hasOne(UtilityConsumption::class);
+    }
+
+    /**
+     * The consumption rows read from this bill: one per utility (a bill can carry electricity and gas).
+     *
+     * @return HasMany<UtilityConsumption, $this>
+     */
+    public function consumptions(): HasMany
+    {
+        return $this->hasMany(UtilityConsumption::class);
     }
 
     /**
