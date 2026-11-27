@@ -2,6 +2,16 @@
 
 All notable changes to Fameja.app.
 
+## [2.8.3] - 2026-11-27
+
+### Release
+- First release meant to put the 2.8.2 changes online: v2.8.2 stopped in CI and was not deployed
+- Check before confirming: the two 2.8.2 migrations (`deadline_field` on planned expenses, `role` on document categories) run with this deploy, but `./release` counts none as new since v2.8.2 and will not dump the production database, so back it up by hand
+
+### CI
+- Fixed the Pest file that stopped the whole test suite in CI (a `use` of a single-word class name)
+- The quick organization request now sets its error bag with the `ErrorBag` attribute
+
 ## [2.8.2] - 2026-11-27
 
 ### Vehicles
