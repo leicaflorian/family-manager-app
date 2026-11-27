@@ -7,6 +7,7 @@ namespace App\Services\Banks;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankText;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -20,9 +21,6 @@ final class BankFees
 {
     /** The most days between a debit and its commission. */
     private const int DAYS = 5;
-
-    /** Seconds in a day, to count the days between two dates. */
-    private const int DAY = 86400;
 
     /**
      * The commission of a direct debit, among the booked transactions of the family (linked or not).
@@ -75,13 +73,13 @@ final class BankFees
             return [];
         }
 
-        $times = $debits->map(fn (BankTransaction $row): int => $this->time($row));
+        $days = $debits->map(fn (BankTransaction $row): CarbonImmutable => $this->day($row));
         $outside = BankTransaction::query()
             ->whereIn('financial_account_id', $debits->pluck('financial_account_id')->unique()->all())
             ->where('status', BankTransactionStatus::Booked)
             ->where('currency', 'EUR')
             ->where('amount', '<', 0)
-            ->whereBetween('booked_on', [date('Y-m-d', $times->min() - self::DAYS * self::DAY), date('Y-m-d', $times->max() + self::DAYS * self::DAY)])
+            ->whereBetween('booked_on', [$days->min()?->subDays(self::DAYS)->toDateString(), $days->max()?->addDays(self::DAYS)->toDateString()])
             ->where(fn (Builder $query) => $query->where('text', 'like', 'COMMISSIONI%')->orWhere('text', 'like', 'COMMISSIONE%'))
             ->whereNotIn('id', $rows->pluck('id')->all())
             ->get();
@@ -98,7 +96,7 @@ final class BankFees
      */
     private function around(BankTransaction $anchor): Collection
     {
-        $time = $this->time($anchor);
+        $day = $this->day($anchor);
         $code = BankText::mandate($anchor->text) ?? BankText::creditor($anchor->text) ?? '';
 
         return BankTransaction::query()
@@ -106,7 +104,7 @@ final class BankFees
             ->where('status', BankTransactionStatus::Booked)
             ->where('currency', 'EUR')
             ->where('amount', $anchor->kind() === 'expense' ? '<' : '>', 0)
-            ->whereBetween('booked_on', [date('Y-m-d', $time - 2 * self::DAYS * self::DAY), date('Y-m-d', $time + 2 * self::DAYS * self::DAY)])
+            ->whereBetween('booked_on', [$day->subDays(2 * self::DAYS)->toDateString(), $day->addDays(2 * self::DAYS)->toDateString()])
             ->where('text', 'like', '%'.addcslashes($code, '%_\\').'%')
             ->get();
     }
@@ -120,13 +118,14 @@ final class BankFees
      */
     private function match(Collection $rows): array
     {
-        $fees = $rows->filter(fn (BankTransaction $row): bool => $this->key($row) !== null && BankText::isFee($row->text));
-        $debits = $rows->filter(fn (BankTransaction $row): bool => $this->key($row) !== null && ! BankText::isFee($row->text));
+        $rows = $rows->filter(fn (BankTransaction $row): bool => $this->key($row) !== null);
+        $fees = $rows->filter(fn (BankTransaction $row): bool => BankText::isFee($row->text));
+        $debits = $rows->reject(fn (BankTransaction $row): bool => BankText::isFee($row->text));
         $edges = [];
 
         foreach ($debits as $debit) {
             foreach ($fees as $fee) {
-                $days = intdiv(abs($this->time($debit) - $this->time($fee)), self::DAY);
+                $days = abs($this->index($debit) - $this->index($fee));
 
                 if ($this->key($debit) === $this->key($fee) && $days <= self::DAYS && $this->cents($fee) < $this->cents($debit)) {
                     $edges[] = [$days, $debit->id, $fee->id, $debit, $fee];
@@ -153,7 +152,7 @@ final class BankFees
 
     /**
      * What a debit and its commission share: account, direction, mandate and creditor. Null for a transaction that has
-     * neither a mandate nor a creditor, or no booking day.
+     * neither a mandate nor a creditor, no booking day, or that is not booked and in euros.
      *
      * @param  BankTransaction  $transaction  the transaction
      */
@@ -162,7 +161,8 @@ final class BankFees
         $mandate = BankText::mandate($transaction->text);
         $creditor = BankText::creditor($transaction->text);
 
-        if (($mandate === null && $creditor === null) || ($transaction->booked_on ?? $transaction->value_on) === null) {
+        if (($mandate === null && $creditor === null) || ($transaction->booked_on ?? $transaction->value_on) === null
+            || $transaction->status !== BankTransactionStatus::Booked || $transaction->currency !== 'EUR') {
             return null;
         }
 
@@ -170,13 +170,23 @@ final class BankFees
     }
 
     /**
-     * The booking day as a timestamp (midnight), falling back to the day the bank gave.
+     * The booking day (falling back to the day the bank gave) as a calendar date at midnight.
      *
      * @param  BankTransaction  $transaction  the transaction
      */
-    private function time(BankTransaction $transaction): int
+    private function day(BankTransaction $transaction): CarbonImmutable
     {
-        return ($transaction->booked_on ?? $transaction->value_on)?->getTimestamp() ?? 0;
+        return CarbonImmutable::parse(($transaction->booked_on ?? $transaction->value_on)?->toDateString() ?? 'today', 'UTC');
+    }
+
+    /**
+     * The calendar day as a whole number that grows by one a day, so a clock change cannot shift a difference.
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     */
+    private function index(BankTransaction $transaction): int
+    {
+        return intdiv($this->day($transaction)->getTimestamp(), 86400);
     }
 
     /**

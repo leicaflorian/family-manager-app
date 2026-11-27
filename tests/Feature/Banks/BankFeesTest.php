@@ -156,3 +156,41 @@ it('a pending transaction is never paired', function (): void {
 
     expect(resolve(BankFees::class)->feeOf($debit))->toBeNull();
 });
+
+it('counts whole calendar days across the March clock change', function (): void {
+    $debit = bankFeesRow('2026-03-26', '-10.00');
+    $five = bankFeesRow('2026-03-31', '-0.40', true);
+    $six = bankFeesRow('2026-04-01', '-0.40', true);
+    $service = resolve(BankFees::class);
+
+    expect($service->feeOf($debit)?->is($five))->toBeTrue()
+        ->and($service->debitOf($six))->toBeNull();
+
+    $five->delete();
+    expect($service->feeOf($debit))->toBeNull()
+        ->and($service->pairs(collect([$debit, $six])))->toBe([]);
+});
+
+it('reads a commission exactly five days later in late October, also from outside the collection', function (): void {
+    $debit = bankFeesRow('2026-10-21', '-10.00');
+    $fee = bankFeesRow('2026-10-26', '-0.40', true);
+    $service = resolve(BankFees::class);
+
+    expect($service->feeOf($debit)?->is($fee))->toBeTrue()
+        ->and($service->debitOf($fee)?->is($debit))->toBeTrue()
+        ->and($service->pairs(collect([$debit]))[$debit->id]->is($fee))->toBeTrue();
+});
+
+it('a pending debit gets no commission from pairs', function (): void {
+    $debit = bankFeesRow('2026-11-24', '-10.00', state: ['status' => BankTransactionStatus::Pending]);
+    $fee = bankFeesRow('2026-11-25', '-0.40', true);
+
+    expect(resolve(BankFees::class)->pairs(collect([$debit, $fee])))->toBe([]);
+});
+
+it('a debit in another currency gets no commission from pairs', function (): void {
+    $debit = bankFeesRow('2026-11-24', '-10.00', state: ['currency' => 'USD']);
+    $fee = bankFeesRow('2026-11-25', '-0.40', true);
+
+    expect(resolve(BankFees::class)->pairs(collect([$debit, $fee])))->toBe([]);
+});
