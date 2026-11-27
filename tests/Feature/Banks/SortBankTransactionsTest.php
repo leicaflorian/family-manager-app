@@ -631,3 +631,20 @@ test('the search for a commission lists only recorded expenses, starting from th
         ->assertJsonFragment(['id' => $mine->id])
         ->assertJsonFragment(['id' => $linked->id]);
 });
+
+test('a word searches the recorded expenses for a commission, and an expense with a bank commission is not listed', function (): void {
+    $fee = bankSortFee();
+    $free = bankSortExpense(['title' => 'Ricarica libera']);
+    $taken = bankSortExpense(['title' => 'Ricarica con commissione', 'amount' => 10.4, 'fee_amount' => 0.4]);
+    insideBianchi(fn (): BankTransaction => bankSortFee(['expense_id' => $taken->id, 'matched_by' => BankMatchSource::Fee, 'booked_on' => '2026-08-27', 'value_on' => '2026-08-27']));
+    bankSortPlanned('Ricarica pianificata');
+
+    $this->actingAs($this->marco)->getJson(route('budget.bank.candidates', ['transaction' => $fee->id, 'fee' => 1, 'q' => 'ricarica']))
+        ->assertOk()
+        ->assertJsonPath('planned', [])
+        ->assertJsonCount(1, 'recorded')
+        ->assertJsonPath('recorded.0.id', $free->id);
+
+    $this->getJson(route('budget.bank.candidates', ['transaction' => $fee->id, 'fee' => 1]))
+        ->assertJsonMissing(['id' => $taken->id]);
+});

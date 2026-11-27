@@ -83,8 +83,11 @@ const planned = ref<App.Data.BankPlannedChoiceData[] | null>(null);
 /** The recorded movements of the last answer. */
 const recorded = ref<App.Data.BankRecordedChoiceData[]>([]);
 
-/** The organization the server started from for a commission, kept while the person types. */
+/** The organization the server started a commission from: it is the text of the field until the person changes it. */
 const feeOrganization = ref<string | null>(null);
+
+/** The next change of the field is the sheet writing the organization in it: no search for it. */
+let prefilling = false;
 
 /** The search did not get an answer. */
 const failed = ref(false);
@@ -137,8 +140,17 @@ async function ask(text: string): Promise<void> {
         };
 
         if (mine === sequence) {
-            feeOrganization.value =
-                answer.organization ?? feeOrganization.value;
+            // The first answer of a commission names the organization: the field shows it, as the boards draw it
+            if (
+                fee &&
+                answer.organization &&
+                text === '' &&
+                search.value === ''
+            ) {
+                feeOrganization.value = answer.organization;
+                prefilling = true;
+                search.value = answer.organization;
+            }
             planned.value = answer.planned;
             recorded.value = answer.recorded;
             failed.value = false;
@@ -162,6 +174,7 @@ watch(
             planned.value = null;
             recorded.value = [];
             feeOrganization.value = null;
+            prefilling = false;
             failed.value = false;
             void ask('');
         }
@@ -172,6 +185,13 @@ watch(
 // Typing waits for a pause; the timer is cancelled with the component
 watch(search, (text) => {
     clearTimeout(timer);
+
+    if (prefilling) {
+        prefilling = false;
+
+        return;
+    }
+
     timer = setTimeout(() => void ask(text), SEARCH_DELAY);
 });
 
@@ -470,7 +490,9 @@ function confirm(): void {
                             list: recordedRows,
                             title: income
                                 ? $t('Recorded incomes')
-                                : fee && feeOrganization
+                                : fee &&
+                                    feeOrganization &&
+                                    search === feeOrganization
                                   ? $t('Expenses with :organization', {
                                         organization: feeOrganization,
                                     })

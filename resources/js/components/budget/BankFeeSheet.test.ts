@@ -90,15 +90,50 @@ describe('BankFeeSheet', () => {
         ).toHaveLength(2);
     });
 
+    it('opens with the name of the organization in the field, without a second request', async () => {
+        const fetchMock = stubServer();
+        renderPage(BankFeeSheet, { open: true, transaction: fee });
+        await settle();
+        await screen.findByText('Expenses with Satispay');
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        expect(
+            screen.getByRole('searchbox', { name: 'Search the expense' }),
+        ).toHaveValue('Satispay');
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('the title falls back when the person searches another word', async () => {
+        const fetchMock = stubServer();
+        renderPage(BankFeeSheet, { open: true, transaction: fee });
+        await settle();
+        await screen.findByText('Expenses with Satispay');
+
+        const box = screen.getByRole('searchbox', {
+            name: 'Search the expense',
+        });
+        await userEvent.clear(box);
+        await userEvent.type(box, 'luce');
+        await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+        await vi.waitFor(() =>
+            expect(screen.getByText('Recorded expenses')).toBeInTheDocument(),
+        );
+        expect(
+            screen.queryByText('Expenses with Satispay'),
+        ).not.toBeInTheDocument();
+    });
+
     it('keeps asking for commissions when the person types', async () => {
         const fetchMock = stubServer();
         renderPage(BankFeeSheet, { open: true, transaction: fee });
         await settle();
 
-        await userEvent.type(
-            screen.getByRole('searchbox', { name: 'Search the expense' }),
-            'ricarica',
-        );
+        const box = screen.getByRole('searchbox', {
+            name: 'Search the expense',
+        });
+        await userEvent.clear(box);
+        await userEvent.type(box, 'ricarica');
         await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 
         const url = String(fetchMock.mock.calls[1]![0]);
