@@ -89,4 +89,29 @@ describe('BankRawPanel', () => {
         expect(view.emitted('undo')?.[0]).toEqual([row]);
         expect(view.emitted('close')).toHaveLength(1);
     });
+
+    it.each([
+        ['without a counterparty', { counterparty: null }, 'Who is paid'],
+        ['without a value date', { value_on: null }, 'Value date'],
+        ['without both', { counterparty: null, value_on: null }, 'Who is paid'],
+    ])('keeps the rows in their order %s', (_name, change, missing) => {
+        screenWidth(true);
+        renderPage(BankRawPanel, { row: { ...row, ...change } });
+
+        const terms = [...screen.getAllByRole('term')].map(
+            (term) => term.textContent,
+        );
+        expect(terms).not.toContain(missing);
+        const order = [
+            'Who pays',
+            'Booking date',
+            'Value date',
+            'Amount',
+            'Account',
+            'Status at the bank',
+            'Bank code',
+            'Read',
+        ].filter((term) => terms.includes(term));
+        expect(terms).toEqual(order);
+    });
 });

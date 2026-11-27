@@ -1,5 +1,5 @@
 import { trans } from 'laravel-vue-i18n';
-import { formatDate, todayInRome } from '@/lib/format';
+import { formatDate, formatDayMonth, todayInRome } from '@/lib/format';
 import { listNames } from '@/lib/names';
 
 /**
@@ -55,4 +55,26 @@ export function readTimes(hours: number[]): string {
     return listNames(
         hours.map((hour) => trans('at :hour', { hour: String(hour) })),
     );
+}
+
+/**
+ * The day a bank transaction is listed with: the booked one, for a pending transaction the one the bank gave.
+ *
+ * @param row - the transaction (only its two days are read)
+ * @param now - the moment taken as now, the clock if missing
+ * @returns «06/11», with the year only for a day that is not of this year; empty without any day
+ */
+export function dayOf(
+    row: { booked_on: string | null; value_on: string | null },
+    now: Date = new Date(),
+): string {
+    const day = row.booked_on ?? row.value_on;
+
+    if (!day) {
+        return '';
+    }
+
+    return day.slice(0, 4) === todayInRome(now).slice(0, 4)
+        ? formatDayMonth(day)
+        : formatDate(day);
 }

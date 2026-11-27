@@ -18,7 +18,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import BankRowState from '@/components/budget/BankRowState.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import { formatDayMonth, todayInRome } from '@/lib/format';
+import { dayOf } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 
@@ -50,21 +50,7 @@ defineSlots<{
 }>();
 
 const wide = useWideLayout();
-const { money, date } = useFormat();
-
-/**
- * The day a row is shown with: the booked one, for a pending transaction the one the bank gave.
- *
- * @param row - the transaction
- * @returns «06/11», with the year only for a day that is not of this year
- */
-function dayOf(row: App.Data.BankTransactionData): string {
-    const day = row.booked_on ?? row.value_on;
-
-    return day && day.slice(0, 4) === todayInRome().slice(0, 4)
-        ? formatDayMonth(day)
-        : date(day);
-}
+const { money } = useFormat();
 
 /**
  * Whether a row has the button to take the link back.

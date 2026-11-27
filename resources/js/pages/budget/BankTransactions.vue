@@ -47,8 +47,7 @@ import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
-import { lastReadText, readTimes } from '@/lib/banks';
-import { formatDayMonth, todayInRome } from '@/lib/format';
+import { dayOf, lastReadText, readTimes } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import {
     assign,
@@ -100,7 +99,7 @@ interface AllFilters {
 }
 
 const bankFeed = useBankFeed();
-const { money, date } = useFormat();
+const { money } = useFormat();
 const wide = useWideLayout();
 
 /** An update is running: the button waits, so a double tap does not read the banks twice. */
@@ -144,16 +143,6 @@ const readLine = computed((): string => {
           })
         : trans('They arrive by themselves :times', { times });
 });
-
-/** The day a row is shown with: the booked one, for a pending transaction the one the bank gave. */
-function dayOf(row: App.Data.BankTransactionData): string {
-    const day = row.booked_on ?? row.value_on;
-
-    // As the boards: «06/11», with the year only for a day that is not of this year
-    return day && day.slice(0, 4) === todayInRome().slice(0, 4)
-        ? formatDayMonth(day)
-        : date(day);
-}
 
 /** What the next block of the list asks for; under *All* the status too, as `?show=ignored` leaves it out of the address. */
 const nextData = computed(() => ({

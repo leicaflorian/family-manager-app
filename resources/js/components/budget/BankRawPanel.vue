@@ -53,25 +53,45 @@ const readAt = computed((): string =>
     }),
 );
 
-/** The lines under the text: what the bank says, in the order of the boards. */
-const lines = computed((): { term: string; value: string; mono?: boolean }[] =>
-    [
-        {
-            term: row.amount > 0 ? trans('Who pays') : trans('Who is paid'),
-            value: row.counterparty ?? '',
-        },
-        {
-            term: trans('Booking date'),
-            value: row.booked_on ? date(row.booked_on) : '',
-        },
-        {
-            term: trans('Value date'),
-            value: row.value_on ? date(row.value_on) : '',
-        },
-        { term: trans('Status at the bank'), value: bankStatus.value },
-        { term: trans('Bank code'), value: row.provider_id, mono: true },
-        { term: trans('Read'), value: readAt.value },
-    ].filter((line) => line.value !== ''),
+/** One line under the text. */
+interface Line {
+    /** What the line is about. */
+    term: string;
+    /** What the bank says, empty when it says nothing (the line is left out). */
+    value: string;
+    /** The value is a code, in a monospace face. */
+    mono?: boolean;
+    /** The value is the amount, drawn with its colour and the currency. */
+    amount?: boolean;
+}
+
+/** The lines under the text in the order of the boards; the ones the bank leaves empty are left out where they are. */
+const lines = computed((): Line[] =>
+    (
+        [
+            {
+                term: row.amount > 0 ? trans('Who pays') : trans('Who is paid'),
+                value: row.counterparty ?? '',
+            },
+            {
+                term: trans('Booking date'),
+                value: row.booked_on ? date(row.booked_on) : '',
+            },
+            {
+                term: trans('Value date'),
+                value: row.value_on ? date(row.value_on) : '',
+            },
+            {
+                term: trans('Amount'),
+                value: money(row.amount, row.currency),
+                amount: true,
+            },
+            { term: trans('Account'), value: row.account ?? '' },
+            { term: trans('Status at the bank'), value: bankStatus.value },
+            { term: trans('Bank code'), value: row.provider_id, mono: true },
+            { term: trans('Read'), value: readAt.value },
+        ] satisfies Line[]
+    ).filter((line) => line.value !== ''),
 );
 </script>
 
@@ -120,37 +140,7 @@ const lines = computed((): { term: string; value: string; mono?: boolean }[] =>
 
         <dl class="m-0 flex flex-col">
             <div
-                v-for="line in lines.slice(0, 3)"
-                :key="line.term"
-                class="grid grid-cols-[132px_minmax(0,1fr)] gap-3 border-b border-divider py-2.5"
-            >
-                <dt class="text-meta text-ink-soft">{{ line.term }}</dt>
-                <dd class="m-0 text-body-sm wrap-anywhere text-ink">
-                    {{ line.value }}
-                </dd>
-            </div>
-            <div
-                class="grid grid-cols-[132px_minmax(0,1fr)] gap-3 border-b border-divider py-2.5"
-            >
-                <dt class="text-meta text-ink-soft">{{ $t('Amount') }}</dt>
-                <dd class="m-0 text-body-sm text-ink">
-                    <span :class="cn(row.amount > 0 && 'text-paid')">{{
-                        money(row.amount, row.currency)
-                    }}</span>
-                    · {{ row.currency }}
-                </dd>
-            </div>
-            <div
-                v-if="row.account"
-                class="grid grid-cols-[132px_minmax(0,1fr)] gap-3 border-b border-divider py-2.5"
-            >
-                <dt class="text-meta text-ink-soft">{{ $t('Account') }}</dt>
-                <dd class="m-0 text-body-sm wrap-anywhere text-ink">
-                    {{ row.account }}
-                </dd>
-            </div>
-            <div
-                v-for="line in lines.slice(3)"
+                v-for="line in lines"
                 :key="line.term"
                 class="grid grid-cols-[132px_minmax(0,1fr)] gap-3 border-b border-divider py-2.5"
             >
@@ -163,7 +153,13 @@ const lines = computed((): { term: string; value: string; mono?: boolean }[] =>
                         )
                     "
                 >
-                    {{ line.value }}
+                    <template v-if="line.amount">
+                        <span :class="cn(row.amount > 0 && 'text-paid')">{{
+                            line.value
+                        }}</span>
+                        · {{ row.currency }}
+                    </template>
+                    <template v-else>{{ line.value }}</template>
                 </dd>
             </div>
         </dl>
