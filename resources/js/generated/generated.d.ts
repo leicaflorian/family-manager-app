@@ -110,6 +110,11 @@ readonly last_synced_at: string | null,
 readonly accounts: string[],
 readonly syncing: boolean,
 };
+export type BankFeeData = {
+readonly id: number,
+readonly amount: number,
+readonly booked_on: string | null,
+};
 export type BankInstitutionData = {
 readonly name: string,
 readonly country: string,
