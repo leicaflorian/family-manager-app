@@ -355,4 +355,15 @@ return [
         'created' => 'Created from it',
         'duplicate' => 'Linked to an existing one',
     ],
+    'bank_filter_action' => [
+        'pay' => 'Pay the due date',
+        'create' => 'Create the expense',
+        'transfer' => 'It is a transfer',
+        'ignore' => 'Ignore',
+    ],
+    'bank_filter_fee' => [
+        'auto' => 'Find it by itself',
+        'words' => 'Recognise it with these words',
+        'none' => 'No commission',
+    ],
 ];

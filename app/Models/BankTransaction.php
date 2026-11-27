@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\Config;
  * @property BankMatchSource|null $matched_by
  * @property CarbonImmutable|null $ignored_at
  * @property CarbonImmutable|null $declined_at
+ * @property int|null $bank_filter_id
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
@@ -55,7 +56,7 @@ use Illuminate\Support\Facades\Config;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at'])]
+#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at', 'bank_filter_id'])]
 final class BankTransaction extends FamilyModel
 {
     /** @use HasFactory<BankTransactionFactory> */

@@ -355,4 +355,15 @@ return [
         'created' => 'Creato da qui',
         'duplicate' => 'Collegato a uno che c\'era',
     ],
+    'bank_filter_action' => [
+        'pay' => 'Paga la scadenza',
+        'create' => 'Crea la spesa',
+        'transfer' => 'È un trasferimento',
+        'ignore' => 'Ignora',
+    ],
+    'bank_filter_fee' => [
+        'auto' => 'Trovala da sola',
+        'words' => 'Riconoscila con queste parole',
+        'none' => 'Nessuna commissione',
+    ],
 ];

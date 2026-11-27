@@ -1245,6 +1245,8 @@ namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
+export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
+export type BankFilterFee = 'auto' | 'words' | 'none';
 export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
