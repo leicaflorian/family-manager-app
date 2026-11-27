@@ -298,3 +298,21 @@ it('refuses while the reading is off or the readings are used up', function (Clo
     'off' => [fn () => test()->reader->off()],
     'used up' => [fn () => test()->family->forceFill(['reading_limit' => 0])->save()],
 ]);
+
+it('reads a shared bill for the gas when only the electricity has its row', function (): void {
+    $familyId = $this->family->id;
+    CurrentFamily::using($familyId, function () use ($familyId): void {
+        $electricity = Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity]);
+        $electricity->documents()->attach($this->document->id);
+        UtilityConsumption::factory()->create(['family_id' => $familyId, 'utility_id' => $electricity->id, 'document_id' => $this->document->id, 'source' => ConsumptionSource::Reading, 'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'quantity' => 201]);
+    });
+    readConsumptionFinds();
+
+    readConsumptionRun();
+
+    $gas = CurrentFamily::using($familyId, fn (): ?UtilityConsumption => UtilityConsumption::query()->where('document_id', $this->document->id)->where('utility_id', $this->utility->id)->first());
+    expect($gas?->quantity)->not->toBeNull()
+        ->and((float) $gas?->quantity)->toBe(120.0)
+        ->and(readConsumptionCalls())->toHaveCount(1)
+        ->and(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::Saved);
+});

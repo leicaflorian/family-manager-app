@@ -169,8 +169,9 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Whether the bill is worth a call: the reading is on, the family has readings left, and the bill has neither its
-     * consumption nor a consumption reading (a second job of the same bill, or a bill imported meanwhile).
+     * Whether the bill is worth a call: the reading is on, the family has readings left, and the bill has neither the
+     * consumption of the utility of the job nor a consumption reading (a second job of the same bill, or a bill
+     * imported meanwhile). The row of another utility of the same bill (electricity and gas) does not count.
      *
      * @param  DocumentReader  $reader  the model
      * @param  ReadingAllowance  $allowance  the readings left this month
@@ -181,7 +182,7 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     {
         return $reader->isActive()
             && $allowance->left(CarbonImmutable::now('Europe/Rome')) > 0
-            && ! $document->consumption()->exists()
+            && ! $this->hasConsumption($document)
             && ! AiReading::query()->where('file_id', $file->id)->where('purpose', ReadingPurpose::Consumption)->exists();
     }
 
@@ -189,14 +190,14 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
      * A call of an earlier try whose outcome was never written (the worker was stopped between the call and the
      * outcome) gets `NoConsumption`, so the bill goes to *To check* instead of being lost: without an outcome it is
      * neither in the archive (it has a consumption reading) nor in *To check* (it has no outcome). Nothing is done when
-     * the bill has its consumption or the latest call has an outcome.
+     * the bill has the consumption of the utility of the job or the latest call has an outcome.
      *
      * @param  Document  $document  the bill
      * @param  File  $file  its file
      */
     private function closeUnfinished(Document $document, File $file): void
     {
-        if ($document->consumption()->exists()) {
+        if ($this->hasConsumption($document)) {
             return;
         }
 
@@ -209,6 +210,16 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
         if ($latest instanceof AiReading && $latest->outcome === null) {
             $this->writeOutcome($file, ConsumptionOutcome::NoConsumption);
         }
+    }
+
+    /**
+     * Whether the bill has its row for the utility of the job.
+     *
+     * @param  Document  $document  the bill
+     */
+    private function hasConsumption(Document $document): bool
+    {
+        return $document->consumptions()->where('utility_id', $this->utilityId)->exists();
     }
 
     /**

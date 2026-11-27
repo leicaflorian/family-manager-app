@@ -25,7 +25,7 @@ final class SaveConsumption
      * With a row it updates that one. Without, it looks for the row of the document, then for the row of the same
      * utility with the same period, and creates one only when neither exists. A reading never touches the figures of a
      * row written by hand: it gets that row back, only linked to the bill when the row has none, so that the bill is
-     * no longer offered for reading. A bill already held by the row of another utility stays there (one row per bill).
+     * no longer offered for reading. A bill carrying electricity and gas has one row per utility, each linked to it.
      *
      * @param  Utility  $utility  the utility the bill belongs to
      * @param  ConsumptionValues  $values  the figures to save
@@ -44,7 +44,7 @@ final class SaveConsumption
         $row ??= $this->existing($utility, $values, $document);
 
         if ($row instanceof UtilityConsumption && $source === ConsumptionSource::Reading && $row->source === ConsumptionSource::Manual) {
-            if ($row->document_id === null && $this->isFree($document, $row)) {
+            if ($row->document_id === null && $this->isFree($document, $utility, $row)) {
                 $row->document_id = $document->id;
                 $row->save();
             }
@@ -54,7 +54,7 @@ final class SaveConsumption
 
         $row ??= new UtilityConsumption;
         $row->utility_id = $utility->id;
-        $row->document_id = $this->isFree($document, $row) ? $document->id : $row->document_id;
+        $row->document_id = $this->isFree($document, $utility, $row) ? $document->id : $row->document_id;
         $row->period_start = $values->periodStart;
         $row->period_end = $values->periodEnd;
         $row->quantity = $values->quantity;
@@ -98,18 +98,21 @@ final class SaveConsumption
     }
 
     /**
-     * Whether the bill can be linked to the row: there is a bill, and no other row holds it (`document_id` is unique).
+     * Whether the bill can be linked to the row: there is a bill, and no other row of the same utility holds it
+     * (`document_id` and `utility_id` are unique together: a bill of electricity and gas has a row for each).
      *
      * @param  Document|null  $document  the bill
+     * @param  Utility  $utility  the utility of the row
      * @param  UtilityConsumption  $row  the row to link it to
      *
      * @phpstan-assert-if-true Document $document
      */
-    private function isFree(?Document $document, UtilityConsumption $row): bool
+    private function isFree(?Document $document, Utility $utility, UtilityConsumption $row): bool
     {
         return $document instanceof Document
             && ! UtilityConsumption::query()
                 ->where('document_id', $document->id)
+                ->where('utility_id', $utility->id)
                 ->when($row->exists, fn ($query) => $query->whereKeyNot($row->id))
                 ->exists();
     }

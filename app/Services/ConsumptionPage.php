@@ -336,7 +336,8 @@ final readonly class ConsumptionPage
     }
 
     /**
-     * The documents of the utility a reading can take (a PDF or a picture) that have no consumption yet.
+     * The documents of the utility a reading can take (a PDF or a picture) that have no consumption of this utility
+     * yet: a bill of electricity and gas with only the electricity row is still a bill of the gas.
      *
      * @param  Utility  $utility  the utility
      * @return MorphToMany<Document, Utility>
@@ -344,7 +345,7 @@ final readonly class ConsumptionPage
     private static function bills(Utility $utility): MorphToMany
     {
         return $utility->documents()
-            ->whereDoesntHave('consumption')
+            ->whereDoesntHave('consumptions', static fn (Builder $query): Builder => $query->where('utility_id', $utility->id))
             ->whereHas('file', static fn (Builder $query): Builder => $query->where(
                 static fn (Builder $query): Builder => $query->where('mime_type', 'application/pdf')->orWhere('mime_type', 'like', 'image/%'),
             ));

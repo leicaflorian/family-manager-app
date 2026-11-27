@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\ConsumptionSource;
+use App\Enums\UtilityType;
 use App\Models\Document;
 use App\Models\DocumentCategory;
 use App\Models\Employment;
@@ -10,6 +11,7 @@ use App\Models\Expense;
 use App\Models\Home;
 use App\Models\Person;
 use App\Models\User;
+use App\Models\Utility;
 use App\Models\UtilityConsumption;
 use App\Models\Vehicle;
 use App\Queries\FilterDocuments;
@@ -432,4 +434,17 @@ test('the list of a card of the Rossis answers 404 to the Bianchis', function ()
 
     $this->get(route('documents.index', ['card' => 'vehicle:'.$theirs->id]))->assertNotFound();
     $this->get(route('documents.index', ['card' => 'nonsense']))->assertNotFound();
+});
+
+test('deleting a bill of electricity and gas removes the reading row of each utility', function (): void {
+    $family = $this->marco->family;
+    $rows = collect([UtilityType::Electricity, UtilityType::Gas])->map(fn (UtilityType $type): UtilityConsumption => UtilityConsumption::factory()->for($family)->create([
+        'utility_id' => Utility::factory()->for($family)->create(['type' => $type])->id,
+        'document_id' => $this->document->id,
+        'source' => ConsumptionSource::Reading,
+    ]));
+
+    $this->delete(route('documents.destroy', $this->document))->assertRedirect(route('documents.index'));
+
+    expect(UtilityConsumption::query()->whereKey($rows->pluck('id'))->count())->toBe(0);
 });
