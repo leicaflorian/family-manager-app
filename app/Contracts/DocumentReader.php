@@ -11,6 +11,7 @@ use App\Data\Reading\Reading;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
+use App\Support\Reading\BankFilterSuggestion;
 use LogicException;
 
 /**
@@ -72,6 +73,22 @@ interface DocumentReader
      * @throws LogicException when the reading is off
      */
     public function bankRule(array $examples, string $locale): BankRuleSuggestion;
+
+    /**
+     * Asks the model for the words of a bank filter that takes the transactions to keep and leaves the ones to drop,
+     * and, when names are given, for a title, a category and an organization; records the call in `ai_readings`
+     * (purpose `bank_filter`, the account signed in, no file) in the current family before the answer is checked.
+     * Called only when `isActive()` is true.
+     *
+     * @param  list<string>  $keep  the texts of the transactions the filter must take, already normalised
+     * @param  list<string>  $drop  the texts of the transactions it must leave, already normalised
+     * @param  array{categories: list<string>, organizations: list<string>, planned: list<string>}  $names  the names of the family the model picks from; empty lists when only the words are asked
+     * @param  string  $locale  the language of the title and the explanation (`it` or `en`)
+     *
+     * @throws ReadingFailed when the service gives no answer
+     * @throws LogicException when the reading is off
+     */
+    public function bankFilter(array $keep, array $drop, array $names, string $locale): BankFilterSuggestion;
 
     /**
      * Reads only the consumption of a bill already in the archive (*Read the bills*), and records the call in

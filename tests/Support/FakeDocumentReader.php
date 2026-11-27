@@ -16,6 +16,7 @@ use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
 use App\Support\Corners;
+use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -55,6 +56,16 @@ final class FakeDocumentReader implements DocumentReader
     /** What the model writes as the rule of a bank payment, until `suggestsRule()` says otherwise. */
     private BankRuleSuggestion $rule;
 
+    /** What the model proposes as a bank filter, until `suggestsFilter()` says otherwise. */
+    private BankFilterSuggestion $filter;
+
+    /**
+     * The requests for a bank filter so far, with what was sent.
+     *
+     * @var list<array{keep: list<string>, drop: list<string>, names: array{categories: list<string>, organizations: list<string>, planned: list<string>}, locale: string}>
+     */
+    private array $filterRequests = [];
+
     /**
      * What the short reading of the consumption finds, by the id of the file read; a file not in the map is not a bill.
      *
@@ -82,6 +93,7 @@ final class FakeDocumentReader implements DocumentReader
         $this->extraction = Extraction::from(['kind' => 'other', 'confidence' => 'low']);
         $this->screening = new MailScreeningAnswer('unsure', null);
         $this->rule = new BankRuleSuggestion('', '');
+        $this->filter = new BankFilterSuggestion([], [], null, null, null, '');
     }
 
     /**
@@ -118,6 +130,19 @@ final class FakeDocumentReader implements DocumentReader
     public function suggestsRule(BankRuleSuggestion $suggestion): self
     {
         $this->rule = $suggestion;
+        $this->failure = null;
+
+        return $this;
+    }
+
+    /**
+     * Every request for a bank filter gives this suggestion.
+     *
+     * @param  BankFilterSuggestion  $suggestion  what the model proposes
+     */
+    public function suggestsFilter(BankFilterSuggestion $suggestion): self
+    {
+        $this->filter = $suggestion;
         $this->failure = null;
 
         return $this;
@@ -214,6 +239,24 @@ final class FakeDocumentReader implements DocumentReader
     public function rules(): int
     {
         return $this->rules;
+    }
+
+    /**
+     * How many bank filters were asked.
+     */
+    public function filters(): int
+    {
+        return count($this->filterRequests);
+    }
+
+    /**
+     * What each request for a bank filter sent, in order.
+     *
+     * @return list<array{keep: list<string>, drop: list<string>, names: array{categories: list<string>, organizations: list<string>, planned: list<string>}, locale: string}>
+     */
+    public function filterRequests(): array
+    {
+        return $this->filterRequests;
     }
 
     /**
@@ -333,6 +376,36 @@ final class FakeDocumentReader implements DocumentReader
         }
 
         return $this->rule;
+    }
+
+    /**
+     * Keeps what was sent, then gives the suggestion of `suggestsFilter()` or throws the error of `fails()`. As the
+     * real one, it records the call (Gemini 3.8 Flash, 400 tokens in and 60 out) as a `bank_filter` of the account
+     * signed in, unless the error is one with no answer (`ReadingFailed::$paid` false).
+     *
+     * @param  list<string>  $keep  the texts of the transactions to take
+     * @param  list<string>  $drop  the texts of the transactions to leave
+     * @param  array{categories: list<string>, organizations: list<string>, planned: list<string>}  $names  the names of the family
+     * @param  string  $locale  the language of the answer
+     *
+     * @throws ReadingFailed when `fails()` was called
+     */
+    public function bankFilter(array $keep, array $drop, array $names, string $locale): BankFilterSuggestion
+    {
+        $this->filterRequests[] = ['keep' => $keep, 'drop' => $drop, 'names' => $names, 'locale' => $locale];
+
+        $userId = Auth::guard('web')->id();
+        $failure = $this->failure;
+
+        if (! $failure instanceof ReadingFailed || $failure->paid) {
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 400, 60, 0, ReadingPurpose::BankFilter, $userId === null ? null : (int) $userId);
+        }
+
+        if ($failure instanceof ReadingFailed) {
+            throw $failure;
+        }
+
+        return $this->filter;
     }
 
     /**

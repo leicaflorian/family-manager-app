@@ -34,11 +34,7 @@ final readonly class WriteBankMatch
      */
     public function handle(array $examples, string $locale): BankRuleSuggestion
     {
-        $unavailable = $this->availability->unavailable($locale);
-
-        if ($unavailable !== null) {
-            throw ValidationException::withMessages(['examples' => $unavailable]);
-        }
+        $this->availability->ensure($locale, 'examples');
 
         $texts = array_values(array_filter(array_map(BankMatch::normalize(...), $examples), static fn (string $text): bool => $text !== ''));
         $fallback = $this->fallback($texts[0] ?? '', $locale);

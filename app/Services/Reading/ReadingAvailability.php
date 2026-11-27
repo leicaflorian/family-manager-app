@@ -6,6 +6,7 @@ namespace App\Services\Reading;
 
 use App\Contracts\DocumentReader;
 use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Whether a reading can be asked right now, and if not why: the reading is off, or the family has used the
@@ -33,5 +34,22 @@ final readonly class ReadingAvailability
         $now = CarbonImmutable::now('Europe/Rome');
 
         return $this->allowance->left($now) === 0 ? $this->allowance->usedUpMessage($now, $locale) : null;
+    }
+
+    /**
+     * Refuses, as an error of the field given, when a reading cannot be asked now.
+     *
+     * @param  string  $locale  the language of the message (`it` or `en`)
+     * @param  string  $field  the field the message belongs to
+     *
+     * @throws ValidationException when the reading is off or the month is used up
+     */
+    public function ensure(string $locale, string $field): void
+    {
+        $unavailable = $this->unavailable($locale);
+
+        if ($unavailable !== null) {
+            throw ValidationException::withMessages([$field => $unavailable]);
+        }
     }
 }

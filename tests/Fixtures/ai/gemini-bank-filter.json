@@ -1,0 +1,32 @@
+{
+    "id": "v1_ChdpbnRlcmFjdGlvbi1maWx0ZXItMDE",
+    "object": "interaction",
+    "model": "gemini-3.8-flash",
+    "status": "completed",
+    "created": "2026-10-25T18:04:12Z",
+    "updated": "2026-10-25T18:04:19Z",
+    "role": "model",
+    "steps": [
+        {
+            "type": "thought",
+            "signature": "Q2lRQlZLaHVkR2hwYm1jPQ==",
+            "summary": []
+        },
+        {
+            "type": "model_output",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "{\"contains\": [\"CASHBACK\", \"SCONTIPOSTE\"], \"excludes\": [], \"title\": \"Cashback ScontiPoste\", \"category\": \"Rimborsi\", \"organization\": \"Poste Italiane\", \"explanation\": \"Prende i cashback di ScontiPoste.\"}"
+                }
+            ]
+        }
+    ],
+    "usage": {
+        "total_input_tokens": 420,
+        "total_cached_tokens": 0,
+        "total_output_tokens": 60,
+        "total_thought_tokens": 10,
+        "total_tokens": 490
+    }
+}

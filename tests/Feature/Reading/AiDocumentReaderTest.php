@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\BankFilterAgent;
 use App\Ai\Agents\BankRuleAgent;
 use App\Ai\Agents\ConsumptionReaderAgent;
 use App\Ai\Agents\CornersAgent;
@@ -21,6 +22,7 @@ use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingPrompt;
 use App\Services\Reading\ReadingSource;
 use App\Support\CurrentFamily;
+use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -401,6 +403,42 @@ test('a bank rule that the service cuts is a failure and is still recorded', fun
 
     expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
         ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
+});
+
+test('gemini proposes a bank filter and the call is recorded as a bank_filter of the account', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-bank-filter'))]);
+    $family = Family::factory()->create();
+    $user = User::factory()->for($family)->create();
+    $this->actingAs($user);
+    $names = ['categories' => ['Rimborsi'], 'organizations' => ['Poste Italiane'], 'planned' => []];
+
+    $suggestion = CurrentFamily::using($family->id, fn (): BankFilterSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankFilter(['ACCREDITO CASHBACK SCONTIPOSTE'], [], $names, 'it'));
+
+    Http::assertSent(function (Request $request) use ($names): bool {
+        $content = $request['input'][0]['content'];
+
+        return $request['system_instruction'] === BankFilterAgent::SYSTEM
+            && $request['response_format']['schema']['required'] === ['contains', 'excludes', 'title', 'category', 'organization', 'explanation']
+            && $content === [['type' => 'text', 'text' => BankFilterAgent::request(['ACCREDITO CASHBACK SCONTIPOSTE'], [], $names, 'it')]];
+    });
+    $row = AiReading::query()->withoutGlobalScopes()->sole();
+    expect($suggestion->contains)->toBe(['CASHBACK', 'SCONTIPOSTE'])
+        ->and($suggestion->organization)->toBe('Poste Italiane')
+        ->and($row->purpose)->toBe(ReadingPurpose::BankFilter)
+        ->and($row->user_id)->toBe($user->id)
+        ->and($row->file_id)->toBeNull()
+        ->and($row->input_tokens)->toBe(420);
+});
+
+test('a bank filter that the service cuts is a failure and is still recorded', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-truncated'))]);
+    $family = Family::factory()->create();
+    $names = ['categories' => [], 'organizations' => [], 'planned' => []];
+
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): BankFilterSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankFilter(['X'], [], $names, 'it')));
+
+    expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankFilter);
 });
 
 test('gemini reads the consumption of a bill and the call is recorded with the file and the account', function (): void {
