@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Consumption\SaveConsumption;
 use App\Contracts\DocumentReader;
 use App\Data\Reading\ConsumptionReading;
+use App\Data\Reading\SupplyConsumptionReading;
 use App\Enums\ConsumptionOutcome;
 use App\Enums\ConsumptionSource;
 use App\Enums\ReadingPurpose;
@@ -314,5 +315,68 @@ it('reads a shared bill for the gas when only the electricity has its row', func
     expect($gas?->quantity)->not->toBeNull()
         ->and((float) $gas?->quantity)->toBe(120.0)
         ->and(readConsumptionCalls())->toHaveCount(1)
+        ->and(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::Saved);
+});
+
+/**
+ * Makes the bill of the test the Enel bill of electricity and gas: the utility of the test becomes *Gas - Enel*, and
+ * *Luce - Enel* is linked to the bill too.
+ */
+function readConsumptionEnel(): Utility
+{
+    $familyId = test()->family->id;
+
+    return CurrentFamily::using($familyId, static function () use ($familyId): Utility {
+        test()->utility->forceFill(['supply_point_code' => '00881234567890'])->save();
+        $electricity = Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 87654321']);
+        $electricity->documents()->attach(test()->document->id);
+
+        return $electricity;
+    });
+}
+
+/**
+ * The rows of the bill of the test, by the id of their utility.
+ *
+ * @return array<int, UtilityConsumption>
+ */
+function readConsumptionRows(): array
+{
+    return CurrentFamily::using(test()->family->id, static fn (): array => UtilityConsumption::query()->where('document_id', test()->document->id)->get()->keyBy('utility_id')->all());
+}
+
+it('saves both supplies of a bill of electricity and gas with one call', function (): void {
+    $electricity = readConsumptionEnel();
+    $this->reader->readsConsumption($this->document->file_id, new ConsumptionReading(
+        isBill: true, periodStart: '2026-09-01', periodEnd: '2026-09-30', quantity: 201.0, unit: 'kwh', totalAmount: 165.65,
+        supplies: [
+            new SupplyConsumptionReading('electricity', 'IT 001 E 87654321', new ConsumptionReading(isBill: true, periodStart: '2026-09-01', periodEnd: '2026-09-30', quantity: 201.0, unit: 'kwh', totalAmount: 96.25)),
+            new SupplyConsumptionReading('gas', '00881234567890', new ConsumptionReading(isBill: true, periodStart: '2026-10-01', periodEnd: '2026-10-31', quantity: 48.0, unit: 'smc', totalAmount: 69.40)),
+        ],
+    ));
+
+    readConsumptionRun();
+
+    $rows = readConsumptionRows();
+    $calls = readConsumptionCalls();
+    expect($this->reader->consumptionReads())->toBe(1)
+        ->and($rows)->toHaveCount(2)
+        ->and((float) $rows[$this->utility->id]->quantity)->toBe(48.0)
+        ->and((float) $rows[$this->utility->id]->amount)->toBe(69.40)
+        ->and($rows[$this->utility->id]->period_start->toDateString())->toBe('2026-10-01')
+        ->and((float) $rows[$electricity->id]->quantity)->toBe(201.0)
+        ->and((float) $rows[$electricity->id]->amount)->toBe(96.25)
+        ->and($rows[$electricity->id]->period_start->toDateString())->toBe('2026-09-01')
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0]->outcome)->toBe(ConsumptionOutcome::Saved);
+});
+
+it('saves only the utility of the job when the reading has no supplies', function (): void {
+    readConsumptionEnel();
+    readConsumptionFinds();
+
+    readConsumptionRun();
+
+    expect(array_keys(readConsumptionRows()))->toBe([$this->utility->id])
         ->and(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::Saved);
 });

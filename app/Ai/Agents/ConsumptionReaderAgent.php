@@ -6,7 +6,9 @@ namespace App\Ai\Agents;
 
 use App\Ai\Agents\Concerns\HasReaderOptions;
 use App\Data\Reading\ConsumptionReading;
+use App\Data\Reading\SupplyConsumptionReading;
 use App\Enums\ConsumptionUnit;
+use App\Enums\UtilityType;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingPrompt;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -21,7 +23,8 @@ use Laravel\Ai\Promptable;
 /**
  * The model that reads only the consumption of a bill already in the archive (*Read the bills*): whether the paper is
  * a bill of electricity, gas or water, then consumption, period and total, with the same rules as the full reading of
- * `ReadingPrompt`. The request gives up after 60 seconds.
+ * `ReadingPrompt`. A bill of two or more supplies (electricity and gas) also lists each supply with its own
+ * consumption, in the same call. The request gives up after 60 seconds.
  */
 #[Timeout(60)]
 final class ConsumptionReaderAgent implements Agent, HasProviderOptions, HasStructuredOutput
@@ -40,6 +43,9 @@ Rules:
 - total_amount: the total to pay of the bill, in euro, as a number.
 TXT;
 
+    /** When and how the model lists the supplies of a bill that has more than one. */
+    private const string SUPPLIES_RULE = '- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay; period_start, period_end and the consumption_* fields of the document are those of the first supply.';
+
     /** What goes to the model with the file. */
     public const string REQUEST = 'Read the consumption of this document.';
 
@@ -47,10 +53,16 @@ TXT;
     private const array DATES = ['period_start', 'period_end'];
 
     /** The fields of the answer that are numbers. */
-    private const array NUMBERS = ['consumption_quantity', 'total_amount', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'];
+    private const array NUMBERS = ['consumption_quantity', 'total_amount', 'amount', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'];
 
     /** The fields of the answer that are yes or no, besides `is_bill`. */
     private const array FLAGS = ['consumption_estimated', 'consumption_adjusted'];
+
+    /** The fields of the answer about the whole bill, besides `is_bill` and `supplies`. */
+    private const array FIELDS = ['period_start', 'period_end', 'consumption_quantity', 'consumption_unit', 'total_amount', ...self::FLAGS, 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'];
+
+    /** The fields of each supply, those of the full reading. */
+    private const array SUPPLY_FIELDS = ['utility_type', 'supply_point_code', 'amount', 'period_start', 'period_end', 'consumption_quantity', 'consumption_unit', ...self::FLAGS, 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'];
 
     /**
      * @param  string  $model  the model asked, whose options depend on it
@@ -62,26 +74,47 @@ TXT;
      */
     public function instructions(): string
     {
-        return self::INTRO."\n".ReadingPrompt::PERIOD_RULE."\n".ReadingPrompt::CONSUMPTION_RULE;
+        return self::INTRO."\n".ReadingPrompt::PERIOD_RULE."\n".ReadingPrompt::CONSUMPTION_RULE."\n".self::SUPPLIES_RULE;
     }
 
     /**
-     * The schema of the answer: every field required; `is_bill` is always answered, the others are null when the paper
-     * does not say.
+     * The schema of the answer: every field required; `is_bill` is always answered, `supplies` is a list (empty for a
+     * bill of one supply), the others are null when the paper does not say. Each supply has its fields required and
+     * nullable, with the same types.
      *
      * @return array<string, Type>
      */
     public function schema(JsonSchema $schema): array
     {
-        $properties = ['is_bill' => $schema->boolean()->required()];
+        $properties = ['is_bill' => $schema->boolean()->required(), ...$this->fields($schema, self::FIELDS)];
 
-        foreach (['period_start', 'period_end', 'consumption_quantity', 'consumption_unit', 'total_amount', ...self::FLAGS, 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'] as $field) {
+        $properties['supplies'] = $schema->array()
+            ->items($schema->object($this->fields($schema, self::SUPPLY_FIELDS))->withoutAdditionalProperties())
+            ->required();
+
+        return $properties;
+    }
+
+    /**
+     * The fields given, each of its type, nullable and required.
+     *
+     * @param  JsonSchema  $schema  the factory of the types
+     * @param  list<string>  $fields  the fields
+     * @return array<string, Type>
+     */
+    private function fields(JsonSchema $schema, array $fields): array
+    {
+        $properties = [];
+
+        foreach ($fields as $field) {
             $type = match (true) {
                 in_array($field, self::DATES, true) => $schema->string()->format('date'),
                 in_array($field, self::NUMBERS, true) => $schema->number(),
                 in_array($field, self::FLAGS, true) => $schema->boolean(),
                 // A nullable enum lists null too: strict validators check `enum` as well as `type`.
-                default => $schema->string()->enum([...array_column(ConsumptionUnit::cases(), 'value'), null]),
+                $field === 'consumption_unit' => $schema->string()->enum([...array_column(ConsumptionUnit::cases(), 'value'), null]),
+                $field === 'utility_type' => $schema->string()->enum([...array_column(UtilityType::measured(), 'value'), null]),
+                default => $schema->string(),
             };
 
             $properties[$field] = $type->nullable()->required();
@@ -92,7 +125,7 @@ TXT;
 
     /**
      * The reading from the answer of the model. A value of the wrong type becomes null; the unit and the period are
-     * checked later by `ConsumptionCheck`.
+     * checked later by `ConsumptionCheck`. With two or more supplies the flat fields are rewritten from the first.
      *
      * @param  array<array-key, mixed>|string|null  $answer  the structured answer, or its JSON text
      *
@@ -110,13 +143,89 @@ TXT;
             throw ReadingFailed::invalidAnswer();
         }
 
+        $supplies = self::supplies($data['supplies'] ?? null);
+
+        if ($supplies === []) {
+            return self::reading($data, $data['is_bill'], self::number($data['total_amount'] ?? null));
+        }
+
+        // As in the full reading, the flat fields of a bill of several supplies are those of the first
+        $first = $supplies[0]->reading;
+
         return new ConsumptionReading(
             isBill: $data['is_bill'],
+            periodStart: $first->periodStart,
+            periodEnd: $first->periodEnd,
+            quantity: $first->quantity,
+            unit: $first->unit,
+            totalAmount: self::number($data['total_amount'] ?? null),
+            estimated: $first->estimated,
+            adjusted: $first->adjusted,
+            energyAmount: $first->energyAmount,
+            f1: $first->f1,
+            f2: $first->f2,
+            f3: $first->f3,
+            supplies: $supplies,
+        );
+    }
+
+    /**
+     * The supplies of the answer: only objects, without those that have neither a code nor an amount; none when fewer
+     * than two are left (a bill of one supply).
+     *
+     * @param  mixed  $value  the `supplies` of the answer
+     * @return list<SupplyConsumptionReading>
+     */
+    private static function supplies(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $supplies = [];
+
+        foreach ($value as $item) {
+            if (! is_array($item) || array_is_list($item)) {
+                continue;
+            }
+
+            $code = self::text($item['supply_point_code'] ?? null);
+            $amount = self::number($item['amount'] ?? null);
+
+            if ($code === null && $amount === null) {
+                continue;
+            }
+
+            $type = self::text($item['utility_type'] ?? null);
+            // Out of the choices the unit cannot say which supply it is: null, as the type
+            $item['consumption_unit'] = ConsumptionUnit::tryFrom((string) self::text($item['consumption_unit'] ?? null))?->value;
+
+            $supplies[] = new SupplyConsumptionReading(
+                utilityType: in_array($type, array_column(UtilityType::measured(), 'value'), true) ? $type : null,
+                supplyPointCode: $code,
+                reading: self::reading($item, true, $amount),
+            );
+        }
+
+        return count($supplies) >= 2 ? $supplies : [];
+    }
+
+    /**
+     * The consumption fields of an object of the answer (the bill, or one of its supplies).
+     *
+     * @param  array<array-key, mixed>  $data  the object
+     * @param  bool  $isBill  whether the paper is a bill
+     * @param  float|null  $total  the total: of the bill, or the amount of the supply
+     */
+    private static function reading(array $data, bool $isBill, ?float $total): ConsumptionReading
+    {
+        return new ConsumptionReading(
+            isBill: $isBill,
             periodStart: self::text($data['period_start'] ?? null),
             periodEnd: self::text($data['period_end'] ?? null),
             quantity: self::number($data['consumption_quantity'] ?? null),
             unit: self::text($data['consumption_unit'] ?? null),
-            totalAmount: self::number($data['total_amount'] ?? null),
+            totalAmount: $total,
             estimated: is_bool($data['consumption_estimated'] ?? null) ? $data['consumption_estimated'] : null,
             adjusted: is_bool($data['consumption_adjusted'] ?? null) ? $data['consumption_adjusted'] : null,
             energyAmount: self::number($data['consumption_energy_amount'] ?? null),
