@@ -257,24 +257,24 @@ final readonly class NoticeList
     }
 
     /**
-     * The name of a debit that paid more planned expenses together: their titles, «Luce and Gas», and the month of the
-     * first due date, as the title of a payment; null for a debit that paid one.
+     * The name of a debit that paid more planned expenses together: their titles in order of due date, «Luce and Gas»,
+     * and the month of the earliest due date, as the title of a payment; null for a debit that paid one.
      *
      * @param  BankTransaction  $transaction  the transaction, with `splitExpenses.plannedExpense` loaded
      */
     private function splitTitle(BankTransaction $transaction): ?string
     {
-        $payments = $transaction->splitExpenses
-            ->filter(static fn (Expense $expense): bool => $expense->plannedExpense instanceof PlannedExpense && $expense->occurrence_date instanceof CarbonImmutable)
-            ->sortBy('planned_expense_id')
-            ->values();
-        $earliest = $payments->first();
+        $payments = array_values(array_filter(
+            $transaction->splitPayments(),
+            static fn (Expense $expense): bool => $expense->plannedExpense instanceof PlannedExpense && $expense->occurrence_date instanceof CarbonImmutable,
+        ));
+        $earliest = $payments[0] ?? null;
 
-        if ($payments->count() < 2 || ! $earliest?->occurrence_date instanceof CarbonImmutable) {
+        if (count($payments) < 2 || ! $earliest?->occurrence_date instanceof CarbonImmutable) {
             return null;
         }
 
-        $titles = $payments->map(static fn (Expense $expense): string => (string) $expense->plannedExpense?->displayTitle())->all();
+        $titles = array_map(static fn (Expense $expense): string => (string) $expense->plannedExpense?->displayTitle(), $payments);
         $last = array_pop($titles);
 
         return PaymentTitle::for(__(':first and :second', ['first' => implode(', ', $titles), 'second' => $last]), $earliest->occurrence_date);

@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\LinkBankMovement;
 use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Banks\SettleFromBank;
+use App\Actions\Budget\MovePlannedDocuments;
 use App\Enums\BankMatchSource;
 use App\Enums\Role;
 use App\Models\BankTransaction;
@@ -174,20 +176,35 @@ test('undoing locks the bank row and then the planned item before any plain read
         )))->toBe([]);
 });
 
+/**
+ * What the Budget calls the due dates of Luce and Gas of the dual-fuel bill.
+ *
+ * @param  array{luce: PlannedExpense, gas: PlannedExpense, account: FinancialAccount, document: Document}  $bill
+ * @return list<string>
+ */
+function bankUndoDueTitles(array $bill): array
+{
+    return [
+        resolve(Deadlines::class)->find($bill['luce'], CarbonImmutable::parse('2026-11-23'))->title,
+        resolve(Deadlines::class)->find($bill['gas'], CarbonImmutable::parse('2026-11-30'))->title,
+    ];
+}
+
 test('undoing the debit of the dual-fuel bill takes back both payments and reopens both due dates', function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
-    [$bill, $transaction] = insideBianchi(function (): array {
+    [$bill, $transaction, $titles] = insideBianchi(function (): array {
         $bill = enelDualFuelBill();
+        $titles = bankUndoDueTitles($bill);
         $transaction = enelDualFuelDebit($bill['account']);
         expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1)
             ->and(Expense::query()->count())->toBe(2);
 
-        return [$bill, $transaction->refresh()];
+        return [$bill, $transaction->refresh(), $titles];
     });
 
     $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
 
-    insideBianchi(function () use ($bill, $transaction): void {
+    insideBianchi(function () use ($bill, $transaction, $titles): void {
         $transaction->refresh();
         expect(Expense::query()->count())->toBe(0)
             ->and(Document::query()->find($bill['document']->id))->not->toBeNull()
@@ -196,7 +213,12 @@ test('undoing the debit of the dual-fuel bill takes back both payments and reope
             ->and($transaction->declined_at)->not->toBeNull()
             ->and($transaction->splitExpenses()->count())->toBe(0)
             ->and(resolve(Deadlines::class)->find($bill['luce'], CarbonImmutable::parse('2026-11-23'))->isPaid())->toBeFalse()
-            ->and(resolve(Deadlines::class)->find($bill['gas'], CarbonImmutable::parse('2026-11-30'))->isPaid())->toBeFalse();
+            ->and(resolve(Deadlines::class)->find($bill['gas'], CarbonImmutable::parse('2026-11-30'))->isPaid())->toBeFalse()
+            ->and(Document::query()->waitingFor([$bill['luce']->id])->pluck('id')->all())->toBe([$bill['document']->id])
+            ->and(Document::query()->waitingFor([$bill['gas']->id])->pluck('id')->all())->toBe([$bill['document']->id])
+            ->and(resolve(MovePlannedDocuments::class)->waiting($bill['luce'], CarbonImmutable::parse('2026-11-23'))->pluck('documents.id')->all())->toBe([$bill['document']->id])
+            ->and(resolve(MovePlannedDocuments::class)->waiting($bill['gas'], CarbonImmutable::parse('2026-11-30'))->pluck('documents.id')->all())->toBe([$bill['document']->id])
+            ->and(bankUndoDueTitles($bill))->toBe($titles);
     });
 });
 
@@ -224,4 +246,106 @@ test('undoing the dual-fuel debit locks the bank row, then both planned expenses
             array_slice($inside, 0, (int) $secondLock),
             static fn (array $query): bool => str_starts_with(strtolower(ltrim($query['query'])), 'select') && ! str_contains($query['query'], 'for update'),
         )))->toBe([]);
+});
+
+/**
+ * The dual-fuel debit of 27/11/2026 paid by the rule: the bill, the transaction and the payments of Luce and Gas.
+ *
+ * @return array{array{luce: PlannedExpense, gas: PlannedExpense, account: FinancialAccount, document: Document}, BankTransaction, Expense, Expense}
+ */
+function bankUndoDualFuelPaid(): array
+{
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+
+    return insideBianchi(function (): array {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        resolve(MatchBankTransactions::class)->handle([$transaction]);
+        $payments = Expense::query()->orderBy('planned_expense_id')->get();
+
+        return [$bill, $transaction->refresh(), $payments[0], $payments[1]];
+    });
+}
+
+test('deleting the Luce payment of the dual-fuel debit frees Gas and the debit, and the next match pays only once', function (): void {
+    [$bill, $transaction, $luce, $gas] = bankUndoDualFuelPaid();
+
+    $this->actingAs($this->marco)->delete("/budget/movements/expense/{$luce->id}")->assertRedirect();
+
+    insideBianchi(function () use ($bill, $transaction, $gas): void {
+        expect($gas->refresh()->bank_transaction_id)->toBeNull()
+            ->and($transaction->refresh()->expense_id)->toBeNull();
+
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1);
+
+        $new = Expense::query()->whereKeyNot($gas->id)->sole();
+        expect($new->planned_expense_id)->toBe($bill['luce']->id)
+            ->and((float) $new->amount)->toBe(165.65)
+            ->and($new->bank_transaction_id)->toBeNull()
+            ->and($transaction->refresh()->expense_id)->toBe($new->id)
+            ->and($transaction->splitExpenses()->count())->toBe(0);
+    });
+});
+
+test('after deleting the Luce payment, undoing a debit assigned by hand takes back only that payment', function (): void {
+    [$bill, $transaction, $luce, $gas] = bankUndoDualFuelPaid();
+    $this->actingAs($this->marco)->delete("/budget/movements/expense/{$luce->id}")->assertRedirect();
+    $assigned = insideBianchi(fn (): ?Expense => resolve(SettleFromBank::class)->handle($transaction->refresh(), $bill['luce'], BankMatchSource::Assigned));
+    expect($assigned)->toBeInstanceOf(Expense::class);
+
+    $this->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($assigned, $gas): void {
+        expect(Expense::query()->find($assigned->id))->toBeNull()
+            ->and(Expense::query()->find($gas->id))->not->toBeNull();
+    });
+});
+
+test('a split left behind is ignored by the undo and cleared by a new link', function (): void {
+    [, $transaction, $luce, $gas] = bankUndoDualFuelPaid();
+    $other = insideBianchi(function () use ($transaction, $luce): Expense {
+        // As if the debit lost its first payment without the siblings being told
+        $transaction->forceFill(['expense_id' => null, 'matched_by' => null])->save();
+        $luce->forceFill(['bank_transaction_id' => null])->save();
+        $other = Expense::factory()->create(['family_id' => $transaction->family_id, 'amount' => 165.65, 'date' => '2026-11-21']);
+        resolve(LinkBankMovement::class)->handle($transaction, $other, BankMatchSource::Created);
+
+        return $other;
+    });
+
+    insideBianchi(function () use ($transaction, $gas, $other): void {
+        expect($gas->refresh()->bank_transaction_id)->toBeNull()
+            ->and($transaction->refresh()->expense_id)->toBe($other->id);
+    });
+});
+
+test('a split whose first payment is not among its expenses is not trusted by the undo', function (): void {
+    [, $transaction, $luce, $gas] = bankUndoDualFuelPaid();
+    $assigned = insideBianchi(function () use ($transaction, $luce): Expense {
+        // A stale sibling left on the debit, now linked to another payment by the person
+        $luce->forceFill(['bank_transaction_id' => null])->save();
+        $assigned = Expense::factory()->create(['family_id' => $transaction->family_id, 'planned_expense_id' => $luce->planned_expense_id, 'occurrence_date' => '2026-12-23', 'amount' => 165.65, 'date' => '2026-11-21']);
+        $transaction->forceFill(['expense_id' => $assigned->id, 'matched_by' => BankMatchSource::Assigned])->save();
+
+        return $assigned;
+    });
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($assigned, $gas, $luce): void {
+        expect(Expense::query()->find($assigned->id))->toBeNull()
+            ->and(Expense::query()->find($gas->id))->not->toBeNull()
+            ->and(Expense::query()->find($luce->id))->not->toBeNull();
+    });
+});
+
+test('deleting the Gas payment of the dual-fuel debit leaves Luce linked', function (): void {
+    [, $transaction, $luce, $gas] = bankUndoDualFuelPaid();
+
+    $this->actingAs($this->marco)->delete("/budget/movements/expense/{$gas->id}")->assertRedirect();
+
+    insideBianchi(function () use ($transaction, $luce): void {
+        expect($transaction->refresh()->expense_id)->toBe($luce->id)
+            ->and($luce->refresh()->bank_transaction_id)->toBe($transaction->id);
+    });
 });

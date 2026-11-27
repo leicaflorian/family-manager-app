@@ -29,7 +29,8 @@ final readonly class UndoBankPayment
      * in order of id, as `SettleFromBank` does, so an undo and a settling wait for each other. Which planned items to
      * lock is read before the transaction starts, so no plain read comes before the locks (MySQL fixes the snapshot at
      * the first one); the payments are read after them and must still settle those planned items. A debit that paid
-     * more planned expenses together (`splitExpenses`) takes back all its payments.
+     * more planned expenses together (`splitPayments`, only while its first payment is one of them) takes back all its
+     * payments.
      *
      * @param  BankTransaction  $transaction  The transaction linked to the payment.
      *
@@ -52,9 +53,10 @@ final readonly class UndoBankPayment
             }
 
             $payment = $current?->expense_id !== null ? $current->expense : $current?->income;
-            $payments = $current?->splitExpenses()->orderBy('planned_expense_id')->get()->all() ?? [];
+            $payments = $current?->splitPayments() ?? [];
             $payments = $payments === [] && $payment !== null ? [$payment] : $payments;
             $settled = array_map($this->plannedId(...), $payments);
+            sort($settled);
 
             if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true)
                 || $settled !== $locked) {
@@ -82,9 +84,11 @@ final readonly class UndoBankPayment
         $current = BankTransaction::query()->with(['expense', 'income', 'splitExpenses'])->find($transaction->id);
         $payment = $current === null ? null : ($current->expense ?? $current->income);
 
-        if ($current !== null && $current->splitExpenses->isNotEmpty()) {
-            /** @var list<int> $ids */
-            $ids = $current->splitExpenses->pluck('planned_expense_id')->filter()->sort()->values()->all();
+        $split = $current?->splitPayments() ?? [];
+
+        if ($split !== []) {
+            $ids = array_values(array_filter(array_map(static fn (Expense $expense): ?int => $expense->planned_expense_id, $split)));
+            sort($ids);
 
             return array_map(static fn (int $id): array => [PlannedExpense::class, $id], $ids);
         }

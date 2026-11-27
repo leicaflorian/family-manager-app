@@ -10,6 +10,7 @@ use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Organization;
+use App\Models\PlannedExpense;
 use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
@@ -293,4 +294,22 @@ test('the notice of a debit that paid two planned expenses names both and the mo
     expect($row['title'])->toBe('Paid by the bank · Luce and Gas November 2026')
         ->and($row['due_text'])->toBe("165,65\u{A0}€ from Conto BPER")
         ->and($row['href'])->toBe(route('budget.movements.show', ['kind' => 'expense', 'id' => $first]));
+});
+
+test('the notice of a split debit starts from the earliest due date, whatever the order of the planned expenses', function (): void {
+    insideFamilyOf($this->admin, function (): void {
+        $family = $this->admin->family_id;
+        $gas = PlannedExpense::factory()->create(['family_id' => $family, 'title' => 'Gas', 'start_date' => '2026-12-30']);
+        $luce = PlannedExpense::factory()->create(['family_id' => $family, 'title' => 'Luce', 'start_date' => '2026-01-23']);
+        $transaction = BankTransaction::factory()->create(['family_id' => $family, 'amount' => '-165.65', 'matched_by' => BankMatchSource::Rule]);
+        $first = Expense::factory()->create(['family_id' => $family, 'planned_expense_id' => $luce->id, 'occurrence_date' => '2026-11-23', 'bank_transaction_id' => $transaction->id]);
+        Expense::factory()->create(['family_id' => $family, 'planned_expense_id' => $gas->id, 'occurrence_date' => '2026-12-30', 'bank_transaction_id' => $transaction->id]);
+        $transaction->forceFill(['expense_id' => $first->id])->save();
+        ReminderNotice::factory()->create([
+            'family_id' => $family, 'user_id' => $this->admin->id, 'reminder_id' => null, 'due_date' => null, 'offset' => null,
+            'bank_transaction_id' => $transaction->id, 'lines' => ["165,65\u{A0}€ from Conto BPER"], 'sent_at' => CarbonImmutable::parse('2026-10-25 07:00', 'Europe/Rome'),
+        ]);
+    });
+
+    expect(bellRows($this->admin)[0]['title'])->toBe('Paid by the bank · Luce and Gas November 2026');
 });
