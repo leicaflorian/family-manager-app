@@ -119,12 +119,12 @@ final readonly class Proposal
         $document = $this->documents->of($x, $context, $locale);
         $side = $this->documentSide($document, $context, $choices);
         $cardType = DocumentCategory::cardTypeOf($this->categoryId($document, $choices));
-        $draft = $this->drafts->of($x, $context, $locale, $cardType, $side['person_id']);
+        $draft = $this->drafts->of($x, $context, $locale, $cardType, $side['person_id'], withMovement: ! $multi);
 
         // Without the Budget the reading proposes no movement, no due date to pay and no consumption: only the
         // document, the cards and the event. With more than one supply each supply has its own.
         $budget = $this->features->on(Feature::Budget);
-        $movement = $draft['movement'] === null || ! $budget || $multi
+        $movement = $draft['movement'] === null || ! $budget
             ? null
             : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $this->fromMovement($file, $draft['movement']->kind, $choices), $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
@@ -186,14 +186,29 @@ final readonly class Proposal
                 amount: $supply->amount,
                 heading: $this->heading($supply->utility_type, $supply->supply_point_code, $locale),
                 record: $record,
-                movement: $budget
-                    ? $this->movements->of($view, $context, $this->drafts->forSupply($view, $context, $utility, $locale), in_array($x->kind, MovementDraft::EXPENSE_KINDS, true), $own, $side['date'])
-                    : null,
+                movement: $budget ? $this->supplyMovement($view, $context, $utility, $own, $side['date'], $locale) : null,
                 consumption: $budget ? $this->consumptionOf($view, $utility, $created, $own) : null,
             );
         }
 
         return $proposals;
+    }
+
+    /**
+     * The expense of one supply, ticked by the same rule as the expense of a bill alone.
+     *
+     * @param  Extraction  $view  the reading seen from the supply
+     * @param  ReadingContext  $context  the lists the model chose from
+     * @param  Utility|null  $utility  the utility of the supply
+     * @param  ImportChoices  $own  the choices of the supply
+     * @param  CarbonImmutable|null  $date  the date of the document as it will be saved
+     * @param  string  $locale  the language of the texts
+     */
+    private function supplyMovement(Extraction $view, ReadingContext $context, ?Utility $utility, ImportChoices $own, ?CarbonImmutable $date, string $locale): MovementProposalData
+    {
+        $values = $this->drafts->forSupply($view, $context, $utility, $locale);
+
+        return $this->movements->of($view, $context, $values, MovementDraft::ticks($view, $values), $own, $date);
     }
 
     /**
@@ -233,10 +248,6 @@ final readonly class Proposal
      */
     private function consumption(Extraction $x, DocumentProposalData $document, array $records, ImportChoices $choices): ?ConsumptionProposalData
     {
-        if ($x->kind !== 'utility_bill' || ($x->consumption_quantity === null && $x->consumption_unit === null)) {
-            return null;
-        }
-
         $links = array_key_exists('links', $choices->document) ? DocumentRules::links($choices->document['links']) : $document->links;
         $ids = array_column(array_filter($links, static fn (array $link): bool => $link['type'] === 'utility'), 'id');
         $utility = $ids === [] ? null : Utility::query()->whereKey($ids)->orderBy('id')->get()
@@ -265,8 +276,8 @@ final readonly class Proposal
     }
 
     /**
-     * The consumption of a bill with the utility it goes to: one already there, or the type of one created with the
-     * file; without either the type read decides the unit and the person is asked to choose the utility. The amount
+     * The consumption of a bill with the utility it goes to, only for a utility bill whose reading found a
+     * consumption: one already there, or the type of one created with the file; without either the type read decides the unit and the person is asked to choose the utility. The amount
      * is the one of the expense, with the correction of the person, for the price per unit.
      *
      * @param  Extraction  $x  what the model read, or the reading seen from one supply

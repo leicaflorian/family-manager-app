@@ -17,47 +17,63 @@ const TYPE_CATEGORY_IT = [
 ];
 
 describe('of', function (): void {
-    test('the category named as the type in the language of the family', function (): void {
-        expect(TypeCategory::of(UtilityType::Electricity, TYPE_CATEGORY_IT, 'it'))->toBe(2)
-            ->and(TypeCategory::of(UtilityType::Gas, TYPE_CATEGORY_IT, 'it'))->toBe(3)
-            ->and(TypeCategory::of(UtilityType::Water, TYPE_CATEGORY_IT, 'it'))->toBe(4)
-            ->and(TypeCategory::of(UtilityType::TvLicense, TYPE_CATEGORY_IT, 'it'))->toBe(7);
+    test('the category named as the default category of the type', function (): void {
+        expect(TypeCategory::of(UtilityType::Electricity, TYPE_CATEGORY_IT))->toBe(2)
+            ->and(TypeCategory::of(UtilityType::Gas, TYPE_CATEGORY_IT))->toBe(3)
+            ->and(TypeCategory::of(UtilityType::Water, TYPE_CATEGORY_IT))->toBe(4)
+            ->and(TypeCategory::of(UtilityType::TvLicense, TYPE_CATEGORY_IT))->toBe(7);
     });
 
     test('only the last name of the path counts, written in any case', function (): void {
-        expect(TypeCategory::of(UtilityType::Internet, TYPE_CATEGORY_IT, 'it'))->toBe(6)
-            ->and(TypeCategory::of(UtilityType::Gas, [['id' => 9, 'label' => 'Gas › Bombole'], ['id' => 10, 'label' => 'Spese › GAS']], 'it'))->toBe(10);
+        expect(TypeCategory::of(UtilityType::Internet, TYPE_CATEGORY_IT))->toBe(6)
+            ->and(TypeCategory::of(UtilityType::Gas, [['id' => 9, 'label' => 'Gas › Bombole'], ['id' => 10, 'label' => 'Spese › GAS']]))->toBe(10);
     });
 
-    test('in English the English names', function (): void {
-        $choices = [['id' => 1, 'label' => 'Home and utilities › Electricity'], ['id' => 2, 'label' => 'Home and utilities › Waste tax (TARI)']];
+    test('the default names of both languages count, whoever reads: the family has no language of its own', function (): void {
+        $english = [['id' => 1, 'label' => 'Home and utilities › Electricity'], ['id' => 2, 'label' => 'Home and utilities › Waste tax (TARI)']];
 
-        expect(TypeCategory::of(UtilityType::Electricity, $choices, 'en'))->toBe(1)
-            ->and(TypeCategory::of(UtilityType::WasteTax, $choices, 'en'))->toBe(2)
-            ->and(TypeCategory::of(UtilityType::Electricity, $choices, 'it'))->toBeNull();
+        app()->setLocale('en');
+        expect(TypeCategory::of(UtilityType::Electricity, TYPE_CATEGORY_IT))->toBe(2)
+            ->and(TypeCategory::of(UtilityType::Electricity, $english))->toBe(1)
+            ->and(TypeCategory::of(UtilityType::WasteTax, $english))->toBe(2);
+
+        app()->setLocale('it');
+        expect(TypeCategory::of(UtilityType::Electricity, $english))->toBe(1);
     });
 
     test('no category with the name gives none', function (): void {
-        expect(TypeCategory::of(UtilityType::Phone, TYPE_CATEGORY_IT, 'it'))->toBeNull()
-            ->and(TypeCategory::of(UtilityType::Gas, [], 'it'))->toBeNull();
+        expect(TypeCategory::of(UtilityType::Phone, TYPE_CATEGORY_IT))->toBeNull()
+            ->and(TypeCategory::of(UtilityType::Gas, []))->toBeNull();
     });
 });
 
-describe('commonMain', function (): void {
-    test('the main category the categories of all the types share', function (): void {
-        expect(TypeCategory::commonMain([UtilityType::Electricity, UtilityType::Gas], TYPE_CATEGORY_IT, 'it'))->toBe(1);
+describe('commonParent', function (): void {
+    test('the parent the categories of all the types share', function (): void {
+        expect(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Gas], TYPE_CATEGORY_IT))->toBe(1);
     });
 
-    test('types under different main categories share none', function (): void {
-        expect(TypeCategory::commonMain([UtilityType::Electricity, UtilityType::Internet], TYPE_CATEGORY_IT, 'it'))->toBeNull();
+    test('the direct parent, not the main category, in a deeper tree', function (): void {
+        $deep = [
+            ['id' => 1, 'label' => 'Casa'],
+            ['id' => 2, 'label' => 'Casa › Utenze'],
+            ['id' => 3, 'label' => 'Casa › Utenze › Luce'],
+            ['id' => 4, 'label' => 'Casa › Utenze › Gas'],
+        ];
+
+        expect(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Gas], $deep))->toBe(2);
     });
 
-    test('a type without its category gives none', function (): void {
-        expect(TypeCategory::commonMain([UtilityType::Electricity, UtilityType::Phone], TYPE_CATEGORY_IT, 'it'))->toBeNull()
-            ->and(TypeCategory::commonMain([], TYPE_CATEGORY_IT, 'it'))->toBeNull();
+    test('types under different parents share none', function (): void {
+        expect(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Internet], TYPE_CATEGORY_IT))->toBeNull();
     });
 
-    test('a main category missing from the list gives none', function (): void {
-        expect(TypeCategory::commonMain([UtilityType::Electricity, UtilityType::Gas], array_slice(TYPE_CATEGORY_IT, 1), 'it'))->toBeNull();
+    test('a type without its category, or a category without a parent, gives none', function (): void {
+        expect(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Phone], TYPE_CATEGORY_IT))->toBeNull()
+            ->and(TypeCategory::commonParent([], TYPE_CATEGORY_IT))->toBeNull()
+            ->and(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Gas], [['id' => 1, 'label' => 'Luce'], ['id' => 2, 'label' => 'Gas']]))->toBeNull();
+    });
+
+    test('a parent missing from the list gives none', function (): void {
+        expect(TypeCategory::commonParent([UtilityType::Electricity, UtilityType::Gas], array_slice(TYPE_CATEGORY_IT, 1)))->toBeNull();
     });
 });

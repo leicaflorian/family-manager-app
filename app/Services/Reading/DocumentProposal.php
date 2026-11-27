@@ -81,7 +81,7 @@ final readonly class DocumentProposal
 
         return new DocumentProposalData(
             title: BillTitle::of($x, $issuer ?? __('Document', [], $locale), $types, $links->vehicle, $titleDate, $locale),
-            category_id: $x->isMultiSupply() ? $this->typesCategory($types, $context, $locale) ?? $category : $category,
+            category_id: $x->isMultiSupply() ? $this->typesCategory($types, $context) ?? $category : $category,
             person_id: $personId,
             organization_id: $organizationId,
             date: $date,
@@ -109,15 +109,14 @@ final readonly class DocumentProposal
     }
 
     /**
-     * The main document category the categories of all the types share («Casa e utenze» for «Luce» and «Gas»).
+     * The document category right above the categories of all the types («Casa e utenze» for «Luce» and «Gas»).
      *
      * @param  list<string>  $types  values of `UtilityType`
      * @param  ReadingContext  $context  the lists of the family
-     * @param  string  $locale  the language the categories are named in
      */
-    private function typesCategory(array $types, ReadingContext $context, string $locale): ?int
+    private function typesCategory(array $types, ReadingContext $context): ?int
     {
-        return TypeCategory::commonMain(array_map(UtilityType::from(...), $types), $context->documentCategories, $locale);
+        return TypeCategory::commonParent(array_map(UtilityType::from(...), $types), $context->documentCategories);
     }
 
     /**

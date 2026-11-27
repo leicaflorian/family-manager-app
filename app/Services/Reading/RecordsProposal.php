@@ -123,8 +123,8 @@ final readonly class RecordsProposal
     /**
      * The box of the utility of one supply of a bill with more than one, with the corrections and the choice of the
      * person for that supply. With the utility of the supply the box links it; without, it creates one, ticked unless
-     * the family already has an active utility of that type: then the box says the person may tick it for another
-     * supply. Null when the supply names neither a code nor a type.
+     * the family already has an active utility of that type and the person chose nothing: then the box says the person
+     * may tick it for another supply. Null when the supply names neither a code nor a type.
      *
      * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
      * @param  array{organization_id: ?int, organization_name: ?string, person_id: ?int, date: ?CarbonImmutable}  $document  the document as it will be saved
@@ -147,8 +147,9 @@ final readonly class RecordsProposal
         $found = ['terminatedUtility' => $this->search->terminatedUtility($xc->supply_point_code, $xc->customer_code), 'homes' => $this->search->activeHomes()];
         $draft = RecordDrafts::supply($xc, $found, $document, $picked ? null : $utility);
 
+        // Only the box the reading decides starts unticked: a new utility or one picked by hand is the person's choice
         $type = UtilityType::tryFrom($xc->utility_type ?? '');
-        $sameType = $draft->existing === null && $type instanceof UtilityType
+        $sameType = $target === 'auto' && $draft->existing === null && $type instanceof UtilityType
             && Utility::query()->where('type', $type)->where('status', UtilityStatus::Active)->exists();
         if ($sameType) {
             $draft = new RecordDraftData(
