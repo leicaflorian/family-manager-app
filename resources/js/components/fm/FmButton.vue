@@ -8,6 +8,8 @@
  * - Icon only: always with `label`, which screen readers say. `muted` greys
  *   the icon, as the bin at the end of a row; with a text it greys the text and
  *   leaves no background, as *Ignore* beside the buttons of a row.
+ *   `outlined` makes it white with a grey edge and a blue icon, as the «+»
+ *   beside a menu that adds an organization.
  * - The text is a verb, informal (*Save*, *Choose a file*).
  * - Size: 44 px; 52 px in the panels from below. `compact` is the pair of buttons
  *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
@@ -46,6 +48,7 @@ const {
     small = false,
     xsmall = false,
     plain = false,
+    outlined = false,
     muted = false,
     compact = false,
     rowAction = false,
@@ -77,6 +80,11 @@ const {
     xsmall?: boolean;
     /** With `label`: no background until hovered, as beside a row. */
     plain?: boolean;
+    /**
+     * With `label`: white with a 1 px grey edge and the icon in blue, as the
+     * «+» beside an organization menu of the card form.
+     */
+    outlined?: boolean;
     /**
      * With `label`: the icon in grey, whatever the variant, as the bin of a row.
      * With a text: the text in grey with no background, as *Ignore* beside the
@@ -140,6 +148,9 @@ const classes = computed((): string =>
         label && xsmall && 'size-7.5 rounded-tag',
         label && plain && 'bg-transparent hover:bg-canvas',
         label && variant !== 'danger' && 'text-ink',
+        label &&
+            outlined &&
+            'border border-edge-soft bg-card text-action hover:bg-action-soft',
         label && muted && 'text-ink-soft',
         !label && muted && 'text-ink-soft hover:bg-canvas hover:text-ink',
         // The colour behind shows through, a bit less on hover

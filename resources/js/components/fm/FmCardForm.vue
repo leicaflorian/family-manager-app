@@ -29,7 +29,6 @@ import { composeTitle, fieldInput, isMenuField } from '@/lib/cards';
 import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
-import FmIcon from './FmIcon.vue';
 import FmLoanFigures from './FmLoanFigures.vue';
 import FmQuickOrganizationSheet from './FmQuickOrganizationSheet.vue';
 import type { QuickOrganization } from './FmQuickOrganizationSheet.vue';
@@ -281,7 +280,8 @@ function save(): void {
     emit('submit', sent());
 }
 
-useSaveShortcut(save, () => !processing);
+// While *New organization* is open, ⌘S is not for the card
+useSaveShortcut(save, () => !processing && !addingOpen.value);
 </script>
 
 <template>
@@ -297,7 +297,14 @@ useSaveShortcut(save, () => !processing);
             inner-class="$reset flex h-control items-center rounded-control border-[1.5px] border-edge-soft bg-segment px-3.5"
         />
         <template v-for="field in shown" :key="field.column">
-            <div class="flex items-start gap-2">
+            <!-- With the «+», the sections of the field join a grid of their own: the label above, the «+» beside the menu -->
+            <div
+                :class="
+                    adds(field)
+                        ? 'mb-3.5 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2'
+                        : 'contents'
+                "
+            >
                 <FormKit
                     v-model="data[field.column]"
                     :type="fieldInput(field.kind)"
@@ -319,25 +326,20 @@ useSaveShortcut(save, () => !processing);
                             missing[field.column] ?? serverErrors[field.column],
                         )
                     "
-                    outer-class="min-w-0 flex-1"
+                    :outer-class="adds(field) ? 'contents' : undefined"
+                    :wrapper-class="adds(field) ? 'contents' : undefined"
+                    :label-class="adds(field) ? 'col-span-2' : undefined"
+                    :help-class="adds(field) ? 'col-span-2' : undefined"
+                    :messages-class="adds(field) ? 'col-span-2' : undefined"
                 />
-                <div v-if="adds(field)" class="flex shrink-0 flex-col">
-                    <!-- As tall as the label of the field, so the «+» sits beside the menu -->
-                    <span
-                        aria-hidden="true"
-                        class="invisible mb-1.5 block text-row"
-                        >&nbsp;</span
-                    >
-                    <button
-                        type="button"
-                        :aria-label="$t('New organization')"
-                        :title="$t('New organization')"
-                        class="flex size-control-md cursor-pointer items-center justify-center rounded-md border border-edge-soft bg-card text-action transition-colors hover:bg-action-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
-                        @click="addOrganization(field.column)"
-                    >
-                        <FmIcon :icon="Plus" :size="20" />
-                    </button>
-                </div>
+                <FmButton
+                    v-if="adds(field)"
+                    class="col-start-2 row-start-2"
+                    outlined
+                    :icon="Plus"
+                    :label="$t('New organization')"
+                    @click="addOrganization(field.column)"
+                />
             </div>
             <FmLoanFigures
                 v-if="

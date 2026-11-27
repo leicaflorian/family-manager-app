@@ -16,7 +16,14 @@ import {
     utilityTitleParts,
 } from '@/test/fixtures';
 import { hasChanges } from '@/lib/unsavedChanges';
-import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
+import {
+    choose,
+    openMenu,
+    pressSave,
+    renderPage,
+    settle,
+    shown,
+} from '@/test/page';
 import FmCardForm from './FmCardForm.vue';
 
 const values = {
@@ -400,6 +407,46 @@ describe('FmCardForm', () => {
             expect(
                 screen.queryByRole('button', { name: 'New organization' }),
             ).not.toBeInTheDocument();
+        });
+
+        it('puts the «+» in the row of the menu, below its label', () => {
+            renderPage(FmCardForm, utility);
+
+            const plus = screen.getByRole('button', {
+                name: 'New organization',
+            });
+            const menu = screen.getByLabelText('Supplier');
+            const inner = menu.closest('.formkit-inner')!;
+            const label = screen.getByText('Supplier', { selector: 'label' });
+
+            // One grid holds label, menu and «+» (the sections of the field are
+            // `contents`): the label above both, the «+» beside the menu
+            const grid = plus.parentElement!;
+            expect(grid).toHaveClass('grid');
+            expect(grid).toContainElement(inner as HTMLElement);
+            expect(inner.closest('.formkit-outer')).toHaveClass('contents');
+            expect(inner.closest('.formkit-wrapper')).toHaveClass('contents');
+            expect(label).toHaveClass('col-span-2');
+            expect(plus).toHaveClass('col-start-2', 'row-start-2');
+            expect(plus).toHaveClass(
+                'border-edge-soft',
+                'bg-card',
+                'text-action',
+            );
+        });
+
+        it('does not save the card with ⌘S while New organization is open', async () => {
+            vi.spyOn(router, 'post').mockImplementation(() => {});
+            const view = renderPage(FmCardForm, utility);
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'New organization' }),
+            );
+            await screen.findByRole('dialog', { name: 'New organization' });
+            pressSave();
+            await settle();
+
+            expect(view.emitted('submit')).toBeUndefined();
         });
 
         it('chooses the organization added, keeping what was written', async () => {

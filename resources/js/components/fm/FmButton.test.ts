@@ -76,6 +76,23 @@ describe('FmButton', () => {
         expect(button).not.toHaveClass('bg-canvas');
     });
 
+    it('outlined and with label is a white square with a grey edge and the blue icon, as the «+» beside a menu', () => {
+        render(FmButton, {
+            props: { icon: Pencil, label: 'New organization', outlined: true },
+        });
+
+        const button = screen.getByRole('button', { name: 'New organization' });
+        expect(button).toHaveClass(
+            'size-control-md',
+            'rounded-md',
+            'border',
+            'border-edge-soft',
+            'bg-card',
+            'text-action',
+        );
+        expect(button).not.toHaveClass('bg-canvas', 'text-ink', 'border-0');
+    });
+
     it('small and with label is a square of 40 px, as beside the title of a panel', () => {
         render(FmButton, {
             props: { icon: Pencil, label: 'Edit', small: true },
