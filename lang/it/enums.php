@@ -351,6 +351,7 @@ return [
     ],
     'bank_match_source' => [
         'rule' => 'Da una regola',
+        'proposed' => 'Proposto da un filtro',
         'assigned' => 'Assegnato da te',
         'created' => 'Creato da qui',
         'duplicate' => 'Collegato a uno che c\'era',

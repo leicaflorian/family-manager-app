@@ -15,7 +15,8 @@ final readonly class RestoreBankTransaction
     /**
      * Restores the transaction. An ignored one loses `ignored_at`; a transfer loses `transfer_account_id` and
      * `transfer_pair_id`, and so does its other half when it has one. `declined_at` stays as it is, so no rule takes
-     * it again by itself. The transaction is locked first, then its other half.
+     * it again by itself; a transaction that a filter ignored or made a transfer (`bank_filter_id`) is declined now and
+     * forgets the filter, so no filter takes it again either. The transaction is locked first, then its other half.
      *
      * @param  BankTransaction  $transaction  the transaction to put back
      */
@@ -29,7 +30,7 @@ final readonly class RestoreBankTransaction
             }
 
             if ($current->transfer_account_id === null && $current->transfer_pair_id === null) {
-                $current->forceFill(['ignored_at' => null])->save();
+                $current->forceFill(['ignored_at' => null, ...$this->declineFilter($current)])->save();
 
                 return;
             }
@@ -39,8 +40,19 @@ final readonly class RestoreBankTransaction
                 : null;
 
             foreach ([$current, $pair] as $half) {
-                $half?->forceFill(['transfer_account_id' => null, 'transfer_pair_id' => null])->save();
+                $half?->forceFill(['transfer_account_id' => null, 'transfer_pair_id' => null, ...$this->declineFilter($half)])->save();
             }
         });
+    }
+
+    /**
+     * What to write so that no filter takes the transaction again, when a filter had it.
+     *
+     * @param  BankTransaction  $transaction  the transaction put back
+     * @return array<string, mixed> empty when no filter had it
+     */
+    private function declineFilter(BankTransaction $transaction): array
+    {
+        return $transaction->bank_filter_id === null ? [] : ['bank_filter_id' => null, 'declined_at' => $transaction->declined_at ?? now()];
     }
 }

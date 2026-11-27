@@ -431,6 +431,11 @@ describe('Movement', () => {
             text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA',
             account: 'Conto BancoPosta ·· 3307',
             undo_url: '/budget/bank/9/payment',
+            how: 'rule',
+            fee: null,
+            filter: null,
+            url: '/budget/bank?show=all&q=ADDEBITO',
+            undo: 'delete',
         };
 
         it('says the bank recorded it, with the text of the bank', () => {

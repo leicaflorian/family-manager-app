@@ -33,6 +33,7 @@ const how = computed((): string => {
 
     switch (link.how) {
         case 'rule':
+        case 'proposed':
             return link.filter_name
                 ? trans('from the filter :name', { name: link.filter_name })
                 : trans('from a rule');

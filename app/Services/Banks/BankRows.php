@@ -34,7 +34,7 @@ final class BankRows
     public function page(BankListRequest $filters, int $page): array
     {
         $rows = $this->filtered($filters)
-            ->with(['financialAccount', 'transferAccount', 'expense', 'income.organization'])
+            ->with(['financialAccount', 'transferAccount', 'expense', 'income.organization', 'bankFilter'])
             ->orderByRaw('coalesce(booked_on, value_on) desc')
             ->orderByDesc('id')
             ->skip((max(1, $page) - 1) * self::PER_PAGE)

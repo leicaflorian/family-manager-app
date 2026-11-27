@@ -15,13 +15,18 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
- * *It was not this one*: takes back a payment the bank recorded. The expense or income goes (its documents stay), the
- * due date it settled is to pay again, and the transaction goes back to *From the bank*, marked as declined so that no
- * rule takes it again. The notices of the bell about it stay: they fall back to *From the bank* once the payment is
- * gone.
+ * *It was not this one*: takes back what the bank did. A payment it recorded (by a rule, a filter or the person's
+ * choice) goes: the expense or income is deleted (its documents stay), the due date it settled is to pay again. A link
+ * to an expense or income that was already there is only taken off: the expense stays as it was, and the pair is added
+ * to `rejected_proposals` as `expense:<id>` or `income:<id>` so it is not proposed again. Either way the transaction
+ * goes back to *From the bank*, marked as declined so that no rule or filter takes it again. The notices of the bell
+ * about it stay: they fall back to *From the bank* once the payment is gone.
  */
 final readonly class UndoBankPayment
 {
+    /** How a link came for the transactions that can be taken back from here. */
+    private const array UNDOABLE = [BankMatchSource::Rule, BankMatchSource::Proposed, BankMatchSource::Assigned, BankMatchSource::Duplicate];
+
     public function __construct(private DeleteMovement $delete, private DetachBankFee $detachFee) {}
 
     /**
@@ -34,7 +39,7 @@ final readonly class UndoBankPayment
      *
      * @param  BankTransaction  $transaction  The transaction linked to the payment.
      *
-     * @throws HttpException (422) if the transaction is not linked, was linked as a duplicate or created by hand, or its payment moved to another planned item meanwhile
+     * @throws HttpException (422) if the transaction is not linked, was created by hand or is a commission, or its payment moved to another planned item meanwhile
      */
     public function handle(BankTransaction $transaction): void
     {
@@ -50,7 +55,7 @@ final readonly class UndoBankPayment
             }
             $payment = $current?->expense_id !== null ? $current->expense : $current?->income;
 
-            if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true)
+            if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, self::UNDOABLE, true)
                 || $this->plannedId($payment) !== $locked?->id) {
                 abort(422, __('This payment was not recorded by the bank, so it cannot be undone from here.'));
             }
@@ -59,9 +64,36 @@ final readonly class UndoBankPayment
                 $this->detachFee->handle($payment);
             }
 
-            $current->forceFill(['expense_id' => null, 'income_id' => null, 'matched_by' => null, 'declined_at' => now()])->save();
+            $unlinked = ['expense_id' => null, 'income_id' => null, 'matched_by' => null, 'bank_filter_id' => null, 'declined_at' => now()];
+
+            if ($current->matched_by === BankMatchSource::Duplicate) {
+                // The movement was already there: it stays, and the pair is not proposed again
+                $current->forceFill([...$unlinked, 'rejected_proposals' => $this->withPair($current, $payment)])->save();
+
+                return;
+            }
+
+            $current->forceFill($unlinked)->save();
             $this->delete->handle($payment);
         });
+    }
+
+    /**
+     * The rejected proposals of the transaction with the pair of the transaction and the movement added, as
+     * `expense:<id>` or `income:<id>` (a list of strings, beside the `group:<key>` ones of the groups).
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     * @param  Expense|Income  $movement  the movement it was linked to
+     * @return array<array-key, mixed>
+     */
+    private function withPair(BankTransaction $transaction, Expense|Income $movement): array
+    {
+        $pair = ($movement instanceof Expense ? 'expense:' : 'income:').$movement->id;
+
+        $rejected = $transaction->rejected_proposals ?? [];
+
+        // Spread keeps the string keys (`group:<key>` => true) and numbers the rest
+        return in_array($pair, $rejected, true) ? $rejected : [...$rejected, $pair];
     }
 
     /**

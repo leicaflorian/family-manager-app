@@ -615,6 +615,15 @@ readonly booked_on: string | null,
 readonly text: string,
 readonly account: string | null,
 readonly undo_url: string | null,
+readonly how: string,
+readonly fee: App.Data.BankFeeData | null,
+readonly filter: {
+id: number,
+name: string,
+url: string | null,
+} | null,
+readonly url: string,
+readonly undo: string | null,
 };
 export type MovementData = {
 readonly kind: string,
@@ -1304,7 +1313,7 @@ export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'sch
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
 export type BankFilterFee = 'auto' | 'words' | 'none';
-export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate' | 'fee';
+export type BankMatchSource = 'rule' | 'proposed' | 'assigned' | 'created' | 'duplicate' | 'fee';
 export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';

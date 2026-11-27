@@ -63,6 +63,8 @@ final readonly class AttachBankFee
             $included = $debit instanceof BankTransaction && $amount === abs(Money::cents($debit->amount)) + $cents;
 
             $current->linkTo($locked, BankMatchSource::Fee);
+            // What `DetachBankFee` needs to give the expense back what it had: the fee before, only when the amount was not changed
+            $current->forceFill(['fee_before' => $included ? Money::decimal($feeAmount) : null])->save();
             $locked->forceFill([
                 'amount' => Money::decimal($included ? $amount : $amount + $cents),
                 'fee_amount' => Money::decimal($included ? max($feeAmount, $cents) : $feeAmount + $cents),

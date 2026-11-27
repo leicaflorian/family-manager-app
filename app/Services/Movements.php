@@ -10,6 +10,7 @@ use App\Data\MovementData;
 use App\Data\MovementMonthData;
 use App\Data\MovementSearchData;
 use App\Data\OptionData;
+use App\Enums\BankMatchSource;
 use App\Enums\Feature;
 use App\Enums\IncomeType;
 use App\Models\BankTransaction;
@@ -48,25 +49,32 @@ final readonly class Movements
 
     /**
      * The line «Registrata dalla banca» of a movement: the bank transaction linked to it, while the link to the bank
-     * is on. The undo is offered to who can delete the movement.
+     * is on, with its commission and its filter. The undo is offered as `BankUndo` says.
      *
      * @param  Expense|Income  $movement  the expense or income
-     * @param  User  $user  who looks at it
      */
-    public function bank(Expense|Income $movement, User $user): ?MovementBankData
+    public function bank(Expense|Income $movement): ?MovementBankData
     {
         if (! resolve(FamilyFeatures::class)->on(Feature::BankFeed)) {
             return null;
         }
 
         $transaction = BankTransaction::query()
-            ->with('financialAccount')
+            ->with(['financialAccount', 'bankFilter'])
             ->where($movement instanceof Expense ? 'expense_id' : 'income_id', $movement->id)
             // The commission of a direct debit joined to the expense is not the movement it came from
             ->withoutFees()
             ->first();
 
-        return $transaction instanceof BankTransaction ? MovementBankData::fromTransaction($transaction, $user->can('delete', $movement)) : null;
+        if (! $transaction instanceof BankTransaction) {
+            return null;
+        }
+
+        $fee = $movement instanceof Expense
+            ? BankTransaction::query()->where('expense_id', $movement->id)->where('matched_by', BankMatchSource::Fee)->orderBy('id')->first()
+            : null;
+
+        return MovementBankData::fromTransaction($transaction, $movement, $fee);
     }
 
     /**

@@ -408,6 +408,39 @@ describe('Budget, From the bank', () => {
         ).toBeInTheDocument();
     });
 
+    it('says in the question that a link to an expense already there only comes off', async () => {
+        const linked = {
+            ...bankTransactions[1]!,
+            status: 'linked',
+            link: {
+                kind: 'expense',
+                id: 7,
+                title: 'Luce',
+                url: '/budget/movements/expense/7',
+                how: 'duplicate',
+                filter_id: null,
+                filter_name: null,
+                undo: 'detach',
+                undo_url: '/budget/bank/2/payment',
+            },
+        };
+        renderPage(BankTransactions, allProps({ rows: [linked] }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'It was not this one' }),
+        );
+        const dialog = await screen.findByRole('dialog');
+
+        expect(
+            within(dialog).getByText('Take off this link?'),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).getByText(
+                'The expense stays as it is. The movement goes back to be sorted.',
+            ),
+        ).toBeInTheDocument();
+    });
+
     it('tells a bank to connect again and leads the one who can to the banks', () => {
         renderPage(
             BankTransactions,

@@ -2809,5 +2809,16 @@
     "to :account": "a :account",
     "from :account": "da :account",
     "with the other half": "con l'altra metà",
-    "You have no other account yet.": "Non hai ancora un altro conto."
+    "You have no other account yet.": "Non hai ancora un altro conto.",
+    "The movement is unlinked and is to sort again.": "Il movimento non è più collegato ed è di nuovo da sistemare.",
+    "From the filter :name": "Dal filtro :name",
+    "Open the filter": "Apri il filtro",
+    "See the bank movement": "Vedi il movimento della banca",
+    "From a rule": "Da una regola",
+    "Chosen by hand": "Scelta da te",
+    "Created from here": "Creata da qui",
+    "Already recorded, now linked": "Già registrata, collegata",
+    "Take off this link?": "Togliere questo collegamento?",
+    "The expense stays as it is. The movement goes back to be sorted.": "La spesa resta com'è. Il movimento torna da sistemare.",
+    "The income stays as it is. The movement goes back to be sorted.": "L'entrata resta com'è. Il movimento torna da sistemare."
 }

@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Banks\SettleFromBank;
 use App\Enums\BankMatchSource;
 use App\Enums\Role;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Document;
 use App\Models\Expense;
@@ -103,15 +105,20 @@ test('a member cannot undo', function (): void {
     });
 });
 
-test('a movement linked as a duplicate or created by hand has no undo', function (BankMatchSource $by): void {
+test('a movement created by hand or the commission of a debit has no undo', function (BankMatchSource $by): void {
     [, $transaction, $expense] = bankUndoSettled();
     insideBianchi(fn () => $transaction->forceFill(['matched_by' => $by])->save());
 
     $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertUnprocessable();
-    $this->get("/budget/movements/expense/{$expense->id}")
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('movement.bank.undo_url', null)->where('movement.bank.text', 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA'));
+
+    // The commission row of a debit is not the movement's own line, so only the created one shows a box
+    if ($by === BankMatchSource::Created) {
+        $this->get("/budget/movements/expense/{$expense->id}")
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('movement.bank.undo_url', null)->where('movement.bank.undo', null)->where('movement.bank.text', 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA'));
+    }
+
     insideBianchi(fn () => expect(Expense::query()->find($expense->id))->not->toBeNull());
-})->with([BankMatchSource::Duplicate, BankMatchSource::Created]);
+})->with([BankMatchSource::Created, BankMatchSource::Fee]);
 
 test('a transaction that is not linked cannot be undone', function (): void {
     [, $transaction] = bankUndoSettled();
@@ -206,4 +213,209 @@ test('undoing the debit puts the commission back to sort under it', function ():
             ->and($fee->declined_at)->toBeNull()
             ->and(resolve(BankFees::class)->debitOf($fee)?->is($debit))->toBeTrue();
     });
+});
+
+/**
+ * A hand-recorded expense of the given amount linked as a duplicate to a debit of 10,00 € (with the commission of 0,40 €
+ * of its direct debit read before it, when asked): returns the debit, the commission (or null) and the expense.
+ *
+ * @param  float  $amount  what the expense says
+ * @param  bool  $withFee  whether the bank gave the commission too
+ * @param  float|null  $ownFee  the fee the hand-recorded expense already had
+ * @return array{BankTransaction, BankTransaction|null, Expense}
+ */
+function bankUndoDuplicate(float $amount = 10.0, bool $withFee = false, ?float $ownFee = null): array
+{
+    return insideBianchi(function () use ($amount, $withFee, $ownFee): array {
+        $family = Family::query()->where('name', 'Bianchi')->sole();
+        $account = FinancialAccount::query()->where('name', 'Conto BancoPosta')->sole();
+        $mandate = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+        $row = static fn (string $text, string $value, string $day): BankTransaction => BankTransaction::factory()->create([
+            'family_id' => $family->id, 'financial_account_id' => $account->id, 'text' => $text, 'amount' => $value, 'booked_on' => $day, 'value_on' => $day,
+        ]);
+        $fee = $withFee ? $row('COMMISSIONI '.$mandate, '-0.40', '2026-11-05') : null;
+        $debit = $row($mandate, '-10.00', '2026-11-04');
+        $expense = Expense::factory()->create(['family_id' => $family->id, 'title' => 'Ricarica Satispay', 'amount' => $amount, 'fee_amount' => $ownFee, 'date' => '2026-11-04']);
+        resolve(LinkRecordedMovement::class)->handle($debit, $expense);
+
+        return [$debit->refresh(), $fee?->refresh(), $expense->refresh()];
+    });
+}
+
+test('a payment made by a filter is deleted and the due date is to pay again', function (): void {
+    [$luce, $transaction, $expense] = bankUndoSettled();
+    insideBianchi(function () use ($transaction): void {
+        $filter = BankFilter::factory()->create(['family_id' => $transaction->family_id, 'name' => 'Luce']);
+        $transaction->forceFill(['bank_filter_id' => $filter->id])->save();
+    });
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($luce, $transaction, $expense): void {
+        $transaction->refresh();
+        expect(Expense::query()->find($expense->id))->toBeNull()
+            ->and($transaction->matched_by)->toBeNull()
+            ->and($transaction->bank_filter_id)->toBeNull()
+            ->and($transaction->declined_at)->not->toBeNull()
+            ->and(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05'))->isPaid())->toBeFalse();
+    });
+});
+
+test('an expense that was already there is only unlinked and stays', function (): void {
+    [$debit, , $expense] = bankUndoDuplicate();
+    insideBianchi(function () use ($debit): void {
+        $filter = BankFilter::factory()->create(['family_id' => $debit->family_id]);
+        $debit->forceFill(['bank_filter_id' => $filter->id])->save();
+    });
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($debit, $expense): void {
+        $debit->refresh();
+        expect(Expense::query()->find($expense->id))->not->toBeNull()
+            ->and($debit->expense_id)->toBeNull()
+            ->and($debit->income_id)->toBeNull()
+            ->and($debit->matched_by)->toBeNull()
+            ->and($debit->bank_filter_id)->toBeNull()
+            ->and($debit->declined_at)->not->toBeNull();
+    });
+});
+
+test('a member can unlink it and cannot delete the one a filter made', function (): void {
+    [$debit, , $expense] = bankUndoDuplicate();
+    [, $made, $createdByFilter] = bankUndoSettled();
+
+    $this->actingAs($this->laura)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect(route('budget.bank.index'));
+    $this->actingAs($this->laura)->delete("/budget/bank/{$made->id}/payment")->assertForbidden();
+
+    insideBianchi(function () use ($debit, $expense, $made, $createdByFilter): void {
+        expect(Expense::query()->find($expense->id))->not->toBeNull()
+            ->and($debit->refresh()->expense_id)->toBeNull()
+            ->and(Expense::query()->find($createdByFilter->id))->not->toBeNull()
+            ->and($made->refresh()->expense_id)->toBe($createdByFilter->id);
+    });
+});
+
+test('the pair is not proposed again', function (): void {
+    [$debit, , $expense] = bankUndoDuplicate();
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+
+    insideBianchi(function () use ($debit, $expense): void {
+        $debit->refresh();
+        expect($debit->rejected_proposals)->toContain('expense:'.$expense->id);
+        // Neither a rule nor a list of duplicates takes the pair back by itself
+        expect(resolve(MatchBankTransactions::class)->handle([$debit]))->toBe(0)
+            ->and($debit->refresh()->expense_id)->toBeNull();
+    });
+});
+
+test('the fee is taken off the expense that stays', function (): void {
+    [$debit, $fee, $expense] = bankUndoDuplicate(10.0, true);
+    expect((float) $expense->amount)->toBe(10.4)
+        ->and((float) $expense->fee_amount)->toBe(0.4)
+        ->and($fee?->matched_by)->toBe(BankMatchSource::Fee);
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+
+    insideBianchi(function () use ($expense, $fee): void {
+        $expense->refresh();
+        $fee?->refresh();
+        expect((float) $expense->amount)->toBe(10.0)
+            ->and($expense->fee_amount)->toBeNull()
+            ->and($fee?->expense_id)->toBeNull()
+            ->and($fee?->matched_by)->toBeNull()
+            ->and($fee?->declined_at)->toBeNull();
+    });
+});
+
+test('a hand-recorded 10,40 linked as duplicate keeps 10,40 when unlinked', function (): void {
+    [$debit, $fee, $expense] = bankUndoDuplicate(10.4, true);
+    expect((float) $expense->amount)->toBe(10.4)
+        ->and((float) $expense->fee_amount)->toBe(0.4);
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+
+    insideBianchi(function () use ($expense, $fee): void {
+        $expense->refresh();
+        expect((float) $expense->amount)->toBe(10.4)
+            ->and($expense->fee_amount)->toBeNull()
+            ->and($fee?->refresh()->matched_by)->toBeNull();
+    });
+});
+
+test('a hand-recorded expense with a fee of its own keeps it when the included commission goes', function (): void {
+    [$debit, , $expense] = bankUndoDuplicate(10.4, true, 0.5);
+    expect((float) $expense->fee_amount)->toBe(0.5);
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+
+    insideBianchi(function () use ($expense): void {
+        expect((float) $expense->refresh()->amount)->toBe(10.4)->and((float) $expense->fee_amount)->toBe(0.5);
+    });
+});
+
+test('a transfer made by a filter is put back and no filter takes it again', function (): void {
+    $transfer = insideBianchi(function (): BankTransaction {
+        $family = Family::query()->where('name', 'Bianchi')->sole();
+        $filter = BankFilter::factory()->create(['family_id' => $family->id, 'name' => 'Giro']);
+        $other = FinancialAccount::factory()->create(['family_id' => $family->id, 'name' => 'Buddy Bank']);
+
+        return BankTransaction::factory()->create([
+            'family_id' => $family->id,
+            'financial_account_id' => FinancialAccount::query()->where('name', 'Conto BancoPosta')->sole()->id,
+            'amount' => '-200.00', 'transfer_account_id' => $other->id, 'bank_filter_id' => $filter->id,
+        ]);
+    });
+
+    $this->actingAs($this->marco)->delete(route('budget.bank.restore', $transfer))->assertRedirect();
+
+    insideBianchi(function () use ($transfer): void {
+        $transfer->refresh();
+        expect($transfer->transfer_account_id)->toBeNull()
+            ->and($transfer->bank_filter_id)->toBeNull()
+            ->and($transfer->declined_at)->not->toBeNull();
+    });
+});
+
+test('the box of the movement says how it was linked, its commission and its filter', function (): void {
+    [$debit, $fee, $expense] = bankUndoDuplicate(10.0, true);
+    $filter = insideBianchi(function () use ($debit): BankFilter {
+        $filter = BankFilter::factory()->create(['family_id' => $debit->family_id, 'name' => 'Satispay']);
+        $debit->forceFill(['bank_filter_id' => $filter->id])->save();
+
+        return $filter;
+    });
+
+    $this->actingAs($this->marco)->get("/budget/movements/expense/{$expense->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('movement.bank.how', 'duplicate')
+            ->where('movement.bank.fee.id', $fee?->id)
+            ->where('movement.bank.fee.amount', -0.4)
+            ->where('movement.bank.fee.booked_on', '2026-11-05')
+            ->where('movement.bank.filter', ['id' => $filter->id, 'name' => 'Satispay', 'url' => null])
+            ->where('movement.bank.undo', 'detach')
+            ->where('movement.bank.undo_url', "/budget/bank/{$debit->id}/payment")
+            ->where('movement.bank.url', '/budget/bank?show=all&q='.rawurlencode(substr($debit->text, 0, 100))));
+
+    // The same box for a member of a payment a filter made: the commission and the filter, no undo
+    [, $made, $payment] = bankUndoSettled();
+    $this->actingAs($this->laura)->get("/budget/movements/expense/{$payment->id}")
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('movement.bank.how', 'rule')->where('movement.bank.fee', null)->where('movement.bank.filter', null)->where('movement.bank.undo', null));
+});
+
+test('undoing a duplicate locks the bank row first and the commission rows after', function (): void {
+    [$debit] = bankUndoDuplicate(10.0, true);
+
+    DB::enableQueryLog();
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+    $queries = array_column(DB::getQueryLog(), 'query');
+    $start = array_find_key($queries, static fn (string $sql): bool => str_contains($sql, 'from `bank_transactions`') && str_contains($sql, 'for update'));
+    $inside = array_slice($queries, (int) $start);
+
+    expect($start)->not->toBeNull()
+        ->and(array_values(array_filter(
+            array_slice($inside, 1, 1),
+            static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'),
+        )))->toBe([]);
 });

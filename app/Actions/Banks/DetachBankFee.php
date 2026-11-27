@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Takes the commission back out of an expense: the commission goes back to sort (under its debit, when the debit is to
- * sort too) and its amount comes off the amount and the fee of the expense, never below zero.
+ * sort too) and the expense gets back what it had. A commission that was added to the amount comes off the amount and
+ * the fee, never below zero; one that was already in the amount (`fee_before` is set, see `AttachBankFee`) leaves the
+ * amount alone and puts the fee back to what it was.
  */
 final readonly class DetachBankFee
 {
@@ -33,16 +35,24 @@ final readonly class DetachBankFee
             }
 
             $cents = 0;
+            $amount = Money::cents($locked->amount);
+            $feeAmount = Money::cents($locked->fee_amount);
 
             foreach ($fees as $fee) {
-                $cents += abs(Money::cents($fee->amount));
-                $fee->forceFill(['expense_id' => null, 'income_id' => null, 'matched_by' => null])->save();
+                if ($fee->fee_before !== null) {
+                    // Already in the amount when it joined: the amount stays, the fee goes back to what it was
+                    $feeAmount = Money::cents($fee->fee_before);
+                } else {
+                    $take = abs(Money::cents($fee->amount));
+                    $cents += $take;
+                    $feeAmount = max(0, $feeAmount - $take);
+                }
+
+                $fee->forceFill(['expense_id' => null, 'income_id' => null, 'matched_by' => null, 'fee_before' => null])->save();
             }
 
-            $feeAmount = max(0, Money::cents($locked->fee_amount) - $cents);
-
             $locked->forceFill([
-                'amount' => Money::decimal(max(0, Money::cents($locked->amount) - $cents)),
+                'amount' => Money::decimal(max(0, $amount - $cents)),
                 'fee_amount' => $feeAmount === 0 ? null : Money::decimal($feeAmount),
             ])->save();
         });
