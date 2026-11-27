@@ -33,6 +33,7 @@ Rules:
 - Dates in YYYY-MM-DD. issue_date: the document date (for a medical report, the date of the visit or exam). due_date: payment deadline ("scadenza"), only for payments. expiry_date: when the document itself stops being valid (identity document, warranty, certificate, policy end), not a payment deadline. The period of a service or subscription ("valido fino al", "periodo dal… al…", "rinnovo il") is not an expiry: for utility_bill, receipt, invoice, payment_receipt, payslip and road_tax expiry_date is null.
 TXT."\n".self::PERIOD_RULE."\n".self::CONSUMPTION_RULE."\n".<<<'TXT'
 - supply_point_code: POD (electricity, starts with IT) or PDR (gas, 14 digits). customer_code: "codice cliente". iban_last_four: last 4 characters of the IBAN the payment is debited to or credited to, if shown.
+TXT."\n".self::SUPPLIES_RULE."\n".<<<'TXT'
 - policy_number: insurance policy number. plate_number: vehicle plate (Italian format like AB123CD). tax_code: the "codice fiscale" of the person the document is about (employee on a payslip, patient on a medical document, holder of a policy or bill).
 - organization_id, expense_category_id, document_category_id, person_id: pick the id from the lists below, or null when nothing fits. Prefer the most specific category. person_id is the account holder, employee, patient or person the document is about.
 - income_type, for payslips and payments received: salary, benefit (INPS, bonus), refund, other. maintenance_type, for work on a car or a house: service ("tagliando"), inspection ("revisione"), repair, boiler_service, other. health_type, for medical documents: visit, exam, vaccine, prescription, optical.
@@ -46,6 +47,9 @@ TXT."\n".self::PERIOD_RULE."\n".self::CONSUMPTION_RULE."\n".<<<'TXT'
 - summary: one short sentence describing the document (e.g. "Bolletta gas bimestrale agosto-settembre 2026").
 - confidence: low if the document is hard to read or you are unsure what it is.
 TXT;
+
+    /** The rule of the supplies of a dual-fuel bill: one entry per supply, the document fields from the first one. */
+    public const string SUPPLIES_RULE = '- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay, due_date the single deadline, customer_code the customer code; supply_point_code, utility_type and the consumption_* fields of the document are those of the first supply.';
 
     /** The rule of the period of a bill or payslip, shared with the short reading of the consumption. */
     public const string PERIOD_RULE = <<<'TXT'
@@ -64,6 +68,17 @@ TXT;
 
     /** The fields of the schema that are whole numbers. */
     private const array INTEGERS = ['organization_id', 'expense_category_id', 'document_category_id', 'person_id', 'vehicle_year'];
+
+    /** The fields of the schema that are numbers with decimals. */
+    private const array NUMBERS = [
+        'total_amount', 'fee_amount', 'amount', 'consumption_quantity', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3',
+    ];
+
+    /** The fields of the schema that are yes or no. */
+    private const array BOOLEANS = ['durable_good', 'consumption_estimated', 'consumption_adjusted'];
+
+    /** The fields of a supply that are chosen from a closed list. */
+    private const array SUPPLY_CHOICES = ['utility_type', 'consumption_unit'];
 
     /** The fields the model always answers, never null. */
     private const array ALWAYS_ANSWERED = ['kind', 'confidence'];
@@ -84,27 +99,51 @@ TXT;
      */
     public static function schema(JsonSchema $schema): array
     {
-        $choices = Extraction::choices();
         $properties = [];
 
         foreach (Extraction::FIELDS as $field) {
-            $type = match (true) {
-                // A nullable enum lists null too: `type` alone lets null in, but strict validators check `enum` as well.
-                isset($choices[$field]) => $schema->string()->enum(
-                    in_array($field, self::ALWAYS_ANSWERED, true) ? $choices[$field] : [...$choices[$field], null],
-                ),
-                in_array($field, self::DATES, true) => $schema->string()->format('date'),
-                in_array($field, self::INTEGERS, true) => $schema->integer(),
-                in_array($field, ['total_amount', 'fee_amount', 'consumption_quantity', 'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3'], true) => $schema->number(),
-                in_array($field, ['durable_good', 'consumption_estimated', 'consumption_adjusted'], true) => $schema->boolean(),
-                default => $schema->string(),
-            };
-
             // `kind` and `confidence` are always answered; every other field is null when the paper does not say.
-            $properties[$field] = in_array($field, self::ALWAYS_ANSWERED, true) ? $type->required() : $type->nullable()->required();
+            $properties[$field] = match (true) {
+                $field === 'supplies' => self::suppliesType($schema)->required(),
+                in_array($field, self::ALWAYS_ANSWERED, true) => self::fieldType($schema, $field)->required(),
+                default => self::fieldType($schema, $field)->nullable()->required(),
+            };
         }
 
         return $properties;
+    }
+
+    /**
+     * The list of the supplies: objects with every field of a supply, required and null when the paper does not say.
+     */
+    private static function suppliesType(JsonSchema $schema): Type
+    {
+        $fields = [];
+        foreach (Extraction::SUPPLY_FIELDS as $field) {
+            $fields[$field] = self::fieldType($schema, $field)->nullable()->required();
+        }
+
+        return $schema->array()->items($schema->object($fields)->withoutAdditionalProperties());
+    }
+
+    /**
+     * The type of a field of the answer or of a supply, by what the field holds.
+     */
+    private static function fieldType(JsonSchema $schema, string $field): Type
+    {
+        $choices = Extraction::choices();
+
+        return match (true) {
+            // A nullable enum lists null too: `type` alone lets null in, but strict validators check `enum` as well.
+            isset($choices[$field]) => $schema->string()->enum(
+                in_array($field, self::ALWAYS_ANSWERED, true) ? $choices[$field] : [...$choices[$field], null],
+            ),
+            in_array($field, self::DATES, true) => $schema->string()->format('date'),
+            in_array($field, self::INTEGERS, true) => $schema->integer(),
+            in_array($field, self::NUMBERS, true) => $schema->number(),
+            in_array($field, self::BOOLEANS, true) => $schema->boolean(),
+            default => $schema->string(),
+        };
     }
 
     /**
@@ -160,6 +199,7 @@ TXT;
         }
 
         $data = is_array($answer) ? $answer : self::decode($answer);
+        $data['supplies'] = self::supplyObjects($data['supplies'] ?? null);
 
         try {
             $extraction = Extraction::from($data);
@@ -172,6 +212,56 @@ TXT;
         }
         foreach (Extraction::choices() as $field => $values) {
             $extraction->{$field} = in_array($extraction->{$field}, $values, true) ? $extraction->{$field} : null;
+        }
+
+        return self::withSupplies($extraction);
+    }
+
+    /**
+     * The supplies of the answer that are objects: anything else in the list is dropped before the reading is built.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function supplyObjects(mixed $supplies): array
+    {
+        if (! is_array($supplies)) {
+            return [];
+        }
+
+        $objects = [];
+        foreach ($supplies as $supply) {
+            if (is_array($supply) && ($supply === [] || ! array_is_list($supply))) {
+                $objects[] = array_filter($supply, is_string(...), ARRAY_FILTER_USE_KEY);
+            }
+        }
+
+        return $objects;
+    }
+
+    /**
+     * The reading with its supplies checked: values outside the choices become null, a supply with neither a code
+     * nor an amount is dropped, and a single supply left is no list. With two or more, the code, the type and the
+     * consumption of the document are those of the first supply, whatever the model wrote there.
+     */
+    private static function withSupplies(Extraction $extraction): Extraction
+    {
+        $choices = Extraction::choices();
+        $supplies = [];
+
+        foreach ($extraction->supplies as $supply) {
+            foreach (self::SUPPLY_CHOICES as $field) {
+                $supply->{$field} = in_array($supply->{$field}, $choices[$field], true) ? $supply->{$field} : null;
+            }
+            if (! $supply->isEmpty()) {
+                $supplies[] = $supply;
+            }
+        }
+
+        $extraction->supplies = count($supplies) >= 2 ? $supplies : [];
+        if ($extraction->isMultiSupply()) {
+            foreach (['supply_point_code', 'utility_type', ...Extraction::CONSUMPTION_FIELDS] as $field) {
+                $extraction->{$field} = $supplies[0]->{$field};
+            }
         }
 
         return $extraction;

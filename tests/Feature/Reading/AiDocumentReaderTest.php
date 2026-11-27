@@ -10,6 +10,7 @@ use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
+use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
@@ -24,6 +25,7 @@ use App\Support\CurrentFamily;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -117,6 +119,28 @@ test('gemini reads a pdf', function (): void {
         // the 620 tokens of the reasoning are paid as output
         ->and($reading->outputTokens)->toBe(412 + 620)
         ->and($reading->cacheReadTokens)->toBe(0);
+});
+
+test('a dual-fuel bill is asked for and read with its supplies', function (): void {
+    $answer = aiAnswer('gemini-bill');
+    $answer['steps'][1]['content'][0]['text'] = json_encode(EnelBill::answer(['organization_id' => 7]), JSON_THROW_ON_ERROR);
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response($answer)]);
+
+    $reading = aiReader('gemini', 'gemini-3.8-flash')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it');
+
+    Http::assertSent(function (Request $request): bool {
+        $schema = $request['response_format']['schema'];
+
+        return in_array('supplies', $schema['required'], true)
+            && $schema['properties']['supplies']['type'] === 'array'
+            && $schema['properties']['supplies']['items']['required'] === Extraction::SUPPLY_FIELDS
+            && str_contains((string) $request['system_instruction'], ReadingPrompt::SUPPLIES_RULE);
+    });
+    expect($reading->extraction->supplies)->toHaveCount(2)
+        ->and($reading->extraction->supplies[1]->supply_point_code)->toBe(EnelBill::PDR)
+        ->and($reading->extraction->supplies[1]->amount)->toBe(69.40)
+        ->and($reading->extraction->total_amount)->toBe(165.65)
+        ->and($reading->extraction->organization_id)->toBe(7);
 });
 
 test('anthropic asks low effort and the fallback', function (): void {
