@@ -623,7 +623,7 @@ export type OptionData = {
 readonly value: string,
 readonly label: string,
 readonly help: string | null,
-readonly title: string | null,
+readonly title?: string | null,
 };
 export type OrganizationData = {
 readonly id: number,

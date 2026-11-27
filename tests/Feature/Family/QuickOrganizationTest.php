@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Enums\OrganizationType;
 use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
+use App\Models\Utility;
 use Database\Seeders\BianchiFamilySeeder;
+use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -44,4 +47,17 @@ test('a missing name or a wrong type comes back in the organization error bag', 
 test('the card form says whether the person can add an organization', function (): void {
     $this->get(route('cards.create', ['card' => 'vehicle']))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('cards/EditCard')->where('canCreateOrganization', true));
+});
+
+test('the card form, new and edit, gives the types of organization for the quick panel', function (): void {
+    $types = array_column(OrganizationType::cases(), 'value');
+    $utility = insideBianchi(fn (): Utility => Utility::query()->firstOrFail());
+
+    $this->get(route('cards.create', ['card' => 'utility']))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('organizationTypes', fn (Collection $options): bool => $options->pluck('value')->all() === $types));
+    $this->get(route('cards.edit', ['type' => 'utility', 'id' => $utility->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('canCreateOrganization', true)
+            ->where('organizationTypes', fn (Collection $options): bool => $options->pluck('value')->all() === $types));
 });

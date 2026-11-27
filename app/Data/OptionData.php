@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data;
 
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\Optional;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -23,6 +24,7 @@ final class OptionData extends Data
         public readonly string $value,
         public readonly string $label,
         public readonly ?string $help = null,
+        #[Optional]
         public readonly ?string $title = null,
     ) {}
 

@@ -15,9 +15,11 @@ use App\Cards\CardTypes;
 use App\Data\CardBudgetData;
 use App\Data\CardTypeData;
 use App\Data\LoanFiguresData;
+use App\Data\OptionData;
 use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
 use App\Enums\Feature;
+use App\Enums\OrganizationType;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
@@ -96,7 +98,7 @@ final class CardController extends Controller
                 ...($card->model() === Subscription::class && $this->features->on(Feature::Budget) ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkableDocuments->props($request, []),
                 'linked' => $this->documents->ofModels($documents),
-                'canCreateOrganization' => Gate::allows('create', Organization::class),
+                ...$this->quickOrganization(),
             ]);
         }
 
@@ -181,7 +183,7 @@ final class CardController extends Controller
             'fields' => fn (): array => $form()['fields'],
             'values' => fn (): array => $form()['values'],
             'titleParts' => fn (): array => $form()['titleParts'],
-            'canCreateOrganization' => Gate::allows('create', Organization::class),
+            ...$this->quickOrganization(),
             ...$this->loanFigures($request, $description, $card),
             'card' => $row,
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
@@ -368,5 +370,23 @@ final class CardController extends Controller
         return $ids === []
             ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
             : ImportPage::open($ids, PresetLink::of($type, $card)['link']);
+    }
+
+    /**
+     * What the «+» beside an organization menu of the card form needs: whether
+     * the person may add an organization, and the types it can have (none
+     * when they may not). The types are a closure, so the reloads of the form
+     * do not work them out again.
+     *
+     * @return array{canCreateOrganization: bool, organizationTypes: Closure(): list<OptionData>}
+     */
+    private function quickOrganization(): array
+    {
+        $allowed = Gate::allows('create', Organization::class);
+
+        return [
+            'canCreateOrganization' => $allowed,
+            'organizationTypes' => static fn (): array => $allowed ? OptionData::list(OrganizationType::options()) : [],
+        ];
     }
 }
