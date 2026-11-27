@@ -333,3 +333,13 @@ test('restore puts back both halves from the page', function (): void {
             ->and($in->transfer_pair_id)->toBeNull();
     });
 });
+
+test('a marked transfer leaves the list to sort and stays in the list all', function (): void {
+    bankTransfersSignIn();
+    [$savings, $current] = insideBianchi(bankTransfersAccounts(...));
+    $out = insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-200.00', '2026-11-10', ['text' => 'MOVE']));
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $current->id])->assertRedirect();
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn ($page) => $page->has('rows', 0));
+    $this->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn ($page) => $page->has('rows', 1)->where('rows.0.status', 'transfer'));
+});

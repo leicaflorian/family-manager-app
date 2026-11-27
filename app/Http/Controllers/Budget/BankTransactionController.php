@@ -283,6 +283,7 @@ final class BankTransactionController extends Controller
         $rows = BankTransaction::query()
             ->with('financialAccount')
             ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
             ->whereNull('expense_id')
             ->whereNull('income_id')
             ->orderByRaw('coalesce(booked_on, value_on) desc')
