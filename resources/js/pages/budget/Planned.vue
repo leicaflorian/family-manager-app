@@ -32,7 +32,6 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useListFilters } from '@/composables/useListFilters';
 import { plannedUrl } from '@/lib/budget';
-import { useBankFeed } from '@/composables/useBankFeed';
 import { budgetTabs } from '@/lib/budgetTabs';
 import { anyFilterOn, rangePills } from '@/lib/filters';
 import { create, show } from '@/routes/budget/planned';
@@ -55,7 +54,6 @@ const props = defineProps<{
 }>();
 
 const { euro } = useFormat();
-const bankFeed = useBankFeed();
 
 /** The panel of the filters, on the phone. */
 const filtersOpen = ref(false);
@@ -156,7 +154,7 @@ const { title, head } = usePageMeta({
                 </FmMenu>
             </template>
         </FmTitle>
-        <FmTabs :tabs="budgetTabs('planned', bankFeed)" :label="$t('Budget')" />
+        <FmTabs :tabs="budgetTabs('planned')" :label="$t('Budget')" />
 
         <FmEmpty
             v-if="empty"

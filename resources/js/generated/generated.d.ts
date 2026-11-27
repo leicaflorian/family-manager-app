@@ -115,6 +115,17 @@ readonly name: string,
 readonly country: string,
 readonly logo: string | null,
 };
+export type BankLinkData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly url: string,
+readonly how: string,
+readonly filter_id: number | null,
+readonly filter_name: string | null,
+readonly undo: string | null,
+readonly undo_url: string | null,
+};
 export type BankPlannedChoiceData = {
 readonly kind: string,
 readonly id: number,
@@ -149,6 +160,11 @@ readonly account: string | null,
 readonly pending: boolean,
 readonly ignored: boolean,
 readonly recurring: boolean,
+readonly status: string,
+readonly link: App.Data.BankLinkData | null,
+readonly provider_id: string,
+readonly read_at: string,
+readonly bank_status: string,
 };
 export type CalendarSettingsData = {
 readonly on: boolean,
@@ -1258,6 +1274,7 @@ export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
+export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended' | 'mail_off';

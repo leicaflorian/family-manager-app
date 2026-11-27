@@ -355,4 +355,12 @@ return [
         'created' => 'Created from it',
         'duplicate' => 'Linked to an existing one',
     ],
+    'bank_row_status' => [
+        'unsorted' => 'To sort',
+        'linked' => 'Linked',
+        'fee' => 'Fee',
+        'transfer' => 'Transfer',
+        'ignored' => 'Ignored',
+        'pending' => 'Pending',
+    ],
 ];

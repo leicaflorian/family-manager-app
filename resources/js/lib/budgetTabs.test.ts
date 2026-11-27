@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vite-plus/test';
 import { budgetTabs } from './budgetTabs';
 
 describe('budgetTabs', () => {
-    it('lists the pages of the budget', () => {
+    it('has only Movements and Recurring', () => {
         expect(budgetTabs('movements').map((tab) => tab.href)).toEqual([
             '/budget/movements',
             '/budget/planned',
@@ -18,33 +18,9 @@ describe('budgetTabs', () => {
             false,
             true,
         ]);
-    });
-
-    it('adds From the bank with the number to sort while the link to the bank is on', () => {
-        const tabs = budgetTabs('bank', { unsorted: 6 });
-
-        expect(tabs.map((tab) => tab.href)).toEqual([
-            '/budget/movements',
-            '/budget/planned',
-            '/budget/bank',
+        expect(budgetTabs('movements').map((tab) => tab.current)).toEqual([
+            true,
+            false,
         ]);
-        expect(tabs[2]).toMatchObject({
-            label: 'From the bank',
-            count: 6,
-            countLabel: 'From the bank, 6 to sort',
-            countInfo: true,
-            current: true,
-        });
-    });
-
-    it('shows no number when nothing is to sort', () => {
-        expect(budgetTabs('movements', { unsorted: 0 })[2]!.count).toBe(
-            undefined,
-        );
-    });
-
-    it('has no such tab while the link to the bank is off', () => {
-        expect(budgetTabs('movements', null)).toHaveLength(2);
-        expect(budgetTabs('movements')).toHaveLength(2);
     });
 });

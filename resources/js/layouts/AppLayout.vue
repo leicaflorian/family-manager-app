@@ -47,6 +47,7 @@ import {
 } from '@/components/fm/navigation';
 import LeaveGuard from '@/components/layout/LeaveGuard.vue';
 import FmToaster from '@/components/fm/FmToaster.vue';
+import { useBankFeed } from '@/composables/useBankFeed';
 import { useBellNotices } from '@/composables/useBellNotices';
 import { useFeatures } from '@/composables/useFeatures';
 import { useLayoutMode } from '@/composables/useLayoutMode';
@@ -74,6 +75,9 @@ const mode = useLayoutMode();
 
 /** The features of the family: they decide the sections of the menus and the pages under them. */
 const features = useFeatures();
+
+/** The link to the bank: the number to sort for *From the bank* in the sidebar; null while it is off. */
+const bankFeed = useBankFeed();
 
 /** The navigation items, without the sections of a feature the family does not have. */
 const items = computed(() => navigationItems(features.value));
@@ -233,6 +237,7 @@ useSearchShortcut(focusSearch);
             :user="user"
             :upload-count="toSort"
             :features="features"
+            :bank-to-sort="bankFeed?.unsorted ?? null"
             @report="openFeedback"
         />
         <div class="flex min-w-0 grow flex-col">
@@ -319,6 +324,7 @@ useSearchShortcut(focusSearch);
                         :user="user"
                         :upload-count="toSort"
                         :features="features"
+                        :bank-to-sort="bankFeed?.unsorted ?? null"
                         @report="openFeedback"
                     />
                 </DialogContent>

@@ -17,6 +17,7 @@ const shared = vi.hoisted(() => ({
         name: 'Bianchi',
         features: { bank_feed: false, consumption: false, gallery: false },
     },
+    bank_feed: null as { unsorted: number } | null,
 }));
 
 // The shared props of the page (the tools beside the title read the notices)
@@ -134,6 +135,7 @@ const allFiltersQuery =
 
 afterEach(() => {
     shared.family.features.consumption = false;
+    shared.bank_feed = null;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
@@ -621,5 +623,37 @@ describe('Movements', () => {
         expect(
             within(box).getByRole('link', { name: /Planned and spent/ }),
         ).toBeInTheDocument();
+    });
+
+    it('on the phone the first row of More in the budget is From the bank with the number to sort', () => {
+        shared.bank_feed = { unsorted: 6 };
+        screenWidth(390);
+        renderPage(Movements, props);
+
+        const box = screen.getByRole('navigation', {
+            name: 'More in the budget',
+        });
+        const links = within(box).getAllByRole('link');
+        expect(links[0]).toHaveAttribute('href', '/budget/bank');
+        expect(links[0]).toHaveAccessibleName(/From the bank, 6 to sort/);
+        expect(
+            within(links[0]!).getByText('6 movements to sort'),
+        ).toBeInTheDocument();
+        expect(within(links[0]!).getByText('6')).toHaveClass('bg-action');
+        expect(links[1]).toHaveAttribute('href', '/budget/comparison');
+    });
+
+    it('no row while the link to the bank is off', () => {
+        screenWidth(390);
+        renderPage(Movements, props);
+
+        expect(
+            screen.queryByRole('link', { name: /From the bank/ }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(
+                screen.getByRole('navigation', { name: 'More in the budget' }),
+            ).getAllByRole('link'),
+        ).toHaveLength(1);
     });
 });

@@ -40,6 +40,11 @@ const row = (id: number, day: string, amount: number) =>
         pending: false,
         ignored: false,
         recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: 'tx-' + String(id),
+        read_at: '2026-11-06T08:00',
+        bank_status: 'booked',
     }) satisfies App.Data.BankTransactionData;
 
 beforeEach(() => {
