@@ -24,7 +24,8 @@ final readonly class AttachBankFee
 
     /**
      * Joins the commission to the expense, in one transaction: the commission is locked first, then the commission
-     * rows the expense already has, then the expense (bank rows before the expense, as everywhere). Nothing happens
+     * rows the expense already has, then the expense (bank rows before the expense, as everywhere), and those rows are
+     * read again under the lock of the expense. Nothing happens
      * when the commission is not to sort any more or the expense already has a commission. With the debit given, an
      * expense whose amount is already the debit plus the commission (recorded by hand as the bank charged it) keeps
      * its amount and takes only the fee.
@@ -47,6 +48,12 @@ final readonly class AttachBankFee
             $locked = Expense::query()->lockForUpdate()->find($expense->id);
 
             if ($taken->isNotEmpty() || ! $locked instanceof Expense) {
+                return false;
+            }
+
+            // Read again under the lock of the expense: a commission joined meanwhile (sent twice by the bank) waited
+            // on this lock and is seen now, so the second one adds nothing
+            if (BankTransaction::query()->where('expense_id', $locked->id)->where('matched_by', BankMatchSource::Fee)->lockForUpdate()->exists()) {
                 return false;
             }
 

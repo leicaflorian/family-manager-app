@@ -10,6 +10,7 @@ use App\Models\PlannedIncome;
 use App\Services\Deadlines;
 use App\Services\Occurrences;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankText;
 use App\Support\Banks\RuleAccount;
 use App\Support\Deadline;
 use App\Support\Schedule;
@@ -30,7 +31,7 @@ final readonly class BankMatcher
     /**
      * The planned item the transaction pays: among the planned expenses (for money out) or incomes (for money in)
      * that have a rule, have not ended before the day, read the account of the transaction (`RuleAccount`) and whose rule
-     * matches the text,
+     * matches the text (never for the commission of a direct debit),
      * the only one, or the one whose planned amount (amount plus fee) is closest to the amount of the transaction (a
      * direct debit with its commission counts as the two together; a transaction without a commission is compared with
      * the amount without the fee too, since the commission may come apart). Two at the same distance give none.
@@ -39,7 +40,8 @@ final readonly class BankMatcher
      */
     public function planned(BankTransaction $transaction): PlannedExpense|PlannedIncome|null
     {
-        if ($transaction->currency !== 'EUR' || ! $transaction->booked_on instanceof CarbonImmutable) {
+        // A commission of a direct debit never pays a due date: it joins the expense of its debit (`AttachBankFee`)
+        if ($transaction->currency !== 'EUR' || ! $transaction->booked_on instanceof CarbonImmutable || BankText::isFee($transaction->text)) {
             return null;
         }
 
