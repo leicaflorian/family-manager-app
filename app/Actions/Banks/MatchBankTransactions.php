@@ -9,7 +9,9 @@ use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankMatcher;
+use App\Services\Banks\BankSplit;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankSplitMatch;
 use App\Support\Banks\RuleAccount;
 use Carbon\CarbonImmutable;
 use Throwable;
@@ -20,11 +22,11 @@ use Throwable;
  */
 final readonly class MatchBankTransactions
 {
-    public function __construct(private BankMatcher $matcher, private SettleFromBank $settle) {}
+    public function __construct(private BankMatcher $matcher, private SettleFromBank $settle, private BankSplit $split) {}
 
     /**
-     * Settles every transaction still to sort and not declined with the planned item whose rule recognises it. A
-     * transaction that fails (also while it is checked or matched) is reported and left to sort, and the others go on.
+     * Settles every transaction still to sort and not declined: first as one debit of more planned expenses together
+     * (`BankSplit`), else with the planned item whose rule recognises it. A transaction that fails (also while it is checked or matched) is reported and left to sort, and the others go on.
      *
      * @param  iterable<BankTransaction>  $transactions  The transactions, in the order to settle them.
      * @return int how many paid or were linked to a payment
@@ -35,7 +37,15 @@ final readonly class MatchBankTransactions
 
         foreach ($transactions as $transaction) {
             $paid = $this->safely(function () use ($transaction): bool {
-                $planned = $this->isOpen($transaction) ? $this->matcher->planned($transaction) : null;
+                if (! $this->isOpen($transaction)) {
+                    return false;
+                }
+
+                if ($this->settleSplit($transaction)) {
+                    return true;
+                }
+
+                $planned = $this->matcher->planned($transaction);
 
                 return $planned !== null && $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null;
             });
@@ -51,7 +61,8 @@ final readonly class MatchBankTransactions
     /**
      * Settles the transactions still to sort and not declined of the last days of a first read (90) that the rule of
      * the planned item recognises on the accounts it reads (`RuleAccount`), the oldest first, so a rule written after the payments pays the due dates left open.
-     * A transaction whose rule picks another planned item (closer in amount) is left to that one. A failure is
+     * A debit that pays the planned item together with others (`BankSplit`) pays them all; otherwise a transaction
+     * whose rule picks another planned item (closer in amount) is left to that one. A failure is
      * reported and never leaves: the planned item is already saved.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item, with its rule saved.
@@ -82,8 +93,9 @@ final readonly class MatchBankTransactions
         $settled = 0;
 
         foreach ($transactions as $transaction) {
-            $paid = $this->safely(fn (): bool => $this->matcher->planned($transaction)?->is($planned) === true
-                && $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null);
+            $paid = $this->safely(fn (): bool => $this->settleSplit($transaction, $planned)
+                || ($this->matcher->planned($transaction)?->is($planned) === true
+                    && $this->settle->handle($transaction, $planned, BankMatchSource::Rule) !== null));
 
             if ($paid) {
                 $settled++;
@@ -91,6 +103,26 @@ final readonly class MatchBankTransactions
         }
 
         return $settled;
+    }
+
+    /**
+     * Settles the transaction as one debit of more planned expenses together, when `BankSplit` finds one (and it pays
+     * the planned item given, when there is one).
+     *
+     * @param  BankTransaction  $transaction  The transaction.
+     * @param  PlannedExpense|PlannedIncome|null  $planned  The planned item the split must pay, or null for any.
+     * @return bool whether it paid or was linked
+     */
+    private function settleSplit(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null): bool
+    {
+        $match = $this->split->find($transaction);
+
+        if (! $match instanceof BankSplitMatch
+            || ($planned !== null && (! $planned instanceof PlannedExpense || ! in_array($planned->id, $match->plannedIds(), true)))) {
+            return false;
+        }
+
+        return $this->settle->split($transaction, $match, BankMatchSource::Rule) !== [];
     }
 
     /**

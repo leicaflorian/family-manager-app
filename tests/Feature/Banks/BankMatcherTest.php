@@ -139,6 +139,18 @@ test('between two planned expenses the closest amount wins, a tie picks none', f
     });
 });
 
+test('the candidates are every planned expense the debit matches, the closest still wins alone', function (): void {
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        bankMatcherPlanned('Acqua', 'ACQUEDOTTO', 40, '2026-01-01');
+        $transaction = enelDualFuelDebit($bill['account']);
+        $matcher = resolve(BankMatcher::class);
+
+        expect($matcher->candidates($transaction)->pluck('id')->all())->toBe([$bill['luce']->id, $bill['gas']->id])
+            ->and($matcher->planned($transaction)?->is($bill['luce']))->toBeTrue();
+    });
+});
+
 test('a monthly due date 16 days away is not picked, the oldest late one is', function (): void {
     insideBianchi(function (): void {
         $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-10-05', ['end_date' => '2026-11-30']);
