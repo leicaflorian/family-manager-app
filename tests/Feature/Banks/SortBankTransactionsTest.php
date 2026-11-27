@@ -5,12 +5,14 @@ declare(strict_types=1);
 use App\Contracts\DocumentReader;
 use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
+use App\Enums\ExceptionType;
 use App\Enums\Role;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\Income;
 use App\Models\PlannedExpense;
+use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Support\Banks\BankMatch;
@@ -291,6 +293,48 @@ test('assign with an occurrence pays that due date and not the closest', functio
         ->assertRedirect();
 
     insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $luce->id)->sole()->occurrence_date?->toDateString())->toBe('2026-10-05'));
+});
+
+test('a due date moved by an exception is paid when its original date is sent', function (): void {
+    $luce = bankSortPlanned('Luce');
+    insideBianchi(fn (): PlannedExpenseException => PlannedExpenseException::factory()->create([
+        'family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'type' => ExceptionType::DateOverride, 'occurrence_date' => '2026-11-05', 'date_override' => '2026-11-20',
+    ]));
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-18', 'value_on' => '2026-11-18']);
+
+    $this->actingAs($this->marco)->getJson(route('budget.bank.candidates', ['transaction' => $transaction->id, 'q' => 'luce']))
+        ->assertJsonPath('planned.0.due_on', '2026-11-20')
+        ->assertJsonPath('planned.0.occurrence', '2026-11-05');
+    $this->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-11-05'])->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $luce->id)->sole()->occurrence_date?->toDateString())->toBe('2026-11-05'));
+});
+
+test('a chosen due date is not replaced by a payment of another one recorded nearby', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $november = insideBianchi(fn (): Expense => Expense::factory()->create([
+        'family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'amount' => 72.4, 'date' => '2026-11-01', 'occurrence_date' => '2026-11-05',
+    ]));
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-10-05'])->assertRedirect();
+
+    insideBianchi(function () use ($transaction, $november): void {
+        $linked = Expense::query()->findOrFail($transaction->refresh()->expense_id);
+
+        expect($linked->is($november))->toBeFalse()
+            ->and($linked->occurrence_date?->toDateString())->toBe('2026-10-05');
+    });
+});
+
+test('an ended planned item is paid when its due date was chosen', function (): void {
+    $old = bankSortPlanned('Vecchia rata', '2026-08-01', ['end_date' => '2026-08-31']);
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id])->assertStatus(422)->assertJsonValidationErrors('planned_id');
+    $this->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id, 'occurrence' => '2026-08-01'])->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $old->id)->sole()->occurrence_date?->toDateString())->toBe('2026-08-01'));
 });
 
 test('a member can link a recorded expense', function (): void {

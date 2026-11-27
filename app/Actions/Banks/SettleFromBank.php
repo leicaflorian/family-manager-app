@@ -45,7 +45,7 @@ final readonly class SettleFromBank
      * the same reason it is not called inside a transaction that has already read something.
      *
      * 1. A payment of the planned item already recorded with the same amount within a few days: the transaction is
-     *    linked to it (`duplicate`), without a notice.
+     *    linked to it (`duplicate`), without a notice. Not when the person chose the due date (`$occurrence`).
      * 2. Otherwise the due date it settles; with none the transaction stays to sort. When that due date is already paid
      *    (the closest within reach, paid by hand with another amount), the transaction is linked to its payment
      *    (`duplicate`, no notice), or stays to sort when another bank transaction has it: it never pays another month.
@@ -77,7 +77,8 @@ final readonly class SettleFromBank
 
             PlannedKind::lock($planned);
 
-            $existing = $this->duplicates->find($current, $planned);
+            // The person chose the due date: a payment of another one within a few days is not this transaction's
+            $existing = $occurrence instanceof CarbonImmutable ? null : $this->duplicates->find($current, $planned);
 
             if ($existing !== null) {
                 return $this->link($current, $existing, BankMatchSource::Duplicate);

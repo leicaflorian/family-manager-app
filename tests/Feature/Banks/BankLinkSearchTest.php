@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\IntervalUnit;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -127,6 +128,7 @@ test('the empty search gives the near due dates and the same amount of the last 
         PlannedExpense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Luce', 'amount' => 20, 'start_date' => '2026-01-05']);
         PlannedExpense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Bollo', 'amount' => 20, 'start_date' => '2027-06-01']);
         Expense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Recent same', 'amount' => 20, 'date' => '2026-10-20']);
+        Expense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Later same', 'amount' => 20, 'date' => '2026-11-20']);
         Expense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Old same', 'amount' => 20, 'date' => '2026-09-01']);
         Expense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Recent other', 'amount' => 30, 'date' => '2026-10-20']);
     });
@@ -134,7 +136,7 @@ test('the empty search gives the near due dates and the same amount of the last 
     $response = bankLinkSearchAsk($this, $transaction)->assertOk();
 
     expect(collect($response->json('planned'))->pluck('title')->all())->toBe(['Luce'])
-        ->and(collect($response->json('recorded'))->pluck('title')->all())->toBe(['Recent same']);
+        ->and(collect($response->json('recorded'))->pluck('title')->all())->toBe(['Recent same', 'Later same']);
 });
 
 test('searches only the kind of the transaction', function (): void {
@@ -156,4 +158,28 @@ test("another family's transaction gives 404", function (): void {
     $foreign = BankTransaction::factory()->create(['family_id' => Family::factory()->create()->id]);
 
     bankLinkSearchAsk($this, $foreign, 'assegno')->assertNotFound();
+});
+
+test('the closest unpaid due date wins over the oldest late one', function (): void {
+    $transaction = bankLinkSearchTransaction(['amount' => '-300.00', 'booked_on' => '2026-09-15', 'value_on' => '2026-09-15']);
+    insideBianchi(fn (): PlannedExpense => PlannedExpense::factory()->create([
+        'family_id' => bankLinkSearchFamily(), 'title' => 'Tassa semestrale', 'amount' => 300, 'start_date' => '2026-01-01', 'interval' => 6, 'interval_unit' => IntervalUnit::Month,
+    ]));
+
+    bankLinkSearchAsk($this, $transaction, 'tassa')->assertOk()
+        ->assertJsonCount(1, 'planned')
+        ->assertJsonPath('planned.0.due_on', '2026-07-01')
+        ->assertJsonPath('planned.0.occurrence', '2026-07-01');
+});
+
+test('a one-off planned expense already paid by hand offers its payment', function (): void {
+    $transaction = bankLinkSearchTransaction();
+    insideBianchi(function (): void {
+        $planned = PlannedExpense::factory()->create(['family_id' => bankLinkSearchFamily(), 'title' => 'Bollo auto', 'amount' => 60, 'is_recurring' => false, 'start_date' => '2026-10-05']);
+        Expense::factory()->create(['family_id' => bankLinkSearchFamily(), 'planned_expense_id' => $planned->id, 'amount' => 60, 'date' => '2026-10-06']);
+    });
+
+    bankLinkSearchAsk($this, $transaction, 'bollo')->assertOk()
+        ->assertJsonCount(1, 'planned')
+        ->assertJsonPath('planned.0.paid_on', '2026-10-06');
 });

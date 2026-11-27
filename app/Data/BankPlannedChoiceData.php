@@ -23,7 +23,8 @@ final class BankPlannedChoiceData extends Data
      * @param  int  $id  the planned item
      * @param  string  $title  its name
      * @param  string|null  $organization  who it is paid to or comes from
-     * @param  string  $due_on  the due date that would be paid (`yyyy-mm-dd`)
+     * @param  string  $due_on  the due date that would be paid, the day it falls (`yyyy-mm-dd`)
+     * @param  string  $occurrence  the date the rules give for that due date, before an exception moves it: what `assign` takes (`yyyy-mm-dd`)
      * @param  bool  $late  the due date is already over
      * @param  float  $amount  what it is planned for, commission included
      * @param  bool  $estimated  the amount is an estimate
@@ -36,6 +37,7 @@ final class BankPlannedChoiceData extends Data
         public readonly string $title,
         public readonly ?string $organization,
         public readonly string $due_on,
+        public readonly string $occurrence,
         public readonly bool $late,
         public readonly float $amount,
         public readonly bool $estimated,
@@ -60,6 +62,7 @@ final class BankPlannedChoiceData extends Data
             title: $planned->displayTitle(),
             organization: $planned->organization?->name,
             due_on: $deadline->occurrence->date->toDateString(),
+            occurrence: $deadline->occurrence->originalDate->toDateString(),
             late: $deadline->isLate($today),
             amount: round((float) $planned->amount + $fee, 2),
             estimated: (bool) $planned->is_estimated,

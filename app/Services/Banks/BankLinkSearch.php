@@ -26,7 +26,7 @@ final readonly class BankLinkSearch
     /** The most rows each of the two lists has. */
     private const int LIMIT = 30;
 
-    /** How many days back the empty search looks for a recorded movement of the same amount. */
+    /** How many days around the transaction the empty search looks for a recorded movement of the same amount. */
     private const int RECENT_DAYS = 30;
 
     public function __construct(private BankMatcher $matcher) {}
@@ -39,7 +39,7 @@ final readonly class BankLinkSearch
      *   ones with a due date within reach of `BankMatcher::deadline()`.
      * - `recorded`: the expenses (or incomes) no other bank transaction has, by the words of the title, the name of the
      *   organization or, when the query is a number written the Italian way, the amount; the ones with the amount of the
-     *   transaction first, then by the closest date. With an empty query: the same amount of the last 30 days.
+     *   transaction first, then by the closest date. With an empty query: the same amount within 30 days of the transaction.
      *
      * A transaction that is not booked in euros has nothing to link to.
      *
@@ -111,8 +111,8 @@ final readonly class BankLinkSearch
             ->whereNotIn('id', BankTransaction::query()->whereNotNull($column)->select($column));
 
         if ($words === []) {
-            $today = CarbonImmutable::today('Europe/Rome');
-            $query->whereBetween('date', [$today->subDays(self::RECENT_DAYS)->toDateString(), $today->toDateString()])
+            $around = $transaction->booked_on ?? CarbonImmutable::today('Europe/Rome');
+            $query->whereBetween('date', [$around->subDays(self::RECENT_DAYS)->toDateString(), $around->addDays(self::RECENT_DAYS)->toDateString()])
                 ->whereRaw('round(amount * 100) = ?', [$own]);
         } else {
             $query->where(function (Builder $query) use ($words, $cents): void {

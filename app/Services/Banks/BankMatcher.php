@@ -99,7 +99,7 @@ final readonly class BankMatcher
         }
 
         // Half a period, cut to whole days: 15 for a month, 3 for a week
-        $reach = min(self::MAX_REACH, (int) floor($this->occurrences->stepDays($schedule) / 2));
+        $reach = $this->reach($schedule);
         $near = array_values(array_filter(
             $this->deadlines->between([$planned], $day->subDays($reach), $day->addDays($reach)),
             fn (Deadline $deadline): bool => abs($this->days($deadline, $day)) <= $reach,
@@ -120,9 +120,10 @@ final readonly class BankMatcher
 
     /**
      * The due date a person who looks for the planned item by hand would pay, at any distance: the one of `deadline()`
-     * when it is open or paid by hand with a payment no other bank transaction has (the transaction links to it);
-     * otherwise the open due date closest to the day of the transaction, before or after it, at most 12 months back and
-     * 24 ahead. A skipped due date is never taken.
+     * when it is within reach and open, or paid by hand with a payment no other bank transaction has (the transaction
+     * links to it); otherwise the open due date closest to the day of the transaction, before or after it, at most
+     * 12 months back and 24 ahead of that day. An item that does not repeat has one due date: open, or paid by hand
+     * with a free payment. A skipped due date is never taken.
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
@@ -135,9 +136,19 @@ final readonly class BankMatcher
             return null;
         }
 
+        $schedule = Schedule::of($planned);
+
+        if (! $schedule->recurring) {
+            $only = $this->deadlines->between([$planned], CarbonImmutable::parse('1900-01-01'), CarbonImmutable::parse('2999-12-31'))[0] ?? null;
+
+            return $only instanceof Deadline && $this->usable($only, $transaction) ? $only : null;
+        }
+
         $near = $this->deadline($transaction, $planned);
 
-        if ($near instanceof Deadline && ! $near->isSkipped() && (! $near->isPaid() || ($near->payment !== null && $this->duplicates->isFree($near->payment, $transaction)))) {
+        // A paid one comes only from within reach; an open one counts as near only within reach, else the closest wins
+        if ($near instanceof Deadline && ! $near->isSkipped() && $this->usable($near, $transaction)
+            && ($near->isPaid() || abs($this->days($near, $day)) <= $this->reach($schedule))) {
             return $near;
         }
 
@@ -150,6 +161,27 @@ final readonly class BankMatcher
         usort($open, fn (Deadline $a, Deadline $b): int => abs($this->days($a, $day)) <=> abs($this->days($b, $day)));
 
         return $open[0] ?? null;
+    }
+
+    /**
+     * Whether a due date can be offered: open, or paid by a payment no other bank transaction has.
+     *
+     * @param  Deadline  $deadline  The due date.
+     * @param  BankTransaction  $transaction  The transaction.
+     */
+    private function usable(Deadline $deadline, BankTransaction $transaction): bool
+    {
+        return ! $deadline->isPaid() || ($deadline->payment !== null && $this->duplicates->isFree($deadline->payment, $transaction));
+    }
+
+    /**
+     * How many days a due date can be from the transaction to count as near: half a period, at most 45.
+     *
+     * @param  Schedule  $schedule  The recurrence.
+     */
+    private function reach(Schedule $schedule): int
+    {
+        return min(self::MAX_REACH, (int) floor($this->occurrences->stepDays($schedule) / 2));
     }
 
     /**

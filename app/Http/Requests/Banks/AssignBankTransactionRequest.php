@@ -101,7 +101,8 @@ final class AssignBankTransactionRequest extends FormRequest
 
             $end = $this->planned()->end_date;
 
-            if ($end !== null && $transaction->booked_on !== null && $end->toDateString() < $transaction->booked_on->toDateString()) {
+            // An ended item is offered by the search: choosing one of its due dates is allowed
+            if ($this->input('occurrence') === null && $end !== null && $transaction->booked_on !== null && $end->toDateString() < $transaction->booked_on->toDateString()) {
                 $validator->errors()->add('planned_id', $this->planned() instanceof PlannedExpense ? __('This planned expense has ended.') : __('This planned income has ended.'));
             }
         }];
