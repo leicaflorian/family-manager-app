@@ -666,7 +666,7 @@ test('a person option carries the first name the title uses', function (): void 
 
     $this->get(route('cards.create', ['card' => 'employment']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('fields.0.options.0.title', fn (string $title): bool => $title !== '' && ! str_contains($title, ' '))
-        ->where('fields.1.options.0.title', null));
+        ->missing('fields.1.options.0.title'));
 });
 
 test('the option texts of the form join into the name of every composed card of the seeder', function (): void {
