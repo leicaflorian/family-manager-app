@@ -29,6 +29,7 @@ import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, inject, reactive, ref, toRef, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { originWords } from '@/lib/bankOrigin';
 import { undoWords as getUndoWords } from '@/lib/bankUndo';
 import { formatDayMonth } from '@/lib/format';
 import { useWideLayout } from '@/composables/useWideLayout';
@@ -208,21 +209,6 @@ const filterWords = computed((): [string, string] => {
     }).split(NAME);
 
     return [before, after];
-});
-
-/** How the link came, in words, for a movement no filter took. */
-const howText = computed((): string => {
-    switch (movement?.bank?.how) {
-        case 'rule':
-        case 'proposed':
-            return trans('From a rule');
-        case 'assigned':
-            return trans('Chosen by hand');
-        case 'created':
-            return trans('Created from here');
-        default:
-            return trans('Already recorded, now linked');
-    }
 });
 
 /** The question and the words of the confirmation of *It was not this one*, for what it does. */
@@ -516,7 +502,9 @@ defineExpose({ fileErrors });
                             >{{ $t('Open the filter') }}</Link
                         ></template
                     ></template
-                ><template v-else>{{ howText }}</template>
+                ><template v-else>{{
+                    originWords(movement.bank.how, null)
+                }}</template>
             </span>
             <Link
                 :href="movement.bank.url"

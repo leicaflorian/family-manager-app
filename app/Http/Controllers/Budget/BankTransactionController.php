@@ -223,7 +223,7 @@ final class BankTransactionController extends Controller
             Gate::authorize('delete', $payment);
         }
 
-        $undo->handle($transaction);
+        $undo->handle($transaction, $detach);
         Inertia::flash('toast', ['type' => 'success', 'message' => $detach ? __('The movement is unlinked and is to sort again.') : __('The due date is to be paid again.')]);
 
         return to_route('budget.bank.index');

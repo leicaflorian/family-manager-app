@@ -38,14 +38,15 @@ final readonly class UndoBankPayment
      * item, in the order of a settling.
      *
      * @param  BankTransaction  $transaction  The transaction linked to the payment.
+     * @param  bool  $detachOnly  What the caller was allowed to do: true when it was authorised only to unlink a movement that was already there, false when it was authorised to delete a payment the bank recorded; the row under the lock must still be of that kind
      *
-     * @throws HttpException (422) if the transaction is not linked, was created by hand or is a commission, or its payment moved to another planned item meanwhile
+     * @throws HttpException (422) if the transaction is not linked, was created by hand or is a commission, changed kind (payment or link to an expense that was already there) since the person was allowed, or its payment moved to another planned item meanwhile
      */
-    public function handle(BankTransaction $transaction): void
+    public function handle(BankTransaction $transaction, bool $detachOnly = false): void
     {
         $planned = $this->plannedOf($transaction);
 
-        DB::transaction(function () use ($transaction, $planned): void {
+        DB::transaction(function () use ($transaction, $planned, $detachOnly): void {
             $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
             $locked = $planned === null ? null : $planned[0]::query()->lockForUpdate()->find($planned[1]);
 
@@ -56,6 +57,7 @@ final readonly class UndoBankPayment
             $payment = $current?->expense_id !== null ? $current->expense : $current?->income;
 
             if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, self::UNDOABLE, true)
+                || ($current->matched_by === BankMatchSource::Duplicate) !== $detachOnly
                 || $this->plannedId($payment) !== $locked?->id) {
                 abort(422, __('This payment was not recorded by the bank, so it cannot be undone from here.'));
             }

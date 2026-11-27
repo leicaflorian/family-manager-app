@@ -753,6 +753,18 @@ describe('FmMovementPanel', () => {
             ).not.toBeInTheDocument();
         });
 
+        it('says a proposal the person accepted in its own words', () => {
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, how: 'proposed', filter: null },
+                },
+            });
+
+            expect(screen.getByText('Proposal accepted')).toBeInTheDocument();
+        });
+
         it('It was not this one says it only unlinks when the expense was already there', async () => {
             renderPage(FmMovementPanel, {
                 ...props,

@@ -39,7 +39,7 @@ use Illuminate\Support\Facades\Config;
  * @property int|null $bank_filter_id
  * @property int|null $transfer_account_id The account on the other side, when the transaction is a transfer between the family's own accounts
  * @property int|null $transfer_pair_id The other half of the transfer, when both accounts are read from the bank
- * @property array<string, mixed>|null $rejected_proposals
+ * @property array<array-key, mixed>|null $rejected_proposals The proposals the person said no to: list values (`expense:<id>`, `income:<id>` for a link taken off) and keys (`group:<key>` => true for a group); read values with strict `in_array` and keys with `array_key_exists`
  * @property numeric|null $fee_before Of a commission already in the amount of its expense: the fee the expense had before it joined
  * @property int|null $created_by
  * @property int|null $updated_by

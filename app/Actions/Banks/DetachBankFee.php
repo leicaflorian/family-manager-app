@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Takes the commission back out of an expense: the commission goes back to sort (under its debit, when the debit is to
  * sort too) and the expense gets back what it had. A commission that was added to the amount comes off the amount and
  * the fee, never below zero; one that was already in the amount (`fee_before` is set, see `AttachBankFee`) leaves the
- * amount alone and puts the fee back to what it was.
+ * amount alone and takes off the fee only what the join added to it.
  */
 final readonly class DetachBankFee
 {
@@ -40,8 +40,10 @@ final readonly class DetachBankFee
 
             foreach ($fees as $fee) {
                 if ($fee->fee_before !== null) {
-                    // Already in the amount when it joined: the amount stays, the fee goes back to what it was
-                    $feeAmount = Money::cents($fee->fee_before);
+                    // Already in the amount when it joined: the amount stays, and only what the join added to the fee
+                    // comes off it, so a fee the person changed since stays changed
+                    $before = Money::cents($fee->fee_before);
+                    $feeAmount = max(0, $feeAmount - (max($before, abs(Money::cents($fee->amount))) - $before));
                 } else {
                     $take = abs(Money::cents($fee->amount));
                     $cents += $take;

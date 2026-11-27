@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Banks\SettleFromBank;
+use App\Actions\Banks\UndoBankPayment;
 use App\Enums\BankMatchSource;
 use App\Enums\Role;
 use App\Models\BankFilter;
@@ -23,6 +24,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-05 07:00', 'Europe/Rome'));
@@ -284,6 +286,9 @@ test('an expense that was already there is only unlinked and stays', function ()
 test('a member can unlink it and cannot delete the one a filter made', function (): void {
     [$debit, , $expense] = bankUndoDuplicate();
     [, $made, $createdByFilter] = bankUndoSettled();
+    insideBianchi(function () use ($made): void {
+        $made->forceFill(['bank_filter_id' => BankFilter::factory()->create(['family_id' => $made->family_id])->id])->save();
+    });
 
     $this->actingAs($this->laura)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect(route('budget.bank.index'));
     $this->actingAs($this->laura)->delete("/budget/bank/{$made->id}/payment")->assertForbidden();
@@ -418,4 +423,28 @@ test('undoing a duplicate locks the bank row first and the commission rows after
             array_slice($inside, 1, 1),
             static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'),
         )))->toBe([]);
+});
+
+test('a fee edited by hand after the commission joined survives the unlinking', function (): void {
+    [$debit, , $expense] = bankUndoDuplicate(10.4, true);
+    insideBianchi(fn () => $expense->forceFill(['fee_amount' => 0.9])->save());
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect();
+
+    insideBianchi(function () use ($expense): void {
+        expect((float) $expense->refresh()->amount)->toBe(10.4)->and((float) $expense->fee_amount)->toBe(0.5);
+    });
+});
+
+test('what was authorised must still be what the row is under the lock', function (): void {
+    [, $payment] = bankUndoSettled();
+    [$duplicate] = bankUndoDuplicate();
+
+    insideBianchi(function () use ($payment, $duplicate): void {
+        // The person was allowed to delete a payment, but the row is a link to an expense already there now
+        expect(fn () => resolve(UndoBankPayment::class)->handle($duplicate, detachOnly: false))->toThrow(HttpException::class)
+            // And the other way round: allowed only to unlink, but the row is a payment of the bank
+            ->and(fn () => resolve(UndoBankPayment::class)->handle($payment, detachOnly: true))->toThrow(HttpException::class)
+            ->and(Expense::query()->count())->toBe(2);
+    });
 });
