@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Data\Reading\Extraction;
+use App\Models\Family;
+use App\Models\Organization;
+use App\Models\Utility;
+use App\Support\CurrentFamily;
+
 /**
  * The dual-fuel bill of the Bianchi test data (Enel Energia, electricity and gas on one paper), as the model answers
  * it. Made-up values only.
@@ -18,6 +24,38 @@ final class EnelBill
 
     /** The customer code of both supplies. */
     public const string CUSTOMER = '310045678';
+
+    /**
+     * The Bianchi of the seeder made into the variant of the bill: the electricity of Edison becomes the one of
+     * Enel Energia, with the POD and the customer code, and the gas of Enel gets the PDR. The planned expenses
+     * *Luce* and *Gas* of the seeder stay linked to them.
+     *
+     * @return array{electricity: Utility, gas: Utility}
+     */
+    public static function bianchi(): array
+    {
+        $family = Family::query()->where('name', 'Bianchi')->sole();
+
+        return CurrentFamily::using($family->id, static function (): array {
+            $enel = Organization::query()->where('name', 'Enel Energia')->sole();
+            $electricity = Utility::query()->whereRelation('organization', 'name', 'Edison')->sole();
+            $electricity->update(['organization_id' => $enel->id, 'supply_point_code' => self::POD, 'customer_code' => self::CUSTOMER]);
+            $gas = Utility::query()->where('organization_id', $enel->id)->where('type', 'gas')->sole();
+            $gas->update(['supply_point_code' => self::PDR]);
+
+            return ['electricity' => $electricity->refresh(), 'gas' => $gas->refresh()];
+        });
+    }
+
+    /**
+     * The reading of the bill, as `ReadingPrompt::parse()` leaves it.
+     *
+     * @param  array<string, mixed>  $changes  fields to change
+     */
+    public static function extraction(array $changes = []): Extraction
+    {
+        return Extraction::from(self::answer($changes));
+    }
 
     /**
      * The answer of the model for the bill, with both supplies.

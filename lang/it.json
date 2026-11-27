@@ -2714,5 +2714,11 @@
     "Phone, email, website and logo you add later, from the organization page.": "Telefono, email, sito e logo li aggiungi dopo, dalla pagina dell’ente.",
     "It is made from the fields below": "Si compone dai campi qui sotto",
     "For utilities, jobs and enrollments the title makes itself from the fields you choose: at the top you see how it will be.": "Per utenze, lavori e iscrizioni il titolo si compone da solo con i campi che scegli: in cima vedi come verrà.",
-    "The + next to the organization creates a new one with name and type, and chooses it right away. You add the rest from the organization page.": "Il + accanto all’ente ne crea uno nuovo con nome e tipo, e lo sceglie subito. Il resto lo aggiungi dalla pagina dell’ente."
+    "The + next to the organization creates a new one with name and type, and chooses it right away. You add the rest from the organization page.": "Il + accanto all’ente ne crea uno nuovo con nome e tipo, e lo sceglie subito. Il resto lo aggiungi dalla pagina dell’ente.",
+    "Electricity and gas bill :month :year": "Bolletta luce e gas :month :year",
+    "Electricity and gas bill": "Bolletta luce e gas",
+    ":types bill :month :year": "Bolletta :types :month :year",
+    ":types bill": "Bolletta :types",
+    "I found an electricity and gas bill": "Ho trovato una bolletta della luce e del gas",
+    ":first and :second": ":first e :second"
 }
