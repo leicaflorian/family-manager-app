@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Actions\Budget\FollowDeadlineDate;
 use App\Actions\Reminders\SyncReminders;
 use App\Support\CurrentFamily;
 use App\Support\Reminders\Expiries;
@@ -11,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 /**
  * Keeps the automatic reminders of a card or document in line with it, when it is saved or deleted.
@@ -23,8 +25,9 @@ final readonly class DeadlineObserver
 {
     /**
      * @param  SyncReminders  $sync  Writes the reminders.
+     * @param  FollowDeadlineDate  $follow  Moves the planned expense that pays a deadline of the card with its date.
      */
-    public function __construct(private SyncReminders $sync) {}
+    public function __construct(private SyncReminders $sync, private FollowDeadlineDate $follow) {}
 
     /**
      * The card is about to be saved: one that is already past its date takes its expired status now, so it is not
@@ -53,7 +56,7 @@ final readonly class DeadlineObserver
      */
     public function saved(Model $card): void
     {
-        DB::afterCommit(fn () => $this->sync($card));
+        DB::afterCommit(fn () => $this->sync($card, true));
     }
 
     /**
@@ -70,8 +73,9 @@ final readonly class DeadlineObserver
      * Brings the reminders of the card in line, in the family of the card.
      *
      * @param  Model  $card  the card
+     * @param  bool  $follow  whether the planned expense of a changed date follows it (a save, not a delete)
      */
-    private function sync(Model $card): void
+    private function sync(Model $card, bool $follow = false): void
     {
         $familyId = $card->getAttribute('family_id');
 
@@ -79,6 +83,18 @@ final readonly class DeadlineObserver
             return;
         }
 
-        CurrentFamily::using($familyId, fn () => $this->sync->handle($card, CarbonImmutable::today('Europe/Rome')));
+        CurrentFamily::using($familyId, function () use ($card, $follow): void {
+            // The expense moves first, so the reminders are written against its new due dates
+            if ($follow) {
+                // A planned expense that cannot follow must neither break the save of the card nor skip its reminders
+                try {
+                    $this->follow->handle($card);
+                } catch (Throwable $e) {
+                    report($e);
+                }
+            }
+
+            $this->sync->handle($card, CarbonImmutable::today('Europe/Rome'));
+        });
     }
 }

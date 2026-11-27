@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
  * Which reminders miss the planned expense of their card (*Manca la spesa
  * prevista*): the kind of deadline is paid by a planned expense (road tax,
  * inspection, policy, first and last instalment) and the card has no planned
- * expense in progress. With the Budget off no reminder misses one: the family
+ * expense in progress (for road tax and inspection, none that pays that very deadline). With the Budget off no reminder misses one: the family
  * plans no expenses.
  */
 final readonly class MissingExpenses
@@ -42,14 +42,16 @@ final readonly class MissingExpenses
             return [];
         }
 
-        /** @var array<int, array{type: string, id: int}> $cards the card of each reminder that can miss an expense, by reminder id */
+        /** @var array<int, array{type: string, id: int, field: string|null}> $cards the card of each reminder that can miss an expense, by reminder id, with the deadline when only a planned expense of its own pays it */
         $cards = [];
 
         foreach (EloquentCollection::make($reminders)->loadMissing('link') as $reminder) {
             $link = $reminder->link;
 
-            if ($link instanceof Remindable && $reminder->source_field !== null && DeadlineSources::find($reminder->source_field)?->hasExpense === true) {
-                $cards[$reminder->id] = ['type' => $link->remindable_type, 'id' => $link->remindable_id];
+            $source = $reminder->source_field === null ? null : DeadlineSources::find($reminder->source_field);
+
+            if ($link instanceof Remindable && $source?->hasExpense === true) {
+                $cards[$reminder->id] = ['type' => $link->remindable_type, 'id' => $link->remindable_id, 'field' => $source->ownExpense ? $source->field : null];
             }
         }
 
@@ -66,13 +68,17 @@ final readonly class MissingExpenses
                 }
             })
             ->where(static fn (Builder $query): Builder => $query->whereNull('end_date')->orWhere('end_date', '>=', $today->toDateString()))
-            ->get(['card_type', 'card_id'])
-            ->mapWithKeys(static fn (PlannedExpense $expense): array => [$expense->card_type.':'.$expense->card_id => true]);
+            ->get(['card_type', 'card_id', 'deadline_field'])
+            ->flatMap(static fn (PlannedExpense $expense): array => [
+                $expense->card_type.':'.$expense->card_id => true,
+                ...$expense->deadline_field === null ? [] : [$expense->card_type.':'.$expense->card_id.':'.$expense->deadline_field => true],
+            ]);
 
         $missing = [];
 
         foreach ($cards as $reminderId => $card) {
-            if (! $covered->has($card['type'].':'.$card['id'])) {
+            // A deadline with an expense of its own is covered only by the expense that pays it
+            if (! $covered->has($card['type'].':'.$card['id'].($card['field'] === null ? '' : ':'.$card['field']))) {
                 $missing[$reminderId] = true;
             }
         }

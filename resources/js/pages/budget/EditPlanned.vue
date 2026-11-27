@@ -6,7 +6,8 @@
  * of the type of its category) and, for an income, the employment it comes
  * from. A new one can start already filled in from a card, and the card
  * chosen fills the category, the holder and the organization still empty.
- * While the link to the bank is on, *Where* also has *How it shows in the
+ * A vehicle can say which of its deadlines (road tax, inspection) the
+ * expense pays (*Pays the deadline*). While the link to the bank is on, *Where* also has *How it shows in the
  * bank*, the rule the payment is recognised by; `?rule_from=` opens the panel
  * that writes it from a movement of *From the bank*.
  */
@@ -76,6 +77,19 @@ const { label: cardLabel, choices: cardChoices } = useCardChoice(
     },
 );
 
+/** The deadlines the card chosen can have paid, with «No deadline» last; none when its type has none. */
+const deadlineChoices = computed(() => {
+    const type = form.card?.split(':')[0] ?? '';
+    const fields = options.deadline_fields[type] ?? [];
+
+    return fields.length === 0
+        ? []
+        : [
+              ...fields.map(({ value, label }) => ({ value, label })),
+              { value: '', label: trans('No deadline') },
+          ];
+});
+
 /** Whether it is an income. */
 const income = computed(() => kind === 'income');
 
@@ -122,6 +136,11 @@ function save(): void {
 
     if (form.hasErrors) {
         return;
+    }
+
+    // A card of another type, or none, pays no deadline
+    if (income.value || deadlineChoices.value.length === 0) {
+        form.deadline_field = null;
     }
 
     if (planned) {
@@ -309,6 +328,22 @@ onMounted(() => {
                     name="card"
                     :options="withNone(cardChoices)"
                     :errors="errors(form.errors.card)"
+                />
+                <FormKit
+                    v-if="deadlineChoices.length > 0"
+                    v-model="form.deadline_field"
+                    type="dropdown"
+                    :label="$t('Pays the deadline')"
+                    name="deadline_field"
+                    :options="deadlineChoices"
+                    :help="
+                        form.deadline_field
+                            ? $t(
+                                  'The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.',
+                              )
+                            : undefined
+                    "
+                    :errors="errors(form.errors.deadline_field)"
                 />
                 <FormKit
                     v-model="form.financial_account_id"

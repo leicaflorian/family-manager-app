@@ -18,6 +18,7 @@ use App\Http\Controllers\CalendarSettingsController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardDocumentController;
 use App\Http\Controllers\CardPaymentController;
+use App\Http\Controllers\CardRelatedController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ConnectController;
@@ -176,6 +177,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::get('cards/{type}/{id}', [CardController::class, 'show'])->name('cards.show')->whereNumber('id');
         Route::get('cards/{type}/{id}/edit', [CardController::class, 'edit'])->name('cards.edit')->whereNumber('id');
         Route::get('cards/{type}/{id}/payments', [CardPaymentController::class, 'show'])->middleware('feature:budget')->name('cards.payments')->whereNumber('id');
+        Route::get('cards/{type}/{id}/related', [CardRelatedController::class, 'show'])->name('cards.related')->whereNumber('id');
         Route::put('cards/{type}/{id}', [CardController::class, 'update'])->name('cards.update')->whereNumber('id');
         Route::delete('cards/{type}/{id}', [CardController::class, 'destroy'])->name('cards.destroy')->whereNumber('id');
         Route::post('cards/{type}/{id}/documents', [CardDocumentController::class, 'store'])->name('cards.documents.store')->whereNumber('id');
@@ -318,6 +320,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
         Route::redirect('family', '/family/people')->name('family');
         Route::resource('family/people', PersonController::class)->parameters(['people' => 'person'])->names('people');
+        Route::post('family/organizations/quick', [OrganizationController::class, 'quick'])->middleware('throttle:30,1,organization-quick')->name('organizations.quick');
         Route::resource('family/organizations', OrganizationController::class)->names('organizations');
     });
 });

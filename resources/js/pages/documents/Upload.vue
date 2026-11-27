@@ -29,6 +29,8 @@ import { usePageMeta } from '@/composables/usePageMeta';
 const props = defineProps<{
     /** The card the person comes from, kept for the files. */
     presetLinks: DocumentLink[];
+    /** The document category already chosen (the registration document of a vehicle): the import form starts with it. */
+    presetCategory?: number | null;
 }>();
 
 /** The files waiting in *To sort*, for the link beside the title. */
@@ -41,7 +43,9 @@ const {
     send,
     processing,
     errors: uploadErrors,
-} = useFileUpload(() => preset.value);
+} = useFileUpload(() => preset.value, {
+    category: () => props.presetCategory,
+});
 
 const layout = useLayoutMode();
 

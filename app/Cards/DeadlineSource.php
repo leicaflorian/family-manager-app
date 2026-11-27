@@ -27,6 +27,7 @@ final readonly class DeadlineSource
      * @param  string|null  $label  what expires, in English; null when the row shows the title of the document
      * @param  string|null  $personColumn  the column of the person it belongs to; null when it is nobody's
      * @param  bool  $hasExpense  whether a planned expense of the card pays this deadline (one row in the Agenda)
+     * @param  bool  $ownExpense  whether the planned expense that pays it is its own, chosen with `deadline_field` (road tax and inspection of a vehicle): another planned expense of the card does not pay it
      * @param  string  $title  what to do, in English (translated with `__()` where it is shown): the title of the reminder
      * @param  bool  $overdue  whether the reminder is wanted also once the date has passed, because the date moves only when confirmed (the renewal of a subscription)
      */
@@ -41,6 +42,7 @@ final readonly class DeadlineSource
         public bool $hasExpense = false,
         public string $title = '',
         public bool $overdue = false,
+        public bool $ownExpense = false,
     ) {}
 
     /**
@@ -83,6 +85,20 @@ final readonly class DeadlineSource
         }
 
         return CarbonImmutable::parse($value instanceof DateTimeInterface ? $value->format('Y-m-d') : substr(is_string($value) ? $value : '', 0, 10), $today->getTimezone());
+    }
+
+    /**
+     * Whether the date is missing on a card that still has the deadline: the column is empty and the card is in a
+     * status in which the date counts.
+     *
+     * @param  Model  $card  a card of the model of this kind
+     */
+    public function isMissing(Model $card): bool
+    {
+        $status = $card->getAttribute('status');
+
+        return $card->getAttribute($this->column) === null
+            && ($this->activeStatuses === [] || in_array($status, $this->activeStatuses, true));
     }
 
     /**

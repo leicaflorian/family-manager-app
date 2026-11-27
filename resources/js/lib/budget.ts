@@ -341,6 +341,8 @@ export interface PlannedFormValues {
     category_id?: string | null;
     /** An expense: the card it refers to, `type:id`. */
     card?: string | null;
+    /** An expense: the deadline of the card it pays, like `vehicles.inspection_due_date`. */
+    deadline_field?: string | null;
     /** An income: its type. */
     type?: string;
     /** An income: the employment it comes from. */
@@ -358,6 +360,8 @@ export interface PlannedFormOptions {
     category_card_types: Record<string, string>;
     /** The name of each card type, by type. */
     card_type_labels: Record<string, string>;
+    /** The deadlines a planned expense can pay, by card type (only the types that have some). */
+    deadline_fields: Record<string, App.Data.OptionData[]>;
     employments: App.Data.OptionData[];
     income_types: App.Data.OptionData[];
 }

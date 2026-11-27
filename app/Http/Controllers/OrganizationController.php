@@ -12,6 +12,7 @@ use App\Data\OrganizationData;
 use App\Data\OrganizationDetailData;
 use App\Enums\OrganizationType;
 use App\Http\Controllers\Concerns\PagesDocuments;
+use App\Http\Requests\Family\QuickOrganizationRequest;
 use App\Http\Requests\Family\SaveOrganizationRequest;
 use App\Models\Organization;
 use App\Models\User;
@@ -74,6 +75,18 @@ final class OrganizationController extends Controller
         $replace->handle($organization, 'logo_id', $request->uploadedImage('logo'));
 
         return to_route('organizations.show', $organization);
+    }
+
+    /**
+     * Adds an organization with just a name and types, from the card form: the
+     * page stays where it is and gets the new id and name as the `organization` flash.
+     */
+    public function quick(QuickOrganizationRequest $request): RedirectResponse
+    {
+        $organization = Organization::query()->create($request->safe()->only(['name', 'types']));
+        Inertia::flash('organization', ['id' => $organization->id, 'name' => $organization->name]);
+
+        return back();
     }
 
     /**

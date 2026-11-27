@@ -18,6 +18,7 @@ use App\Models\Reminder;
 use App\Models\ReminderGroup;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Models\Vehicle;
 use App\Services\FamilyFeatures;
 use App\Support\ItalianArticle;
 use App\Support\ModelId;
@@ -60,7 +61,8 @@ final readonly class CardNotices
             $notices[] = $this->deadline($near, $today);
         }
 
-        if ($this->missing->of($reminders, $today) !== []) {
+        // A vehicle shows it in its own list of deadlines, row by row
+        if (! $card instanceof Vehicle && $this->missing->of($reminders, $today) !== []) {
             $notices[] = $this->missingExpense($card, $user);
         }
 
@@ -250,7 +252,7 @@ final readonly class CardNotices
         }
 
         foreach ($found['missing'] as $position => $document) {
-            $notices[] = new CardNoticeData('missing-document:'.$position, NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card));
+            $notices[] = new CardNoticeData('missing-document:'.$position, NoticeTone::Warning, Translated::text('Missing · :document', ['document' => $document]), null, Translated::text('Upload it'), ExpectedDocuments::uploadHref($card, $this->expected->categoryFor($card)));
         }
 
         return $notices;

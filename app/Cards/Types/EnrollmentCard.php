@@ -48,6 +48,16 @@ final class EnrollmentCard extends CardType
         return Enrollment::class;
     }
 
+    /**
+     * The name the card gets: see the `label()` of the model.
+     *
+     * {@inheritDoc}
+     */
+    public function titleParts(): array
+    {
+        return [['person_id'], ['type'], ['organization_id']];
+    }
+
     /** {@inheritDoc} */
     public function fields(): array
     {

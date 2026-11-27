@@ -412,3 +412,25 @@ test('the copies of the waiting files are found without a query per file', funct
 
     expect($queries())->toBe($one);
 });
+
+test('upload keeps the category it was opened with, and Import starts with it, only if it is of the family', function (): void {
+    $panda = Vehicle::factory()->for($this->marco->family)->create(['name' => 'Fiat Panda']);
+    $category = DocumentCategory::factory()->for($this->marco->family)->create();
+    $rossi = registerFamily('Rossi', 'mario@rossi.example');
+    $foreign = DocumentCategory::factory()->for($rossi->family)->create();
+    $query = ['link' => 'vehicle:'.$panda->id, 'category' => $category->id];
+
+    $this->actingAs($this->marco)->get(route('upload', $query))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetCategory', $category->id));
+    $this->get(route('upload', ['category' => $foreign->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetCategory', null));
+
+    $response = $this->post(route('upload.store', $query), ['files' => [UploadedFile::fake()->create('Libretto.pdf', 120, 'application/pdf')]]);
+    $ids = (string) File::query()->sole()->id;
+
+    $response->assertRedirect(route('import', ['files' => $ids, 'link' => 'vehicle:'.$panda->id, 'category' => $category->id]));
+    $this->get(route('import', ['files' => $ids, 'category' => $category->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetCategory', $category->id));
+    $this->get(route('import', ['files' => $ids, 'category' => $foreign->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('presetCategory', null));
+});

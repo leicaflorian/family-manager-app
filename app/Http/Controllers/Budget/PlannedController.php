@@ -72,7 +72,7 @@ final class PlannedController extends Controller
         Gate::authorize('create', PlannedKind::modelClass($kind));
 
         // The card of an income is its employment
-        $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card')) : PlannedPreset::incomeFromQuery($request->query('card'));
+        $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card'), $request->query('deadline')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
         return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset, ...$this->recurringValues($request->query('bank'), $kind)]);
     }

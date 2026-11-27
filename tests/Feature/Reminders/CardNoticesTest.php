@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Cards\CardTypes;
 use App\Data\CardNoticeData;
+use App\Enums\DocumentCategoryRole;
 use App\Enums\NoticeTone;
 use App\Enums\ReminderStatus;
 use App\Enums\Role;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Enrollment;
 use App\Models\Filing;
 use App\Models\FinancialAccount;
@@ -146,27 +148,37 @@ test('a deadline further than 60 days away and a done reminder give no notice', 
 });
 
 test('a card with a reminder and no planned expense warns that the payment is not in the budget, with a link to add it', function (): void {
-    $vehicle = insideBianchi(fn (): Vehicle => Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Golf']));
-    noticeReminder($vehicle, 'vehicles.road_tax_due_date', '2027-03-01');
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::factory()->create(['family_id' => CurrentFamily::id()]));
+    noticeReminder($policy, 'insurance_policies.expiry_date', '2027-03-01');
 
-    $missing = collect(cardNoticesOf($vehicle))->firstWhere('title', 'The planned expense is missing');
+    $missing = collect(cardNoticesOf($policy))->firstWhere('title', 'The planned expense is missing');
 
     expect($missing)->toBeInstanceOf(CardNoticeData::class)
         ->and($missing->text)->toBe('This payment is not in the budget.')
         ->and($missing->action_label)->toBe('Add')
-        ->and($missing->action_href)->toBe('/budget/planned/expense/create?card=vehicle%3A'.$vehicle->id);
+        ->and($missing->action_href)->toBe('/budget/planned/expense/create?card=insurance_policy%3A'.$policy->id);
 });
 
-test('the Panda, which has its planned expense, does not warn', function (): void {
-    expect(collect(cardNoticesOf(noticePanda()))->pluck('title')->all())->not->toContain('The planned expense is missing');
+test('a vehicle gets no notice about the missing planned expense: its section shows it row by row', function (): void {
+    $vehicle = insideBianchi(fn (): Vehicle => Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Golf']));
+    noticeReminder($vehicle, 'vehicles.road_tax_due_date', '2027-03-01');
+
+    expect(collect(cardNoticesOf($vehicle))->pluck('title')->all())->not->toContain('The planned expense is missing');
+});
+
+test('a policy that has its planned expense does not warn', function (): void {
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::query()->where('title', 'RC auto Panda')->sole());
+    noticeReminder($policy, 'insurance_policies.expiry_date', '2026-11-21');
+
+    expect(collect(cardNoticesOf($policy))->pluck('title')->all())->not->toContain('The planned expense is missing');
 });
 
 test('a member does not get Add on the missing planned expense, which only an admin creates', function (): void {
-    $vehicle = insideBianchi(fn (): Vehicle => Vehicle::factory()->create(['family_id' => CurrentFamily::id(), 'name' => 'Golf']));
-    noticeReminder($vehicle, 'vehicles.road_tax_due_date', '2027-03-01');
-    $member = User::factory()->create(['family_id' => $vehicle->family_id, 'role' => Role::Member]);
+    $policy = insideBianchi(fn (): InsurancePolicy => InsurancePolicy::factory()->create(['family_id' => CurrentFamily::id()]));
+    noticeReminder($policy, 'insurance_policies.expiry_date', '2027-03-01');
+    $member = User::factory()->create(['family_id' => $policy->family_id, 'role' => Role::Member]);
 
-    $notices = insideBianchi(fn (): array => resolve(CardNotices::class)->for($vehicle, $this->today, $member));
+    $notices = insideBianchi(fn (): array => resolve(CardNotices::class)->for($policy, $this->today, $member));
     $missing = collect($notices)->firstWhere('title', 'The planned expense is missing');
 
     expect($missing->action_label)->toBeNull()->and($missing->action_href)->toBeNull();
@@ -206,7 +218,7 @@ test('the Panda without its registration document says what is missing', functio
 
     expect($missing)->not->toBeNull()
         ->and($missing->action_label)->toBe('Caricalo')
-        ->and($missing->action_href)->toBe('/upload?link=vehicle%3A'.$panda->id);
+        ->and($missing->action_href)->toBe('/upload?link=vehicle%3A'.$panda->id.'&category='.insideBianchi(fn (): int => DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration)->id));
 });
 
 test('the ISEE 2027 of Laura, as the board shows it, has 3 documents of 4 and misses the average balance', function (): void {

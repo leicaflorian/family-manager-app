@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vite-plus/test';
 import FmValueList from './FmValueList.vue';
 
 const values: App.Data.CardValueData[] = [
-    { label: 'Account', text: 'Carta Laura', href: null },
+    { label: 'Account', text: 'Carta Laura', href: null, tone: null },
     {
         label: 'Organization',
         text: 'Scuola Passo a Due',
         href: '/family/organizations/5',
+        tone: null,
     },
 ];
 
@@ -73,5 +74,29 @@ describe('FmValueList', () => {
         expect(
             screen.getByText('Polizza').closest('dd')?.querySelector('svg'),
         ).toBeNull();
+    });
+
+    it('colours a status by its tone', () => {
+        render(FmValueList, {
+            props: {
+                values: [
+                    {
+                        label: 'Status',
+                        text: 'Sold',
+                        href: null,
+                        tone: 'closed',
+                    },
+                    {
+                        label: 'Name',
+                        text: 'Fiat Panda',
+                        href: null,
+                        tone: null,
+                    },
+                ],
+            },
+        });
+
+        expect(screen.getByText('Sold')).toHaveClass('text-ink-soft');
+        expect(screen.getByText('Fiat Panda')).not.toHaveClass('text-ink-soft');
     });
 });

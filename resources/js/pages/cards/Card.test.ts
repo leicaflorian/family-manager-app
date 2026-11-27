@@ -6,6 +6,7 @@ import {
     healthCard,
     luceBudget,
     luceRow,
+    pandaDetail,
     policyBudget,
     policyDetail,
 } from '@/test/fixtures';
@@ -54,6 +55,28 @@ describe('A card', () => {
         expect(
             screen.getByRole('link', { name: /Fiat Panda/ }),
         ).toHaveAttribute('href', '/cards/vehicle/1');
+    });
+
+    it('links to all the linked cards, with their number, when there are more than the ones shown', () => {
+        renderPage(Card, {
+            card: {
+                ...policyDetail,
+                related_more: { href: '/cards/vehicle/1/related', count: 7 },
+            },
+            linkable: [],
+        });
+
+        expect(
+            screen.getByRole('link', { name: 'See all the links (7)' }),
+        ).toHaveAttribute('href', '/cards/vehicle/1/related');
+    });
+
+    it('has no link to all the linked cards when they are all shown', () => {
+        renderPage(Card, { card: policyDetail, linkable: [] });
+
+        expect(
+            screen.queryByRole('link', { name: /See all the links/ }),
+        ).not.toBeInTheDocument();
     });
 
     it('offers the cards that can be added linked to this one', async () => {
@@ -269,6 +292,7 @@ describe('A card', () => {
                             hint_amount: null,
                             text: null,
                             tone: null,
+                            estimated: false,
                         },
                         {
                             label: 'Total to pay',
@@ -278,6 +302,7 @@ describe('A card', () => {
                             hint_amount: null,
                             text: null,
                             tone: null,
+                            estimated: false,
                         },
                     ],
                     due_label: null,
@@ -575,19 +600,29 @@ describe('A card', () => {
             expect(screen.getByText('9 bills')).toBeInTheDocument();
         });
 
-        it('shows the pages of the documents, 5 at a time', () => {
+        it('links to all the documents when the card has more than the 5 shown, with no pager', () => {
             renderPage(Card, {
                 card: {
                     ...luceDetail,
-                    documents_next: '/cards/utility/3?documents_page=2',
+                    documents_more: '/documents?card=utility%3A3',
                 },
                 linkable: [],
             });
 
-            expect(screen.getByRole('link', { name: 'Next' })).toHaveAttribute(
-                'href',
-                '/cards/utility/3?documents_page=2',
-            );
+            expect(
+                screen.getByRole('link', { name: 'See all the documents' }),
+            ).toHaveAttribute('href', '/documents?card=utility%3A3');
+            expect(
+                screen.queryByRole('link', { name: 'Next' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('has no link to all the documents when it has no more', () => {
+            renderPage(Card, { card: luceDetail, linkable: [] });
+
+            expect(
+                screen.queryByRole('link', { name: 'See all the documents' }),
+            ).not.toBeInTheDocument();
         });
 
         it('adds a planned expense already linked to the card', () => {
@@ -672,5 +707,94 @@ describe('A card', () => {
                 screen.getByRole('link', { name: /Renewal/ }),
             ).toBeInTheDocument();
         });
+    });
+});
+
+describe('The card of a vehicle', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('lists its deadlines, with how far they are, instead of the tiles of the dates', () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-26T10:00:00+01:00'));
+        renderPage(Card, { card: pandaDetail, linkable: [] });
+
+        const deadlines = screen.getByRole('region', { name: 'Deadlines' });
+        expect(
+            within(deadlines).getByRole('link', { name: /Carburante/ }),
+        ).toHaveAttribute('href', '/budget/planned/expense/11');
+        expect(
+            within(deadlines).getByText('01/11/2026 · in 6 days · every month'),
+        ).toBeInTheDocument();
+        expect(
+            within(deadlines).getByText(`~${formatEuro(80)}`),
+        ).toBeInTheDocument();
+        expect(
+            within(deadlines).getByText(
+                '21/11/2026 · in 26 days · RC auto Panda',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            within(deadlines).getByText(formatEuro(418)),
+        ).toBeInTheDocument();
+        expect(
+            within(deadlines).getByRole('link', {
+                name: /Inspection.*Add the expense/,
+            }),
+        ).toHaveAttribute(
+            'href',
+            '/budget/planned/expense/create?card=vehicle%3A1&deadline=vehicles.inspection_due_date',
+        );
+        expect(
+            within(deadlines).getByRole('link', {
+                name: /Road tax.*Add the date/,
+            }),
+        ).toHaveAttribute('href', '/cards/vehicle/1/edit');
+        expect(
+            within(deadlines).getByText(
+                'The date of the next deadline is missing',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('puts its status first in the data, green, with no box of figures', () => {
+        renderPage(Card, { card: pandaDetail, linkable: [] });
+
+        const data = screen.getByRole('region', { name: 'Data' });
+        expect(within(data).getByText('Active')).toHaveClass('text-paid');
+        expect(screen.queryByText('Next due date')).not.toBeInTheDocument();
+    });
+
+    it('writes the deadlines as plain rows for whoever cannot add what is missing', () => {
+        renderPage(Card, {
+            card: {
+                ...pandaDetail,
+                deadlines: (pandaDetail.deadlines ?? []).map((row) => ({
+                    ...row,
+                    add_expense_href: null,
+                    add_date_href: null,
+                })),
+            },
+            linkable: [],
+        });
+
+        const deadlines = screen.getByRole('region', { name: 'Deadlines' });
+        expect(within(deadlines).getByText('Inspection')).toBeInTheDocument();
+        expect(
+            within(deadlines).queryByText('Add the expense'),
+        ).not.toBeInTheDocument();
+        expect(
+            within(deadlines).queryByText('Add the date'),
+        ).not.toBeInTheDocument();
+        expect(within(deadlines).getAllByRole('link')).toHaveLength(2);
+    });
+
+    it('has no section of deadlines on the other cards', () => {
+        renderPage(Card, { card: policyDetail, linkable: [] });
+
+        expect(
+            screen.queryByRole('region', { name: 'Deadlines' }),
+        ).not.toBeInTheDocument();
     });
 });

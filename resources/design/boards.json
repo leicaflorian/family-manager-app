@@ -136,6 +136,7 @@
         "FmQrCode": "pages",
         "FmUnlinkPhone": "pages",
         "FmPostponeSheet": "pages",
+        "FmQuickOrganizationSheet": "pages",
         "FmUploadSheet": "pages",
         "FmPageStrip": "pages",
         "FmCropStage": "pages"

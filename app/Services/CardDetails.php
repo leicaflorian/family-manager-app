@@ -27,6 +27,7 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Utility;
+use App\Models\Vehicle;
 use App\Queries\DocumentRows;
 use App\Services\Reminders\CardNotices;
 use App\Support\Linkables;
@@ -36,7 +37,6 @@ use App\Support\Translated;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
@@ -53,8 +53,11 @@ use LogicException;
  */
 final readonly class CardDetails
 {
-    /** How many documents a page of the card shows. */
+    /** How many documents the card shows before the link to all of them. */
     private const int DOCUMENTS_PER_PAGE = 5;
+
+    /** How many open linked cards the card shows before the link to all of them. */
+    private const int RELATED_SHOWN = 5;
 
     /**
      * @param  CardSummaries  $summaries  the row of the card and of the linked ones
@@ -63,8 +66,9 @@ final readonly class CardDetails
      * @param  CardNotices  $notices  its notices
      * @param  ConsumptionPage  $consumption  the consumption of a utility
      * @param  FamilyFeatures  $features  tells whether the family uses the Budget
+     * @param  VehicleDeadlines  $vehicleDeadlines  the section *Deadlines* of a vehicle
      */
-    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption, private FamilyFeatures $features) {}
+    public function __construct(private CardSummaries $summaries, private DocumentRows $documents, private CardBudgets $budgets, private CardNotices $notices, private ConsumptionPage $consumption, private FamilyFeatures $features, private VehicleDeadlines $vehicleDeadlines) {}
 
     /**
      * The detail of a card.
@@ -72,24 +76,21 @@ final readonly class CardDetails
      * @param  Model  $card  a record of one of the 13 models
      * @param  User  $user  whoever looks at the card
      * @param  CarbonImmutable|null  $today  today in Rome, the clock's if missing
-     * @param  int  $documentsPage  the page of the documents, from 1; past the last one it is the first
      * @param  int  $paymentsPage  the page of the payments, from 1; past the last one it is the first
      *
      * @throws InvalidArgumentException if the record is not a card
      */
-    public function of(Model $card, User $user, ?CarbonImmutable $today = null, int $documentsPage = 1, int $paymentsPage = 1): CardDetailData
+    public function of(Model $card, User $user, ?CarbonImmutable $today = null, int $paymentsPage = 1): CardDetailData
     {
         $today ??= CarbonImmutable::today('Europe/Rome');
         $type = CardTypes::for($card);
         $row = $this->summaries->row($card, $today);
-        // Each pager keeps the page of the other list
-        $address = static fn (int $documents, int $payments): string => route('cards.show', [
+        $address = static fn (int $payments): string => route('cards.show', [
             'type' => $type->type(),
             'id' => $row->id,
-            ...($documents > 1 ? ['documents_page' => $documents] : []),
             ...($payments > 1 ? ['payments_page' => $payments] : []),
         ]);
-        $documents = $this->documentsPage($type, $row, $documentsPage, static fn (int $number): string => $address($number, $paymentsPage));
+        $documents = $this->documentsShown($type, $row);
         $budgetOn = $this->features->on(Feature::Budget);
         $budget = match (true) {
             $budgetOn => $this->budgets->of($card, $user, $today),
@@ -97,26 +98,35 @@ final readonly class CardDetails
             $card instanceof Loan => $this->budgets->loanFigures($card, $user, $today),
             default => null,
         };
-        $dates = $this->dates($type, $card);
+        // A vehicle lists its dates in the section *Deadlines*, and its status goes to the top of its data
+        $deadlines = $card instanceof Vehicle ? $this->vehicleDeadlines->of($card, $user, $today) : null;
         $status = $this->status($type, $card);
+        $values = $this->values($type, $card, $this->shown($type, $card, $status));
+        $related = $this->related($type, $card);
+        $openRelated = array_values(array_filter($related, static fn (CardData $row): bool => ! $row->closed));
 
         return new CardDetailData(
             card: $row,
             heading: $this->heading($type, $card, $row),
-            dates: $dates,
+            dates: $deadlines === null ? $this->dates($type, $card) : [],
             notices: [...$type->notices($card), ...$this->notices->for($card, $today, $user)],
-            values: $this->values($type, $card, $this->shown($type, $card, $status)),
-            related: $this->related($type, $card),
+            values: $deadlines !== null && $status instanceof CardNumberData
+                ? [new CardValueData($status->label, (string) $status->text, tone: $status->tone), ...$values]
+                : $values,
+            related: array_slice($openRelated, 0, self::RELATED_SHOWN),
+            related_more: count($openRelated) > self::RELATED_SHOWN || count($openRelated) < count($related)
+                ? ['href' => route('cards.related', ['type' => $type->type(), 'id' => $row->id]), 'count' => count($related)]
+                : null,
             addable: CardTypes::canCreate($user) ? $this->addable($type, $card) : [],
             documents: $documents['documents'],
-            documents_previous: $documents['previous'],
-            documents_next: $documents['next'],
+            documents_more: $documents['more'],
             can_edit: Gate::forUser($user)->allows('update', $card),
             can_delete: Gate::forUser($user)->allows('delete', $card),
             can_delete_documents: Gate::forUser($user)->allows('deleteAny', Document::class),
-            budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, static fn (int $number): string => $address($documentsPage, $number)) : null,
-            status: $status,
+            budget: $budget instanceof CardBudgetData ? $this->budgets->page($budget, $paymentsPage, $address) : null,
+            status: $deadlines === null ? $status : null,
             consumption: $budgetOn && $card instanceof Utility ? $this->consumption->lastYear($card, $today) : null,
+            deadlines: $deadlines,
         );
     }
 
@@ -126,7 +136,7 @@ final readonly class CardDetails
      * @param  CardType  $type  the description of the card type
      * @param  Model|null  $card  the card to edit, or null for a new one
      * @param  array<string, mixed>  $preset  values from the address (`?vehicle_id=3`); the ones that are not fields are ignored
-     * @return array{type: CardTypeData, fields: list<CardFieldData>, values: array<string, mixed>}
+     * @return array{type: CardTypeData, fields: list<CardFieldData>, values: array<string, mixed>, titleParts: list<list<string>>}
      */
     public function form(CardType $type, ?Model $card, array $preset): array
     {
@@ -137,6 +147,7 @@ final readonly class CardDetails
             'type' => CardTypeData::fromCardType($type),
             'fields' => array_map($this->fieldData(...), $fields),
             'values' => $values,
+            'titleParts' => $type->titleParts(),
         ];
     }
 
@@ -299,12 +310,16 @@ final readonly class CardDetails
     }
 
     /**
-     * The cards linked to this one, in both directions, as rows.
+     * The cards linked to this one, in both directions, as rows: the ones with a date coming first, the soonest
+     * first; then the others, the most recent date first; the closed ones last.
      *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
      * @return list<CardData>
      */
-    private function related(CardType $type, Model $card): array
+    public function related(CardType $type, Model $card): array
     {
+        $today = CarbonImmutable::today('Europe/Rome')->format('Y-m-d');
         $rows = [];
 
         foreach ($type->related() as $relation) {
@@ -318,6 +333,17 @@ final readonly class CardDetails
             }
         }
 
+        $group = static fn (CardData $row): int => match (true) {
+            $row->closed => 2,
+            $row->next_date !== null && $row->next_date >= $today => 0,
+            default => 1,
+        };
+
+        usort($rows, static fn (CardData $a, CardData $b): int => $group($a) <=> $group($b)
+            ?: ($group($a) === 0
+                ? strcmp((string) $a->next_date, (string) $b->next_date)
+                : strcmp((string) $b->next_date, (string) $a->next_date)));
+
         return $rows;
     }
 
@@ -325,11 +351,13 @@ final readonly class CardDetails
      * The cards that can be added already linked to this one, each with the
      * address of its form.
      *
+     * @param  CardType  $type  the type of the card
+     * @param  Model  $card  the card
      * @return list<CardAddData>
      *
      * @throws InvalidArgumentException if the card has no numeric id
      */
-    private function addable(CardType $type, Model $card): array
+    public function addable(CardType $type, Model $card): array
     {
         return array_map(
             static fn (array $entry): CardAddData => new CardAddData(
@@ -455,7 +483,7 @@ final readonly class CardDetails
         return match ($field->kind) {
             FieldKind::Choice, FieldKind::Dropdown => OptionData::list($this->enumOptions($field)),
             FieldKind::Person => array_values(Person::query()->orderBy('first_name')->orderBy('last_name')->get()
-                ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}"))->all()),
+                ->map(static fn (Person $person): OptionData => new OptionData((string) $person->id, "{$person->first_name} {$person->last_name}", title: $person->first_name))->all()),
             FieldKind::Organization => array_values(Organization::query()->orderBy('name')->get()
                 ->map(static fn (Organization $organization): OptionData => new OptionData((string) $organization->id, $organization->name))->all()),
             FieldKind::Card => $this->cardOptions($field),
@@ -519,30 +547,19 @@ final readonly class CardDetails
     }
 
     /**
-     * A page of the documents of the card, with the addresses of the pages
-     * before and after it. A page past the last one (the last document of the
-     * page just unlinked) gives the first.
+     * The first documents of the card, and the address of the list of all of them when there are more.
      *
      * @param  CardType  $type  the description of the card type
      * @param  CardData  $row  the row of the card
-     * @param  int  $page  the page asked for, from 1
-     * @param  Closure(int): string  $address  the address of a page, from its number
-     * @return array{documents: list<DocumentData>, previous: ?string, next: ?string}
+     * @return array{documents: list<DocumentData>, more: ?string}
      */
-    private function documentsPage(CardType $type, CardData $row, int $page, Closure $address): array
+    private function documentsShown(CardType $type, CardData $row): array
     {
-        $filters = ['record' => ['type' => $type->type(), 'id' => $row->id]];
-        $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
-
-        if ($found['documents'] === [] && $page > 1) {
-            $page = 1;
-            $found = $this->documents->page($filters, $page, self::DOCUMENTS_PER_PAGE);
-        }
+        $found = $this->documents->page(['record' => ['type' => $type->type(), 'id' => $row->id]], 1, self::DOCUMENTS_PER_PAGE);
 
         return [
             'documents' => $found['documents'],
-            'previous' => $page > 1 ? $address($page - 1) : null,
-            'next' => $found['next'] !== null ? $address($found['next']) : null,
+            'more' => $found['total'] > self::DOCUMENTS_PER_PAGE ? route('documents.index', ['card' => $type->type().':'.$row->id]) : null,
         ];
     }
 

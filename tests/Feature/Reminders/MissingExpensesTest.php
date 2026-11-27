@@ -48,7 +48,7 @@ test('a planned expense in progress for the same card is enough', function (): v
     insideFamilyOf($this->user, function (): void {
         $panda = Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
         $reminder = reminderOf($panda, 'vehicles.road_tax_due_date');
-        agendaPlanned($panda, 'Bollo', 180, '2025-01-31', ['end_date' => null]);
+        agendaPlanned($panda, 'Bollo', 180, '2025-01-31', ['end_date' => null, 'deadline_field' => 'vehicles.road_tax_due_date']);
 
         expect(resolve(MissingExpenses::class)->of(collect([$reminder]), $this->today))->toBe([]);
     });
@@ -60,8 +60,8 @@ test('a planned expense that ends today still counts, the one that ended yesterd
         $golf = Vehicle::factory()->create(['family_id' => CurrentFamily::id()]);
         $pandaReminder = reminderOf($panda, 'vehicles.road_tax_due_date');
         $golfReminder = reminderOf($golf, 'vehicles.inspection_due_date');
-        agendaPlanned($panda, 'Bollo', 180, '2025-01-31', ['end_date' => '2026-10-26']);
-        agendaPlanned($golf, 'Revisione', 80, '2025-01-31', ['end_date' => '2026-10-25']);
+        agendaPlanned($panda, 'Bollo', 180, '2025-01-31', ['end_date' => '2026-10-26', 'deadline_field' => 'vehicles.road_tax_due_date']);
+        agendaPlanned($golf, 'Revisione', 80, '2025-01-31', ['end_date' => '2026-10-25', 'deadline_field' => 'vehicles.inspection_due_date']);
 
         expect(resolve(MissingExpenses::class)->of(collect([$pandaReminder, $golfReminder]), $this->today))->toBe([$golfReminder->id => true]);
     });
@@ -104,7 +104,7 @@ test('ten reminders cost one query', function (): void {
             $reminders->push(reminderOf($vehicle, 'vehicles.road_tax_due_date'));
 
             if ($number % 2 === 0) {
-                agendaPlanned($vehicle, 'Bollo', 180, '2025-01-31');
+                agendaPlanned($vehicle, 'Bollo', 180, '2025-01-31', ['deadline_field' => 'vehicles.road_tax_due_date']);
             }
         }
 

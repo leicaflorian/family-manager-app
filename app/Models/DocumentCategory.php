@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\DocumentCategoryRole;
 use App\Services\CategoryTree;
 use Carbon\CarbonImmutable;
 use Database\Factories\DocumentCategoryFactory;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $icon
  * @property string|null $color
  * @property string|null $card_type The type of card the documents of the category go with
+ * @property DocumentCategoryRole|null $role What the app means by the category, once per family; kept when it is renamed or moved
  * @property bool $gallery Whether the category (with its subcategories) is shown as the drawings gallery
  * @property int|null $sort
  * @property int|null $created_by
@@ -44,7 +46,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type', 'gallery'])]
+#[Fillable(['name', 'parent_id', 'icon', 'color', 'sort', 'card_type', 'gallery', 'role'])]
 final class DocumentCategory extends FamilyModel
 {
     /** @use HasFactory<DocumentCategoryFactory> */
@@ -93,6 +95,17 @@ final class DocumentCategory extends FamilyModel
     }
 
     /**
+     * The category of the family with a fixed role, wherever it sits and whatever it is called.
+     *
+     * @param  DocumentCategoryRole  $role  the role
+     * @return self|null null when the family has none (it deleted it)
+     */
+    public static function withRole(DocumentCategoryRole $role): ?self
+    {
+        return self::query()->where('role', $role)->first();
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -102,6 +115,7 @@ final class DocumentCategory extends FamilyModel
         return [
             'sort' => 'integer',
             'gallery' => 'boolean',
+            'role' => DocumentCategoryRole::class,
         ];
     }
 }

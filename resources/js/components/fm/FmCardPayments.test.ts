@@ -7,6 +7,45 @@ import FmCardPayments from './FmCardPayments.vue';
 const card = { type: 'utility', id: 3 };
 
 describe('FmCardPayments', () => {
+    it('shows the summary as the first row of the payments', () => {
+        renderPage(FmCardPayments, {
+            budget: {
+                ...luceBudget,
+                planned_label: null,
+                payments_label: 'Expenses',
+                summary: {
+                    label: 'In the next 12 months',
+                    amount: 1576,
+                    count: null,
+                    hint: 'carburante, assicurazione auto, bollo auto',
+                    hint_amount: null,
+                    text: null,
+                    tone: null,
+                    estimated: true,
+                },
+            },
+            card: { type: 'vehicle', id: 1 },
+        });
+
+        const paid = screen.getByRole('region', { name: 'Expenses' });
+        const summary = within(paid)
+            .getByText('In the next 12 months')
+            .closest('[data-summary]');
+        expect(summary).not.toBeNull();
+        expect(
+            within(summary as HTMLElement).getByText(
+                'carburante, assicurazione auto, bollo auto',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            within(summary as HTMLElement).getByText(/1\.576,00/),
+        ).toHaveTextContent('~1.576,00');
+        // It comes before the payments
+        expect(paid.textContent?.indexOf('In the next 12 months')).toBeLessThan(
+            paid.textContent?.indexOf('2026') ?? 0,
+        );
+    });
+
     it('lists the planned expenses, with Add, and the latest payments, with Record payment and the link to all of them', () => {
         renderPage(FmCardPayments, { budget: luceBudget, card });
 

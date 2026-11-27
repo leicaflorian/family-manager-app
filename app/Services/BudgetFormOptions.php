@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Cards\CardDate;
 use App\Cards\CardType;
 use App\Cards\CardTypes;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Cards\FieldKind;
 use App\Data\CardChoiceData;
 use App\Data\OptionData;
@@ -37,7 +39,7 @@ final class BudgetFormOptions
      * The choices of the form of a planned expense or income; the lists that do not belong to the kind are empty.
      *
      * @param  string  $kind  `expense` or `income`
-     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<CardChoiceData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, employments: list<OptionData>, income_types: list<OptionData>}
+     * @return array{accounts: list<OptionData>, categories: list<OptionData>, organizations: list<OptionData>, people: list<OptionData>, cards: list<CardChoiceData>, category_card_types: array<int, string>, card_type_labels: array<string, string>, deadline_fields: array<string, list<OptionData>>, employments: list<OptionData>, income_types: list<OptionData>}
      */
     public static function for(string $kind): array
     {
@@ -51,6 +53,7 @@ final class BudgetFormOptions
             'cards' => $expense ? self::cards() : [],
             'category_card_types' => $expense ? self::categoryCardTypes() : [],
             'card_type_labels' => $expense ? self::cardTypeLabels() : [],
+            'deadline_fields' => $expense ? self::deadlineFields() : [],
             'employments' => $expense ? [] : self::employments(),
             'income_types' => $expense ? [] : OptionData::list(IncomeType::options()),
         ];
@@ -254,6 +257,27 @@ final class BudgetFormOptions
         }
 
         return $labels;
+    }
+
+    /**
+     * The deadlines a planned expense can pay, by card type: only the types with a deadline that has an expense of its
+     * own (road tax and inspection of a vehicle) are here.
+     *
+     * @return array<string, list<OptionData>>
+     */
+    private static function deadlineFields(): array
+    {
+        $fields = [];
+
+        foreach (CardTypes::all() as $type) {
+            $sources = DeadlineSources::ownExpenseFor($type->model());
+
+            if ($sources !== []) {
+                $fields[$type->type()] = array_map(static fn (DeadlineSource $source): OptionData => new OptionData($source->field, (string) $source->label), $sources);
+            }
+        }
+
+        return $fields;
     }
 
     /**

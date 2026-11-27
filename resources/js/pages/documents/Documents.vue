@@ -50,6 +50,8 @@ const props = defineProps<{
     previousPage: string | null;
     /** The filters in use. */
     filters: DocumentFilters;
+    /** The name of the card the list is limited to (`filters.card`), null without one. */
+    cardLabel: string | null;
     /** The family has at least one document, whatever the filters. */
     hasDocuments: boolean;
     /** The choices of the filters. */
@@ -96,6 +98,14 @@ const pills = computed(() => {
         label: string;
         without: Partial<DocumentFilters>;
     }[] = [];
+
+    if (filters.card && props.cardLabel) {
+        list.push({
+            key: 'card',
+            label: props.cardLabel,
+            without: { card: null },
+        });
+    }
 
     if (filters.category !== null) {
         list.push({
@@ -169,13 +179,19 @@ const {
 
 /** How many documents pass the filters, said beside the pills (or above the list without filters). */
 const count = computed(() =>
-    transChoice(
-        '{1} :count document, the most recent first|[2,*] :count documents, the most recent first',
-        props.total,
-        {
-            count: String(props.total),
-        },
-    ),
+    props.filters.card && props.cardLabel
+        ? transChoice(
+              '{1} :count document linked to :card, the most recent first|[2,*] :count documents linked to :card, the most recent first',
+              props.total,
+              { count: String(props.total), card: props.cardLabel },
+          )
+        : transChoice(
+              '{1} :count document, the most recent first|[2,*] :count documents, the most recent first',
+              props.total,
+              {
+                  count: String(props.total),
+              },
+          ),
 );
 
 /** The place of the chosen document in this page of the list (from 1), or null when it is not there. */

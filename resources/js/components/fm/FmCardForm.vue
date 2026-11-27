@@ -9,7 +9,11 @@
  * the form shows the total to pay and the cost, which it asks the server for
  * (a partial reload) 300 ms after the amounts or the start stop changing. The
  * `after` slot, above the buttons, gets the live values for what depends on
- * them. The same form creates and
+ * them. A type whose name is composed from its fields (`titleParts`: a
+ * utility, an employment, an enrollment) shows that name at the top, read-only,
+ * as it will be saved. Beside every organization menu, to whoever may add one,
+ * a «+» opens *New organization* (`FmQuickOrganizationSheet`) and chooses the
+ * organization added, keeping what was written. The same form creates and
  * edits every type of card: the page gives the fields and the values, and gets
  * them back with `submit`.
  *
@@ -17,14 +21,17 @@
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
+import { Plus } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
-import { fieldInput, isMenuField } from '@/lib/cards';
+import { composeTitle, fieldInput, isMenuField } from '@/lib/cards';
 import { errors } from '@/lib/errors';
 import { isEmpty } from '@/lib/forms';
 import FmButton from './FmButton.vue';
 import FmLoanFigures from './FmLoanFigures.vue';
+import FmQuickOrganizationSheet from './FmQuickOrganizationSheet.vue';
+import type { QuickOrganization } from './FmQuickOrganizationSheet.vue';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 
 const {
@@ -33,6 +40,9 @@ const {
     serverErrors = {},
     processing = false,
     loanFigures = undefined,
+    titleParts = [],
+    canCreateOrganization = false,
+    organizationTypes = [],
 } = defineProps<{
     /** The description of the fields, in the order they are shown. */
     fields: App.Data.CardFieldData[];
@@ -44,6 +54,12 @@ const {
     processing?: boolean;
     /** The total to pay and the cost of a loan: null until the server answers, left out for any other card. */
     loanFigures?: App.Data.LoanFiguresData | null;
+    /** How the type composes its name from the fields (each part a list of columns, the first with a value wins); empty for a type with its own name. */
+    titleParts?: string[][];
+    /** Whether the person may add an organization: the «+» beside the organization menus. */
+    canCreateOrganization?: boolean;
+    /** Every type of organization, for *New organization*. */
+    organizationTypes?: App.Data.OptionData[];
 }>();
 
 const emit = defineEmits<{
@@ -191,6 +207,64 @@ function optionsOf(
         : options;
 }
 
+/**
+ * The values as they are sent: a hidden field is empty, a switch is on or off.
+ *
+ * @returns the value of every field, by column
+ */
+function sent(): Record<string, unknown> {
+    return Object.fromEntries(
+        fields.map((field) => [
+            field.column,
+            isShown(field) &&
+            (field.kind === 'toggle' || !isEmpty(data[field.column]))
+                ? data[field.column]
+                : null,
+        ]),
+    );
+}
+
+/** The name the card will have with the values now, empty while nothing composes it. */
+const title = computed(() => composeTitle(titleParts, fields, sent()));
+
+/**
+ * Whether a field has the «+» that adds an organization beside it.
+ *
+ * @param field - the field
+ * @returns true for an organization menu, when the person may add one
+ */
+function adds(field: App.Data.CardFieldData): boolean {
+    return canCreateOrganization && field.kind === 'organization';
+}
+
+/** The column of the organization menu whose «+» opened the panel. */
+const adding = ref<string | null>(null);
+
+/** *New organization* is open. */
+const addingOpen = ref(false);
+
+/**
+ * Opens *New organization* for a menu.
+ *
+ * @param column - the column of the menu
+ */
+function addOrganization(column: string): void {
+    adding.value = column;
+    addingOpen.value = true;
+}
+
+/**
+ * Chooses the organization just added in the menu that asked for it: the page
+ * has already come back with it among the options.
+ *
+ * @param organization - the organization added
+ */
+function chooseAdded(organization: QuickOrganization): void {
+    if (adding.value !== null) {
+        data[adding.value] = String(organization.id);
+    }
+}
+
 /** Sends the values, if every shown field that is required has one. */
 function save(): void {
     missing.value = Object.fromEntries(
@@ -203,44 +277,70 @@ function save(): void {
         return;
     }
 
-    emit(
-        'submit',
-        Object.fromEntries(
-            fields.map((field) => [
-                field.column,
-                isShown(field) &&
-                (field.kind === 'toggle' || !isEmpty(data[field.column]))
-                    ? data[field.column]
-                    : null,
-            ]),
-        ),
-    );
+    emit('submit', sent());
 }
 
-useSaveShortcut(save, () => !processing);
+// While *New organization* is open, ⌘S is not for the card
+useSaveShortcut(save, () => !processing && !addingOpen.value);
 </script>
 
 <template>
     <form class="flex flex-col gap-3.5" novalidate @submit.prevent="save">
+        <FormKit
+            v-if="titleParts.length > 0"
+            type="text"
+            name="composed_title"
+            :label="$t('Title')"
+            :model-value="title"
+            :placeholder="$t('It is made from the fields below')"
+            readonly
+            inner-class="$reset flex h-control items-center rounded-control border-[1.5px] border-edge-soft bg-segment px-3.5"
+        />
         <template v-for="field in shown" :key="field.column">
-            <FormKit
-                v-model="data[field.column]"
-                :type="fieldInput(field.kind)"
-                :name="field.column"
-                :label="$t(labelOf(field))"
-                :options="
-                    field.kind === 'choice' || isMenuField(field.kind)
-                        ? optionsOf(field)
-                        : undefined
+            <!-- With the «+», the sections of the field join a grid of their own: the label above, the «+» beside the menu -->
+            <div
+                :class="
+                    adds(field)
+                        ? 'mb-3.5 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2'
+                        : 'contents'
                 "
-                :open-on-click="isMenuField(field.kind) ? true : undefined"
-                :enforced="
-                    field.kind === 'choice' && field.required ? true : undefined
-                "
-                :errors="
-                    errors(missing[field.column] ?? serverErrors[field.column])
-                "
-            />
+            >
+                <FormKit
+                    v-model="data[field.column]"
+                    :type="fieldInput(field.kind)"
+                    :name="field.column"
+                    :label="$t(labelOf(field))"
+                    :options="
+                        field.kind === 'choice' || isMenuField(field.kind)
+                            ? optionsOf(field)
+                            : undefined
+                    "
+                    :open-on-click="isMenuField(field.kind) ? true : undefined"
+                    :enforced="
+                        field.kind === 'choice' && field.required
+                            ? true
+                            : undefined
+                    "
+                    :errors="
+                        errors(
+                            missing[field.column] ?? serverErrors[field.column],
+                        )
+                    "
+                    :outer-class="adds(field) ? 'contents' : undefined"
+                    :wrapper-class="adds(field) ? 'contents' : undefined"
+                    :label-class="adds(field) ? 'col-span-2' : undefined"
+                    :help-class="adds(field) ? 'col-span-2' : undefined"
+                    :messages-class="adds(field) ? 'col-span-2' : undefined"
+                />
+                <FmButton
+                    v-if="adds(field)"
+                    class="col-start-2 row-start-2"
+                    outlined
+                    :icon="Plus"
+                    :label="$t('New organization')"
+                    @click="addOrganization(field.column)"
+                />
+            </div>
             <FmLoanFigures
                 v-if="
                     loanFigures !== undefined && field.column === FIGURES_AFTER
@@ -249,6 +349,12 @@ useSaveShortcut(save, () => !processing);
             />
         </template>
         <slot name="after" :values="data" />
+        <FmQuickOrganizationSheet
+            v-if="canCreateOrganization"
+            v-model:open="addingOpen"
+            :types="organizationTypes"
+            @created="chooseAdded"
+        />
         <div class="mt-1 flex flex-wrap items-center justify-between gap-2.5">
             <slot name="start" />
             <FmButton type="submit" class="ml-auto" :disabled="processing">

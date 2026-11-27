@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Reminders;
 
+use App\Enums\DocumentCategoryRole;
 use App\Enums\DocumentStatus;
 use App\Enums\EmploymentStatus;
 use App\Enums\FilingStatus;
@@ -12,10 +13,13 @@ use App\Enums\FinancialAccountStatus;
 use App\Enums\FinancialAccountType;
 use App\Enums\VehicleStatus;
 use App\Models\Document;
+use App\Models\DocumentCategory;
 use App\Models\Employment;
 use App\Models\Filing;
 use App\Models\FinancialAccount;
 use App\Models\Vehicle;
+use App\Services\CategoryTree;
+use App\Support\CurrentFamily;
 use App\Support\ModelId;
 use App\Support\Translated;
 use Carbon\CarbonImmutable;
@@ -25,10 +29,13 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * The documents a card is expected to have, by rules in the code (no table): the registration document of an active
  * vehicle and the file of an ISEE in draft. A document counts when it is linked to the card and recognised by its
- * title, category, person and date, as the board *Pratica* shows ("Documents 3 of 4 collected").
+ * category (the registration document of a vehicle: the category with the role, or one under it), title, person and date, as the board *Pratica* shows ("Documents 3 of 4 collected").
  */
 final class ExpectedDocuments
 {
+    /** @var array<int, array{id: int, tree: list<int>}|null> the registration document category and the ids under it, by family, read once per instance */
+    private array $registration = [];
+
     /**
      * What a card expects and what of it is still missing.
      *
@@ -78,7 +85,7 @@ final class ExpectedDocuments
 
         foreach ($cards as $card) {
             foreach ($this->for($card, $today)['missing'] as $document) {
-                $rows[] = ['card' => $card->label(), 'href' => self::uploadHref($card), 'document' => $document];
+                $rows[] = ['card' => $card->label(), 'href' => self::uploadHref($card, $this->categoryFor($card)), 'document' => $document];
             }
         }
 
@@ -86,17 +93,50 @@ final class ExpectedDocuments
     }
 
     /**
-     * The page that uploads a document with the card already among its links.
+     * The category the missing documents of a card go in: the registration document category of a vehicle.
      *
      * @param  Model  $card  a card
+     * @return int|null null when the card expects no category, or the family has deleted the category of the role
      */
-    public static function uploadHref(Model $card): string
+    public function categoryFor(Model $card): ?int
     {
-        return route('upload', ['link' => $card->getMorphClass().':'.ModelId::of($card)], false);
+        return $card instanceof Vehicle ? $this->registration()['id'] ?? null : null;
     }
 
     /**
-     * The registration document of an active vehicle.
+     * The registration document category of the current family with the ids of it and of all those under it, read
+     * once: the Home and the notices ask for it once per vehicle.
+     *
+     * @return array{id: int, tree: list<int>}|null null when the family has deleted the category of the role
+     */
+    private function registration(): ?array
+    {
+        $family = CurrentFamily::id() ?? 0;
+
+        if (! array_key_exists($family, $this->registration)) {
+            $category = DocumentCategory::withRole(DocumentCategoryRole::VehicleRegistration);
+            $this->registration[$family] = $category instanceof DocumentCategory
+                ? ['id' => $category->id, 'tree' => (new CategoryTree)->withDescendants($category->id)]
+                : null;
+        }
+
+        return $this->registration[$family];
+    }
+
+    /**
+     * The page that uploads a document with the card already among its links, and the category already chosen.
+     *
+     * @param  Model  $card  a card
+     * @param  int|null  $category  the document category the import form starts with
+     */
+    public static function uploadHref(Model $card, ?int $category = null): string
+    {
+        return route('upload', array_filter(['link' => $card->getMorphClass().':'.ModelId::of($card), 'category' => $category]), false);
+    }
+
+    /**
+     * The registration document of an active vehicle: a document in the category with the role, or under it. A
+     * family that deleted that category expects nothing.
      *
      * @return array<string, array{name: string, met: Closure(array<int, Document>): bool}> each expected document by a stable id (`account:12`, `job:5`), with its name and its test
      */
@@ -106,10 +146,18 @@ final class ExpectedDocuments
             return [];
         }
 
+        $category = $this->registration();
+
+        if ($category === null) {
+            return [];
+        }
+
+        $ids = $category['tree'];
+
         return ['registration' => [
             'name' => Translated::text('Vehicle registration document'),
             'met' => static fn ($documents): bool => array_any($documents,
-                static fn (Document $document): bool => self::titled($document, ['libretto', 'registration']),
+                static fn (Document $document): bool => in_array($document->category_id, $ids, true),
             ),
         ]];
     }

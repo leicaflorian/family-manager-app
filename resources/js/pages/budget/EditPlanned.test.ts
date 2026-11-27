@@ -85,6 +85,75 @@ describe('Edit a planned expense', () => {
         ).toBeInTheDocument();
     });
 
+    it('offers *Pays the deadline* for a vehicle only, with the value of the preset', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditPlanned, {
+            ...props,
+            values: {
+                ...newPlannedValues,
+                title: 'Inspection',
+                amount: 80,
+                start_date: '2027-03-21',
+                category_id: '10',
+                card: 'vehicle:1',
+                deadline_field: 'vehicles.inspection_due_date',
+            },
+        });
+
+        await settle();
+        expect(
+            screen.getByRole('button', { name: 'Pays the deadline' }),
+        ).toHaveTextContent('Inspection');
+        expect(
+            screen.getByText(
+                'The payment closes the reminder of this deadline. You update the date on the card, and the expense follows it.',
+            ),
+        ).toBeInTheDocument();
+        const list = await openMenu('Pays the deadline');
+
+        expect(shown(list)).toEqual(['Road tax', 'Inspection', 'No deadline']);
+        await userEvent.click(
+            within(list).getByRole('option', { name: 'Road tax' }),
+        );
+        await settle();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/planned/expense',
+            expect.objectContaining({
+                deadline_field: 'vehicles.road_tax_due_date',
+            }),
+            expect.anything(),
+        );
+    });
+
+    it('has no *Pays the deadline* without a card, or with a card of another type', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        renderPage(EditPlanned, {
+            ...props,
+            values: {
+                ...newPlannedValues,
+                title: 'Luce',
+                amount: 84.2,
+                start_date: '2026-11-15',
+                category_id: '3',
+                card: 'utility:3',
+                deadline_field: 'vehicles.road_tax_due_date',
+            },
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Pays the deadline' }),
+        ).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/planned/expense',
+            expect.objectContaining({ deadline_field: null }),
+            expect.anything(),
+        );
+    });
+
     it('starts from the card of a card page, with its category and the field named after its type', async () => {
         const post = vi.spyOn(router, 'post').mockImplementation(() => {});
         renderPage(EditPlanned, {

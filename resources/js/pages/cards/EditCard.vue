@@ -9,7 +9,9 @@
  * On the computer, below them, the planned expenses and the payments of the
  * card (`FmCardPayments`), as the board *Modifica-pc*. With the Budget off
  * a new subscription has no section *Planned expense* and the old policy
- * replaced keeps its premium.
+ * replaced keeps its premium. A type whose name is composed (a utility, an
+ * employment, an enrollment) shows it read-only at the top of the form, and
+ * whoever may add organizations gets a «+» beside each organization menu.
  */
 import type { RequestPayload } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/vue3';
@@ -48,6 +50,9 @@ const {
     replaces = [],
     payment = null,
     expenseCategories = [],
+    titleParts = [],
+    canCreateOrganization = false,
+    organizationTypes = [],
 } = defineProps<{
     /** The card type. */
     type: App.Data.CardTypeData;
@@ -83,6 +88,12 @@ const {
     payment?: number | null;
     /** The expense categories, for the planned expense of a new subscription. */
     expenseCategories?: App.Data.OptionData[];
+    /** How the type composes its name from the fields, for the read-only *Title*; empty for a type with its own name. */
+    titleParts?: string[][];
+    /** Whether the person may add an organization from the form (the «+» beside the organization menus). */
+    canCreateOrganization?: boolean;
+    /** Every type of organization, for *New organization*; empty when the person may not add one. */
+    organizationTypes?: App.Data.OptionData[];
 }>();
 
 /** The box *Cancel the policy* exists only for a new policy. */
@@ -261,6 +272,9 @@ function save(data: Record<string, unknown>): void {
                     :values="values"
                     :server-errors="serverErrors"
                     :processing="processing"
+                    :title-parts="titleParts"
+                    :can-create-organization="canCreateOrganization"
+                    :organization-types="organizationTypes"
                     :loan-figures="
                         type.type === 'loan' ? loanFigures : undefined
                     "

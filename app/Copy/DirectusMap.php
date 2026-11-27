@@ -6,6 +6,7 @@ namespace App\Copy;
 
 use App\Support\Linkables;
 use App\Support\Reminders\NotificationRule;
+use App\Support\VehicleDeadlineFromTitle;
 use Closure;
 use InvalidArgumentException;
 
@@ -296,7 +297,7 @@ final class DirectusMap
     }
 
     /**
-     * Replaces the seven card columns of a planned expense, already translated to new ids, with the morph pair.
+     * Replaces the seven card columns of a planned expense, already translated to new ids, with the morph pair, and gives a vehicle's expense the deadline its title says.
      * The first card filled wins; a card that was not copied counts as empty.
      *
      * @param  array<string, mixed>  $copy  the row with `<type>_id` columns
@@ -314,7 +315,9 @@ final class DirectusMap
             unset($copy["{$type}_id"]);
         }
 
-        return [...$copy, ...$pair];
+        $deadline = $pair['card_type'] === 'vehicle' && is_string($copy['title'] ?? null) ? VehicleDeadlineFromTitle::of($copy['title']) : null;
+
+        return [...$copy, ...$pair, 'deadline_field' => $deadline];
     }
 
     /**

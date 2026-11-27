@@ -129,7 +129,7 @@ final readonly class Agenda
                 continue;
             }
 
-            $key = $this->sameCard($card, $payment->occurrence->date);
+            $key = $this->sameCard($card, $payment->occurrence->date, $payment->planned->deadline_field);
 
             // The payment with the lowest planned id merges, whatever order the due dates come in
             if (! isset($byCard[$key]) || $payment->planned->id < $payments[$byCard[$key]]->planned->id) {
@@ -142,11 +142,13 @@ final readonly class Agenda
 
         foreach ($deadlines as $deadline) {
             // Paid by the payment of its card on that day: it leaves with the payment, as paid due dates do
-            if ($deadline->source->hasExpense && isset($paid[$this->sameCard($deadline->card, $deadline->date)])) {
+            $deadlineKey = $this->sameCard($deadline->card, $deadline->date, $deadline->source->ownExpense ? $deadline->source->field : null);
+
+            if ($deadline->source->hasExpense && isset($paid[$deadlineKey])) {
                 continue;
             }
 
-            $index = $deadline->source->hasExpense ? ($byCard[$this->sameCard($deadline->card, $deadline->date)] ?? null) : null;
+            $index = $deadline->source->hasExpense ? ($byCard[$deadlineKey] ?? null) : null;
 
             if ($index === null || isset($merged[$index])) {
                 $entries[] = ['entry' => $this->deadlineEntry($deadline, $reminder($deadline)), 'deadline' => $deadline];
@@ -197,7 +199,7 @@ final readonly class Agenda
 
         foreach ($paid as $payment) {
             $card = PlannedKind::card($payment->planned);
-            $reminder = $card instanceof Model ? ($done[$this->sameCard($card, $payment->occurrence->date)] ?? null) : null;
+            $reminder = $card instanceof Model && $payment->planned instanceof PlannedExpense ? ($done[$this->sameCard($card, $payment->occurrence->date, $payment->planned->deadline_field)] ?? null) : null;
 
             if ($reminder !== null && ! in_array($reminder, $carried, true)) {
                 $carried[] = $reminder;
@@ -237,7 +239,7 @@ final readonly class Agenda
             $card = $reminder->link?->subject;
 
             if ($card instanceof Model && ($source?->hasExpense === true || $reminder->source_field === Renewals::FIELD)) {
-                $byCard[$this->sameCard($card, $reminder->due_date)] ??= $reminder->id;
+                $byCard[$this->sameCard($card, $reminder->due_date, $source?->ownExpense === true ? $source->field : null)] ??= $reminder->id;
             }
         }
 
@@ -281,7 +283,7 @@ final readonly class Agenda
             $card = $due->isPaid() && $due->planned instanceof PlannedExpense ? PlannedKind::card($due->planned) : null;
 
             if ($card instanceof Model) {
-                $paid[$this->sameCard($card, $due->occurrence->date)] = true;
+                $paid[$this->sameCard($card, $due->occurrence->date, $due->planned->deadline_field)] = true;
             }
         }
 
@@ -488,9 +490,10 @@ final readonly class Agenda
      *
      * @param  Model  $card  the card
      * @param  CarbonImmutable  $date  the day
+     * @param  string|null  $field  the deadline of the card, for a deadline with an expense of its own and the payment that pays it; null for the others
      */
-    private function sameCard(Model $card, CarbonImmutable $date): string
+    private function sameCard(Model $card, CarbonImmutable $date, ?string $field = null): string
     {
-        return $card->getMorphClass().'|'.ModelId::of($card).'|'.$date->toDateString();
+        return $card->getMorphClass().'|'.ModelId::of($card).'|'.$date->toDateString().($field === null ? '' : '|'.$field);
     }
 }

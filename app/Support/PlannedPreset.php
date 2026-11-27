@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Cards\CardTypes;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Enums\EnrollmentType;
 use App\Enums\InsurancePolicyType;
 use App\Models\BankTransaction;
@@ -29,6 +31,9 @@ use InvalidArgumentException;
  */
 final class PlannedPreset
 {
+    /** Every how many years a deadline with an expense of its own is paid; one year when it is not here. */
+    private const array DEADLINE_INTERVALS = ['vehicles.inspection_due_date' => 2];
+
     /**
      * The starting values of a new planned expense or income without a card.
      *
@@ -51,7 +56,7 @@ final class PlannedPreset
             'financial_account_id' => null,
             'person_id' => null,
             'bank_match' => null,
-            ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null] : ['type' => 'salary', 'employment_id' => null],
+            ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null, 'deadline_field' => null] : ['type' => 'salary', 'employment_id' => null],
         ];
     }
 
@@ -89,6 +94,7 @@ final class PlannedPreset
             ...$values,
             'fee_amount' => $planned->fee_amount === null ? null : (float) $planned->fee_amount,
             'category_id' => $planned->category_id,
+            'deadline_field' => $planned->deadline_field,
             'card' => $card instanceof Model ? CardTypes::for($card)->type().':'.ModelId::of($card) : null,
         ]);
     }
@@ -124,9 +130,10 @@ final class PlannedPreset
      * and the first main category (by order, then name) whose expenses refer to cards of its type, when there is one.
      *
      * @param  mixed  $link  the `card` of the query
+     * @param  mixed  $deadline  the `deadline` of the query: the deadline of the card the expense pays (`vehicles.inspection_due_date`); the title, the first due date and how often come from it
      * @return array<string, mixed> nothing when the text is not a card of the family
      */
-    public static function fromQuery(mixed $link): array
+    public static function fromQuery(mixed $link, mixed $deadline = null): array
     {
         $card = PresetLink::from($link);
 
@@ -135,10 +142,39 @@ final class PlannedPreset
         }
 
         $category = ExpenseCategory::firstOfCardType($card['type']);
+        $model = CardTypes::findOrFail($card['type'])->findOrFail($card['id']);
 
         return [
-            ...self::from(CardTypes::findOrFail($card['type'])->findOrFail($card['id'])),
+            ...self::from($model),
+            ...self::forDeadline($model, $deadline),
             ...is_int($category) ? ['category_id' => (string) $category] : [],
+        ];
+    }
+
+    /**
+     * What a deadline with an expense of its own tells a new planned expense: its name as the title, the date of the
+     * card as the first due date, every year (every 2 years for the inspection) and an estimated amount to write.
+     *
+     * @param  Model  $card  the card
+     * @param  mixed  $deadline  the key of the deadline
+     * @return array<string, mixed> nothing when the deadline is not one of the card's with an expense of its own
+     */
+    private static function forDeadline(Model $card, mixed $deadline): array
+    {
+        $source = is_string($deadline) ? collect(DeadlineSources::ownExpenseFor($card::class))->first(static fn (DeadlineSource $source): bool => $source->field === $deadline) : null;
+        $date = $source instanceof DeadlineSource ? $card->getAttribute($source->column) : null;
+
+        if (! $source instanceof DeadlineSource) {
+            return [];
+        }
+
+        return [
+            'title' => (string) $source->label,
+            ...$date instanceof CarbonInterface ? ['start_date' => $date->toDateString()] : [],
+            'interval' => self::DEADLINE_INTERVALS[$source->field] ?? 1,
+            'interval_unit' => 'year',
+            'is_estimated' => true,
+            'deadline_field' => $source->field,
         ];
     }
 
@@ -247,11 +283,12 @@ final class PlannedPreset
     }
 
     /**
-     * The title of a planned expense for a policy, from its type.
+     * The title of a planned expense for a policy, from its type; also the name of the expiry of a policy in the
+     * section *Deadlines* of a vehicle with the Budget off.
      *
      * @param  InsurancePolicyType  $type  the type of the policy
      */
-    private static function policyTitle(InsurancePolicyType $type): string
+    public static function policyTitle(InsurancePolicyType $type): string
     {
         return match ($type) {
             InsurancePolicyType::Car => __('Car insurance'),

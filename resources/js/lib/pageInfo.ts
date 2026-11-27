@@ -36,6 +36,7 @@ export const PAGE_INFO_KEYS = [
     'card-new',
     'card-form',
     'card-payments',
+    'card-related',
     'documents',
     'document',
     'document-edit',
@@ -561,10 +562,34 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
                     'Under the documents you find its planned expenses and payments.',
                 ),
             ),
+            only(
+                'budget',
+                trans(
+                    'On a vehicle, Deadlines lines up what is coming by date, with the amount: road tax, inspection, insurance and the other planned expenses.',
+                ),
+            ),
+            unless(
+                'budget',
+                trans(
+                    'On a vehicle, Deadlines lines up by date the road tax, the inspection and the expiry of the insurance.',
+                ),
+            ),
+            only(
+                'budget',
+                trans(
+                    'Add the expense, beside a date, creates the planned expense that pays it, already filled in.',
+                ),
+            ),
+            trans(
+                'Add the date, at the bottom, takes you to the form to write a date the vehicle is missing.',
+            ),
         ],
         notes: [
             trans(
                 'The dates of the card become deadlines in the Agenda and in the notices, by themselves.',
+            ),
+            trans(
+                'A vehicle expects its registration document: it counts when it is in the category Vehicle registration document, or in one under it, even if you rename it.',
             ),
             trans(
                 'The + beside the linked cards adds a new card already linked.',
@@ -613,6 +638,12 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
                     'Some cards, such as a subscription, also create their planned expense.',
                 ),
             ),
+            trans(
+                'For utilities, jobs and enrollments the title makes itself from the fields you choose: at the top you see how it will be.',
+            ),
+            trans(
+                'The + next to the organization creates a new one with name and type, and chooses it right away. You add the rest from the organization page.',
+            ),
         ],
     }),
     'card-payments': () => ({
@@ -627,6 +658,19 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         notes: [
             trans(
                 'Only the payments of the planned expenses of the card count here.',
+            ),
+        ],
+    }),
+    'card-related': () => ({
+        title: trans('Links'),
+        purpose: [trans('All the cards that go with this one, in one list.')],
+        steps: [
+            trans('Tap a card to open it.'),
+            trans('Add creates a new card already linked to this one.'),
+        ],
+        notes: [
+            trans(
+                'The cards with a date coming are first. The closed ones are at the bottom.',
             ),
         ],
     }),

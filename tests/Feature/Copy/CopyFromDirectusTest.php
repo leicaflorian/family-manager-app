@@ -73,7 +73,7 @@ function verdiCounts(): array
 
 /** The counts of the fake Directus, once copied. */
 const VERDI_COUNTS = [
-    'files' => 5, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 3, 'documents' => 5,
+    'files' => 5, 'users' => 1, 'people' => 3, 'organizations' => 2, 'document_categories' => 4, 'documents' => 5,
     'utilities' => 1, 'reminders' => 4, 'family_settings' => 1, 'documentables' => 2, 'remindables' => 3,
 ];
 
@@ -163,6 +163,19 @@ test('a file missing in the uploads is listed, with its storage when it is not l
     $this->actingAs($laura)->get(route('files.show', $contract))->assertNotFound();
 });
 
+test('the copied family gets the categories with a role, also when made again with --replace', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+    $this->artisan('directus:copy', ['--family' => 'Verdi', '--replace' => true])->assertSuccessful()->run();
+
+    $family = DB::table('families')->where('name', 'Verdi')->value('id');
+    $registration = DB::table('document_categories')->where('family_id', $family)->where('role', 'vehicle_registration')->sole();
+
+    // The categories of Directus have no Vehicles with its card: it goes before every main category
+    expect($registration->name)->toBe('Vehicle registration document')
+        ->and($registration->parent_id)->toBeNull()
+        ->and($registration->sort)->toBeLessThan(DB::table('document_categories')->where('family_id', $family)->whereNull('parent_id')->whereNull('role')->min('sort'));
+});
+
 it('fills the occurrence of the copied expenses', function (): void {
     $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
 
@@ -179,6 +192,14 @@ it('copies the card of a planned expense as a pair', function (): void {
 
     expect($planned->card_type)->toBe('vehicle')
         ->and($planned->card_id)->toBe(DB::table('vehicles')->where('name', 'Panda')->value('id'));
+});
+
+it('gives the deadline to the planned expense of a vehicle from its title', function (): void {
+    $this->artisan('directus:copy', ['--family' => 'Verdi'])->assertSuccessful()->run();
+
+    expect(DB::table('planned_expenses')->where('title', 'Bollo auto')->value('deadline_field'))->toBe('vehicles.road_tax_due_date')
+        ->and(DB::table('planned_expenses')->where('title', 'Retta danza')->value('deadline_field'))->toBeNull()
+        ->and(DB::table('planned_expenses')->where('title', 'Luce e auto')->value('deadline_field'))->toBeNull();
 });
 
 it('keeps the first card of a planned expense with two', function (): void {

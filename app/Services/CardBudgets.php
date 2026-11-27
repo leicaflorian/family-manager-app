@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Actions\Loans\RefreshLoan;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Data\CardBudgetData;
 use App\Data\CardNumberData;
 use App\Data\DeadlineData;
@@ -326,8 +328,9 @@ final readonly class CardBudgets
     }
 
     /**
-     * A vehicle: the next due date and what it costs in the next 12 months, with the ones of its policies, and the
-     * payments of both with the expenses linked to the vehicle.
+     * A vehicle: what it costs in the next 12 months, with its policies, at the top of its expenses, and the payments
+     * of both with the expenses linked to the vehicle. Its due dates are in the section *Deadlines* of its page
+     * ({@see VehicleDeadlines}), so there is no box at the top and no figures.
      *
      * @param  Vehicle  $vehicle  the vehicle
      * @param  User  $user  whoever looks at the card, for the permissions
@@ -336,16 +339,40 @@ final readonly class CardBudgets
      */
     private function vehicle(Vehicle $vehicle, User $user, CarbonImmutable $today): CardBudgetData
     {
-        $planned = $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $vehicle)
-            ->orWhere(fn (Builder $policies): Builder => $policies->where('card_type', (new InsurancePolicy)->getMorphClass())
-                ->whereIn('card_id', InsurancePolicy::query()->where('vehicle_id', $vehicle->id)->select('id'))));
-
-        return $this->budget($vehicle, $planned, $user, $today,
-            nextLabel: __('Next due date'),
-            numbers: fn (array $found): array => [CardPaymentFigures::whatYouPay($found, $today)],
+        return $this->budget($vehicle, $this->vehicleExpenses($vehicle), $user, $today,
             paymentsLabel: __('Expenses'),
             paymentsMore: __('See all the expenses, year by year'),
+            summary: fn (array $found): ?CardNumberData => CardPaymentFigures::comingYear($this->withoutMissingDates($found, $vehicle), $today),
         );
+    }
+
+    /**
+     * The due dates without those of the planned expenses that pay a date missing on the vehicle: with no date to
+     * pay, they are not counted in what it costs, as the section *Deadlines* asks for the date instead.
+     *
+     * @param  list<Deadline>  $found  the due dates
+     * @param  Vehicle  $vehicle  the vehicle
+     * @return list<Deadline>
+     */
+    private function withoutMissingDates(array $found, Vehicle $vehicle): array
+    {
+        $missing = array_map(static fn (DeadlineSource $source): string => $source->field, DeadlineSources::missingOwnExpense($vehicle));
+
+        return array_values(array_filter($found, static fn (Deadline $deadline): bool => ! $deadline->planned instanceof PlannedExpense
+            || ! in_array($deadline->planned->deadline_field, $missing, true)));
+    }
+
+    /**
+     * The planned expenses of a vehicle and of its policies, oldest first.
+     *
+     * @param  Vehicle  $vehicle  the vehicle
+     * @return list<PlannedExpense>
+     */
+    public function vehicleExpenses(Vehicle $vehicle): array
+    {
+        return $this->expensesOf(fn (Builder $query): Builder => $query->whereMorphedTo('card', $vehicle)
+            ->orWhere(fn (Builder $policies): Builder => $policies->where('card_type', (new InsurancePolicy)->getMorphClass())
+                ->whereIn('card_id', InsurancePolicy::query()->where('vehicle_id', $vehicle->id)->select('id'))));
     }
 
     /**
@@ -442,6 +469,7 @@ final readonly class CardBudgets
      *                                 false for only the expenses linked to the card
      * @param  array{count: ?int, paid: ?int, paid_amount: ?float, left_amount: ?float}|null  $loan  the figures of a loan
      * @param  bool  $addExpense  whether the payments offer *Add expense*, on the cards without planned items
+     * @param  (callable(list<Deadline>): ?CardNumberData)|null  $summary  the figure at the top of the payments, from the due dates; null for none
      * @return CardBudgetData the payments of the card
      */
     private function budget(
@@ -460,6 +488,7 @@ final readonly class CardBudgets
         bool $plannedPayments = true,
         ?array $loan = null,
         bool $addExpense = false,
+        ?callable $summary = null,
     ): CardBudgetData {
         $found = $this->deadlines->between($planned, $today->subMonthsNoOverflow(self::MONTHS_BACK), $today->addMonthsNoOverflow(self::MONTHS_AHEAD));
         $open = array_values(array_filter($found, static fn (Deadline $deadline): bool => $deadline->isDue()));
@@ -491,6 +520,7 @@ final readonly class CardBudgets
             pay: $paymentsLabel === null ? [] : array_map($data, $this->firstOpenOfEach($payable, $open)),
             can_pay: $paymentsLabel !== null && $payable !== [] && $user->can('create', $income ? Income::class : Expense::class),
             can_add_expense: $addExpense && $user->can('create', Expense::class),
+            summary: $summary === null ? null : $summary($found),
         );
     }
 

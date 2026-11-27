@@ -40,8 +40,8 @@ final class DeadlineSources
     public static function all(): array
     {
         return [
-            new DeadlineSource('vehicles.road_tax_due_date', Vehicle::class, 'road_tax_due_date', [VehicleStatus::Active], null, __('Road tax'), 'person_id', true, title: 'Pay the road tax'),
-            new DeadlineSource('vehicles.inspection_due_date', Vehicle::class, 'inspection_due_date', [VehicleStatus::Active], null, __('Inspection'), 'person_id', true, title: 'Get the inspection done'),
+            new DeadlineSource('vehicles.road_tax_due_date', Vehicle::class, 'road_tax_due_date', [VehicleStatus::Active], null, __('Road tax'), 'person_id', true, title: 'Pay the road tax', ownExpense: true),
+            new DeadlineSource('vehicles.inspection_due_date', Vehicle::class, 'inspection_due_date', [VehicleStatus::Active], null, __('Inspection'), 'person_id', true, title: 'Get the inspection done', ownExpense: true),
             // Expired too: the policy turns expired by itself, the renewal stays to be done.
             new DeadlineSource('insurance_policies.expiry_date', InsurancePolicy::class, 'expiry_date', [InsurancePolicyStatus::Active, InsurancePolicyStatus::Expired], null, __('Policy renewal'), 'person_id', true, title: 'Renew the policy'),
             new DeadlineSource('belongings.warranty_expiry_date', Belonging::class, 'warranty_expiry_date', [BelongingStatus::InUse], null, __('End of warranty'), title: 'End of the warranty'),
@@ -66,6 +66,29 @@ final class DeadlineSources
     public static function forModel(string $model): array
     {
         return array_values(array_filter(self::all(), static fn (DeadlineSource $source): bool => $source->model === $model));
+    }
+
+    /**
+     * The kinds of deadline of a model that a planned expense pays of its own (road tax and inspection of a vehicle).
+     *
+     * @param  class-string<Model>|string  $model  the model of the card
+     * @return list<DeadlineSource>
+     */
+    public static function ownExpenseFor(string $model): array
+    {
+        return array_values(array_filter(self::all(), static fn (DeadlineSource $source): bool => $source->model === $model && $source->ownExpense));
+    }
+
+    /**
+     * The kinds of deadline of a card paid by a planned expense of its own whose date is missing on the card, while
+     * the card still has them: its planned expense has no date to pay, so it is left out of what the card costs.
+     *
+     * @param  Model  $card  the card
+     * @return list<DeadlineSource>
+     */
+    public static function missingOwnExpense(Model $card): array
+    {
+        return array_values(array_filter(self::ownExpenseFor($card::class), static fn (DeadlineSource $source): bool => $source->isMissing($card)));
     }
 
     /**

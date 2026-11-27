@@ -13,6 +13,7 @@
         "lint": "vp lint",
         "tokens": "vp test run resources/js/design/tokens.test.ts -u",
         "mail-icons": "node scripts/mail-icons.ts",
+        "app-icons": "node scripts/app-icons.ts",
         "og-image": "node scripts/og-image.ts",
         "splash-screens": "node scripts/splash-screens.ts"
     },

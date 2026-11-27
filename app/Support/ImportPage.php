@@ -17,11 +17,12 @@ final class ImportPage
      *
      * @param  iterable<int>  $ids  the ids of the files
      * @param  mixed  $link  the card as `<type>:<id>`, as the request sends it; one of another family is dropped
+     * @param  mixed  $category  the id of the document category the forms start with, as the request sends it; one of another family is dropped
      */
-    public static function open(iterable $ids, mixed $link = null): RedirectResponse
+    public static function open(iterable $ids, mixed $link = null, mixed $category = null): RedirectResponse
     {
         $files = implode(',', is_array($ids) ? $ids : iterator_to_array($ids, false));
 
-        return to_route('import', ['files' => $files, ...PresetLink::query($link)]);
+        return to_route('import', ['files' => $files, ...PresetLink::query($link), ...PresetCategory::query($category)]);
     }
 }

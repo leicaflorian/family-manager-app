@@ -15,13 +15,16 @@ use App\Cards\CardTypes;
 use App\Data\CardBudgetData;
 use App\Data\CardTypeData;
 use App\Data\LoanFiguresData;
+use App\Data\OptionData;
 use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
 use App\Enums\Feature;
+use App\Enums\OrganizationType;
 use App\Http\Requests\Cards\SaveCardRequest;
 use App\Models\Document;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
+use App\Models\Organization;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Queries\DocumentRows;
@@ -95,6 +98,7 @@ final class CardController extends Controller
                 ...($card->model() === Subscription::class && $this->features->on(Feature::Budget) ? ['expenseCategories' => BudgetFormOptions::categories()] : []),
                 ...$this->linkableDocuments->props($request, []),
                 'linked' => $this->documents->ofModels($documents),
+                ...$this->quickOrganization(),
             ]);
         }
 
@@ -142,13 +146,13 @@ final class CardController extends Controller
     }
 
     /**
-     * *A card*: its detail, with the page of its documents in `documents_page` and of its payments in `payments_page`, and, for *Link a document*, a page of the documents
+     * *A card*: its detail, with the page of its payments in `payments_page`, and, for *Link a document*, a page of the documents
      * of the family not yet linked to it, found with `link_search`.
      */
     public function show(Request $request, string $type, string $id, #[CurrentUser] User $user): Response
     {
         $card = CardTypes::findOrFail($type)->findOrFail($id);
-        $detail = $this->details->of($card, $user, documentsPage: max(1, $request->integer('documents_page')), paymentsPage: max(1, $request->integer('payments_page')));
+        $detail = $this->details->of($card, $user, paymentsPage: max(1, $request->integer('payments_page')));
 
         return Inertia::render('cards/Card', [
             'card' => $detail,
@@ -178,6 +182,8 @@ final class CardController extends Controller
             'type' => fn (): CardTypeData => $form()['type'],
             'fields' => fn (): array => $form()['fields'],
             'values' => fn (): array => $form()['values'],
+            'titleParts' => fn (): array => $form()['titleParts'],
+            ...$this->quickOrganization(),
             ...$this->loanFigures($request, $description, $card),
             'card' => $row,
             'documents' => fn (): array => $this->documents->of(['record' => ['type' => $description->type(), 'id' => $row->id]]),
@@ -364,5 +370,23 @@ final class CardController extends Controller
         return $ids === []
             ? to_route('cards.show', ['type' => $type->type(), 'id' => $card->getKey()])
             : ImportPage::open($ids, PresetLink::of($type, $card)['link']);
+    }
+
+    /**
+     * What the «+» beside an organization menu of the card form needs: whether
+     * the person may add an organization, and the types it can have (none
+     * when they may not). The types are a closure, so the reloads of the form
+     * do not work them out again.
+     *
+     * @return array{canCreateOrganization: bool, organizationTypes: Closure(): list<OptionData>}
+     */
+    private function quickOrganization(): array
+    {
+        $allowed = Gate::allows('create', Organization::class);
+
+        return [
+            'canCreateOrganization' => $allowed,
+            'organizationTypes' => static fn (): array => $allowed ? OptionData::list(OrganizationType::options()) : [],
+        ];
     }
 }

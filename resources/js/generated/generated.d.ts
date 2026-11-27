@@ -172,6 +172,7 @@ readonly can_pay: boolean,
 readonly can_add_expense: boolean,
 readonly payments_previous: string | null,
 readonly payments_next: string | null,
+readonly summary: App.Data.CardNumberData | null,
 };
 export type CardChoiceData = {
 readonly value: string,
@@ -200,6 +201,16 @@ readonly label: string,
 readonly date: string,
 readonly expires: boolean,
 };
+export type CardDeadlineData = {
+readonly label: string,
+readonly date: string | null,
+readonly detail: string | null,
+readonly amount: number | null,
+readonly estimated: boolean,
+readonly href: string | null,
+readonly add_expense_href: string | null,
+readonly add_date_href: string | null,
+};
 export type CardDetailData = {
 readonly card: App.Data.CardData,
 readonly heading: string,
@@ -207,10 +218,13 @@ readonly dates: App.Data.CardDateData[],
 readonly notices: App.Data.CardNoticeData[],
 readonly values: App.Data.CardValueData[],
 readonly related: App.Data.CardData[],
+readonly related_more: {
+href: string,
+count: number,
+} | null,
 readonly addable: App.Data.CardAddData[],
 readonly documents: App.Data.DocumentData[],
-readonly documents_previous: string | null,
-readonly documents_next: string | null,
+readonly documents_more: string | null,
 readonly can_edit: boolean,
 readonly can_delete: boolean,
 readonly can_delete_documents: boolean,
@@ -222,6 +236,7 @@ unit: string,
 price: number | null,
 href: string,
 } | null,
+readonly deadlines: App.Data.CardDeadlineData[] | null,
 };
 export type CardFieldData = {
 readonly column: string,
@@ -248,6 +263,7 @@ readonly hint: string | null,
 readonly hint_amount: number | null,
 readonly text: string | null,
 readonly tone: 'open' | 'overdue' | 'closed' | null,
+readonly estimated: boolean,
 };
 export type CardTypeData = {
 readonly type: string,
@@ -261,6 +277,7 @@ export type CardValueData = {
 readonly label: string,
 readonly text: string,
 readonly href: string | null,
+readonly tone: 'open' | 'overdue' | 'closed' | null,
 };
 export type CategoryComparisonData = {
 readonly name: string,
@@ -606,6 +623,7 @@ export type OptionData = {
 readonly value: string,
 readonly label: string,
 readonly help: string | null,
+readonly title?: string | null,
 };
 export type OrganizationData = {
 readonly id: number,
@@ -1235,6 +1253,7 @@ export type Channel = 'app' | 'email' | 'both';
 export type ConsumptionOutcome = 'saved' | 'not_a_bill' | 'no_consumption' | 'wrong_unit' | 'out_of_range' | 'bad_period';
 export type ConsumptionSource = 'reading' | 'manual';
 export type ConsumptionUnit = 'kwh' | 'smc' | 'm3';
+export type DocumentCategoryRole = 'vehicle_registration';
 export type DocumentStatus = 'active' | 'archived' | 'expired';
 export type DueMode = 'new' | 'existing' | 'exception';
 export type EmploymentStatus = 'active' | 'ended';

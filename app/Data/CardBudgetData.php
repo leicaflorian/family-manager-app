@@ -39,6 +39,7 @@ final class CardBudgetData extends Data
      *                                 have expenses linked to them (a belonging, a maintenance job, a filing, a health event)
      * @param  string|null  $payments_previous  the address of the previous page of the payments, null on the first or without pages
      * @param  string|null  $payments_next  the address of the next page of the payments, null on the last or without pages
+     * @param  CardNumberData|null  $summary  the figure at the top of the payments, as what a vehicle costs in the next 12 months; null for none
      */
     public function __construct(
         public readonly string $kind,
@@ -68,6 +69,7 @@ final class CardBudgetData extends Data
         public readonly bool $can_add_expense,
         public readonly ?string $payments_previous = null,
         public readonly ?string $payments_next = null,
+        public readonly ?CardNumberData $summary = null,
     ) {}
 
     /**
@@ -102,6 +104,7 @@ final class CardBudgetData extends Data
             can_add_expense: $this->can_add_expense,
             payments_previous: $previous,
             payments_next: $next,
+            summary: $this->summary,
         );
     }
 }

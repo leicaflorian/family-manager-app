@@ -53,14 +53,15 @@ function proposalOf(array $extraction, array $choices = [], array $givers = []):
 }
 
 /**
- * The rows of every table, to tell that nothing was written.
+ * The rows of every table of the test database, to tell that nothing was written.
  *
  * @return array<string, int>
  */
 function rowCounts(): array
 {
     $counts = [];
-    foreach (DB::connection()->getSchemaBuilder()->getTableListing() as $table) {
+    // Without the schema the listing holds the tables of every database on the server.
+    foreach (DB::connection()->getSchemaBuilder()->getTableListing(DB::connection()->getDatabaseName(), false) as $table) {
         $counts[$table] = DB::table($table)->count();
     }
 
@@ -391,6 +392,12 @@ describe('the whole file', function (): void {
         $policy = proposalOf(['kind' => 'insurance', 'organization_id' => $company->id])->policy;
 
         expect($policy)->toEqual(['need' => true, 'giver' => null, 'many' => true]);
+    });
+
+    test('the row count reads only the tables of the test database', function (): void {
+        expect(array_keys(rowCounts()))
+            ->toContain('families')
+            ->each->not->toContain('.');
     });
 
     test('the proposal writes nothing', function (): void {

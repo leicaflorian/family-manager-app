@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Enums\DocumentCategoryRole;
+
 /**
  * The categories a new family starts with, for documents and expenses.
  *
@@ -23,7 +25,7 @@ final class DefaultCategories
         return [
             'Personal records and paperwork' => [],
             'Home and utilities' => ['Electricity', 'Gas', 'Water', 'Internet', 'Phone', 'Waste tax (TARI)', 'TV licence'],
-            'Vehicles' => [],
+            'Vehicles' => ['Vehicle registration document'],
             'Purchases, warranties and subscriptions' => ['Furniture', 'Electronics and appliances', 'Warranties and receipts', 'Subscriptions'],
             'Insurance and funds' => [],
             'Banks and loans' => [],
@@ -75,6 +77,16 @@ final class DefaultCategories
             'Health' => 'health_event',
             'School and activities' => 'enrollment',
         ];
+    }
+
+    /**
+     * The fixed role of the starter document categories, by name; the others have none.
+     *
+     * @return array<string, DocumentCategoryRole>
+     */
+    public static function documentRoles(): array
+    {
+        return ['Vehicle registration document' => DocumentCategoryRole::VehicleRegistration];
     }
 
     /**

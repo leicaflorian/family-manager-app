@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Budget;
 
+use App\Cards\CardTypes;
+use App\Cards\DeadlineSource;
+use App\Cards\DeadlineSources;
 use App\Enums\IncomeType;
 use App\Enums\IntervalUnit;
 use App\Http\Requests\Concerns\ReadsCard;
@@ -13,9 +16,11 @@ use App\Rules\BankMatchRule;
 use App\Rules\OfFamily;
 use App\Support\PlannedKind;
 use App\Support\PresetLink;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Translation\PotentiallyTranslatedString;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -95,6 +100,7 @@ final class SavePlannedRequest extends FormRequest
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
                     'category_id' => ['nullable', new OfFamily('expense_categories')],
                     ...$this->cardRules(),
+                    'deadline_field' => ['nullable', 'string', $this->deadlineRule(...)],
                 ]
                 : [
                     'type' => ['required', Rule::enum(IncomeType::class)],
@@ -111,7 +117,7 @@ final class SavePlannedRequest extends FormRequest
      */
     public function columns(): array
     {
-        $validated = $this->safe()->except(['card']);
+        $validated = $this->safe()->except(['card', 'deadline_field']);
         $columns = [
             ...$validated,
             'is_recurring' => $this->boolean('is_recurring'),
@@ -124,7 +130,28 @@ final class SavePlannedRequest extends FormRequest
             return $columns;
         }
 
-        return [...$columns, ...$this->cardColumns()];
+        $cardColumns = $this->cardColumns();
+
+        return [...$columns, ...$cardColumns, 'deadline_field' => $cardColumns['card_type'] === null ? null : $this->input('deadline_field')];
+    }
+
+    /**
+     * Checks that the deadline paid is one of the type of the card chosen with an expense of its own (road tax and
+     * inspection of a vehicle).
+     *
+     * @param  string  $attribute  the field
+     * @param  mixed  $value  the key of the deadline sent
+     * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail  reports the error
+     */
+    private function deadlineRule(string $attribute, mixed $value, Closure $fail): void
+    {
+        $card = PresetLink::from($this->exists('card') ? $this->input('card') : $this->savedCard());
+        $model = $card === null ? null : CardTypes::find($card['type'])?->model();
+        $fields = $model === null ? [] : array_map(static fn (DeadlineSource $source): string => $source->field, DeadlineSources::ownExpenseFor($model));
+
+        if (! in_array($value, $fields, true)) {
+            $fail('validation.in')->translate();
+        }
     }
 
     /**
