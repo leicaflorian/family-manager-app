@@ -6,6 +6,7 @@ namespace App\Http\Requests\Family;
 
 use App\Models\Organization;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\Attributes\ErrorBag;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -13,11 +14,9 @@ use Illuminate\Foundation\Http\FormRequest;
  * (whoever may add organizations). Errors go in the `organization` bag so they
  * do not mix with the ones of the card form.
  */
+#[ErrorBag('organization')]
 final class QuickOrganizationRequest extends FormRequest
 {
-    /** @var string */
-    protected $errorBag = 'organization';
-
     /**
      * Whoever may add an organization.
      */

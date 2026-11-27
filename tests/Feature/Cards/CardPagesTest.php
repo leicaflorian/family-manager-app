@@ -21,7 +21,6 @@ use App\Models\Vehicle;
 use App\Services\FamilyAreas;
 use App\Support\CurrentFamily;
 use App\Support\Linkables;
-use BackedEnum;
 use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
