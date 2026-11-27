@@ -354,6 +354,7 @@ return [
         'assigned' => 'Assigned by you',
         'created' => 'Created from it',
         'duplicate' => 'Linked to an existing one',
+        'fee' => 'Commission of its direct debit',
     ],
     'bank_row_status' => [
         'unsorted' => 'To sort',

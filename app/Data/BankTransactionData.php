@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Enums\BankMatchSource;
 use App\Enums\BankRowStatus;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
@@ -93,7 +94,8 @@ final class BankTransactionData extends Data
     }
 
     /**
-     * What the transaction is: pending while the bank has not booked it, then put aside, linked, else to sort.
+     * What the transaction is: pending while the bank has not booked it, then put aside, a commission joined to the
+     * expense of its debit, linked, else to sort.
      *
      * @param  BankTransaction  $transaction  the transaction
      */
@@ -102,6 +104,7 @@ final class BankTransactionData extends Data
         return match (true) {
             $transaction->status === BankTransactionStatus::Pending => BankRowStatus::Pending,
             $transaction->ignored_at !== null => BankRowStatus::Ignored,
+            $transaction->matched_by === BankMatchSource::Fee && $transaction->expense_id !== null => BankRowStatus::Fee,
             $transaction->expense_id !== null || $transaction->income_id !== null => BankRowStatus::Linked,
             default => BankRowStatus::Unsorted,
         };

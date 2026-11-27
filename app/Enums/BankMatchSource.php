@@ -21,4 +21,6 @@ enum BankMatchSource: string
     case Created = 'created';
     /** Linked to an expense that was already there. */
     case Duplicate = 'duplicate';
+    /** The commission of a direct debit, joined to the expense of its debit. */
+    case Fee = 'fee';
 }

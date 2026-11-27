@@ -58,6 +58,7 @@ use Illuminate\Support\Facades\Config;
  * @method static Builder<static>|BankTransaction newQuery()
  * @method static Builder<static>|BankTransaction query()
  * @method static Builder<static>|BankTransaction unsorted()
+ * @method static Builder<static>|BankTransaction withoutFees()
  *
  * @mixin \Eloquent
  */
@@ -112,6 +113,18 @@ final class BankTransaction extends FamilyModel
     protected function ignored(Builder $query): void
     {
         $query->whereNotNull('ignored_at');
+    }
+
+    /**
+     * All but the commissions joined to the expense of their direct debit (`fee`): what tells which bank transaction
+     * an expense came from, or whether another one has it.
+     *
+     * @param  Builder<BankTransaction>  $query
+     */
+    #[Scope]
+    protected function withoutFees(Builder $query): void
+    {
+        $query->where(static fn (Builder $query): Builder => $query->whereNull('matched_by')->orWhere('matched_by', '!=', BankMatchSource::Fee));
     }
 
     /**

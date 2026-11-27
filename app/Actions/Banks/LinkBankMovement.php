@@ -18,6 +18,8 @@ use Illuminate\Validation\ValidationException;
  */
 final readonly class LinkBankMovement
 {
+    public function __construct(private AttachBankFee $attachFee) {}
+
     /**
      * Locks the transaction and checks it is still to sort, as the first query of the transaction that saves the
      * movement: a rule or a settling that got there first leaves nothing to create a second expense for.
@@ -34,8 +36,8 @@ final readonly class LinkBankMovement
     }
 
     /**
-     * Links the transaction to the movement as created by the person. The row is locked again and read again, so a
-     * call without `lock()` is as safe.
+     * Links the transaction to the movement as created by the person, and the commission of a direct debit to the same
+     * expense. The row is locked again and read again, so a call without `lock()` is as safe.
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  Expense|Income  $movement  The movement just saved.
@@ -52,5 +54,6 @@ final readonly class LinkBankMovement
         }
 
         $current->linkTo($movement, $by);
+        $this->attachFee->forDebit($current);
     }
 }

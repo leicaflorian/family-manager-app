@@ -25,14 +25,15 @@ final readonly class BankMatcher
     /** The most days a due date can be from the transaction, whatever the period. */
     private const int MAX_REACH = 45;
 
-    public function __construct(private Deadlines $deadlines, private Occurrences $occurrences, private BankDuplicates $duplicates) {}
+    public function __construct(private Deadlines $deadlines, private Occurrences $occurrences, private BankDuplicates $duplicates, private BankFees $fees) {}
 
     /**
      * The planned item the transaction pays: among the planned expenses (for money out) or incomes (for money in)
      * that have a rule, have not ended before the day, read the account of the transaction (`RuleAccount`) and whose rule
      * matches the text,
-     * the only one, or the one whose planned amount (amount plus fee) is closest to the amount of the transaction.
-     * Two at the same distance give none.
+     * the only one, or the one whose planned amount (amount plus fee) is closest to the amount of the transaction (a
+     * direct debit with its commission counts as the two together; a transaction without a commission is compared with
+     * the amount without the fee too, since the commission may come apart). Two at the same distance give none.
      *
      * @param  BankTransaction  $transaction  The transaction.
      */
@@ -59,15 +60,16 @@ final readonly class BankMatcher
             return $candidates->first();
         }
 
-        $cents = $this->cents(abs((float) $transaction->amount));
-        $ranked = $candidates
-            ->sortBy(fn (PlannedExpense|PlannedIncome $planned): int => abs($this->plannedCents($planned) - $cents))
-            ->values();
+        $amounts = $this->fees->amounts($transaction);
+        // The amounts differ from the transaction alone only when its commission was added
+        $withFee = $amounts !== [$this->cents(abs((float) $transaction->amount))];
+        $distance = fn (PlannedExpense|PlannedIncome $planned): int => $this->distance($planned, $amounts, $withFee);
+        $ranked = $candidates->sortBy($distance)->values();
         $first = $ranked->first();
         $second = $ranked->get(1);
 
         // The closest wins; two at the same distance cannot be told apart
-        if ($first === null || $second === null || abs($this->plannedCents($first) - $cents) === abs($this->plannedCents($second) - $cents)) {
+        if ($first === null || $second === null || $distance($first) === $distance($second)) {
             return null;
         }
 
@@ -196,15 +198,39 @@ final readonly class BankMatcher
     }
 
     /**
-     * The planned amount in cents: the amount plus the fee of a planned expense.
+     * How far, in cents, the planned amounts of an item are from the closest amount of the transaction.
      *
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  list<int>  $amounts  The amounts of the transaction (`BankFees::amounts()`).
+     * @param  bool  $withFee  Whether the transaction comes with its commission.
      */
-    private function plannedCents(PlannedExpense|PlannedIncome $planned): int
+    private function distance(PlannedExpense|PlannedIncome $planned, array $amounts, bool $withFee): int
     {
-        $fee = $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0;
+        $gaps = [];
 
-        return $this->cents((float) $planned->amount + $fee);
+        foreach ($this->plannedCents($planned, $withFee) as $expected) {
+            foreach ($amounts as $cents) {
+                $gaps[] = abs($expected - $cents);
+            }
+        }
+
+        return $gaps === [] ? PHP_INT_MAX : min($gaps);
+    }
+
+    /**
+     * The planned amounts in cents: the amount plus the fee of a planned expense, and also the amount alone when the
+     * transaction has no commission with it (the commission of a direct debit may come apart, later).
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  bool  $withFee  Whether the transaction comes with its commission.
+     * @return non-empty-list<int>
+     */
+    private function plannedCents(PlannedExpense|PlannedIncome $planned, bool $withFee): array
+    {
+        $fee = $planned instanceof PlannedExpense ? $this->cents((float) $planned->fee_amount) : 0;
+        $amount = $this->cents((float) $planned->amount);
+
+        return $fee > 0 && ! $withFee ? [$amount + $fee, $amount] : [$amount + $fee];
     }
 
     /**

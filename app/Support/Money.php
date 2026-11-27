@@ -23,6 +23,16 @@ final class Money
     }
 
     /**
+     * Cents as the value of a decimal column: `1040` is `10.40`.
+     *
+     * @param  int  $cents  the cents
+     */
+    public static function decimal(int $cents): string
+    {
+        return number_format($cents / 100, 2, '.', '');
+    }
+
+    /**
      * The amount as the person reads it in both languages: `84,20 €`.
      *
      * @param  float  $amount  the amount in euro

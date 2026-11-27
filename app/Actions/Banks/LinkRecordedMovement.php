@@ -19,11 +19,12 @@ use Illuminate\Validation\ValidationException;
  */
 final readonly class LinkRecordedMovement
 {
-    public function __construct(private BankDuplicates $duplicates) {}
+    public function __construct(private BankDuplicates $duplicates, private AttachBankFee $attachFee) {}
 
     /**
      * Links them, in one transaction. The bank transaction is locked first and the movement right after, before
-     * anything else is read, as `SettleFromBank` does, so two links of the same movement wait for each other.
+     * anything else is read, as `SettleFromBank` does, so two links of the same movement wait for each other. The
+     * commission of a direct debit joins the expense too.
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  Expense|Income  $movement  The expense or income chosen.
@@ -51,8 +52,9 @@ final readonly class LinkRecordedMovement
             }
 
             $current->linkTo($locked, BankMatchSource::Duplicate);
+            $this->attachFee->forDebit($current);
 
-            return $locked;
+            return $locked instanceof Expense ? $locked->refresh() : $locked;
         });
     }
 }

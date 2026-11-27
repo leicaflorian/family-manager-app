@@ -37,6 +37,31 @@ final class BankFees
     }
 
     /**
+     * The amounts in cents to compare a debit with an expense: the debit plus its commission when the commission is
+     * there, else the debit alone.
+     *
+     * @param  BankTransaction  $debit  the debit
+     * @return list<int>
+     */
+    public function amounts(BankTransaction $debit): array
+    {
+        $fee = $this->feeOf($debit);
+
+        return [$this->cents($debit) + ($fee instanceof BankTransaction ? $this->cents($fee) : 0)];
+    }
+
+    /**
+     * Whether the bank writes (or can write) the commission of a debit as a transaction of its own: the commission is
+     * there, or the debit has a mandate and its commission can still come.
+     *
+     * @param  BankTransaction  $debit  the debit
+     */
+    public function isDetached(BankTransaction $debit): bool
+    {
+        return ! BankText::isFee($debit->text) && (BankText::mandate($debit->text) !== null || $this->feeOf($debit) instanceof BankTransaction);
+    }
+
+    /**
      * The direct debit a commission belongs to. By default only a debit still to sort counts, so a commission whose
      * debit is linked (or put aside) is an orphan and gives null; `includeSorted` finds the debit wherever it is.
      *

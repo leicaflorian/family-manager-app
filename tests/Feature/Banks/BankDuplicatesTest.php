@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankMatchSource;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
+use App\Models\FinancialAccount;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -83,5 +85,35 @@ test('a different amount is not', function (): void {
         Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418.01, 'date' => '2026-11-10']);
 
         expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+    });
+});
+
+test('an expense with a fee transaction is not taken', function (): void {
+    insideBianchi(function (): void {
+        [$planned, $transaction] = bankDuplicatesSetup();
+        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
+        // Only the commission of another debit is in it: the expense is still free for a debit
+        $fee = BankTransaction::factory()->create(['family_id' => $planned->family_id, 'expense_id' => $hand->id, 'matched_by' => BankMatchSource::Fee]);
+
+        expect(resolve(BankDuplicates::class)->isFree($hand, $transaction))->toBeTrue()
+            ->and(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue()
+            ->and($fee->refresh()->expense_id)->toBe($hand->id);
+    });
+});
+
+test('finds the recorded expense of 10,40 for a debit of 10,00 with a commission of 0,40', function (): void {
+    insideBianchi(function (): void {
+        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
+        $account = FinancialAccount::factory()->create(['family_id' => $familyId]);
+        $mandate = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+        $row = static fn (string $text, string $amount, string $day): BankTransaction => BankTransaction::factory()->create([
+            'family_id' => $familyId, 'financial_account_id' => $account->id, 'text' => $text, 'amount' => $amount, 'booked_on' => $day, 'value_on' => $day,
+        ]);
+        $planned = PlannedExpense::factory()->create(['family_id' => $familyId, 'title' => 'Ricarica Satispay', 'amount' => 10, 'fee_amount' => 0.4, 'start_date' => '2026-01-24']);
+        $debit = $row($mandate, '-10.00', '2026-11-24');
+        $row('COMMISSIONI '.$mandate, '-0.40', '2026-11-25');
+        $hand = Expense::factory()->create(['family_id' => $familyId, 'planned_expense_id' => $planned->id, 'amount' => 10.4, 'date' => '2026-11-24']);
+
+        expect(resolve(BankDuplicates::class)->find($debit, $planned)?->is($hand))->toBeTrue();
     });
 });

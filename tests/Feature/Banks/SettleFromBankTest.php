@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\AttachBankFee;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Budget\RecordPayment;
 use App\Enums\BankMatchSource;
@@ -361,5 +362,57 @@ test('who assigns the transaction gets no bell notice, the others do', function 
 
         expect(ReminderNotice::query()->where('user_id', $this->marco->id)->count())->toBe(0)
             ->and(ReminderNotice::query()->where('user_id', $this->laura->id)->count())->toBe(1);
+    });
+});
+
+/** The text of the Satispay direct debit of BancoPosta, with the commission word in front when asked. */
+function bankSettleSatispay(bool $fee = false): string
+{
+    return ($fee ? 'COMMISSIONI ' : '').'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+}
+
+test('a direct debit with a detached commission pays the planned expense of 10,40 that has a fee of 0,40', function (): void {
+    insideBianchi(function (): void {
+        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+        $debit = bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04');
+        $fee = bankSettleTransaction(bankSettleSatispay(true), '-0.40', '2026-11-05');
+
+        $expense = bankSettleRun($debit);
+
+        $fee->refresh();
+        expect($expense)->toBeInstanceOf(Expense::class)
+            ->and((float) $expense->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and($fee->expense_id)->toBe($expense->id)
+            ->and($fee->matched_by)->toBe(BankMatchSource::Fee)
+            ->and($debit->refresh()->matched_by)->toBe(BankMatchSource::Rule);
+    });
+});
+
+test('it is recorded as 10,00 and becomes 10,40 when the commission is attached', function (): void {
+    insideBianchi(function (): void {
+        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'));
+
+        expect((float) $expense?->amount)->toBe(10.0)
+            ->and($expense?->fee_amount)->toBeNull();
+
+        resolve(AttachBankFee::class)->forNew([bankSettleTransaction(bankSettleSatispay(true), '-0.40', '2026-11-05')]);
+
+        expect((float) $expense?->refresh()->amount)->toBe(10.4)
+            ->and((float) $expense?->fee_amount)->toBe(0.4);
+    });
+});
+
+test('a planned expense without a fee is paid as today', function (): void {
+    insideBianchi(function (): void {
+        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04');
+
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'));
+
+        expect((float) $expense?->amount)->toBe(10.0)
+            ->and($expense?->fee_amount)->toBeNull()
+            ->and($expense?->title)->toBe('Ricarica Satispay novembre 2026');
     });
 });

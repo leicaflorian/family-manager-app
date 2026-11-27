@@ -10,19 +10,24 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Finds the expense or income somebody already recorded by hand for a payment that the bank now reports, so the bank
  * transaction links to it instead of creating a second one, and tells whether a payment is still free to link.
  */
-final class BankDuplicates
+final readonly class BankDuplicates
 {
     /** How many days apart the recorded payment and the bank transaction can be. */
     public const int DAYS = 7;
 
+    public function __construct(private BankFees $fees) {}
+
     /**
-     * The payment of the planned item with the same amount to the cent, dated within 7 days of the bank transaction,
-     * and not already linked to another bank transaction. The closest date wins.
+     * The payment of the planned item with the same amount to the cent (a direct debit with its commission counts as
+     * the two together, `BankFees::amounts()`), dated within 7 days of the bank transaction, and not already linked to
+     * another bank transaction (a commission linked to it does not count). The closest date wins.
      *
      * @param  BankTransaction  $transaction  The bank transaction.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -35,7 +40,7 @@ final class BankDuplicates
             return null;
         }
 
-        $cents = (int) round(abs((float) $transaction->amount) * 100);
+        $amounts = $this->fees->amounts($transaction);
         $isExpense = $planned instanceof PlannedExpense;
         $column = $this->column($isExpense);
         $query = $isExpense
@@ -45,8 +50,8 @@ final class BankDuplicates
         /** @var Expense|Income|null $found */
         $found = $query
             ->whereBetween('date', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
-            ->whereRaw('round(amount * 100) = ?', [$cents])
-            ->whereNotIn('id', BankTransaction::query()->whereKeyNot($transaction->id)->whereNotNull($column)->select($column))
+            ->whereIn(DB::raw('round(amount * 100)'), $amounts)
+            ->whereNotIn('id', $this->others($transaction)->whereNotNull($column)->select($column))
             ->get()
             ->sortBy(static fn (Expense|Income $payment): int => abs((int) round($day->startOfDay()->diffInDays($payment->date?->startOfDay(), false))))
             ->first();
@@ -55,17 +60,31 @@ final class BankDuplicates
     }
 
     /**
-     * Whether a payment is free for the bank transaction: not linked to another bank transaction.
+     * Whether a payment is free for the bank transaction: not linked to another bank transaction. The commission of a
+     * direct debit joined to it does not take it.
      *
      * @param  Expense|Income  $payment  The payment.
      * @param  BankTransaction  $transaction  The bank transaction that would link to it.
      */
     public function isFree(Expense|Income $payment, BankTransaction $transaction): bool
     {
-        return ! BankTransaction::query()
-            ->whereKeyNot($transaction->id)
+        return ! $this->others($transaction)
             ->where($this->column($payment instanceof Expense), $payment->id)
             ->exists();
+    }
+
+    /**
+     * The other bank transactions that can take a payment: all but this one and the commissions (`fee`).
+     *
+     * @param  BankTransaction  $transaction  the bank transaction
+     * @return Builder<BankTransaction>
+     */
+    private function others(BankTransaction $transaction): Builder
+    {
+        /** @var Builder<BankTransaction> $query */
+        $query = BankTransaction::query()->whereKeyNot($transaction->id)->withoutFees();
+
+        return $query;
     }
 
     /**

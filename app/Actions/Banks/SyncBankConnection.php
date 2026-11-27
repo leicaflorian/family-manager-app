@@ -29,15 +29,16 @@ final readonly class SyncBankConnection
      * @param  MatchBankTransactions  $match  pays the due dates the new transactions settle
      * @param  WatchBankConsents  $watch  tells the admins when the bank took the consent back
      * @param  MarkBankTransfer  $transfers  pairs the new transactions that are the other half of a transfer
+     * @param  AttachBankFee  $fees  joins the new commissions to the expense of their debit
      */
-    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match, private WatchBankConsents $watch, private MarkBankTransfer $transfers) {}
+    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match, private WatchBankConsents $watch, private MarkBankTransfer $transfers, private AttachBankFee $fees) {}
 
     /**
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
      * `overlap_days` before the last read. A consent that ended asks the person to connect again, a limit of the bank
      * changes nothing (the next read tries again), as another read saving the same rows at the same moment does, any other failure is reported and saved as the last error. The
      * booked transactions saved before any of these, the 90 days of a first read included, go to the rules, the oldest
-     * first.
+     * first; then the new commissions join the expense of their debit when it is linked.
      *
      * @param  BankConnection  $connection  the connection to read
      * @param  BankVisitor|null  $visitor  who is looking, when a person asked for the read
@@ -55,6 +56,9 @@ final readonly class SyncBankConnection
             static fn (BankTransaction $a, BankTransaction $b): int => $a->booked_on?->toDateString() <=> $b->booked_on?->toDateString(),
             static fn (BankTransaction $a, BankTransaction $b): int => $a->id <=> $b->id,
         ])->values()->all());
+
+        // A commission that arrives after its debit was linked joins the expense of the debit
+        $this->fees->forNew($fresh);
 
         return count($fresh);
     }

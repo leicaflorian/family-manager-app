@@ -14,6 +14,7 @@ use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Banks\BankFees;
 use App\Services\Banks\BankMatcher;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
@@ -172,4 +173,37 @@ test('undoing locks the bank row and then the planned item before any plain read
             array_slice($inside, 1, max(0, (int) $plannedLock - 1)),
             static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'),
         )))->toBe([]);
+});
+
+test('undoing the debit puts the commission back to sort under it', function (): void {
+    $mandate = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+    [$debit, $fee, $expense] = insideBianchi(function () use ($mandate): array {
+        $family = Family::query()->where('name', 'Bianchi')->sole();
+        $account = FinancialAccount::query()->where('name', 'Conto BancoPosta')->sole();
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $family->id, 'title' => 'Ricarica Satispay', 'bank_match' => 'MAN.SAT0023101207360112900', 'amount' => 10.0,
+            'fee_amount' => null, 'is_estimated' => false, 'start_date' => '2026-01-04', 'financial_account_id' => null,
+        ]);
+        $row = static fn (string $text, string $amount, string $day): BankTransaction => BankTransaction::factory()->create([
+            'family_id' => $family->id, 'financial_account_id' => $account->id, 'text' => $text, 'amount' => $amount, 'booked_on' => $day, 'value_on' => $day,
+        ]);
+        $debit = $row($mandate, '-10.00', '2026-11-04');
+        $fee = $row('COMMISSIONI '.$mandate, '-0.40', '2026-11-05');
+        $expense = resolve(SettleFromBank::class)->handle($debit, $satispay, BankMatchSource::Rule);
+        expect((float) $expense?->amount)->toBe(10.4)
+            ->and($fee->refresh()->matched_by)->toBe(BankMatchSource::Fee);
+
+        return [$debit->refresh(), $fee, $expense];
+    });
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$debit->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($debit, $fee, $expense): void {
+        $fee->refresh();
+        expect(Expense::query()->find($expense?->id))->toBeNull()
+            ->and($fee->expense_id)->toBeNull()
+            ->and($fee->matched_by)->toBeNull()
+            ->and($fee->declined_at)->toBeNull()
+            ->and(resolve(BankFees::class)->debitOf($fee)?->is($debit))->toBeTrue();
+    });
 });

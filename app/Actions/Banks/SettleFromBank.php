@@ -12,6 +12,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankDuplicates;
+use App\Services\Banks\BankFees;
 use App\Services\Banks\BankMatcher;
 use App\Services\Deadlines;
 use App\Support\Deadline;
@@ -36,6 +37,8 @@ final readonly class SettleFromBank
         private Deadlines $deadlines,
         private RecordPayment $recordPayment,
         private NotifyBankPayment $notify,
+        private BankFees $fees,
+        private AttachBankFee $attachFee,
     ) {}
 
     /**
@@ -50,12 +53,14 @@ final readonly class SettleFromBank
      *    (the closest within reach, paid by hand with another amount), the transaction is linked to its payment
      *    (`duplicate`, no notice), or stays to sort when another bank transaction has it: it never pays another month.
      * 3. Otherwise the payment of that due date, for the amount of the bank, on the day it was booked and on its
-     *    account, with the fee of the planned expense when it is smaller than the amount; the transaction is linked
-     *    to it (`$by`) and everyone in the family gets a notice.
+     *    account, with the fee of the planned expense when it is smaller than the amount (not when the bank writes the
+     *    commission apart: then the commission joins the payment by itself); the transaction is linked to it (`$by`)
+     *    and everyone in the family gets a notice.
      * 4. A due date found paid while writing is linked to its payment in the same way; one skipped meanwhile leaves the
      *    transaction to sort. No exception leaves.
      *
-     * A transaction declined by *It was not this one* is settled only for `Assigned`: the person chose it.
+     * A transaction declined by *It was not this one* is settled only for `Assigned`: the person chose it. Whatever
+     * the expense it is linked to, the commission of a direct debit joins it (`AttachBankFee`).
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -132,9 +137,10 @@ final readonly class SettleFromBank
     private function pay(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, Deadline $deadline): Expense|Income
     {
         $amount = abs((float) $transaction->amount);
-        $fee = $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0;
+        // A commission the bank writes apart joins the payment when it is there (`AttachBankFee`), never twice
+        $fee = $planned instanceof PlannedExpense && ! $this->fees->isDetached($transaction) ? (float) $planned->fee_amount : 0.0;
 
-        // The bank says the whole amount, commission included: a commission as big as the amount cannot be part of it
+        // Otherwise the bank says the whole amount, commission included: a commission as big as the amount cannot be part of it
         return $this->recordPayment->handle(
             $deadline,
             $transaction->booked_on ?? CarbonImmutable::now('Europe/Rome'),
@@ -162,16 +168,18 @@ final readonly class SettleFromBank
     }
 
     /**
-     * Links the transaction to a payment.
+     * Links the transaction to a payment, and the commission of a direct debit to the same expense.
      *
      * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  Expense|Income  $payment  The payment.
      * @param  BankMatchSource  $by  How the link came.
+     * @return Expense|Income the payment, read again when a commission joined it
      */
     private function link(BankTransaction $transaction, Expense|Income $payment, BankMatchSource $by): Expense|Income
     {
         $transaction->linkTo($payment, $by);
+        $this->attachFee->forDebit($transaction);
 
-        return $payment;
+        return $payment instanceof Expense ? $payment->refresh() : $payment;
     }
 }

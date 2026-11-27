@@ -354,6 +354,7 @@ return [
         'assigned' => 'Assegnato da te',
         'created' => 'Creato da qui',
         'duplicate' => 'Collegato a uno che c\'era',
+        'fee' => 'Commissione del suo addebito',
     ],
     'bank_row_status' => [
         'unsorted' => 'Da sistemare',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Enums\BankMatchSource;
 use App\Enums\BankRowStatus;
 use App\Enums\BankTransactionStatus;
 use App\Http\Requests\Banks\BankListRequest;
@@ -130,9 +131,11 @@ final class BankRows
 
         match ($status) {
             BankRowStatus::Ignored => $query->whereNotNull('ignored_at'),
-            BankRowStatus::Linked => $query->whereNull('ignored_at')->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
+            // A commission joined to the expense of its debit is a fee, not the transaction the expense came from
+            BankRowStatus::Linked => $query->whereNull('ignored_at')->withoutFees()->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
+            BankRowStatus::Fee => $query->whereNull('ignored_at')->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id'),
             BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('expense_id')->whereNull('income_id'),
-            // No transaction is a fee or a transfer until the columns that say so exist
+            // No transaction is a transfer until the columns that say so are read
             default => $query->whereRaw('1 = 0'),
         };
     }

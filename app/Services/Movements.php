@@ -62,6 +62,8 @@ final readonly class Movements
         $transaction = BankTransaction::query()
             ->with('financialAccount')
             ->where($movement instanceof Expense ? 'expense_id' : 'income_id', $movement->id)
+            // The commission of a direct debit joined to the expense is not the movement it came from
+            ->withoutFees()
             ->first();
 
         return $transaction instanceof BankTransaction ? MovementBankData::fromTransaction($transaction, $user->can('delete', $movement)) : null;
