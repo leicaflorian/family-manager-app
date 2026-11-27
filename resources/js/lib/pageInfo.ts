@@ -520,7 +520,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
             ),
             trans('It belongs to a planned expense pays its closest due date.'),
             trans(
-                'Ignore hides a movement nobody has to deal with: it goes under Ignored.',
+                'Ignore hides a movement nobody has to deal with: you find it under All.',
             ),
             trans('Update reads the banks now.'),
         ],

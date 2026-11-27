@@ -10,7 +10,7 @@ import {
     vi,
 } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage, screenWidth } from '@/test/page';
+import { renderPage, screenWidth, withTrail } from '@/test/page';
 import BankTransactions from './BankTransactions.vue';
 
 const shared = vi.hoisted(() => ({
@@ -116,51 +116,96 @@ describe('Budget, From the bank', () => {
         ).toBeInTheDocument();
     });
 
-    it('shows the number to sort on the first filter and links the other', () => {
-        renderPage(BankTransactions, props());
+    it('the title is From the bank and the back link leads to the budget', () => {
+        const { state, provide } = withTrail();
+        renderPage(BankTransactions, props(), provide);
 
-        const filters = screen.getByRole('navigation', {
-            name: 'Movements from the bank',
-        });
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'From the bank' },
+        ]);
         expect(
-            within(filters).getByRole('link', { name: 'To sort · 6' }),
-        ).toHaveAttribute('href', '/budget/bank');
+            screen.getByRole('heading', { level: 1, name: 'From the bank' }),
+        ).toBeInTheDocument();
+        // It is a page of its own: the tabs of the budget are not here
         expect(
-            within(filters).getByRole('link', { name: 'Ignored' }),
-        ).toHaveAttribute('href', '/budget/bank?show=ignored');
+            screen.queryByRole('navigation', { name: 'Budget' }),
+        ).not.toBeInTheDocument();
     });
 
-    it('draws the filters as the grey bar of the boards, the open one marked', () => {
+    it('has the tabs To sort, All and Filters, the number on the first and the open one marked', () => {
         renderPage(BankTransactions, props());
 
-        const filters = screen.getByRole('navigation', {
+        const tabs = screen.getByRole('navigation', {
             name: 'Movements from the bank',
         });
-        expect(filters).toHaveClass('bg-segment');
+        expect(tabs).toHaveClass('bg-segment');
         expect(
-            within(filters).getByRole('link', { name: 'To sort · 6' }),
+            within(tabs)
+                .getAllByRole('link')
+                .map((link) => link.textContent?.trim()),
+        ).toEqual(['To sort · 6', 'All', 'Filters']);
+        expect(
+            within(tabs).getByRole('link', { name: 'To sort · 6' }),
+        ).toHaveAttribute('href', '/budget/bank');
+        expect(
+            within(tabs).getByRole('link', { name: 'To sort · 6' }),
         ).toHaveAttribute('aria-current', 'page');
+        expect(within(tabs).getByRole('link', { name: 'All' })).toHaveAttribute(
+            'href',
+            '/budget/bank?show=all',
+        );
         expect(
-            within(filters).getByRole('link', { name: 'Ignored' }),
+            within(tabs).getByRole('link', { name: 'Filters' }),
+        ).toHaveAttribute('href', '/budget/bank?show=filters');
+        expect(
+            within(tabs).getByRole('link', { name: 'All' }),
         ).not.toHaveAttribute('aria-current');
     });
 
-    it('says there is nothing to sort', () => {
+    it('marks the tab that is open and shows no number when nothing is to sort', () => {
+        shared.bank_feed = { unsorted: 0 };
+        renderPage(BankTransactions, props({ show: 'filters', rows: [] }));
+
+        const tabs = screen.getByRole('navigation', {
+            name: 'Movements from the bank',
+        });
+        expect(
+            within(tabs).getByRole('link', { name: 'Left to sort' }),
+        ).not.toHaveAttribute('aria-current');
+        expect(
+            within(tabs).getByRole('link', { name: 'Filters' }),
+        ).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('the empty page says the filters sort by themselves', () => {
         renderPage(BankTransactions, props({ rows: [] }));
 
-        expect(screen.getByText('No movement to sort')).toBeInTheDocument();
+        expect(screen.getByText('Nothing left to sort')).toBeInTheDocument();
         expect(
             screen.getByText(
-                'The movements that pay a fixed expense are recorded by themselves. The others arrive here, to create or to ignore.',
+                'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
             ),
         ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'All the movements' }),
+        ).toHaveAttribute('href', '/budget/bank?show=all');
+        expect(
+            screen.getByRole('link', { name: 'Your filters' }),
+        ).toHaveAttribute('href', '/budget/bank?show=filters');
+    });
+
+    it('under Filters says there is no filter yet', () => {
+        renderPage(BankTransactions, props({ show: 'filters', rows: [] }));
+
+        expect(screen.getByText('No filter yet')).toBeInTheDocument();
     });
 
     it('says what stays under Ignored, and for how long', () => {
         renderPage(
             BankTransactions,
             props({
-                show: 'ignored',
+                show: 'all',
                 rows: [{ ...bankTransactions[1]!, ignored: true }],
             }),
         );
@@ -174,7 +219,7 @@ describe('Budget, From the bank', () => {
     });
 
     it('says there is nothing ignored', () => {
-        renderPage(BankTransactions, props({ show: 'ignored', rows: [] }));
+        renderPage(BankTransactions, props({ show: 'all', rows: [] }));
 
         expect(screen.getByText('No ignored movement')).toBeInTheDocument();
     });
@@ -214,17 +259,6 @@ describe('Budget, From the bank', () => {
                 'Only who manages the family connects and disconnects the banks.',
             ),
         ).toBeInTheDocument();
-    });
-
-    it('adds the tab From the bank with its number to the tabs of the budget', () => {
-        renderPage(BankTransactions, props());
-
-        const tabs = screen.getByRole('navigation', { name: 'Budget' });
-        expect(
-            within(tabs).getByRole('link', {
-                name: 'From the bank, 6 to sort',
-            }),
-        ).toHaveAttribute('aria-current', 'page');
     });
 
     it('updates the banks, once while the update runs', async () => {
@@ -318,7 +352,7 @@ describe('Budget, From the bank, ignoring', () => {
         renderPage(
             BankTransactions,
             props({
-                show: 'ignored',
+                show: 'all',
                 rows: [{ ...bankTransactions[1]!, ignored: true }],
             }),
         );
@@ -438,7 +472,7 @@ describe('Budget, From the bank, sorting', () => {
         const view = renderPage(
             BankTransactions,
             props({
-                show: 'ignored',
+                show: 'all',
                 rows: [{ ...bankTransactions[1]!, ignored: true }],
             }),
         );
@@ -633,7 +667,7 @@ describe('Budget, From the bank, a text that comes back every month', () => {
         for (const extra of [
             { can_plan: false },
             { rows: [{ ...netflix, pending: true, booked_on: null }] },
-            { rows: [{ ...netflix, ignored: true }], show: 'ignored' },
+            { rows: [{ ...netflix, ignored: true }], show: 'all' },
             { rows: [{ ...netflix, currency: 'USD' }] },
             { rows: [{ ...netflix, recurring: false }] },
             { can_sort: false },

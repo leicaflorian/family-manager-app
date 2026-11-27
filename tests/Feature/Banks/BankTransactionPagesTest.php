@@ -132,20 +132,38 @@ it('gives 50 rows at a time and the number of the next block', function (): void
         ->where('next', null));
 });
 
-it('keeps the ignored ones under their own filter', function (): void {
+it('show=filters and show=all are accepted', function (): void {
     $connection = bankTransactionPagesConnection($this->marco);
     bankTransactionPagesRow($connection, ['text' => 'TO SORT']);
     bankTransactionPagesRow($connection, ['text' => 'SET ASIDE', 'ignored_at' => now()]);
 
-    $this->get(route('budget.bank.index', ['show' => 'ignored']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('show', 'ignored')
+    // Until the next tasks fill them, All lists what Ignored listed and Filters lists no movement
+    $this->get(route('budget.bank.index', ['show' => 'all']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'all')
         ->has('rows', 1)
         ->where('rows.0.text', 'SET ASIDE')
         ->where('rows.0.ignored', true));
 
+    $this->get(route('budget.bank.index', ['show' => 'filters']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'filters')
+        ->has('rows', 0)
+        ->where('next', null));
+
     $this->get(route('budget.bank.index', ['show' => 'nonsense']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('show', 'unsorted')
         ->where('rows.0.text', 'TO SORT'));
+});
+
+it('show=ignored still answers', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    bankTransactionPagesRow($connection, ['text' => 'TO SORT']);
+    bankTransactionPagesRow($connection, ['text' => 'SET ASIDE', 'ignored_at' => now()]);
+
+    $this->get(route('budget.bank.index', ['show' => 'ignored']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'all')
+        ->has('rows', 1)
+        ->where('rows.0.text', 'SET ASIDE')
+        ->where('rows.0.ignored', true));
 });
 
 it('says when the banks were read last and at which hours they are read', function (): void {

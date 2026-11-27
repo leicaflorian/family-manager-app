@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
- * *Budget → From the bank*, as the boards *Dalla banca* and *Dalla banca-pc* draw it: the transactions the bank
- * gave that no fixed expense recognised, newest first, 50 at a time and the next ones while scrolling. A pending
- * transaction says so and waits for the bank to book it. *To sort* and *Ignored* are two filters of the same list,
- * in the grey bar of the boards;
+ * *Budget → From the bank*, a page of its own under the Budget (trail *Budget › From the bank*, no tabs of the
+ * Budget), as the boards *Dalla banca* and *Dalla banca-pc* draw it: the transactions the bank gave that no fixed
+ * expense recognised, newest first, 50 at a time and the next ones while scrolling. A pending transaction says so
+ * and waits for the bank to book it. *To sort*, *All* and *Filters* are the three tabs inside the page, in the grey
+ * bar of the boards (for now *All* lists the ignored ones and *Filters* is empty);
  * *Update* reads the banks now (the server says how many movements are new) and under it comes the last read and
  * the hours of the automatic ones. A bank that has to be connected again has a strip with *Reconnect* for who can
  * change the banks. *Ignore* hides a transaction nobody has to deal with, and under *Ignored* each one has *Put back
@@ -17,7 +18,9 @@ import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
 import {
     ChevronRight,
     EyeOff,
+    Funnel,
     Landmark,
+    List,
     Plus,
     RefreshCw,
     Repeat,
@@ -39,7 +42,6 @@ import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { lastReadText, readTimes } from '@/lib/banks';
 import { formatDayMonth, todayInRome } from '@/lib/format';
-import { budgetTabs } from '@/lib/budgetTabs';
 import { cn } from '@/lib/utils';
 import {
     assign,
@@ -53,8 +55,8 @@ import { create as createPlanned } from '@/routes/budget/planned';
 import { index as banksIndex } from '@/routes/banks';
 
 const props = defineProps<{
-    /** Which filter is open: the transactions to sort or the ones put aside. */
-    show: 'unsorted' | 'ignored';
+    /** Which tab is open: the transactions to sort, all of them (for now the ones put aside) or the filters. */
+    show: 'unsorted' | 'all' | 'filters';
     /** The blocks of the list loaded so far. */
     rows: App.Data.BankTransactionData[];
     /** The number of the next block of the list, null at the last one. */
@@ -85,7 +87,10 @@ const updating = ref(false);
 /** The number still to sort, from the shared props so it follows an update. */
 const unsorted = computed((): number => bankFeed.value?.unsorted ?? 0);
 
-/** The two filters of the list, as the grey bar of the boards: the first says how many there are to sort. */
+/** The list shows the transactions put aside (the tab *All*, for now). */
+const ignoredList = computed((): boolean => props.show === 'all');
+
+/** The three tabs of the page, as the grey bar of the boards: the first says how many there are to sort. */
 const filters = computed((): Tab[] => [
     {
         label:
@@ -93,14 +98,19 @@ const filters = computed((): Tab[] => [
                 ? trans('To sort · :count', {
                       count: String(unsorted.value),
                   })
-                : trans('To sort'),
+                : trans('Left to sort'),
         href: bankIndex().url,
         current: props.show === 'unsorted',
     },
     {
-        label: trans('Ignored'),
-        href: bankIndex({ query: { show: 'ignored' } }).url,
-        current: props.show === 'ignored',
+        label: trans('All'),
+        href: bankIndex({ query: { show: 'all' } }).url,
+        current: props.show === 'all',
+    },
+    {
+        label: trans('Filters'),
+        href: bankIndex({ query: { show: 'filters' } }).url,
+        current: props.show === 'filters',
     },
 ]);
 
@@ -129,7 +139,7 @@ function dayOf(row: App.Data.BankTransactionData): string {
 /** What the next block of the list asks for, in the address of the page. */
 const nextData = computed(() => ({
     page: props.next,
-    ...(props.show === 'ignored' ? { show: 'ignored' } : {}),
+    ...(props.show === 'all' ? { show: 'all' } : {}),
 }));
 
 /** Reads the banks now. */
@@ -326,14 +336,10 @@ function assignTo(choice: App.Data.BankPlannedChoiceData): void {
     );
 }
 
-/** Adds an expense or an income by hand: its own page, which leads back here. */
-function add(): void {
-    router.get(create.url({ query: { from: bankIndex().url } }));
-}
-
 const { title, head } = usePageMeta({
     info: 'bank-transactions',
-    title: () => trans('Budget'),
+    title: () => trans('From the bank'),
+    parent: 'budget',
 });
 </script>
 
@@ -341,14 +347,7 @@ const { title, head } = usePageMeta({
     <Head :title="head" />
 
     <div class="flex max-w-[1120px] flex-col gap-4">
-        <FmTitle :title="title">
-            <template #actions>
-                <FmButton :icon="Plus" @click="add">{{
-                    $t('New expense or income')
-                }}</FmButton>
-            </template>
-        </FmTitle>
-        <FmTabs :tabs="budgetTabs('bank', bankFeed)" :label="$t('Budget')" />
+        <FmTitle :title="title" />
 
         <FmNotice
             v-for="bank in banks_to_reconnect"
@@ -393,23 +392,49 @@ const { title, head } = usePageMeta({
         </div>
 
         <FmEmpty
-            v-if="shown.length === 0"
+            v-if="show === 'filters'"
+            :icon="Funnel"
+            :title="$t('No filter yet')"
+            :text="
+                $t(
+                    'A filter sorts by itself the movements that look alike, the ones that arrive and the ones already here.',
+                )
+            "
+        />
+
+        <FmEmpty
+            v-else-if="shown.length === 0"
             :icon="Landmark"
             :title="
-                show === 'ignored'
+                ignoredList
                     ? $t('No ignored movement')
-                    : $t('No movement to sort')
+                    : $t('Nothing left to sort')
             "
             :text="
-                show === 'ignored'
+                ignoredList
                     ? $t(
                           'Ignored movements stay here for 12 months, then they are removed.',
                       )
                     : $t(
-                          'The movements that pay a fixed expense are recorded by themselves. The others arrive here, to create or to ignore.',
+                          'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
                       )
             "
-        />
+        >
+            <template v-if="!ignoredList">
+                <FmButton
+                    variant="outline"
+                    :icon="List"
+                    :href="bankIndex({ query: { show: 'all' } }).url"
+                    >{{ $t('All the movements') }}</FmButton
+                >
+                <FmButton
+                    variant="outline"
+                    :icon="Funnel"
+                    :href="bankIndex({ query: { show: 'filters' } }).url"
+                    >{{ $t('Your filters') }}</FmButton
+                >
+            </template>
+        </FmEmpty>
 
         <template v-else>
             <ul
@@ -617,7 +642,7 @@ const { title, head } = usePageMeta({
             />
             <p class="m-0 px-1 text-meta text-ink-soft">
                 {{
-                    show === 'ignored'
+                    ignoredList
                         ? $t(
                               'Ignored movements stay here for 12 months, then they are removed.',
                           )

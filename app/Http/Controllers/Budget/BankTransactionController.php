@@ -51,7 +51,9 @@ final class BankTransactionController extends Controller
     private const int PER_PAGE = 50;
 
     /**
-     * The page: a block of the list (added below the ones already shown) under `?show=unsorted` or `?show=ignored`.
+     * The page: a block of the list (added below the ones already shown) under `?show=unsorted`, `?show=all` or
+     * `?show=filters`. Until the next tasks fill them, *All* lists the ignored ones (`?show=ignored` leads there) and
+     * *Filters* lists no movement.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family
      */
@@ -59,16 +61,21 @@ final class BankTransactionController extends Controller
     {
         Gate::authorize('viewAny', BankTransaction::class);
 
-        $ignored = $request->query('show') === 'ignored';
+        $show = match ($request->query('show')) {
+            'all', 'ignored' => 'all',
+            'filters' => 'filters',
+            default => 'unsorted',
+        };
+        $ignored = $show === 'all';
         $page = max(1, $request->integer('page'));
         $block = null;
         // One query for both `rows` and `next`, run the first time either is asked
-        $rows = function () use (&$block, $ignored, $page): Collection {
-            return $block ??= $this->block($ignored, $page);
+        $rows = function () use (&$block, $show, $ignored, $page): Collection {
+            return $block ??= $show === 'filters' ? new Collection : $this->block($ignored, $page);
         };
 
         return Inertia::render('budget/BankTransactions', [
-            'show' => $ignored ? 'ignored' : 'unsorted',
+            'show' => $show,
             'rows' => Inertia::merge(function () use ($rows, $ignored): array {
                 // One read of the last months for the whole page, none for the ignored ones
                 $texts = resolve(RecurringBankTexts::class);
