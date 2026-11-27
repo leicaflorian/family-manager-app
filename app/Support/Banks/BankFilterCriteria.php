@@ -74,7 +74,7 @@ final readonly class BankFilterCriteria
     }
 
     /**
-     * Whether the criteria can be used: at least one word of three letters or more among the words, or a pattern that
+     * Whether the criteria can be used: at least one word of three letters or digits or more (symbols do not count, once normalised) among the words, or a pattern that
      * can be saved. Anything else would take every transaction, and takes none.
      */
     public function isSafe(): bool
@@ -83,7 +83,7 @@ final readonly class BankFilterCriteria
             return BankMatch::valid($this->pattern);
         }
 
-        return array_any($this->contains, static fn (string $word): bool => mb_strlen($word) >= self::MIN_WORD);
+        return array_any($this->contains, static fn (string $word): bool => mb_strlen((string) preg_replace('/[^\p{L}\p{N}]+/u', '', BankMatch::normalize($word))) >= self::MIN_WORD);
     }
 
     /**

@@ -101,3 +101,23 @@ test('hits gives the words found', function (): void {
 test('hits of an unsafe filter is empty', function (): void {
     expect(BankFilterMatch::hits(bankFilterMatchCriteria(['contains' => ['ab']]), 'AB cd'))->toBe([]);
 });
+
+test('a word that is only symbols or emoji takes nothing', function (string $word): void {
+    $criteria = bankFilterMatchCriteria(['contains' => [$word]]);
+
+    expect($criteria->isSafe())->toBeFalse()
+        ->and(BankFilterMatch::matches($criteria, bankFilterMatchTransaction('Qualsiasi cosa')))->toBeFalse();
+})->with(['emoji' => '😀😀😀', 'question marks' => '???']);
+
+test('without usable words and without a pattern nothing is taken, even when the criteria claim to be safe', function (): void {
+    // Built by hand: a subclass cannot exist (final), so a criteria whose words normalise to nothing is a plain one
+    $criteria = new BankFilterCriteria(contains: ['😀😀😀'], direction: 'expense');
+
+    expect(BankFilterMatch::matches($criteria, bankFilterMatchTransaction('Qualsiasi cosa')))->toBeFalse();
+});
+
+test('a transaction without an account is not taken and does not throw', function (): void {
+    $transaction = bankFilterMatchTransaction('Edison', '-84.20', ['financial_account_id' => null]);
+
+    expect(BankFilterMatch::matches(bankFilterMatchCriteria(), $transaction))->toBeFalse();
+});

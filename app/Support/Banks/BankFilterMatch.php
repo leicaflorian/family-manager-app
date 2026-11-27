@@ -25,7 +25,10 @@ final class BankFilterMatch
             return false;
         }
 
-        if (! RuleAccount::reads($criteria->accountId, $transaction->financial_account_id)) {
+        // A transaction always has an account; a filter runs on every one at each read and must never throw
+        $accountId = $transaction->getAttribute('financial_account_id');
+
+        if (! is_numeric($accountId) || ! RuleAccount::reads($criteria->accountId, (int) $accountId)) {
             return false;
         }
 
@@ -46,7 +49,10 @@ final class BankFilterMatch
             return BankMatch::matches($criteria->pattern, $text);
         }
 
-        return count(self::found($criteria->contains, $text)) === count(self::usable($criteria->contains));
+        $words = self::usable($criteria->contains);
+
+        // Never trust isSafe() alone: no usable word would take every transaction
+        return $words !== [] && count(self::found($words, $text)) === count($words);
     }
 
     /**
