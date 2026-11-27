@@ -27,6 +27,39 @@ export type ImportOverrides = {
 };
 
 /**
+ * What the person changed in the boxes of one supply of a bill with more than
+ * one: its expense, its utility and its consumption, *To pay*, the expense and
+ * the utility picked by hand and the fields written. A box left as it is
+ * (`null`) follows the proposal of the supply.
+ */
+export type SupplyPicks = {
+    movement: boolean | null;
+    record: boolean | null;
+    consumption: boolean | null;
+    due: boolean | null;
+    targets: { movement: ImportTarget; record: ImportTarget };
+    overrides: {
+        movement: Record<string, OverrideValue>;
+        record: Record<string, OverrideValue>;
+        consumption: Record<string, OverrideValue>;
+    };
+};
+
+/** What one supply sends under `also.supplies`, as `ImportChoices::fromArray` reads it. */
+export type SupplyAlso = {
+    movement: boolean;
+    record: boolean;
+    /** Only when the supply has a consumption. */
+    consumption?: boolean;
+    /** Only when the person chose. */
+    due?: boolean;
+    /** The target of the expense only when the supply has an expense: with the Budget off it has none. */
+    targets: { movement?: ImportTarget; record: ImportTarget };
+    /** Only when the person wrote a field of the supply. */
+    overrides?: SupplyPicks['overrides'];
+};
+
+/**
  * What the person changed in *What I do too* for one file. A box left as it
  * is (`null`, or missing for a card) follows the proposal.
  */
@@ -47,6 +80,8 @@ export type ImportPicks = {
     createCard: boolean;
     /** The old policies the person unticked under the box of the new policy: the others are cancelled. */
     spared: number[];
+    /** The choices of each supply of a bill with more than one, by its index; a supply never touched is missing. */
+    supplies: Record<number, SupplyPicks>;
 };
 
 /** What one file does too, as the server reads it (`App\Data\Reading\ImportChoices`, without the document). */
@@ -69,6 +104,8 @@ export type ImportAlso = {
     card_type: string | null;
     /** Only while the box of the new policy is ticked and at least one old policy under it is: the ones to cancel. */
     replace_policies?: number[];
+    /** Only for a bill with more than one supply: the boxes of each one, by its index. */
+    supplies?: Record<number, SupplyAlso>;
 };
 
 /** The choices of one file, and how to ask its proposal again. */
@@ -93,6 +130,253 @@ export interface ImportChoices {
     refresh: () => void;
     /** Forgets the wait and the request running: after an import, nothing asks for a file saved. */
     cancel: () => void;
+}
+
+/**
+ * The choices of a supply nobody touched yet.
+ *
+ * @returns every box following the proposal
+ */
+function untouchedSupply(): SupplyPicks {
+    return {
+        movement: null,
+        record: null,
+        consumption: null,
+        due: null,
+        targets: { movement: 'auto', record: 'auto' },
+        overrides: { movement: {}, record: {}, consumption: {} },
+    };
+}
+
+/**
+ * What each supply sends: the boxes the person touched, the proposal of the supply for the others.
+ *
+ * @param supplies - the supplies of the proposal
+ * @param picked - the choices of the supplies, by index
+ * @returns the choices of every supply, by index
+ */
+function suppliesAlso(
+    supplies: App.Data.Reading.SupplyProposalData[],
+    picked: Record<number, SupplyPicks>,
+): Record<number, SupplyAlso> {
+    return Object.fromEntries(
+        supplies.map((supply) => {
+            const own = picked[supply.index] ?? untouchedSupply();
+            const written = Object.values(own.overrides).some(
+                (fields) => Object.keys(fields).length > 0,
+            );
+            const sent: SupplyAlso = {
+                movement: own.movement ?? supply.movement?.suggested ?? false,
+                record: own.record ?? supply.record?.suggested ?? false,
+                ...(supply.consumption
+                    ? {
+                          consumption:
+                              own.consumption ?? supply.consumption.suggested,
+                      }
+                    : {}),
+                ...(own.due === null ? {} : { due: own.due }),
+                targets: {
+                    ...(supply.movement
+                        ? { movement: own.targets.movement }
+                        : {}),
+                    record: own.targets.record,
+                },
+                ...(written
+                    ? {
+                          overrides: JSON.parse(
+                              JSON.stringify(own.overrides),
+                          ) as SupplyPicks['overrides'],
+                      }
+                    : {}),
+            };
+
+            return [supply.index, sent];
+        }),
+    );
+}
+
+/**
+ * The choices of one supply of a bill with more than one, as the choices of a
+ * bill alone: the boxes of the expense, the consumption and the utility (the
+ * card `utility`), *To pay*, the targets and the fields written read and write
+ * `picks.supplies[index]`, created at the first change. The event, the policy
+ * and *Create the card* belong to the file, not to a supply: here they stay as
+ * the proposal says. Asking the proposal again is the one of the file.
+ *
+ * @param choices - the choices of the file
+ * @param index - the place of the supply in the reading
+ * @returns the choices of the supply
+ */
+export function scopeToSupply(
+    choices: ImportChoices,
+    index: number,
+): ImportChoices {
+    const all = choices.picks.supplies;
+
+    /**
+     * The choices of the supply, to change them.
+     *
+     * @returns them, created when missing
+     */
+    function own(): SupplyPicks {
+        return (all[index] ??= untouchedSupply());
+    }
+
+    /**
+     * The choices of the supply, to read them.
+     *
+     * @returns them, or the untouched ones without creating them
+     */
+    function read(): SupplyPicks {
+        return all[index] ?? untouchedSupply();
+    }
+
+    const picks = {
+        get movement(): boolean | null {
+            return read().movement;
+        },
+        set movement(value: boolean | null) {
+            own().movement = value;
+        },
+        event: null,
+        get consumption(): boolean | null {
+            return read().consumption;
+        },
+        set consumption(value: boolean | null) {
+            own().consumption = value;
+        },
+        get records(): ImportPicks['records'] {
+            const record = read().record;
+
+            return record === null ? {} : { utility: record };
+        },
+        get targets(): ImportTargets {
+            const { movement, record } = read().targets;
+
+            return { movement, event: 'auto', records: { utility: record } };
+        },
+        get overrides(): ImportOverrides {
+            const { movement, record, consumption } = read().overrides;
+
+            return {
+                movement,
+                event: {},
+                records: { utility: record },
+                consumption,
+            };
+        },
+        get due(): boolean | null {
+            return read().due;
+        },
+        set due(value: boolean | null) {
+            own().due = value;
+        },
+        policy: 'auto',
+        createCard: false,
+        spared: [],
+        get supplies(): Record<number, SupplyPicks> {
+            return {};
+        },
+    } as ImportPicks;
+
+    const also = computed((): ImportAlso | undefined => {
+        const supply = choices.also.value?.supplies?.[index];
+
+        if (!supply) {
+            return undefined;
+        }
+
+        return {
+            movement: supply.movement,
+            event: false,
+            ...(supply.consumption === undefined
+                ? {}
+                : { consumption: supply.consumption }),
+            records: supply.record ? ['utility'] : [],
+            targets: {
+                ...(supply.targets.movement === undefined
+                    ? {}
+                    : { movement: supply.targets.movement }),
+                event: 'auto',
+                records: { utility: supply.targets.record },
+            },
+            ...(supply.overrides
+                ? {
+                      overrides: {
+                          movement: supply.overrides.movement,
+                          event: {},
+                          records: { utility: supply.overrides.record },
+                          consumption: supply.overrides.consumption,
+                      },
+                  }
+                : {}),
+            ...(supply.due === undefined ? {} : { due: supply.due }),
+            policy: 'auto',
+            card_type: null,
+        };
+    });
+
+    /**
+     * Which field of the choices of the supply a box writes in.
+     *
+     * @param side - the box
+     * @returns `movement`, `consumption` or `record`; undefined for the event
+     */
+    function slot(
+        side: AlsoSide,
+    ): 'movement' | 'consumption' | 'record' | undefined {
+        if (side === 'movement' || side === 'consumption') {
+            return side;
+        }
+
+        return side === 'utility' ? 'record' : undefined;
+    }
+
+    return {
+        picks,
+        also,
+        changed: computed(
+            (): boolean =>
+                all[index] !== undefined &&
+                JSON.stringify(all[index]) !==
+                    JSON.stringify(untouchedSupply()),
+        ),
+        targetOf: (side) => {
+            const box = slot(side);
+
+            return box === 'movement' || box === 'record'
+                ? read().targets[box]
+                : 'auto';
+        },
+        setTarget: (side, target) => {
+            const box = slot(side);
+
+            if (box === 'movement' || box === 'record') {
+                own().targets[box] = target;
+            }
+        },
+        setTicked: (side, value) => {
+            const box = slot(side);
+
+            if (box) {
+                own()[box] = value;
+            }
+        },
+        overrideOf: (side, field) => {
+            const box = slot(side);
+
+            return box ? read().overrides[box][field] : undefined;
+        },
+        setOverride: (side, field, value) => {
+            const box = slot(side);
+
+            if (box) {
+                own().overrides[box][field] = value;
+            }
+        },
+        refresh: choices.refresh,
+        cancel: choices.cancel,
+    };
 }
 
 /** How long to wait after the last change before asking the proposal again, in milliseconds. */
@@ -141,6 +425,7 @@ export function useImportChoices(
         policy: 'auto',
         createCard: false,
         spared: [],
+        supplies: {},
     });
 
     /**
@@ -205,6 +490,9 @@ export function useImportChoices(
                 : {}),
             card_type: current.cardType,
             ...(replaced.length > 0 ? { replace_policies: replaced } : {}),
+            ...(current.supplies.length > 0
+                ? { supplies: suppliesAlso(current.supplies, picks.supplies) }
+                : {}),
         };
     });
 
