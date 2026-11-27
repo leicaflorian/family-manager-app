@@ -172,3 +172,25 @@ test('a filter is deleted with the transfer account it points to', function (): 
         expect(BankFilter::query()->whereKey($filter->id)->exists())->toBeFalse();
     });
 });
+
+test('a transfer keeps its account and its pair, and loses them with the account or the other half', function (): void {
+    $family = Family::factory()->create();
+
+    CurrentFamily::using($family->id, function () use ($family): void {
+        $account = FinancialAccount::factory()->for($family)->create();
+        $first = BankTransaction::factory()->for($family)->create(['transfer_account_id' => $account->id, 'rejected_proposals' => ['a' => 1]]);
+        $second = BankTransaction::factory()->for($family)->create(['transfer_pair_id' => $first->id]);
+
+        expect($first->refresh()->rejected_proposals)->toBe(['a' => 1])
+            ->and($second->transferPair?->is($first))->toBeTrue()
+            ->and($first->transferAccount?->is($account))->toBeTrue();
+
+        $account->delete();
+
+        expect($first->refresh()->transfer_account_id)->toBeNull();
+
+        $first->delete();
+
+        expect($second->refresh()->transfer_pair_id)->toBeNull();
+    });
+});

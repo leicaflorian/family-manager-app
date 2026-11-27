@@ -143,6 +143,11 @@ readonly pending: boolean,
 readonly ignored: boolean,
 readonly recurring: boolean,
 };
+export type BankTransferData = {
+readonly account: string,
+readonly direction: string,
+readonly paired: boolean,
+};
 export type CalendarSettingsData = {
 readonly on: boolean,
 readonly url: string | null,

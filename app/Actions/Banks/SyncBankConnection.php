@@ -28,8 +28,9 @@ final readonly class SyncBankConnection
      * @param  StoreBankEntries  $store  saves what the bank gives
      * @param  MatchBankTransactions  $match  pays the due dates the new transactions settle
      * @param  WatchBankConsents  $watch  tells the admins when the bank took the consent back
+     * @param  MarkBankTransfer  $transfers  pairs the new transactions that are the other half of a transfer
      */
-    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match, private WatchBankConsents $watch) {}
+    public function __construct(private BankFeed $feed, private StoreBankEntries $store, private MatchBankTransactions $match, private WatchBankConsents $watch, private MarkBankTransfer $transfers) {}
 
     /**
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
@@ -45,6 +46,9 @@ final readonly class SyncBankConnection
     public function handle(BankConnection $connection, ?BankVisitor $visitor = null): int
     {
         $fresh = $this->read($connection, $visitor);
+
+        // The second half of a transfer the person already marked: it is paired, not left to sort or to a rule
+        $this->transfers->pairNew($fresh);
 
         // The oldest first, as a person would sort them: a late due date is paid by the first transaction after it
         $this->match->handle(collect($fresh)->sortBy([
