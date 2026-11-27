@@ -28,6 +28,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Timeout;
@@ -227,7 +228,8 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     /**
      * Saves the consumption when it passes the check, and says what came of it for the utility of the job. A bill of
      * electricity and gas also saves, from the same answer, the supply of every other measured utility linked to it
-     * that has no row of the bill yet; what comes of those is not the outcome of the call.
+     * that has no row of the bill yet; what comes of those is not the outcome of the call. A bill that lists supplies
+     * without one of the utility of the job saves nothing for it: *No consumption found*, so it is to check.
      *
      * @param  ConsumptionReading  $reading  what the model found
      * @param  Utility  $utility  the utility of the bill
@@ -239,13 +241,13 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
             return ConsumptionOutcome::NotABill;
         }
 
-        $outcome = $this->saveFor($reading->forUtility($utility), $utility, $document);
+        $found = $this->supplyOf($reading, $utility);
+        $outcome = $found instanceof ConsumptionReading ? $this->saveFor($found, $utility, $document) : ConsumptionOutcome::NoConsumption;
 
         foreach ($this->otherUtilities($reading, $utility, $document) as $other) {
-            $supply = $reading->forUtility($other);
+            $supply = $this->supplyOf($reading, $other);
 
-            // Only a supply of its own: the flat fields are another utility's
-            if ($supply === $reading) {
+            if (! $supply instanceof ConsumptionReading) {
                 continue;
             }
 
@@ -261,18 +263,32 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     }
 
     /**
+     * The consumption of a utility on the bill: its own supply, or the flat fields of a bill without supplies. Null
+     * when the bill lists supplies and none is the utility's (the flat fields are those of the first supply, another's).
+     *
+     * @param  ConsumptionReading  $reading  what the model found
+     * @param  Utility  $utility  the utility
+     */
+    private function supplyOf(ConsumptionReading $reading, Utility $utility): ?ConsumptionReading
+    {
+        $found = $reading->forUtility($utility);
+
+        return $reading->supplies !== [] && $found === $reading ? null : $found;
+    }
+
+    /**
      * The other measured utilities linked to a bill of several supplies that have no row of it yet; none for a bill
      * of one supply.
      *
      * @param  ConsumptionReading  $reading  what the model found
      * @param  Utility  $utility  the utility of the job
      * @param  Document  $document  the bill
-     * @return iterable<Utility>
+     * @return Collection<int, Utility>
      */
-    private function otherUtilities(ConsumptionReading $reading, Utility $utility, Document $document): iterable
+    private function otherUtilities(ConsumptionReading $reading, Utility $utility, Document $document): Collection
     {
         if ($reading->supplies === []) {
-            return [];
+            return new Collection;
         }
 
         return $document->utilities()

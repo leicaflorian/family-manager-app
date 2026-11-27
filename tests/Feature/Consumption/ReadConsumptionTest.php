@@ -380,3 +380,20 @@ it('saves only the utility of the job when the reading has no supplies', functio
     expect(array_keys(readConsumptionRows()))->toBe([$this->utility->id])
         ->and(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::Saved);
 });
+
+it('saves nothing for the utility of the job when the bill lists supplies and none is its own', function (): void {
+    CurrentFamily::using($this->family->id, fn () => $this->utility->forceFill(['type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 11111111'])->save());
+    $this->reader->readsConsumption($this->document->file_id, new ConsumptionReading(
+        isBill: true, periodStart: '2026-09-01', periodEnd: '2026-09-30', quantity: 201.0, unit: 'kwh', totalAmount: 180.0,
+        supplies: [
+            new SupplyConsumptionReading('electricity', 'IT 001 E 87654321', new ConsumptionReading(isBill: true, periodStart: '2026-09-01', periodEnd: '2026-09-30', quantity: 201.0, unit: 'kwh', totalAmount: 96.25)),
+            new SupplyConsumptionReading('electricity', 'IT 001 E 22222222', new ConsumptionReading(isBill: true, periodStart: '2026-09-01', periodEnd: '2026-09-30', quantity: 150.0, unit: 'kwh', totalAmount: 83.75)),
+        ],
+    ));
+
+    readConsumptionRun();
+
+    expect(readConsumptionRows())->toBe([])
+        ->and(readConsumptionCalls())->toHaveCount(1)
+        ->and(readConsumptionCalls()[0]->outcome)->toBe(ConsumptionOutcome::NoConsumption);
+});

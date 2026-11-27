@@ -307,8 +307,11 @@ final readonly class ConsumptionPage
     }
 
     /**
-     * The bills read for their consumption that could not be saved: the latest reading of each says why, unless it
-     * was saved or the document is not a bill. A bill drops out once it has its consumption.
+     * The bills read for their consumption that could not be saved: the latest reading of each says why, unless the
+     * document is not a bill. A bill drops out once it has its consumption of this utility. A reading is of the file,
+     * not of a utility: a bill of electricity and gas read and saved for one utility but without the row of this one
+     * (its supply not found or not valid, or read before the bills of several supplies) is to check here with *No
+     * consumption found*, so that the person writes it, and no second reading is paid.
      *
      * @param  Utility  $utility  the utility
      * @return list<array{document_id: int, title: string, date: string|null, reason: string}>
@@ -327,8 +330,10 @@ final readonly class ConsumptionPage
         foreach ($documents as $document) {
             $outcome = $document->file->aiReadings->first()?->outcome;
 
-            if ($outcome instanceof ConsumptionOutcome && ! in_array($outcome, [ConsumptionOutcome::Saved, ConsumptionOutcome::NotABill], true)) {
-                $list[] = ['document_id' => $document->id, 'title' => $document->title, 'date' => $document->date?->toDateString(), 'reason' => $outcome->label()];
+            if ($outcome instanceof ConsumptionOutcome && $outcome !== ConsumptionOutcome::NotABill) {
+                // Saved, yet without the row of this utility (`bills()`): saved for another utility of the bill
+                $reason = $outcome === ConsumptionOutcome::Saved ? ConsumptionOutcome::NoConsumption : $outcome;
+                $list[] = ['document_id' => $document->id, 'title' => $document->title, 'date' => $document->date?->toDateString(), 'reason' => $reason->label()];
             }
         }
 
