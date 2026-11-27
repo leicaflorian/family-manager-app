@@ -11,9 +11,11 @@ use Database\Factories\BankTransactionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -45,6 +47,8 @@ use Illuminate\Support\Facades\Config;
  * @property-read Family $family
  * @property-read FinancialAccount $financialAccount
  * @property-read Income|null $income
+ * @property-read Collection<int, Expense> $splitExpenses
+ * @property-read int|null $split_expenses_count
  *
  * @method static BankTransactionFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankTransaction ignored()
@@ -192,5 +196,16 @@ final class BankTransaction extends FamilyModel
             'ignored_at' => 'immutable_datetime',
             'declined_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * The expenses it paid together, when one debit pays more planned expenses (a bill of electricity and gas); the
+     * first one is also in `expense_id`. Empty for a transaction that paid one expense.
+     *
+     * @return HasMany<Expense, $this>
+     */
+    public function splitExpenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
     }
 }
