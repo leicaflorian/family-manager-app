@@ -123,7 +123,7 @@ final readonly class BankFilterDraft
 
     /**
      * The words that every transaction of the group has, as `BankText::words()` proposes them for each (so the
-     * mandate, when there is one, stands alone); when they share none, the counterparty the bank gives.
+     * mandate, when there is one, stands alone); when they share none, the counterparty the bank gives, else the words of the newest movement.
      *
      * @param  BankGroup  $group  the group
      * @return list<string>
@@ -138,8 +138,14 @@ final readonly class BankFilterDraft
             return $shared;
         }
 
-        $counterparty = BankMatch::normalize((string) $group->transactions->first()?->counterparty);
+        $newest = $group->transactions->first();
+        $counterparty = BankMatch::normalize((string) $newest?->counterparty);
 
-        return mb_strlen($counterparty) >= BankFilterCriteria::MIN_WORD ? [$counterparty] : [];
+        if (mb_strlen($counterparty) >= BankFilterCriteria::MIN_WORD) {
+            return [$counterparty];
+        }
+
+        // A filter with no words would take everything: the words of the newest movement are the last resort
+        return $newest === null ? [] : BankText::words($newest->text);
     }
 }

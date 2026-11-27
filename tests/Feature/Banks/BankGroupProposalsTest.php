@@ -21,7 +21,9 @@ use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankGroup;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-27 10:00', 'Europe/Rome'));
@@ -130,6 +132,7 @@ it('proposes to create from an expense with the amount and the date of a movemen
 
 it('nothing for a cashback nobody recorded', function (): void {
     Income::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Stipendio']);
+    PlannedIncome::factory()->create(['family_id' => $this->marco->family_id, 'amount' => 999, 'end_date' => null]);
     foreach (['2026-09-20', '2026-10-20', '2026-11-20'] as $day) {
         bankGroupProposalsRow('ACCREDITO CASHBACK SCONTIPOSTE', '0.40', $day);
     }
@@ -213,4 +216,39 @@ it('takes the action of the proposal into the draft and the data of the group', 
         ->and($data->kind)->toBe('expense')
         ->and($data->proposal_action)->toBe('pay')
         ->and($data->proposal_detail)->toBe('Palestra');
+});
+
+it('falls back to the words of the newest movement when the group shares none', function (): void {
+    bankGroupProposalsRow('POS ALFA', '-10.00', '2026-11-10', ['counterparty' => 'AB']);
+    bankGroupProposalsRow('POS BETA', '-11.00', '2026-11-12', ['counterparty' => 'AB']);
+    $group = bankGroupProposalsGroup();
+
+    $contains = BankFilterDraft::fromGroup($group, null)->contains;
+
+    expect($contains)->not->toBe([])->and($contains)->toContain('BETA');
+});
+
+it('reads the same number of queries for ten groups as for one', function (): void {
+    foreach (range(1, 10) as $i) {
+        $name = 'SHOP'.chr(64 + $i).' STORE';
+        Organization::factory()->create(['family_id' => $this->marco->family_id, 'name' => $name]);
+        foreach ([10, 12] as $day) {
+            bankGroupProposalsRow('PAGAMENTO POS '.$name, '-'.(20 + $i).'.00', '2026-11-'.$day);
+        }
+    }
+    $groups = collect(resolve(BankGroups::class)->all());
+    expect($groups)->toHaveCount(10);
+
+    $count = function (Collection $some): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $proposals = resolve(BankGroupProposals::class)->forAll($some);
+        $some->each(fn ($group): BankGroupData => BankGroupData::fromGroup($group, $proposals[$group->key], null));
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $queries;
+    };
+
+    expect($count($groups))->toBe($count($groups->take(1)));
 });

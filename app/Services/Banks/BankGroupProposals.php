@@ -45,9 +45,61 @@ final class BankGroupProposals
      */
     public function for(BankGroup $group): ?BankFilterDraft
     {
-        $organizations = $this->organizationsIn($group);
+        return $this->forAll(new Collection([$group]))[$group->key];
+    }
 
-        return $this->pay($group, $organizations) ?? $this->create($group, $organizations);
+    /**
+     * The proposals for many groups, with what the family has read once for all of them (organizations, the planned
+     * items a filter pays, the open planned items and the expenses of the last twelve months), so the queries do not
+     * grow with the number of groups. The rule is the one of `for()`.
+     *
+     * @param  Collection<int, BankGroup>  $groups  the groups
+     * @return array<string, BankFilterDraft|null> by the key of the group
+     */
+    public function forAll(Collection $groups): array
+    {
+        if ($groups->isEmpty()) {
+            return [];
+        }
+
+        $context = $this->context();
+        $proposals = [];
+
+        foreach ($groups as $group) {
+            $organizations = $this->organizationsIn($group, $context['organizations']);
+            $proposals[$group->key] = $this->pay($group, $organizations, $context) ?? $this->create($group, $organizations, $context['expenses']);
+        }
+
+        return $proposals;
+    }
+
+    /**
+     * What the proposals of every group are made from, read once.
+     *
+     * @return array{organizations: Collection<int, Organization>, expense: list<PlannedExpense>, income: list<PlannedIncome>, expenses: Collection<int, Expense>}
+     */
+    private function context(): array
+    {
+        $taken = BankFilter::query()->get(['planned_expense_id', 'planned_income_id']);
+        $takenExpenses = array_values(array_filter($taken->pluck('planned_expense_id')->all(), is_int(...)));
+        $takenIncomes = array_values(array_filter($taken->pluck('planned_income_id')->all(), is_int(...)));
+        $since = CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS)->toDateString();
+
+        /** @var Builder<PlannedExpense> $expenseQuery */
+        $expenseQuery = PlannedExpense::query();
+        /** @var Builder<PlannedIncome> $incomeQuery */
+        $incomeQuery = PlannedIncome::query();
+        /** @var list<PlannedExpense> $expense */
+        $expense = $this->open($expenseQuery, $takenExpenses)->get()->all();
+        /** @var list<PlannedIncome> $income */
+        $income = $this->open($incomeQuery, $takenIncomes)->get()->all();
+
+        return [
+            'organizations' => new Collection(Organization::query()->get()->all()),
+            'expense' => $expense,
+            'income' => $income,
+            'expenses' => new Collection(Expense::query()->with(['category', 'organization'])->whereNotNull('date')->where('date', '>=', $since)->latest('date')->latest('id')->get()->all()),
+        ];
     }
 
     /**
@@ -55,17 +107,12 @@ final class BankGroupProposals
      *
      * @param  BankGroup  $group  the group
      * @param  Collection<int, Organization>  $organizations  the organizations that are in the text of every movement
+     * @param  array{expense: list<PlannedExpense>, income: list<PlannedIncome>}  $context  the open planned items
      */
-    private function pay(BankGroup $group, Collection $organizations): ?BankFilterDraft
+    private function pay(BankGroup $group, Collection $organizations, array $context): ?BankFilterDraft
     {
-        $expense = $group->kind === 'expense';
-        $column = $expense ? 'planned_expense_id' : 'planned_income_id';
-        $taken = array_values(array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, BankFilter::query()->whereNotNull($column)->pluck($column)->all()));
-
-        /** @var Builder<PlannedExpense>|Builder<PlannedIncome> $query */
-        $query = $expense ? PlannedExpense::query() : PlannedIncome::query();
         /** @var list<PlannedExpense|PlannedIncome> $candidates */
-        $candidates = $this->open($query, $taken)->get()->all();
+        $candidates = $context[$group->kind === 'expense' ? 'expense' : 'income'];
 
         $found = array_find($candidates, static fn (PlannedExpense|PlannedIncome $planned): bool => $organizations->contains('id', $planned->organization_id))
             ?? array_find($candidates, fn (PlannedExpense|PlannedIncome $planned): bool => is_numeric($planned->amount) && $this->everyAmountIs($group, $planned->amount));
@@ -109,26 +156,15 @@ final class BankGroupProposals
      *
      * @param  BankGroup  $group  the group
      * @param  Collection<int, Organization>  $organizations  the organizations that are in the text of every movement
+     * @param  Collection<int, Expense>  $expenses  the expenses of the last twelve months, the latest first
      */
-    private function create(BankGroup $group, Collection $organizations): ?BankFilterDraft
+    private function create(BankGroup $group, Collection $organizations, Collection $expenses): ?BankFilterDraft
     {
         if ($group->kind !== 'expense') {
             return null;
         }
 
-        $since = CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS)->toDateString();
-        $cents = $group->transactions->map(fn (BankTransaction $row): int => $this->cents($row->amount))->unique()->values();
-        $amounts = $cents->map(static fn (int $value): string => number_format($value / 100, 2, '.', ''))->all();
-
-        $like = Expense::query()
-            ->with(['category', 'organization'])
-            ->whereNotNull('date')
-            ->where('date', '>=', $since)
-            ->where(static fn (Builder $query) => $query->whereIn('organization_id', $organizations->pluck('id')->all())->orWhereIn('amount', $amounts))
-            ->latest('date')
-            ->latest('id')
-            ->get()
-            ->first(fn (Expense $expense): bool => $organizations->contains('id', $expense->organization_id) || $this->closeToAMovement($group, $expense));
+        $like = $expenses->first(fn (Expense $expense): bool => $organizations->contains('id', $expense->organization_id) || $this->closeToAMovement($group, $expense));
 
         if (! $like instanceof Expense) {
             return null;
@@ -154,13 +190,14 @@ final class BankGroupProposals
      * The organizations of the family whose name is in the text (and the counterparty) of every movement of the group.
      *
      * @param  BankGroup  $group  the group
+     * @param  Collection<int, Organization>  $all  the organizations of the family
      * @return Collection<int, Organization>
      */
-    private function organizationsIn(BankGroup $group): Collection
+    private function organizationsIn(BankGroup $group, Collection $all): Collection
     {
         $texts = $group->transactions->map(static fn (BankTransaction $row): string => BankMatch::normalize($row->text.' '.$row->counterparty));
 
-        return Organization::query()->get()->filter(static function (Organization $organization) use ($texts): bool {
+        return $all->filter(static function (Organization $organization) use ($texts): bool {
             $name = BankMatch::normalize($organization->name);
 
             return mb_strlen($name) >= self::MIN_NAME && $texts->every(static fn (string $text): bool => str_contains($text, $name));

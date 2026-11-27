@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankTransactionStatus;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\FinancialAccount;
 use App\Services\Banks\BankGroups;
+use App\Services\Banks\FakeBankFeed;
+use App\Support\Banks\BankGroup;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -171,5 +174,32 @@ it('never asks the database once for each transaction', function (): void {
     $queries = count(DB::getQueryLog());
     DB::disableQueryLog();
 
-    expect($groups)->toHaveCount(2)->and($queries)->toBeLessThanOrEqual(3);
+    expect($groups)->toHaveCount(2)->and($queries)->toBeLessThanOrEqual(4);
+});
+
+it('finds the groups and the lone movements of the fake bank', function (): void {
+    $this->account->forceFill(['bank_connection_id' => null])->save();
+    $feed = new FakeBankFeed;
+    $today = CarbonImmutable::now('Europe/Rome')->startOfDay();
+
+    foreach ($feed->transactions('s', 'u', $today->subDays(90), $today) as $entry) {
+        BankTransaction::factory()->create([
+            'family_id' => $this->marco->family_id,
+            'financial_account_id' => $this->account->id,
+            'provider_id' => $entry->providerId,
+            'booked_on' => $entry->bookedOn,
+            'value_on' => $entry->valueOn,
+            'amount' => $entry->amount,
+            'text' => $entry->text,
+            'counterparty' => $entry->counterparty,
+            'status' => $entry->booked ? BankTransactionStatus::Booked : BankTransactionStatus::Pending,
+        ]);
+    }
+    $service = resolve(BankGroups::class);
+    $names = collect($service->all())->map(fn (BankGroup $group): string => mb_strtolower($group->name))->all();
+
+    expect(collect($names)->contains(fn (string $name): bool => str_contains($name, 'satispay')))->toBeTrue()
+        ->and($names)->toContain('inps', 'eni')
+        ->and(collect($names)->contains(fn (string $name): bool => str_contains($name, 'cashback')))->toBeTrue()
+        ->and($service->lone()->count())->toBeGreaterThanOrEqual(8);
 });

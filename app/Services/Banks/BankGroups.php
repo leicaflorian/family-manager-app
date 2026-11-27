@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  * A group is made by the mandate of a direct debit, else the counterparty the bank gives, else the text as
  * `BankMatch::signature()` reads it, on one account and in one direction; it has at least two transactions. The
  * commission of a direct debit follows its debit and is in no group, and what a filter takes is left to the filter.
- * Everything is read with a fixed number of queries: the transactions, the filters, and at most the commissions.
+ * Everything is read with a fixed number of queries: the transactions, their accounts, the filters, and at most the commissions.
  */
 final readonly class BankGroups
 {
@@ -116,7 +116,7 @@ final readonly class BankGroups
      */
     private function candidates(): array
     {
-        $rows = BankTransaction::query()->unsorted()->latest('booked_on')->latest('id')->limit(self::LIMIT)->get();
+        $rows = BankTransaction::query()->unsorted()->with('financialAccount')->latest('booked_on')->latest('id')->limit(self::LIMIT)->get();
         $paired = array_values(array_map(static fn (BankTransaction $fee): int => $fee->id, $this->fees->pairs($rows)));
 
         $candidates = $rows->filter(fn (BankTransaction $row): bool => ! BankText::isFee($row->text)
