@@ -34,6 +34,7 @@ import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
+import type { BankAssignChoice } from '@/lib/bankAssign';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
@@ -71,8 +72,6 @@ const props = defineProps<{
     last_synced_at: string | null;
     /** The hours of the day the banks are read by themselves. */
     sync_hours: number[];
-    /** The planned items the transaction of `?assign=` can pay, only sent when the panel asks for them. */
-    planned_options?: App.Data.BankPlannedChoiceData[];
 }>();
 
 const bankFeed = useBankFeed();
@@ -201,9 +200,6 @@ const assignError = ref<string | null>(null);
 /** The planned item is being sent. */
 const assignProcessing = ref(false);
 
-/** The transaction `planned_options` was loaded for: the list of another one is not shown while the right one comes. */
-const optionsFor = ref<number | null>(null);
-
 /**
  * Whether the row can be sorted here: booked, in euros, not put aside, and the person may sort.
  *
@@ -252,14 +248,14 @@ function recurUrl(row: App.Data.BankTransactionData): string {
 }
 
 /**
- * The label of the button that opens the panel of the planned items.
+ * The label of the button that opens the panel of the expenses or incomes it can belong to.
  *
  * @param row - the transaction
  */
 function assignLabel(row: App.Data.BankTransactionData): string {
     return row.amount > 0
-        ? trans('It belongs to a planned income')
-        : trans('It belongs to a planned expense');
+        ? trans('It belongs to an income')
+        : trans('It belongs to an expense');
 }
 
 /**
@@ -272,58 +268,48 @@ function createUrl(row: App.Data.BankTransactionData): string {
 }
 
 /**
- * Opens the panel for a transaction and asks the page for the planned items it can pay.
+ * Opens the panel for a transaction; the panel asks the server for what it can belong to.
  *
  * @param row - the transaction
  */
 function openAssign(row: App.Data.BankTransactionData): void {
     assignError.value = null;
     assigning.value = row;
-    optionsFor.value = null;
-    router.reload({
-        data: { assign: row.id },
-        only: ['planned_options'],
-        preserveUrl: true,
-        onSuccess: () => {
-            optionsFor.value = row.id;
-        },
-    });
 }
 
 /**
- * Sends the planned item chosen: the closest due date is paid and the row goes.
+ * Sends the choice of the panel: a due date to pay or a recorded movement to link, and the row goes.
  *
- * @param choice - the planned item
+ * @param choice - the due date or the movement chosen
  */
-function assignTo(choice: App.Data.BankPlannedChoiceData): void {
+function assignTo(choice: BankAssignChoice): void {
     const row = assigning.value;
 
     if (row === null) {
         return;
     }
 
-    router.post(
-        assign(row.id).url,
-        { kind: choice.kind, planned_id: choice.id },
-        {
-            preserveScroll: true,
-            onStart: () => {
-                assignError.value = null;
-                assignProcessing.value = true;
-            },
-            onSuccess: () => {
-                gone.value = [...gone.value, row.id];
-                assigning.value = null;
-            },
-            onError: (messages) => {
-                assignError.value =
-                    messages.planned_id ?? Object.values(messages)[0] ?? null;
-            },
-            onFinish: () => {
-                assignProcessing.value = false;
-            },
+    router.post(assign(row.id).url, choice, {
+        preserveScroll: true,
+        onStart: () => {
+            assignError.value = null;
+            assignProcessing.value = true;
         },
-    );
+        onSuccess: () => {
+            gone.value = [...gone.value, row.id];
+            assigning.value = null;
+        },
+        onError: (messages) => {
+            assignError.value =
+                messages.planned_id ??
+                messages.movement_id ??
+                Object.values(messages)[0] ??
+                null;
+        },
+        onFinish: () => {
+            assignProcessing.value = false;
+        },
+    });
 }
 
 /** Adds an expense or an income by hand: its own page, which leads back here. */
@@ -632,11 +618,6 @@ const { title, head } = usePageMeta({
             v-if="assigning"
             v-model:open="assignOpen"
             :transaction="assigning"
-            :choices="
-                optionsFor === assigning.id
-                    ? (planned_options ?? [])
-                    : undefined
-            "
             :error="assignError"
             :processing="assignProcessing"
             @assign="assignTo"

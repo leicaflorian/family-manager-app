@@ -38,6 +38,23 @@ afterEach(() => {
     shared.bank_feed = { unsorted: 6 };
 });
 
+/**
+ * Finds `fetch` with a server that answers the search of the sheet.
+ *
+ * @param answer - the two lists of the answer
+ */
+function stubSearch(answer: {
+    planned: App.Data.BankPlannedChoiceData[];
+    recorded: App.Data.BankRecordedChoiceData[];
+}): void {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(() =>
+            Promise.resolve({ ok: true, json: () => Promise.resolve(answer) }),
+        ),
+    );
+}
+
 /** The props of the page as the controller sends them. */
 function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
     return {
@@ -365,7 +382,7 @@ describe('Budget, From the bank, sorting', () => {
         ).toHaveAttribute('href', '/budget/movements/create?bank=2');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ).toBeInTheDocument();
     });
@@ -377,7 +394,7 @@ describe('Budget, From the bank, sorting', () => {
         for (const action of [
             within(row).getByRole('link', { name: 'Create the expense' }),
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ]) {
             expect(action).toHaveClass('text-body-sm', 'px-2.5', 'rounded-md');
@@ -394,7 +411,7 @@ describe('Budget, From the bank, sorting', () => {
         ).toHaveAttribute('href', '/budget/movements/create?bank=9');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned income',
+                name: 'It belongs to an income',
             }),
         ).toBeInTheDocument();
     });
@@ -467,7 +484,7 @@ describe('Budget, From the bank, sorting', () => {
         ).toHaveClass('text-body-sm', 'border-edge-soft');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ).toHaveClass('text-body-sm', 'border-edge-soft');
         const ignoreButton = within(row).getByRole('button', {
@@ -477,113 +494,121 @@ describe('Budget, From the bank, sorting', () => {
         expect(ignoreButton).not.toHaveClass('border');
     });
 
-    it('asks for the planned expenses when the sheet opens and pays the one chosen', async () => {
-        const reload = vi
-            .spyOn(router, 'reload')
-            .mockImplementation((options) => {
-                options?.onSuccess?.({} as never);
-            });
+    it('posts the planned due date chosen in the sheet, with its original date', async () => {
+        stubSearch({
+            planned: [
+                {
+                    kind: 'expense',
+                    id: 6,
+                    title: 'Gas',
+                    organization: null,
+                    due_on: '2026-11-02',
+                    occurrence: '2026-10-30',
+                    late: true,
+                    amount: 84.2,
+                    estimated: true,
+                    paid_on: null,
+                    ended: false,
+                },
+            ],
+            recorded: [],
+        });
         const post = vi
             .spyOn(router, 'post')
             .mockImplementation((_url, _data, options) => {
                 options?.onSuccess?.({} as never);
             });
-        const choices: App.Data.BankPlannedChoiceData[] = [
-            {
-                kind: 'expense',
-                id: 5,
-                title: 'Luce',
-                organization: 'Edison Energia',
-                due_on: '2026-11-05',
-                occurrence: '2026-11-05',
-                late: false,
-                amount: 72,
-                estimated: true,
-                paid_on: null,
-                ended: false,
-            },
-            {
-                kind: 'expense',
-                id: 6,
-                title: 'Gas',
-                organization: null,
-                due_on: '2026-10-30',
-                occurrence: '2026-10-30',
-                late: true,
-                amount: 84.2,
-                estimated: true,
-                paid_on: null,
-                ended: false,
-            },
-        ];
-        renderPage(BankTransactions, props({ planned_options: choices }));
+        renderPage(BankTransactions, props());
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
         await userEvent.click(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
-            }),
-        );
-
-        expect(reload).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: { assign: 2 },
-                only: ['planned_options'],
-                preserveUrl: true,
+                name: 'It belongs to an expense',
             }),
         );
         const dialog = await screen.findByRole('dialog', {
-            name: 'It belongs to a planned expense',
+            name: 'It belongs to an expense',
         });
         await userEvent.click(
-            within(dialog).getByRole('radio', { name: /Gas/ }),
-        );
-        await userEvent.click(
-            within(dialog).getByRole('button', { name: 'Mark as paid' }),
+            await within(dialog).findByRole('button', { name: 'Mark as paid' }),
         );
 
         expect(post).toHaveBeenCalledWith(
             '/budget/bank/2/assign',
-            { kind: 'expense', planned_id: 6 },
+            { kind: 'expense', planned_id: 6, occurrence: '2026-10-30' },
             expect.objectContaining({ preserveScroll: true }),
         );
         expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
     });
 
+    it('posts the recorded movement chosen in the sheet', async () => {
+        stubSearch({
+            planned: [],
+            recorded: [
+                {
+                    kind: 'expense',
+                    id: 31,
+                    title: 'Luce settembre',
+                    organization: 'Edison Energia',
+                    date: '2026-09-05',
+                    amount: 70.1,
+                },
+            ],
+        });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Link the transaction' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/assign',
+            { kind: 'expense', movement_id: 31 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
     it('keeps the sheet and shows the message when the server refuses', async () => {
-        vi.spyOn(router, 'reload').mockImplementation((options) => {
-            options?.onSuccess?.({} as never);
+        stubSearch({
+            planned: [
+                {
+                    kind: 'expense',
+                    id: 5,
+                    title: 'Luce',
+                    organization: null,
+                    due_on: '2026-11-05',
+                    occurrence: '2026-11-05',
+                    late: false,
+                    amount: 72,
+                    estimated: false,
+                    paid_on: null,
+                    ended: false,
+                },
+            ],
+            recorded: [],
         });
         vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
             options?.onError?.({
                 planned_id: 'This planned expense has no due dates to pay.',
             });
         });
-        renderPage(
-            BankTransactions,
-            props({
-                planned_options: [
-                    {
-                        kind: 'expense',
-                        id: 5,
-                        title: 'Luce',
-                        organization: null,
-                        due_on: '2026-11-05',
-                        occurrence: '2026-11-05',
-                        late: false,
-                        amount: 72,
-                        estimated: false,
-                        paid_on: null,
-                        ended: false,
-                    },
-                ],
-            }),
-        );
+        renderPage(BankTransactions, props());
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
         await userEvent.click(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         );
         await userEvent.click(

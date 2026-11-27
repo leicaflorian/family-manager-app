@@ -464,25 +464,16 @@ test('a transaction that was declined can be assigned by hand', function (): voi
     expect($transaction->refresh()->expense_id)->not->toBeNull();
 });
 
-test('the planned items of the sheet are those of the kind with a due date to pay, with the closest date', function (): void {
+test('the page no longer sends the planned items of the sheet, which asks the search route', function (): void {
     bankSortPlanned('Luce', '2026-01-05', ['amount' => 72, 'is_estimated' => true]);
-    bankSortPlanned('Bollo', '2027-06-01');
-    bankSortPlanned('Vecchio', '2025-01-05', ['end_date' => '2026-06-01']);
     $transaction = bankSortOne(['amount' => '-72.40']);
 
     $this->actingAs($this->marco)->get(route('budget.bank.index', ['assign' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->missing('planned_options')
-        ->reloadOnly('planned_options', fn (AssertableInertia $reload): AssertableInertia => $reload
-            ->has('planned_options', 1)
-            ->where('planned_options.0.title', 'Luce')
-            ->where('planned_options.0.kind', 'expense')
-            ->where('planned_options.0.due_on', '2026-11-05')
-            ->where('planned_options.0.late', false)
-            ->where('planned_options.0.estimated', true)
-            ->where('planned_options.0.amount', 72)));
+        ->missing('planned_options'));
 
-    $this->get(route('budget.bank.index', ['assign' => 99999999]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->reloadOnly('planned_options', fn (AssertableInertia $reload): AssertableInertia => $reload->where('planned_options', [])));
+    $this->getJson(route('budget.bank.candidates', ['transaction' => $transaction->id]))
+        ->assertOk()
+        ->assertJsonPath('planned.0.title', 'Luce');
 });
 
 test('the planned form starts from the text of the transaction when the reading is off', function (): void {

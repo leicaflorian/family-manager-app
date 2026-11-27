@@ -8,7 +8,6 @@ use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\RefreshBanks;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
-use App\Data\BankPlannedChoiceData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
@@ -23,14 +22,10 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankLinkSearch;
-use App\Services\Banks\BankMatcher;
 use App\Services\Banks\RecurringBankTexts;
-use App\Support\Banks\BankTransactionId;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
-use App\Support\Deadline;
 use App\Support\PaymentTitle;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -93,8 +88,6 @@ final class BankTransactionController extends Controller
             // When a bank was last read (`yyyy-mm-ddThh:mm`, Rome) and at which hours of the day they are read by themselves
             'last_synced_at' => fn (): ?string => BankConnection::query()->whereNotNull('last_synced_at')->latest('last_synced_at')->first()?->last_synced_at?->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             'sync_hours' => SyncHours::all(),
-            // The planned items the sheet *It belongs to a planned expense* offers for the transaction of `?assign=`, asked when it opens
-            'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($request->query('assign'))),
             'can_sort' => Gate::allows('create', BankTransaction::class),
             // «It comes back every month: create a planned expense?» is offered only to who can create one
             'can_plan' => Gate::allows('create', PlannedExpense::class) && Gate::allows('create', PlannedIncome::class),
@@ -275,39 +268,5 @@ final class BankTransactionController extends Controller
             ->skip(($page - 1) * self::PER_PAGE)
             ->take(self::PER_PAGE + 1)
             ->get();
-    }
-
-    /**
-     * The planned expenses (or incomes, for a credit) that have not ended and that the transaction can pay now: each
-     * with the open due date it would settle, as the matcher chooses it, in alphabetical order. Another family's or a
-     * missing transaction gives none.
-     *
-     * @param  mixed  $id  `?assign=`, the transaction
-     * @return list<BankPlannedChoiceData>
-     */
-    private function plannedOptions(mixed $id): array
-    {
-        $id = BankTransactionId::parse($id);
-        $transaction = $id !== null ? BankTransaction::query()->unsorted()->find($id) : null;
-
-        if (! $transaction instanceof BankTransaction || $transaction->booked_on === null) {
-            return [];
-        }
-
-        $day = $transaction->booked_on->toDateString();
-        $today = CarbonImmutable::today('Europe/Rome');
-        $matcher = resolve(BankMatcher::class);
-        $query = $transaction->kind() === 'expense' ? PlannedExpense::query() : PlannedIncome::query();
-        $options = [];
-
-        foreach ($query->with('organization')->where(static fn (Builder $query): Builder => $query->whereNull('end_date')->orWhere('end_date', '>=', $day))->orderBy('title')->get() as $planned) {
-            $deadline = $matcher->deadline($transaction, $planned);
-
-            if ($deadline instanceof Deadline && ! $deadline->isPaid() && ! $deadline->isSkipped()) {
-                $options[] = BankPlannedChoiceData::fromDeadline($planned, $deadline, $today);
-            }
-        }
-
-        return $options;
     }
 }
