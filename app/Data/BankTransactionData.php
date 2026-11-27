@@ -33,6 +33,7 @@ final class BankTransactionData extends Data
      * @param  string  $provider_id  the id the bank gave it
      * @param  string  $read_at  when it was read from the bank (`yyyy-mm-ddThh:mm`, Rome)
      * @param  string  $bank_status  whether the bank booked it (a `BankTransactionStatus` value)
+     * @param  BankTransferData|null  $transfer  the account on the other side, when it is a transfer between the family's own accounts
      */
     public function __construct(
         public readonly int $id,
@@ -51,12 +52,13 @@ final class BankTransactionData extends Data
         public readonly string $provider_id,
         public readonly string $read_at,
         public readonly string $bank_status,
+        public readonly ?BankTransferData $transfer = null,
     ) {}
 
     /**
      * The data of a transaction of the current family.
      *
-     * @param  BankTransaction  $transaction  the transaction, with its account loaded
+     * @param  BankTransaction  $transaction  the transaction, with its account (and the account of its transfer) loaded
      * @param  bool  $recurring  its text comes back every month
      * @param  bool  $withLink  whether to read the expense or income it is linked to (the list *All* does; they must be loaded)
      */
@@ -81,11 +83,12 @@ final class BankTransactionData extends Data
             $transaction->provider_id,
             ($transaction->created_at ?? now())->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             $transaction->status->value,
+            $transaction->transfer_account_id === null ? null : BankTransferData::fromTransaction($transaction),
         );
     }
 
     /**
-     * What the transaction is: pending while the bank has not booked it, then put aside, linked, else to sort.
+     * What the transaction is: pending while the bank has not booked it, then a transfer, put aside, linked, else to sort.
      *
      * @param  BankTransaction  $transaction  the transaction
      */
@@ -93,6 +96,7 @@ final class BankTransactionData extends Data
     {
         return match (true) {
             $transaction->status === BankTransactionStatus::Pending => BankRowStatus::Pending,
+            $transaction->transfer_account_id !== null => BankRowStatus::Transfer,
             $transaction->ignored_at !== null => BankRowStatus::Ignored,
             $transaction->expense_id !== null || $transaction->income_id !== null => BankRowStatus::Linked,
             default => BankRowStatus::Unsorted,

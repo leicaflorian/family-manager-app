@@ -228,3 +228,38 @@ it('never shows another family\'s transactions', function (): void {
     $this->get(route('budget.bank.index', ['show' => 'all', 'account' => $theirAccount]))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('rows', 0));
 });
+
+it('a transfer row says from or to which account and whether it has its other half', function (): void {
+    $connection = bankAllTransactionsConnection($this->marco);
+    $other = insideFamilyOf($this->marco, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'name' => 'Savings book']));
+    $half = bankAllTransactionsRow($connection, ['text' => 'HALF', 'amount' => '-50.00', 'booked_on' => '2026-11-02']);
+    $paired = bankAllTransactionsRow($connection, ['text' => 'PAIRED', 'amount' => '80.00', 'booked_on' => '2026-11-03', 'transfer_account_id' => $other->id, 'transfer_pair_id' => $half->id]);
+    $half->forceFill(['transfer_account_id' => $other->id])->saveQuietly();
+    $alone = bankAllTransactionsRow($connection, ['text' => 'ALONE', 'amount' => '-20.00', 'booked_on' => '2026-11-04', 'transfer_account_id' => $other->id]);
+
+    $this->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('rows.0.text', 'ALONE')
+        ->where('rows.0.status', 'transfer')
+        ->where('rows.0.transfer', ['account' => 'Savings book', 'direction' => 'to', 'paired' => false])
+        ->where('rows.1.text', 'PAIRED')
+        ->where('rows.1.status', 'transfer')
+        ->where('rows.1.transfer', ['account' => 'Savings book', 'direction' => 'from', 'paired' => true])
+        ->where('rows.2.status', 'transfer')
+        ->where('rows.2.transfer.paired', false));
+    expect($alone->id)->not->toBe($paired->id);
+});
+
+it('the status filter transfer lists only transfers', function (): void {
+    $connection = bankAllTransactionsConnection($this->marco);
+    $other = insideFamilyOf($this->marco, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'name' => 'Savings book']));
+    bankAllTransactionsRow($connection, ['text' => 'PLAIN', 'booked_on' => '2026-11-02']);
+    bankAllTransactionsRow($connection, ['text' => 'MOVE', 'booked_on' => '2026-11-03', 'transfer_account_id' => $other->id]);
+    bankAllTransactionsRow($connection, ['text' => 'ASIDE', 'booked_on' => '2026-11-04', 'ignored_at' => now()]);
+
+    $this->get(route('budget.bank.index', ['show' => 'all', 'status' => 'transfer']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('rows', 1)
+        ->where('rows.0.text', 'MOVE')
+        ->where('total.count', 1));
+    $this->get(route('budget.bank.index', ['show' => 'all', 'status' => 'unsorted']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('rows', 1)->where('rows.0.text', 'PLAIN'));
+});

@@ -359,7 +359,7 @@ return [
         'unsorted' => 'Da sistemare',
         'linked' => 'Collegato',
         'fee' => 'Commissione',
-        'transfer' => 'Giroconto',
+        'transfer' => 'Trasferimento',
         'ignored' => 'Ignorato',
         'pending' => 'In attesa',
     ],

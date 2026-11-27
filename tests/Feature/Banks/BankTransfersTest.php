@@ -7,19 +7,22 @@ use App\Actions\Banks\RestoreBankTransaction;
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
 use App\Data\BankTransferData;
+use App\Enums\Role;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\Income;
+use App\Models\User;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
+use Pest\Expectation;
 
 beforeEach(function (): void {
-    registerFamily();
+    $this->marco = registerFamily();
 });
 
 /**
@@ -240,5 +243,93 @@ test('pruning keeps a transfer of 13 months ago and deletes an unlinked one', fu
         $ids = (new BankTransaction)->prunable()->pluck('id')->all();
 
         expect($ids)->toBe([$stale->id])->not->toContain($transfer->id);
+    });
+});
+
+/**
+ * Signs the first account of the Bianchi in (or a member of the family) with the link to the bank on.
+ *
+ * @param  bool  $member  sign in as a `member`
+ */
+function bankTransfersSignIn(bool $member = false): User
+{
+    config(['bank_feed.provider' => 'fake']);
+    $marco = test()->marco;
+    $marco->family->forceFill(['bank_feed_enabled' => true])->save();
+    $user = $member ? User::factory()->create(['family_id' => $marco->family_id, 'role' => Role::Member]) : $marco;
+    test()->actingAs($user);
+
+    return $user;
+}
+
+test('marks a transfer from the page', function (): void {
+    bankTransfersSignIn();
+    [$savings, $current] = insideBianchi(bankTransfersAccounts(...));
+    $out = insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-200.00', '2026-11-10'));
+
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $current->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertSessionHasNoErrors();
+
+    insideBianchi(function () use ($out, $current): void {
+        expect($out->refresh()->transfer_account_id)->toBe($current->id);
+    });
+});
+
+test('an account of another family gives 404', function (): void {
+    bankTransfersSignIn();
+    [$savings] = insideBianchi(bankTransfersAccounts(...));
+    $out = insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-200.00', '2026-11-10'));
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $foreign = insideFamilyOf($rossi, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $rossi->family_id]));
+    $theirs = insideFamilyOf($rossi, fn (): BankTransaction => BankTransaction::factory()->create(['family_id' => $rossi->family_id, 'financial_account_id' => $foreign->id]));
+    $this->actingAs($this->marco);
+
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $foreign->id])->assertNotFound();
+    $this->post(route('budget.bank.transfer', $theirs), ['account_id' => $savings->id])->assertNotFound();
+
+    insideBianchi(fn (): Expectation => expect($out->refresh()->transfer_account_id)->toBeNull());
+});
+
+test('a member can mark and restore', function (): void {
+    bankTransfersSignIn(member: true);
+    [$savings, $current] = insideBianchi(bankTransfersAccounts(...));
+    $out = insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-200.00', '2026-11-10'));
+
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $current->id])->assertRedirect();
+    insideBianchi(fn (): Expectation => expect($out->refresh()->transfer_account_id)->toBe($current->id));
+
+    $this->delete(route('budget.bank.restore', $out))->assertRedirect();
+    insideBianchi(fn (): Expectation => expect($out->refresh()->transfer_account_id)->toBeNull());
+});
+
+test('the same account is refused with an error on account_id', function (): void {
+    bankTransfersSignIn();
+    [$savings] = insideBianchi(bankTransfersAccounts(...));
+    $out = insideBianchi(fn (): BankTransaction => bankTransfersRow($savings, '-200.00', '2026-11-10'));
+
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $savings->id])->assertSessionHasErrors('account_id');
+    $this->post(route('budget.bank.transfer', $out), [])->assertSessionHasErrors('account_id');
+
+    insideBianchi(fn (): Expectation => expect($out->refresh()->transfer_account_id)->toBeNull());
+});
+
+test('restore puts back both halves from the page', function (): void {
+    bankTransfersSignIn();
+    [$savings, $current] = insideBianchi(bankTransfersAccounts(...));
+    [$out, $in] = insideBianchi(fn (): array => [
+        bankTransfersRow($savings, '-200.00', '2026-11-10'),
+        bankTransfersRow($current, '200.00', '2026-11-11'),
+    ]);
+    $this->post(route('budget.bank.transfer', $out), ['account_id' => $current->id])->assertRedirect();
+    insideBianchi(fn (): Expectation => expect($in->refresh()->transfer_pair_id)->toBe($out->id));
+
+    $this->delete(route('budget.bank.restore', $in))->assertRedirect();
+
+    insideBianchi(function () use ($out, $in): void {
+        expect($out->refresh()->transfer_account_id)->toBeNull()
+            ->and($out->transfer_pair_id)->toBeNull()
+            ->and($in->refresh()->transfer_account_id)->toBeNull()
+            ->and($in->transfer_pair_id)->toBeNull();
     });
 });

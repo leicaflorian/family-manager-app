@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Banks\LinkRecordedMovement;
+use App\Actions\Banks\MarkBankTransfer;
 use App\Actions\Banks\RefreshBanks;
+use App\Actions\Banks\RestoreBankTransaction;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
 use App\Data\BankTransactionData;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
+use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
@@ -239,21 +242,33 @@ final class BankTransactionController extends Controller
     }
 
     /**
-     * *Put back among the movements*: takes a transaction out of the ignored ones, so it is to sort again.
+     * *Put back among the movements*: takes a transaction out of the ignored ones, or a transfer back to a movement
+     * to sort (both halves of the transfer), so it is to sort again.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
      */
-    public function restore(BankTransaction $transaction): RedirectResponse
+    public function restore(BankTransaction $transaction, RestoreBankTransaction $restore): RedirectResponse
     {
         Gate::authorize('update', $transaction);
 
-        DB::transaction(function () use ($transaction): void {
-            $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->firstOrFail();
-            $current->ignored_at = null;
-            $current->save();
-        });
+        $restore->handle($transaction);
 
         return back(fallback: route('budget.bank.index'));
+    }
+
+    /**
+     * *It is a transfer*: the person says the movement went to or came from another account of the family, so it is
+     * not an expense nor an income. The other half is paired when it is already on the list.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the account is not of the family
+     * @throws ValidationException (`account_id`) when the account is the one of the movement
+     */
+    public function transfer(MarkBankTransferRequest $request, MarkBankTransfer $mark): RedirectResponse
+    {
+        $mark->handle($request->transaction(), $request->account());
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
+
+        return to_route('budget.bank.index');
     }
 
     /**

@@ -32,7 +32,7 @@ final class BankRows
     public function page(BankListRequest $filters, int $page): array
     {
         $rows = $this->filtered($filters)
-            ->with(['financialAccount', 'expense', 'income.organization'])
+            ->with(['financialAccount', 'transferAccount', 'expense', 'income.organization'])
             ->orderByRaw('coalesce(booked_on, value_on) desc')
             ->orderByDesc('id')
             ->skip((max(1, $page) - 1) * self::PER_PAGE)
@@ -113,7 +113,7 @@ final class BankRows
     }
 
     /**
-     * Keeps the transactions of a status: pending first, then put aside, linked, else to sort (as the row says it).
+     * Keeps the transactions of a status: pending first, then transfer, put aside, linked, else to sort (as the row says it).
      *
      * @param  Builder<BankTransaction>  $query  the query
      * @param  BankRowStatus  $status  the status
@@ -129,10 +129,11 @@ final class BankRows
         $query->where('status', '!=', BankTransactionStatus::Pending);
 
         match ($status) {
-            BankRowStatus::Ignored => $query->whereNotNull('ignored_at'),
-            BankRowStatus::Linked => $query->whereNull('ignored_at')->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
-            BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('expense_id')->whereNull('income_id'),
-            // No transaction is a fee or a transfer until the columns that say so exist
+            BankRowStatus::Ignored => $query->whereNotNull('ignored_at')->whereNull('transfer_account_id'),
+            BankRowStatus::Transfer => $query->whereNotNull('transfer_account_id'),
+            BankRowStatus::Linked => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
+            BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->whereNull('expense_id')->whereNull('income_id'),
+            // No transaction is a fee until the column that says so exists
             default => $query->whereRaw('1 = 0'),
         };
     }
