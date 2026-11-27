@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
+use App\Data\Reading\SupplyProposalData;
 use App\Enums\HealthEventType;
 use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
@@ -24,6 +25,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -112,6 +114,21 @@ test('with the Budget off, the reading proposes no movement, no due date and no 
         ->and($invoice->event)->not->toBeNull()
         ->and(array_map(static fn (RecordDraftData $draft): RecordKind => $draft->kind, $invoice->records))->toContain(RecordKind::Organization)
         ->and($bill->consumption)->toBeNull();
+});
+
+test('with the Budget off, each supply of a dual-fuel bill keeps its utility box, without expense or consumption', function (): void {
+    budgetOffImportSwitchOff();
+    $gas = Utility::factory()->for($this->admin->family)->create(['type' => 'gas', 'supply_point_code' => EnelBill::PDR]);
+    $file = File::factory()->for($this->admin->family)->read(EnelBill::answer())->create(['to_sort' => true, 'created_by' => $this->admin->id]);
+
+    $proposal = budgetOffImportProposal($file);
+
+    expect($proposal->supplies)->toHaveCount(2)
+        ->and($proposal->supplies[0]->record?->kind)->toBe(RecordKind::Utility)
+        ->and($proposal->supplies[1]->record?->existing['id'])->toBe($gas->id)
+        ->and(array_map(static fn (SupplyProposalData $supply): array => [$supply->movement, $supply->consumption], $proposal->supplies))->toBe([[null, null], [null, null]])
+        ->and($proposal->movement)->toBeNull()
+        ->and($proposal->consumption)->toBeNull();
 });
 
 test('with the Budget off the page gets proposals without movement', function (): void {

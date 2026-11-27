@@ -15,6 +15,7 @@ use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
+use App\Data\Reading\SupplyProposalData;
 use App\Enums\ConsumptionOutcome;
 use App\Enums\ConsumptionUnit;
 use App\Enums\Feature;
@@ -29,6 +30,7 @@ use App\Models\Utility;
 use App\Services\FamilyFeatures;
 use App\Support\CurrentFamily;
 use App\Support\DocumentRules;
+use App\Support\Reading\BillTitle;
 use App\Support\Reading\Choices;
 use App\Support\Reading\ConsumptionCheck;
 use App\Support\Reading\IssuerOrder;
@@ -67,6 +69,7 @@ final readonly class Proposal
      * @param  RecordSearch  $search  the event already there
      * @param  PolicyFromOtherFiles  $policies  the policy of a paper without a number
      * @param  FamilyFeatures  $features  the parts of the app the family has: without the Budget no money is proposed
+     * @param  Matcher  $matcher  the utility of each supply of a bill with more than one
      */
     public function __construct(
         private DocumentProposal $documents,
@@ -76,6 +79,7 @@ final readonly class Proposal
         private RecordSearch $search,
         private PolicyFromOtherFiles $policies,
         private FamilyFeatures $features,
+        private Matcher $matcher,
     ) {}
 
     /**
@@ -110,6 +114,7 @@ final readonly class Proposal
     private function build(File $file, ImportChoices $choices, array $roundGivers, string $locale): ProposalData
     {
         $x = Extraction::ofFile($file);
+        $multi = $x->isMultiSupply();
         $context = ReadingContext::for($file);
         $document = $this->documents->of($x, $context, $locale);
         $side = $this->documentSide($document, $context, $choices);
@@ -117,16 +122,21 @@ final readonly class Proposal
         $draft = $this->drafts->of($x, $context, $locale, $cardType, $side['person_id']);
 
         // Without the Budget the reading proposes no movement, no due date to pay and no consumption: only the
-        // document, the cards and the event
+        // document, the cards and the event. With more than one supply each supply has its own.
         $budget = $this->features->on(Feature::Budget);
-        $movement = $draft['movement'] === null || ! $budget
+        $movement = $draft['movement'] === null || ! $budget || $multi
             ? null
             : $this->movements->of($x, $context, $draft['movement'], $draft['movementSuggested'], $this->fromMovement($file, $draft['movement']->kind, $choices), $side['date']);
         $document = $this->receiptCategory($x, $document, $movement);
         $amount = $choices->movementOverrides($movement->values->kind ?? 'expense')['amount'] ?? $x->total_amount;
-        ['records' => $records, 'warnings' => $warnings] = $this->records->of($x, $side, is_numeric($amount) ? (float) $amount : null, $choices, $cardType);
+        // The utilities of the supplies are in their own boxes: the cards of the document are searched without codes
+        $cardsOf = $multi ? Extraction::from([...$x->toArray(), 'supply_point_code' => null, 'customer_code' => null, 'utility_type' => null, 'supplies' => []]) : $x;
+        ['records' => $records, 'warnings' => $warnings] = $this->records->of($cardsOf, $side, is_numeric($amount) ? (float) $amount : null, $choices, $cardType);
+        $records = $multi ? array_values(array_filter($records, static fn (RecordDraftData $box): bool => $box->kind !== RecordKind::Utility)) : $records;
         $eventDraft = $this->healthEvent($draft['event'], $cardType, $document);
         $event = $eventDraft instanceof EventValuesData ? $this->event($eventDraft, $draft['eventSuggested'], $side, $choices) : null;
+        $supplies = $multi ? $this->supplies($x, $context, $side, $choices, $budget, $locale) : [];
+        $supplyRecords = array_values(array_filter(array_map(static fn (SupplyProposalData $supply): ?RecordDraftData => $supply->record, $supplies)));
 
         return new ProposalData(
             fileId: $file->id,
@@ -137,10 +147,76 @@ final readonly class Proposal
             policy: $this->policy($x, $document, $side, $records, $choices, $roundGivers),
             warnings: $warnings,
             // With the card of the category the boxes already say which card the document belongs to
-            createCard: $cardType === null && $this->namesNoCard($document, $event, $records),
+            createCard: $cardType === null && $this->namesNoCard($document, $event, [...$records, ...$supplyRecords]),
             cardType: $cardType,
-            consumption: $budget ? $this->consumption($x, $document, $records, $choices) : null,
+            consumption: $budget && ! $multi ? $this->consumption($x, $document, $records, $choices) : null,
+            supplies: $supplies,
         );
+    }
+
+    /**
+     * What each supply of a bill with more than one proposes: the box of its utility, its expense and its consumption,
+     * each worked out on the reading seen from the supply with the choices of that supply, as for a bill alone.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  ReadingContext  $context  the lists the model chose from
+     * @param  array{organization_id: ?int, organization_name: ?string, person_id: ?int, date: ?CarbonImmutable}  $side  the document as it will be saved
+     * @param  ImportChoices  $choices  the choices of the person
+     * @param  bool  $budget  whether the family has the Budget: without it no expense and no consumption
+     * @param  string  $locale  the language of the texts
+     * @return list<SupplyProposalData>
+     */
+    private function supplies(Extraction $x, ReadingContext $context, array $side, ImportChoices $choices, bool $budget, string $locale): array
+    {
+        $found = $this->matcher->supplyUtilities($x->supplies, $x->customer_code);
+        $proposals = [];
+
+        foreach ($x->supplies as $index => $supply) {
+            $view = $x->forSupply($index);
+            $own = $choices->forSupply($index);
+            $record = $this->records->supply($view, $side, $own, $found[$index] ?? null);
+            // The utility of the box, found or picked by hand, is the one of the expense and of the consumption
+            $utility = $record?->existing === null ? null : Utility::query()->find($record->existing['id']);
+            $created = $utility instanceof Utility ? null : $this->createdType($record, $own);
+
+            $proposals[] = new SupplyProposalData(
+                index: $index,
+                utility_type: $supply->utility_type,
+                supply_point_code: $supply->supply_point_code,
+                amount: $supply->amount,
+                heading: $this->heading($supply->utility_type, $supply->supply_point_code, $locale),
+                record: $record,
+                movement: $budget
+                    ? $this->movements->of($view, $context, $this->drafts->forSupply($view, $context, $utility, $locale), in_array($x->kind, MovementDraft::EXPENSE_KINDS, true), $own, $side['date'])
+                    : null,
+                consumption: $budget ? $this->consumptionOf($view, $utility, $created, $own) : null,
+            );
+        }
+
+        return $proposals;
+    }
+
+    /**
+     * The title of the group of a supply: the type and the code, POD for electricity and PDR for gas («Luce · POD IT
+     * 001 E 87654321»); the type alone without a code, the code alone without a type.
+     *
+     * @param  string|null  $type  a value of `UtilityType`
+     * @param  string|null  $code  the supply code as printed
+     * @param  string  $locale  the language of the type
+     */
+    private function heading(?string $type, ?string $code, string $locale): string
+    {
+        $code = $code === null || trim($code) === '' ? null : trim($code);
+        $prefix = match ($type) {
+            UtilityType::Electricity->value => 'POD ',
+            UtilityType::Gas->value => 'PDR ',
+            default => '',
+        };
+
+        return implode(' · ', array_filter([
+            $type === null ? null : BillTitle::typeLabel($type, $locale),
+            $code === null ? null : $prefix.$code,
+        ]));
     }
 
     /**
@@ -169,9 +245,40 @@ final readonly class Proposal
         // The box of the utility, ticked, gives it: one found is linked, a new one is created with the file
         $draft = collect($records)->first(static fn (RecordDraftData $draft): bool => $draft->kind === RecordKind::Utility && in_array(RecordKind::Utility, $choices->records, true));
         $utility ??= $draft instanceof RecordDraftData && $draft->existing !== null ? Utility::query()->find($draft->existing['id']) : null;
-        $created = ! $utility instanceof Utility && $draft instanceof RecordDraftData && $draft->existing === null
-            ? UtilityType::tryFrom(is_string($draft->values['type'] ?? null) ? $draft->values['type'] : '')
-            : null;
+
+        return $this->consumptionOf($x, $utility, $utility instanceof Utility ? null : $this->createdType($draft, $choices), $choices);
+    }
+
+    /**
+     * The type of the utility a ticked box creates with the file; null for a box that links one, or not ticked.
+     *
+     * @param  RecordDraftData|null  $draft  the box of the utility
+     * @param  ImportChoices  $choices  the choices of the person, or of the supply
+     */
+    private function createdType(?RecordDraftData $draft, ImportChoices $choices): ?UtilityType
+    {
+        if (! $draft instanceof RecordDraftData || $draft->existing !== null || ! in_array(RecordKind::Utility, $choices->records, true)) {
+            return null;
+        }
+
+        return UtilityType::tryFrom(is_string($draft->values['type'] ?? null) ? $draft->values['type'] : '');
+    }
+
+    /**
+     * The consumption of a bill with the utility it goes to: one already there, or the type of one created with the
+     * file; without either the type read decides the unit and the person is asked to choose the utility. The amount
+     * is the one of the expense, with the correction of the person, for the price per unit.
+     *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply
+     * @param  Utility|null  $utility  the utility already there
+     * @param  UtilityType|null  $created  the type of the utility created with the file
+     * @param  ImportChoices  $choices  the choices of the person, or of the supply
+     */
+    private function consumptionOf(Extraction $x, ?Utility $utility, ?UtilityType $created, ImportChoices $choices): ?ConsumptionProposalData
+    {
+        if ($x->kind !== 'utility_bill' || ($x->consumption_quantity === null && $x->consumption_unit === null)) {
+            return null;
+        }
 
         $type = $utility->type ?? $created ?? UtilityType::tryFrom($x->utility_type ?? '');
         $unit = $type instanceof UtilityType ? ConsumptionUnit::forUtility($type) : null;

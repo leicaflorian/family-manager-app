@@ -12,6 +12,8 @@ use App\Data\Reading\Extraction;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\RecordDraftData;
 use App\Enums\RecordKind;
+use App\Enums\UtilityStatus;
+use App\Enums\UtilityType;
 use App\Models\Employment;
 use App\Models\InsurancePolicy;
 use App\Models\Utility;
@@ -119,6 +121,66 @@ final readonly class RecordsProposal
     }
 
     /**
+     * The box of the utility of one supply of a bill with more than one, with the corrections and the choice of the
+     * person for that supply. With the utility of the supply the box links it; without, it creates one, ticked unless
+     * the family already has an active utility of that type: then the box says the person may tick it for another
+     * supply. Null when the supply names neither a code nor a type.
+     *
+     * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
+     * @param  array{organization_id: ?int, organization_name: ?string, person_id: ?int, date: ?CarbonImmutable}  $document  the document as it will be saved
+     * @param  ImportChoices  $supplyChoices  the choices of the supply (`ImportChoices::forSupply()`)
+     * @param  Utility|null  $utility  the utility found for the supply (`Matcher::supplyUtilities()`)
+     */
+    public function supply(Extraction $supplyView, array $document, ImportChoices $supplyChoices, ?Utility $utility): ?RecordDraftData
+    {
+        $kind = RecordKind::Utility->value;
+        $edits = $supplyChoices->recordOverrides(null)[$kind] ?? [];
+        $target = $supplyChoices->recordTargets(null)[$kind] ?? 'auto';
+        $xc = $this->corrected($supplyView, [$kind => $edits]);
+
+        if (! $utility instanceof Utility && trim($xc->supply_point_code ?? '').trim($xc->customer_code ?? '').trim($xc->utility_type ?? '') === '') {
+            return null;
+        }
+
+        // A utility created or picked by hand wins over the one found, as in the box of a bill alone
+        $picked = $target === 'new' || (is_int($target) && Utility::query()->whereKey($target)->exists());
+        $found = ['terminatedUtility' => $this->search->terminatedUtility($xc->supply_point_code, $xc->customer_code), 'homes' => $this->search->activeHomes()];
+        $draft = RecordDrafts::supply($xc, $found, $document, $picked ? null : $utility);
+
+        $type = UtilityType::tryFrom($xc->utility_type ?? '');
+        $sameType = $draft->existing === null && $type instanceof UtilityType
+            && Utility::query()->where('type', $type)->where('status', UtilityStatus::Active)->exists();
+        if ($sameType) {
+            $draft = new RecordDraftData(
+                kind: $draft->kind,
+                title: $draft->title,
+                values: $draft->values,
+                suggested: false,
+                missing: $draft->missing,
+                cardType: $draft->cardType,
+                hint: $this->otherSupplyHint($type),
+            );
+        }
+
+        return $this->withChoices($draft, $edits, $target);
+    }
+
+    /**
+     * The line under the box of a new utility when the family already has one of the type.
+     *
+     * @param  UtilityType  $type  the type of the supply
+     */
+    private function otherSupplyHint(UtilityType $type): string
+    {
+        return match ($type) {
+            UtilityType::Electricity => Translated::text('You already have an electricity utility: tick it if this is another supply.'),
+            UtilityType::Gas => Translated::text('You already have a gas utility: tick it if this is another supply.'),
+            UtilityType::Water => Translated::text('You already have a water utility: tick it if this is another supply.'),
+            default => Translated::text('You already have a utility of this type: tick it if this is another supply.'),
+        };
+    }
+
+    /**
      * A box with the corrections and the choice of the person: the card picked by hand, or the one found, is linked
      * and needs nothing; a new one needs its required fields.
      *
@@ -154,6 +216,7 @@ final readonly class RecordsProposal
             complete: $existing === null ? $this->fromDocument($draft->kind, $values, $draft->cardType) : [],
             cardType: $draft->cardType,
             replaces: RecordDrafts::replaces($draft->kind, $values, $existing),
+            hint: $existing === null ? $draft->hint : null,
         );
     }
 

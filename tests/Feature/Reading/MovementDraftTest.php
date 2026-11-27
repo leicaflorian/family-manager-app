@@ -20,6 +20,7 @@ use App\Models\Utility;
 use App\Services\Reading\MovementDraft;
 use App\Services\Reading\ReadingContext;
 use App\Support\CurrentFamily;
+use Tests\Support\EnelBill;
 
 /**
  * The expense, income and event a reading proposes, with whether each starts ticked.
@@ -197,5 +198,43 @@ describe('the event', function (): void {
         expect(draft(['kind' => 'invoice'], $this->context)['event'])->toBeNull()
             ->and(draft(['kind' => 'invoice', 'health_type' => 'optical'], $this->context, 'en')['event']->title)->toBe('Eyecare')
             ->and(draft(['kind' => 'medical'], $this->context)['event']->type)->toBeNull();
+    });
+});
+
+describe('the expense of a supply', function (): void {
+    test('with the utility, its planned expense leads: title, category and amount of the supply', function (): void {
+        $utility = Utility::factory()->for($this->family)->create(['type' => 'gas', 'supply_point_code' => EnelBill::PDR, 'organization_id' => $this->organization->id, 'person_id' => null]);
+        $planned = PlannedExpense::factory()->for($this->family)->forCard($utility)->create([
+            'title' => 'Gas', 'amount' => 55, 'is_estimated' => true, 'category_id' => $this->category->id, 'organization_id' => $this->organization->id, 'start_date' => '2026-10-30',
+        ]);
+
+        $values = resolve(MovementDraft::class)->forSupply(EnelBill::extraction()->forSupply(1), $this->context, $utility, 'it');
+
+        expect($values->kind)->toBe('expense')
+            ->and($values->amount)->toBe(69.40)
+            ->and($values->title)->toBe('Gas novembre 2026')
+            ->and($values->date)->toBe('2026-11-21')
+            ->and($values->category_id)->toBe($this->category->id)
+            ->and($values->organization_id)->toBe($this->organization->id)
+            ->and($values->lead['id'])->toBe($planned->id);
+    });
+
+    test('without the utility, the category of the type and the title of the bill', function (): void {
+        $bills = ExpenseCategory::factory()->for($this->family)->create(['name' => 'Bollette e utenze']);
+        $gas = ExpenseCategory::factory()->for($this->family)->create(['name' => 'Gas', 'parent_id' => $bills->id]);
+        $context = new ReadingContext(
+            [['id' => $this->category->id, 'label' => 'Casa'], ['id' => $bills->id, 'label' => 'Bollette e utenze'], ['id' => $gas->id, 'label' => 'Bollette e utenze › Gas']],
+            [], [], [], null, null, $this->family->id,
+        );
+
+        $values = resolve(MovementDraft::class)->forSupply(EnelBill::extraction(['expense_category_id' => $this->category->id])->forSupply(1), $context, null, 'it');
+        $english = resolve(MovementDraft::class)->forSupply(EnelBill::extraction()->forSupply(0), $context, null, 'en');
+
+        expect($values->title)->toBe('Bolletta gas novembre 2026')
+            ->and($values->category_id)->toBe($gas->id)
+            ->and($values->lead)->toBeNull()
+            ->and($values->amount)->toBe(69.40)
+            ->and($english->title)->toBe('Electricity bill November 2026')
+            ->and($english->category_id)->toBeNull();
     });
 });

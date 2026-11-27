@@ -9,14 +9,18 @@ use App\Data\Reading\Extraction;
 use App\Data\Reading\MovementValuesData;
 use App\Enums\HealthEventType;
 use App\Enums\IncomeType;
+use App\Enums\UtilityType;
 use App\Models\Employment;
 use App\Models\ExpenseCategory;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\Utility;
 use App\Support\CurrentFamily;
 use App\Support\Money;
+use App\Support\Reading\BillTitle;
 use App\Support\Reading\Choices;
 use App\Support\Reading\ReadingText;
+use App\Support\Reading\TypeCategory;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
 
@@ -53,6 +57,38 @@ final readonly class MovementDraft
         return $context->familyId === null
             ? $this->build($x, $context, $locale, $cardType, $personId)
             : CurrentFamily::using($context->familyId, fn (): array => $this->build($x, $context, $locale, $cardType, $personId));
+    }
+
+    /**
+     * The expense of one supply of a bill with more than one, as the expense of a bill alone: the planned expense of
+     * its utility leads. Without one, the expense takes the category of the type of the supply and the title of a
+     * bill of that type («Bolletta gas novembre 2026»).
+     *
+     * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
+     * @param  ReadingContext  $context  the lists the model chose from; its family is where the cards are searched
+     * @param  Utility|null  $utility  the utility of the supply
+     * @param  string  $locale  the language of the title
+     */
+    public function forSupply(Extraction $supplyView, ReadingContext $context, ?Utility $utility, string $locale): MovementValuesData
+    {
+        $build = function () use ($supplyView, $context, $utility, $locale): MovementValuesData {
+            $links = $this->links->forSupply($supplyView, $context, $utility);
+            $values = $this->expense($supplyView, $context, $links, $locale, null);
+
+            if ($values->lead !== null) {
+                return $values;
+            }
+
+            $type = UtilityType::tryFrom($supplyView->utility_type ?? '');
+
+            return MovementValuesData::from([
+                ...$values->toArray(),
+                'title' => BillTitle::of($supplyView, $links->issuer ?? $this->say('Document', [], $locale), $type instanceof UtilityType ? [$type->value] : [], null, $values->date, $locale),
+                'category_id' => ($type instanceof UtilityType ? TypeCategory::of($type, $context->expenseCategories, $locale) : null) ?? $values->category_id,
+            ]);
+        };
+
+        return $context->familyId === null ? $build() : CurrentFamily::using($context->familyId, $build);
     }
 
     /**

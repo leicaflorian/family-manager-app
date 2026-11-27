@@ -1184,6 +1184,7 @@ describe('Import', () => {
                 complete: [],
                 cardType: 'insurance_policy',
                 replaces: [],
+                hint: null,
             };
             renderPage(
                 Import,
@@ -1232,6 +1233,7 @@ describe('Import', () => {
                     employment_id: null,
                 },
             ],
+            hint: null,
         };
 
         it('ticks the old policy under the new policy box', async () => {

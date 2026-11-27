@@ -2720,5 +2720,9 @@
     ":types bill :month :year": "Bolletta :types :month :year",
     ":types bill": "Bolletta :types",
     "I found an electricity and gas bill": "Ho trovato una bolletta della luce e del gas",
-    ":first and :second": ":first e :second"
+    ":first and :second": ":first e :second",
+    "You already have an electricity utility: tick it if this is another supply.": "Hai già un'utenza della luce: spunta se è un'altra fornitura.",
+    "You already have a gas utility: tick it if this is another supply.": "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+    "You already have a water utility: tick it if this is another supply.": "Hai già un'utenza dell'acqua: spunta se è un'altra fornitura.",
+    "You already have a utility of this type: tick it if this is another supply.": "Hai già un'utenza di questo tipo: spunta se è un'altra fornitura."
 }
