@@ -148,6 +148,8 @@ final readonly class BankGroups
 
         foreach ($byKey as $key => $rows) {
             $first = $rows[0];
+            // A key of digits only becomes an integer array key in PHP
+            $key = (string) $key;
             $groups[$key] = new BankGroup($key, $this->name($first), $first->kind(), $first->financial_account_id, new Collection($rows));
         }
 
