@@ -2220,6 +2220,11 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: true,
         ignored: false,
         recurring: false,
+        status: 'pending',
+        link: null,
+        provider_id: 'tx-1',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'pending',
     },
     {
         id: 2,
@@ -2233,6 +2238,11 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: false,
         ignored: false,
         recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: 'tx-2',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'booked',
     },
     {
         id: 1,
@@ -2246,6 +2256,11 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: false,
         ignored: false,
         recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: 'tx-3',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'booked',
     },
 ];
 

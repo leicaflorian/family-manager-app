@@ -14,6 +14,7 @@ use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\AssignBankTransactionRequest;
+use App\Http\Requests\Banks\BankListRequest;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
@@ -21,6 +22,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankMatcher;
+use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankTransactionId;
 use App\Support\Banks\BankVisitor;
@@ -47,45 +49,47 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class BankTransactionController extends Controller
 {
-    /** How many rows a block of the list has. */
-    private const int PER_PAGE = 50;
-
     /**
      * The page: a block of the list (added below the ones already shown) under `?show=unsorted`, `?show=all` or
-     * `?show=filters`. Until the next tasks fill them, *All* lists the ignored ones (`?show=ignored` leads there) and
-     * *Filters* lists no movement.
+     * `?show=filters`. *All* lists every transaction the bank gave, filtered by `q`, `account`, `status`, `month` and
+     * `direction` (`?show=ignored` is *All* with the status *ignored*); *Filters* lists no movement until its task.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family
      */
-    public function index(Request $request): Response
+    public function index(BankListRequest $filters, BankRows $all): Response
     {
-        Gate::authorize('viewAny', BankTransaction::class);
-
-        $show = match ($request->query('show')) {
+        $show = match ($filters->query('show')) {
             'all', 'ignored' => 'all',
             'filters' => 'filters',
             default => 'unsorted',
         };
-        $ignored = $show === 'all';
-        $page = max(1, $request->integer('page'));
+        $page = max(1, $filters->integer('page'));
         $block = null;
         // One query for both `rows` and `next`, run the first time either is asked
-        $rows = function () use (&$block, $show, $ignored, $page): Collection {
-            return $block ??= $show === 'filters' ? new Collection : $this->block($ignored, $page);
+        $rows = function () use (&$block, $show, $all, $filters, $page): array {
+            return $block ??= match ($show) {
+                'all' => $all->page($filters, $page),
+                'filters' => ['rows' => new Collection, 'more' => false],
+                default => $this->unsortedBlock($page),
+            };
         };
 
         return Inertia::render('budget/BankTransactions', [
             'show' => $show,
-            'rows' => Inertia::merge(function () use ($rows, $ignored): array {
-                // One read of the last months for the whole page, none for the ignored ones
+            'rows' => Inertia::merge(function () use ($rows, $show): array {
+                // One read of the last months for the whole page, none for the other lists
                 $texts = resolve(RecurringBankTexts::class);
 
-                return $rows()->take(self::PER_PAGE)
-                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction($transaction, ! $ignored && $texts->recurs($transaction)))
+                return $rows()['rows']
+                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction($transaction, $show === 'unsorted' && $texts->recurs($transaction), $show === 'all'))
                     ->values()
                     ->all();
             })->matchOn('id'),
-            'next' => fn (): ?int => $rows()->count() > self::PER_PAGE ? $page + 1 : null,
+            'next' => fn (): ?int => $rows()['more'] ? $page + 1 : null,
+            // The list *All*: what the filters find, the values chosen and the accounts to choose from
+            'total' => fn (): ?array => $show === 'all' ? $all->total($filters) : null,
+            'filters' => fn (): ?array => $show === 'all' ? $filters->chosen() : null,
+            'accounts' => fn (): array => $show === 'all' ? $all->accounts() : [],
             'banks_to_reconnect' => fn (): array => BankConnection::query()
                 ->where('status', BankConnectionStatus::NeedsReconnect)
                 ->orderBy('institution_name')
@@ -97,7 +101,7 @@ final class BankTransactionController extends Controller
             'last_synced_at' => fn (): ?string => BankConnection::query()->whereNotNull('last_synced_at')->latest('last_synced_at')->first()?->last_synced_at?->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             'sync_hours' => SyncHours::all(),
             // The planned items the sheet *It belongs to a planned expense* offers for the transaction of `?assign=`, asked when it opens
-            'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($request->query('assign'))),
+            'planned_options' => Inertia::optional(fn (): array => $this->plannedOptions($filters->query('assign'))),
             'can_sort' => Gate::allows('create', BankTransaction::class),
             // «It comes back every month: create a planned expense?» is offered only to who can create one
             'can_plan' => Gate::allows('create', PlannedExpense::class) && Gate::allows('create', PlannedIncome::class),
@@ -234,27 +238,26 @@ final class BankTransactionController extends Controller
     }
 
     /**
-     * A block of the list, newest first (a pending one by the day the bank gave), with one row more than shown to know
-     * whether another block follows.
+     * A block of the list *To sort*, newest first (a pending one by the day the bank gave), with one row more than
+     * shown to know whether another block follows.
      *
-     * @param  bool  $ignored  the ones put aside instead of the ones to sort
      * @param  int  $page  the number of the block, from 1
-     * @return Collection<int, BankTransaction>
+     * @return array{rows: Collection<int, BankTransaction>, more: bool}
      */
-    private function block(bool $ignored, int $page): Collection
+    private function unsortedBlock(int $page): array
     {
-        return BankTransaction::query()
+        $rows = BankTransaction::query()
             ->with('financialAccount')
-            ->when(
-                $ignored,
-                static fn (Builder $query): Builder => $query->ignored(),
-                static fn (Builder $query): Builder => $query->whereNull('ignored_at')->whereNull('expense_id')->whereNull('income_id'),
-            )
+            ->whereNull('ignored_at')
+            ->whereNull('expense_id')
+            ->whereNull('income_id')
             ->orderByRaw('coalesce(booked_on, value_on) desc')
             ->orderByDesc('id')
-            ->skip(($page - 1) * self::PER_PAGE)
-            ->take(self::PER_PAGE + 1)
+            ->skip(($page - 1) * BankRows::PER_PAGE)
+            ->take(BankRows::PER_PAGE + 1)
             ->get();
+
+        return ['rows' => $rows->take(BankRows::PER_PAGE)->values(), 'more' => $rows->count() > BankRows::PER_PAGE];
     }
 
     /**

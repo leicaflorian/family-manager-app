@@ -355,4 +355,12 @@ return [
         'created' => 'Creato da qui',
         'duplicate' => 'Collegato a uno che c\'era',
     ],
+    'bank_row_status' => [
+        'unsorted' => 'Da sistemare',
+        'linked' => 'Collegato',
+        'fee' => 'Commissione',
+        'transfer' => 'Giroconto',
+        'ignored' => 'Ignorato',
+        'pending' => 'In attesa',
+    ],
 ];

@@ -137,12 +137,10 @@ it('show=filters and show=all are accepted', function (): void {
     bankTransactionPagesRow($connection, ['text' => 'TO SORT']);
     bankTransactionPagesRow($connection, ['text' => 'SET ASIDE', 'ignored_at' => now()]);
 
-    // Until the next tasks fill them, All lists what Ignored listed and Filters lists no movement
+    // All lists every transaction (see BankAllTransactionsTest) and Filters lists no movement until its task
     $this->get(route('budget.bank.index', ['show' => 'all']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('show', 'all')
-        ->has('rows', 1)
-        ->where('rows.0.text', 'SET ASIDE')
-        ->where('rows.0.ignored', true));
+        ->has('rows', 2));
 
     $this->get(route('budget.bank.index', ['show' => 'filters']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('show', 'filters')
