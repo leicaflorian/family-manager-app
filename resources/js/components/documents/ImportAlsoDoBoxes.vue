@@ -127,8 +127,20 @@ function supplyChoices(index: number): ImportChoices {
 }
 
 /**
- * The errors of the last import about one supply, under the names of a bill alone: `also.supplies.1.record`
- * becomes `also.records.utility`, `also.supplies.1.consumption` becomes `also.consumption`.
+ * Where the errors of a supply go in its group, under the names of a bill alone: the import names them
+ * `files.<n>.also.supplies.<i>.<path>`, and the page keeps `also.supplies.<i>.<path>` for the file.
+ */
+const SUPPLY_ERROR_PATHS: [from: string, to: string][] = [
+    ['targets.record', 'targets.records.utility'],
+    ['overrides.record.', 'overrides.records.utility.'],
+    ['record', 'records.utility'],
+];
+
+/**
+ * The errors of the last import about one supply, under the names of a bill alone: `also.supplies.1.record` becomes
+ * `also.records.utility`, `also.supplies.1.targets.record` becomes `also.targets.records.utility`,
+ * `also.supplies.1.overrides.record.<field>` becomes `also.overrides.records.utility.<field>`; `movement`,
+ * `consumption`, `targets.movement`, `due` and `overrides.movement|consumption.<field>` keep their path.
  *
  * @param index - the place of the supply in the reading
  * @returns the errors of its boxes
@@ -139,15 +151,17 @@ function supplyErrors(index: number): Record<string, string> {
     return Object.fromEntries(
         Object.entries(props.errors)
             .filter(([key]) => key.startsWith(prefix))
-            .map(([key, message]) => [
-                `also.${key
-                    .slice(prefix.length)
-                    .replace(
-                        /^(targets\.|overrides\.)?record\b/,
-                        '$1records.utility',
-                    )}`,
-                message,
-            ]),
+            .map(([key, message]) => {
+                const path = key.slice(prefix.length);
+                const renamed = SUPPLY_ERROR_PATHS.find(([from]) =>
+                    from.endsWith('.') ? path.startsWith(from) : path === from,
+                );
+
+                return [
+                    `also.${renamed ? renamed[1] + path.slice(renamed[0].length) : path}`,
+                    message,
+                ];
+            }),
     );
 }
 
@@ -249,6 +263,21 @@ const seenFields = reactive(new Map<string, App.Data.CardFieldData>());
  */
 function alsoErrors(...keys: string[]): string[] {
     return keys.flatMap((key) => props.errors[`also.${key}`] ?? []);
+}
+
+/**
+ * The errors of the last import about the fields of a box: the corrections of the expense, of the consumption or of a
+ * card (`overrides.movement.amount`).
+ *
+ * @param box - where its fields sit under `also.overrides` (`movement`, `consumption`, `records.utility`)
+ * @returns the messages
+ */
+function fieldErrors(box: string): string[] {
+    const prefix = `also.overrides.${box}.`;
+
+    return Object.entries(props.errors)
+        .filter(([key]) => key.startsWith(prefix))
+        .map(([, message]) => message);
 }
 
 /**
@@ -557,6 +586,7 @@ function recordFields(
                         `records.${draft.kind}`,
                         `targets.records.${draft.kind}`,
                     ),
+                    fieldErrors(`records.${draft.kind}`),
                     recordWarnings(draft, tickedRecords.includes(draft.kind)),
                 )
             "
@@ -621,7 +651,12 @@ function recordFields(
         </FmAlsoDoItem>
     </DefineRecords>
 
-    <FmAlsoDo v-if="ticked" :title="heading" :hint="followsKind">
+    <FmAlsoDo
+        v-if="ticked"
+        :title="heading"
+        :level="heading ? 4 : 3"
+        :hint="followsKind"
+    >
         <ImportAlsoDoBoxes
             v-for="group in supplies"
             :key="group.supply.index"
@@ -664,7 +699,8 @@ function recordFields(
             "
             :warnings="
                 lines(
-                    alsoErrors('movement', 'targets.movement'),
+                    alsoErrors('movement', 'targets.movement', 'due'),
+                    fieldErrors('movement'),
                     movementWarnings(proposal.movement, {
                         ticked: ticked.movement,
                         due: toPay,
@@ -843,6 +879,7 @@ function recordFields(
             :warnings="
                 lines(
                     alsoErrors('consumption'),
+                    fieldErrors('consumption'),
                     consumptionWarnings(
                         proposal.consumption,
                         ticked.consumption ?? false,

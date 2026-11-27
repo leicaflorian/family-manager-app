@@ -921,7 +921,7 @@ export function supplyProposal(
  *
  * @param proposal - the proposal of the bill
  * @param ticked - the boxes ticked, with the ones of each supply
- * @param rule - what to work out for one proposal and its boxes
+ * @param rule - what to work out for one proposal and its boxes, told which supply it is
  * @returns what the rule gives for every supply, one after the other
  */
 function eachSupply(
@@ -930,6 +930,7 @@ function eachSupply(
     rule: (
         proposal: App.Data.Reading.ProposalData,
         ticked: TickedBoxes,
+        supply: App.Data.Reading.SupplyProposalData,
     ) => string[],
 ): string[] {
     return proposal.supplies.flatMap((supply) => {
@@ -939,15 +940,19 @@ function eachSupply(
             return [];
         }
 
-        return rule(supplyProposal(proposal, supply), {
-            movement: boxes.movement,
-            event: false,
-            records: boxes.record ? ['utility'] : [],
-            overrides: {
-                movement: boxes.overrides?.movement,
-                records: { utility: boxes.overrides?.record },
+        return rule(
+            supplyProposal(proposal, supply),
+            {
+                movement: boxes.movement,
+                event: false,
+                records: boxes.record ? ['utility'] : [],
+                overrides: {
+                    movement: boxes.overrides?.movement,
+                    records: { utility: boxes.overrides?.record },
+                },
             },
-        });
+            supply,
+        );
     });
 }
 
@@ -990,14 +995,24 @@ export function missingData(
         return document.map((label) => trans(label));
     }
 
-    return [...document, ...new Set(boxesMissing(proposal, ticked))].map(
-        (label) => trans(label),
-    );
+    return [
+        ...document.map((label) => trans(label)),
+        ...boxesMissing(proposal, ticked).map((label) => trans(label)),
+        // The same field can miss in two supplies: each one says which supply it is
+        ...eachSupply(proposal, ticked, (own, boxes, supply) =>
+            boxesMissing(own, boxes).map((label) =>
+                trans(':supply: :field', {
+                    supply: supply.heading,
+                    field: trans(label),
+                }),
+            ),
+        ),
+    ];
 }
 
 /**
- * The fields still to fill in the ticked boxes of a file, and in the ticked boxes of each of its supplies: what the
- * proposal lists, without what the person already wrote.
+ * The fields still to fill in the ticked boxes of a file: what the proposal lists, without what the person already
+ * wrote.
  *
  * @param proposal - what the file does too
  * @param ticked - which boxes are ticked, with the fields written in them
@@ -1038,6 +1053,5 @@ function boxesMissing(
                     )
                     .map((field) => field.label),
             ),
-        ...eachSupply(proposal, ticked, boxesMissing),
     ];
 }

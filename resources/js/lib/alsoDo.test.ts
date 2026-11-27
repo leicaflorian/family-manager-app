@@ -950,7 +950,7 @@ describe('the supplies in what a file misses', () => {
         expect(documentNeeds(proposal, ticked)).toEqual(['date']);
         expect(missingData('Bolletta', proposal, ticked)).toEqual([
             'Date',
-            'Amount',
+            'Gas · PDR 00881234567890: Amount',
         ]);
     });
 
@@ -997,5 +997,70 @@ describe('the line of a box of a supply', () => {
         expect(
             recordHint(gas, { ticked: true, target: 'auto' }),
         ).toBeUndefined();
+    });
+});
+
+describe('what a bill of two supplies misses', () => {
+    const [electricity, gas] = dualFuelProposal.supplies;
+    const noAmount = (
+        supply: App.Data.Reading.SupplyProposalData,
+    ): App.Data.Reading.SupplyProposalData => ({
+        ...supply,
+        movement: { ...supply.movement!, fill: ['amount'] },
+    });
+
+    it('names the supply of each field, once per supply', () => {
+        expect(
+            missingData(
+                'Bolletta',
+                {
+                    ...dualFuelProposal,
+                    supplies: [noAmount(electricity!), noAmount(gas!)],
+                },
+                {
+                    movement: false,
+                    event: false,
+                    records: [],
+                    supplies: {
+                        0: { movement: true, record: true },
+                        1: { movement: true, record: false },
+                    },
+                },
+            ),
+        ).toEqual([
+            'Luce · POD IT 001 E 87654321: Amount',
+            'Gas · PDR 00881234567890: Amount',
+        ]);
+    });
+
+    it('counts the same field of two boxes of a bill alone twice, as before', () => {
+        const draft = {
+            ...homeDraft,
+            existing: null,
+            fields: [
+                { ...homeDraft.fields[0]!, required: true, label: 'Name' },
+            ],
+            values: {},
+        };
+
+        expect(
+            missingData(
+                'Bolletta',
+                {
+                    ...ferriProposal,
+                    movement: null,
+                    event: null,
+                    records: [
+                        { ...draft, kind: 'vehicle' },
+                        { ...draft, kind: 'belonging' },
+                    ],
+                },
+                {
+                    movement: false,
+                    event: false,
+                    records: ['vehicle', 'belonging'],
+                },
+            ),
+        ).toEqual(['Name', 'Name']);
     });
 });

@@ -211,6 +211,7 @@ export function scopeToSupply(
     choices: ImportChoices,
     index: number,
 ): ImportChoices {
+    // Held by reference: `picks.supplies` of the file is never replaced, only its entries are added and changed
     const all = choices.picks.supplies;
 
     /**
