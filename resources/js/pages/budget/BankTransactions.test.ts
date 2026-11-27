@@ -54,6 +54,25 @@ function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
     };
 }
 
+/** The props of the tab *All* as the controller sends them, with the rows and the filters given. */
+function allProps(
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return props({
+        show: 'all',
+        filters: {
+            q: null,
+            account: null,
+            status: null,
+            month: null,
+            direction: null,
+        },
+        total: { count: 94, sum: -1842.3 },
+        accounts: [{ id: 4, name: 'Conto BancoPosta ·· 3307' }],
+        ...extra,
+    });
+}
+
 describe('Budget, From the bank', () => {
     it('lists the transactions with the day, the account and the amount', () => {
         renderPage(BankTransactions, props());
@@ -201,27 +220,155 @@ describe('Budget, From the bank', () => {
         expect(screen.getByText('No filter yet')).toBeInTheDocument();
     });
 
-    it('says what stays under Ignored, and for how long', () => {
+    it('under All lists every transaction with its tag, the filters and the last line', () => {
         renderPage(
             BankTransactions,
-            props({
-                show: 'all',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                    bankTransactions[0],
+                ],
             }),
         );
 
+        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
+        expect(screen.getByText('Set aside')).toBeInTheDocument();
+        expect(
+            within(
+                screen.getByText(bankTransactions[0]!.text).closest('li')!,
+            ).getByText('Pending at the bank'),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('94 movements');
         expect(
             screen.getByText(
-                'Ignored movements stay here for 12 months, then they are removed.',
+                'Movements not linked to an expense are kept 12 months.',
             ),
         ).toBeInTheDocument();
-        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
     });
 
-    it('says there is nothing ignored', () => {
-        renderPage(BankTransactions, props({ show: 'all', rows: [] }));
+    it('under All says nothing is there yet, or that no movement matches the filters', () => {
+        const view = renderPage(BankTransactions, allProps({ rows: [] }));
+        expect(screen.getByText('No movement yet')).toBeInTheDocument();
+        view.unmount();
 
-        expect(screen.getByText('No ignored movement')).toBeInTheDocument();
+        renderPage(
+            BankTransactions,
+            allProps({
+                rows: [],
+                filters: {
+                    q: 'zzz',
+                    account: null,
+                    status: null,
+                    month: null,
+                    direction: null,
+                },
+            }),
+        );
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
+    });
+
+    it('opens the transaction as the bank gave it from its text and closes it', async () => {
+        renderPage(
+            BankTransactions,
+            allProps({ rows: [bankTransactions[1]!] }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Bank transaction',
+        });
+        expect(within(panel).getByText('tx-2')).toBeInTheDocument();
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Close' }),
+        );
+        expect(
+            screen.queryByRole('dialog', { name: 'Bank transaction' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts the panel beside the list when wide', async () => {
+        screenWidth(1280);
+        renderPage(
+            BankTransactions,
+            allProps({ rows: [bankTransactions[1]!] }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /ADDEBITO DIRETTO SDD EDISON/ }),
+        );
+
+        expect(
+            screen
+                .getByRole('dialog', { name: 'Bank transaction' })
+                .closest('li'),
+        ).toBeNull();
+        expect(screen.getByText('tx-2')).toBeInTheDocument();
+    });
+
+    it('takes a link back after asking, and the row goes under a status filter', async () => {
+        const del = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+                options?.onFinish?.({} as never);
+            });
+        const linked = {
+            ...bankTransactions[1]!,
+            status: 'linked',
+            link: {
+                kind: 'expense',
+                id: 7,
+                title: 'Luce',
+                url: '/budget/movements/expense/7',
+                how: 'rule',
+                filter_id: null,
+                filter_name: null,
+                undo: 'delete',
+                undo_url: '/budget/bank/2/payment',
+            },
+        };
+        renderPage(
+            BankTransactions,
+            allProps({
+                rows: [linked],
+                filters: {
+                    q: null,
+                    account: null,
+                    status: 'linked',
+                    month: null,
+                    direction: null,
+                },
+            }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'It was not this one' }),
+        );
+        expect(del).not.toHaveBeenCalled();
+        await userEvent.click(
+            within(await screen.findByRole('dialog')).getByRole('button', {
+                name: 'It was not this one',
+            }),
+        );
+
+        expect(del).toHaveBeenCalledWith(
+            '/budget/bank/2/payment',
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
     });
 
     it('tells a bank to connect again and leads the one who can to the banks', () => {
@@ -351,9 +498,21 @@ describe('Budget, From the bank, ignoring', () => {
             });
         renderPage(
             BankTransactions,
-            props({
-                show: 'all',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                ],
+                filters: {
+                    q: null,
+                    account: null,
+                    status: 'ignored',
+                    month: null,
+                    direction: null,
+                },
             }),
         );
 
@@ -370,7 +529,9 @@ describe('Budget, From the bank, ignoring', () => {
             '/budget/bank/2/ignore',
             expect.objectContaining({ preserveScroll: true }),
         );
-        expect(screen.getByText('No ignored movement')).toBeInTheDocument();
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
     });
 
     it('offers no action to who cannot sort', () => {
@@ -471,9 +632,14 @@ describe('Budget, From the bank, sorting', () => {
     it('offers nothing under Ignored or to who cannot sort', () => {
         const view = renderPage(
             BankTransactions,
-            props({
-                show: 'all',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                ],
             }),
         );
         expect(
@@ -667,7 +833,11 @@ describe('Budget, From the bank, a text that comes back every month', () => {
         for (const extra of [
             { can_plan: false },
             { rows: [{ ...netflix, pending: true, booked_on: null }] },
-            { rows: [{ ...netflix, ignored: true }], show: 'all' },
+            {
+                rows: [{ ...netflix, ignored: true }],
+                show: 'all',
+                ...allProps(),
+            },
             { rows: [{ ...netflix, currency: 'USD' }] },
             { rows: [{ ...netflix, recurring: false }] },
             { can_sort: false },

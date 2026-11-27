@@ -4,7 +4,10 @@
  * Budget), as the boards *Dalla banca* and *Dalla banca-pc* draw it: the transactions the bank gave that no fixed
  * expense recognised, newest first, 50 at a time and the next ones while scrolling. A pending transaction says so
  * and waits for the bank to book it. *To sort*, *All* and *Filters* are the three tabs inside the page, in the grey
- * bar of the boards (for now *All* lists the ignored ones and *Filters* is empty);
+ * bar of the boards (*Filters* is empty for now). *All* lists every transaction the bank gave with its tag and what it
+ * is linked to, under the filters (text, account, status, month, direction); the text of a row opens the transaction as
+ * the bank gave it (a bottom sheet on the phone, a panel beside the list when wide), *It was not this one* takes a link
+ * back after asking and *Put back among the movements* brings a transaction set aside back;
  * *Update* reads the banks now (the server says how many movements are new) and under it comes the last read and
  * the hours of the automatic ones. A bank that has to be connected again has a strip with *Reconnect* for who can
  * change the banks. *Ignore* hides a transaction nobody has to deal with, and under *Ignored* each one has *Put back
@@ -28,7 +31,7 @@ import {
 } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -36,7 +39,11 @@ import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
+import BankAllFilters from '@/components/budget/BankAllFilters.vue';
+import BankAllList from '@/components/budget/BankAllList.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
+import BankRawPanel from '@/components/budget/BankRawPanel.vue';
+import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
@@ -55,7 +62,7 @@ import { create as createPlanned } from '@/routes/budget/planned';
 import { index as banksIndex } from '@/routes/banks';
 
 const props = defineProps<{
-    /** Which tab is open: the transactions to sort, all of them (for now the ones put aside) or the filters. */
+    /** Which tab is open: the transactions to sort, all of them or the filters. */
     show: 'unsorted' | 'all' | 'filters';
     /** The blocks of the list loaded so far. */
     rows: App.Data.BankTransactionData[];
@@ -75,7 +82,22 @@ const props = defineProps<{
     sync_hours: number[];
     /** The planned items the transaction of `?assign=` can pay, only sent when the panel asks for them. */
     planned_options?: App.Data.BankPlannedChoiceData[];
+    /** The tab *All*: the filters in use, as the server read them. */
+    filters?: AllFilters | null;
+    /** The tab *All*: how many transactions the filters find and their sum. */
+    total?: { count: number; sum: number } | null;
+    /** The tab *All*: the accounts that have transactions, to filter by. */
+    accounts?: { id: number; name: string }[];
 }>();
+
+/** The filters of the tab *All*, each null while it is not on. */
+interface AllFilters {
+    q: string | null;
+    account: number | null;
+    status: string | null;
+    month: string | null;
+    direction: string | null;
+}
 
 const bankFeed = useBankFeed();
 const { money, date } = useFormat();
@@ -86,9 +108,6 @@ const updating = ref(false);
 
 /** The number still to sort, from the shared props so it follows an update. */
 const unsorted = computed((): number => bankFeed.value?.unsorted ?? 0);
-
-/** The list shows the transactions put aside (the tab *All*, for now). */
-const ignoredList = computed((): boolean => props.show === 'all');
 
 /** The three tabs of the page, as the grey bar of the boards: the first says how many there are to sort. */
 const filters = computed((): Tab[] => [
@@ -136,10 +155,17 @@ function dayOf(row: App.Data.BankTransactionData): string {
         : date(day);
 }
 
-/** What the next block of the list asks for, in the address of the page. */
+/** What the next block of the list asks for; under *All* the status too, as `?show=ignored` leaves it out of the address. */
 const nextData = computed(() => ({
     page: props.next,
-    ...(props.show === 'all' ? { show: 'all' } : {}),
+    ...(props.show === 'all'
+        ? {
+              show: 'all',
+              ...(props.filters?.status
+                  ? { status: props.filters.status }
+                  : {}),
+          }
+        : {}),
 }));
 
 /** Reads the banks now. */
@@ -336,6 +362,94 @@ function assignTo(choice: App.Data.BankPlannedChoiceData): void {
     );
 }
 
+/** The tab *All*: the filters in use, none when the server did not send them. */
+const allFilters = computed(
+    (): AllFilters =>
+        props.filters ?? {
+            q: null,
+            account: null,
+            status: null,
+            month: null,
+            direction: null,
+        },
+);
+
+/** The tab *All*: whether a filter is on. */
+const filterOn = computed((): boolean =>
+    Object.values(allFilters.value).some((value) => value !== null),
+);
+
+/** The transaction whose bank panel is open, by id so it follows the row when the list changes. */
+const rawId = ref<number | null>(null);
+
+/** The transaction of the bank panel, null while it is closed or the row is gone. */
+const rawRow = computed(
+    (): App.Data.BankTransactionData | null =>
+        shown.value.find((row) => row.id === rawId.value) ?? null,
+);
+
+/** The transaction whose link *It was not this one* is asking to take back. */
+const undoing = ref<App.Data.BankTransactionData | null>(null);
+
+/** The question to take a link back is open. */
+const undoOpen = computed({
+    get: () => undoing.value !== null,
+    set: (value: boolean) => {
+        if (!value) {
+            undoing.value = null;
+        }
+    },
+});
+
+/**
+ * The row stopped being what the status filter looks for (put back, link taken back): it goes from the list now, the
+ * server no longer sends it.
+ *
+ * @param row - the transaction that changed
+ */
+function leaveFilteredList(row: App.Data.BankTransactionData): void {
+    if (allFilters.value.status !== null) {
+        gone.value = [...gone.value, row.id];
+    }
+}
+
+/**
+ * *Put back among the movements* from the tab *All*.
+ *
+ * @param row - the transaction set aside
+ */
+function restoreRow(row: App.Data.BankTransactionData): void {
+    router.delete(restore(row.id).url, {
+        preserveScroll: true,
+        onSuccess: () => leaveFilteredList(row),
+    });
+}
+
+/** Takes the link of the transaction asked about back, once confirmed. */
+function takeLinkBack(): void {
+    const row = undoing.value;
+
+    if (row?.link?.undo_url == null) {
+        return;
+    }
+
+    router.delete(row.link.undo_url, {
+        preserveScroll: true,
+        onSuccess: () => leaveFilteredList(row),
+        onFinish: () => {
+            undoing.value = null;
+        },
+    });
+}
+
+// New filters start the list over: what went from the old list is not hidden from the new one
+watch(
+    () => props.filters,
+    () => {
+        gone.value = [];
+    },
+);
+
 const { title, head } = usePageMeta({
     info: 'bank-transactions',
     title: () => trans('From the bank'),
@@ -402,38 +516,114 @@ const { title, head } = usePageMeta({
             "
         />
 
+        <template v-else-if="show === 'all'">
+            <BankAllFilters
+                :filters="allFilters"
+                :accounts="accounts ?? []"
+                :total="total ?? { count: shown.length, sum: 0 }"
+            />
+            <div
+                :class="
+                    wide && rawRow
+                        ? 'grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5'
+                        : 'flex flex-col'
+                "
+            >
+                <div class="flex min-w-0 flex-col gap-4">
+                    <BankAllList
+                        v-if="shown.length > 0"
+                        :rows="shown"
+                        :can-sort="can_sort"
+                        :selected="rawRow?.id ?? null"
+                        @open="(row) => (rawId = row.id)"
+                        @undo="(row) => (undoing = row)"
+                        @restore="restoreRow"
+                    />
+                    <FmEmpty
+                        v-else
+                        :icon="Landmark"
+                        :title="
+                            filterOn
+                                ? $t('No movement matches the filters')
+                                : $t('No movement yet')
+                        "
+                        :text="
+                            filterOn
+                                ? $t('Remove a filter or change the search.')
+                                : $t(
+                                      'The movements the bank gives you appear here.',
+                                  )
+                        "
+                    />
+                    <WhenVisible
+                        v-if="next"
+                        :key="next"
+                        always
+                        :params="{
+                            data: nextData,
+                            only: ['rows', 'next'],
+                            preserveUrl: true,
+                        }"
+                    />
+                </div>
+                <div
+                    v-if="wide && rawRow"
+                    class="sticky top-[calc(var(--app-header,0px)+--spacing(4))]"
+                >
+                    <BankRawPanel
+                        :row="rawRow"
+                        :can-sort="can_sort"
+                        @close="rawId = null"
+                        @undo="(row) => (undoing = row)"
+                    />
+                </div>
+            </div>
+            <BankRawPanel
+                v-if="!wide && rawRow"
+                :row="rawRow"
+                :can-sort="can_sort"
+                @close="rawId = null"
+                @undo="(row) => (undoing = row)"
+            />
+            <FmConfirm
+                v-model:open="undoOpen"
+                :question="$t('Take back this payment?')"
+                :text="
+                    undoing?.link?.kind === 'income'
+                        ? $t(
+                              'The income is removed and the due date is to be paid again.',
+                          )
+                        : $t(
+                              'The expense is removed and the due date is to be paid again.',
+                          )
+                "
+                :confirm-label="$t('It was not this one')"
+                @confirm="takeLinkBack"
+            />
+        </template>
+
         <FmEmpty
             v-else-if="shown.length === 0"
             :icon="Landmark"
-            :title="
-                ignoredList
-                    ? $t('No ignored movement')
-                    : $t('Nothing left to sort')
-            "
+            :title="$t('Nothing left to sort')"
             :text="
-                ignoredList
-                    ? $t(
-                          'Ignored movements stay here for 12 months, then they are removed.',
-                      )
-                    : $t(
-                          'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
-                      )
+                $t(
+                    'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
+                )
             "
         >
-            <template v-if="!ignoredList">
-                <FmButton
-                    variant="outline"
-                    :icon="List"
-                    :href="bankIndex({ query: { show: 'all' } }).url"
-                    >{{ $t('All the movements') }}</FmButton
-                >
-                <FmButton
-                    variant="outline"
-                    :icon="Funnel"
-                    :href="bankIndex({ query: { show: 'filters' } }).url"
-                    >{{ $t('Your filters') }}</FmButton
-                >
-            </template>
+            <FmButton
+                variant="outline"
+                :icon="List"
+                :href="bankIndex({ query: { show: 'all' } }).url"
+                >{{ $t('All the movements') }}</FmButton
+            >
+            <FmButton
+                variant="outline"
+                :icon="Funnel"
+                :href="bankIndex({ query: { show: 'filters' } }).url"
+                >{{ $t('Your filters') }}</FmButton
+            >
         </FmEmpty>
 
         <template v-else>
@@ -642,13 +832,9 @@ const { title, head } = usePageMeta({
             />
             <p class="m-0 px-1 text-meta text-ink-soft">
                 {{
-                    ignoredList
-                        ? $t(
-                              'Ignored movements stay here for 12 months, then they are removed.',
-                          )
-                        : $t(
-                              'Only the movements that no fixed expense recognises stay here. The recognised ones are marked paid by themselves.',
-                          )
+                    $t(
+                        'Only the movements that no fixed expense recognises stay here. The recognised ones are marked paid by themselves.',
+                    )
                 }}
             </p>
         </template>
