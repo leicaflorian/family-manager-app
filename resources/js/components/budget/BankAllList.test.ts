@@ -27,6 +27,7 @@ const base: App.Data.BankTransactionData = {
     orphan_fee: false,
     transfer: null,
     account_id: 4,
+    proposal: null,
 };
 
 const linked: App.Data.BankTransactionData = {

@@ -36,6 +36,7 @@ export function bankRow(
         orphan_fee: false,
         transfer: null,
         account_id: 4,
+        proposal: null,
     };
 }
 

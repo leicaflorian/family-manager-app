@@ -2818,5 +2818,8 @@
     "Link the commission": "Collega",
     "Left without its direct debit": "Rimasta senza il suo addebito",
     "This expense already has a commission from the bank.": "Questa spesa ha già una commissione della banca.",
-    "This movement is not a commission to sort.": "Questo movimento non è una commissione da sistemare."
+    "This movement is not a commission to sort.": "Questo movimento non è una commissione da sistemare.",
+    "This proposal is not valid any more: look at the movement again.": "Questa proposta non vale più: guarda di nuovo il movimento.",
+    "Paid: :title · from now on it pays itself": "Pagata: :title · d'ora in poi si paga da sola",
+    "Arrived: :title · from now on it is recorded by itself": "Arrivata: :title · d'ora in poi si segna da sola"
 }

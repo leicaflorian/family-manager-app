@@ -117,8 +117,8 @@ final readonly class SettleFromBank
             }
 
             $this->link($current, $payment, $by);
-            // Who assigned it by hand knows already; a rule tells everyone
-            $assigner = $by === BankMatchSource::Assigned ? Auth::guard('web')->id() : null;
+            // Who assigned it by hand, or said yes to the proposal, knows already; a rule tells everyone
+            $assigner = in_array($by, [BankMatchSource::Assigned, BankMatchSource::Proposed], true) ? Auth::guard('web')->id() : null;
             $this->notify->handle($current, $payment, $deadline, is_numeric($assigner) ? (int) $assigner : null);
 
             return $payment;

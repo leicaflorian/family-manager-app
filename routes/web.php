@@ -210,6 +210,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 Route::post('budget/bank/{transaction}/transfer', [BankTransactionController::class, 'transfer'])->name('budget.bank.transfer')->whereNumber('transaction');
                 Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
                 Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/proposal', [BankTransactionController::class, 'accept'])->name('budget.bank.proposal.accept')->whereNumber('transaction');
+                Route::delete('budget/bank/{transaction}/proposal', [BankTransactionController::class, 'reject'])->name('budget.bank.proposal.reject')->whereNumber('transaction');
             });
 
             Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');

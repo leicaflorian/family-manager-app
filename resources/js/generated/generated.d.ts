@@ -160,6 +160,14 @@ readonly paid_on: string | null,
 readonly ended: boolean,
 readonly ended_on: string | null,
 };
+export type BankProposalData = {
+readonly key: string,
+readonly type: string,
+readonly title: string,
+readonly date: string | null,
+readonly amount: number | null,
+readonly recorded: boolean,
+};
 export type BankRecordedChoiceData = {
 readonly kind: string,
 readonly id: number,
@@ -189,6 +197,7 @@ readonly fee: App.Data.BankFeeData | null,
 readonly orphan_fee: boolean,
 readonly transfer: App.Data.BankTransferData | null,
 readonly account_id: number | null,
+readonly proposal: App.Data.BankProposalData | null,
 };
 export type BankTransferData = {
 readonly account: string,
@@ -1304,7 +1313,7 @@ export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'sch
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
 export type BankFilterFee = 'auto' | 'words' | 'none';
-export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate' | 'fee';
+export type BankMatchSource = 'rule' | 'proposed' | 'assigned' | 'created' | 'duplicate' | 'fee';
 export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';

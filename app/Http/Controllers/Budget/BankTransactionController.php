@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
+use App\Actions\Banks\AcceptBankProposal;
 use App\Actions\Banks\AttachBankFee;
 use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\MarkBankTransfer;
 use App\Actions\Banks\RefreshBanks;
+use App\Actions\Banks\RejectBankProposal;
 use App\Actions\Banks\RestoreBankTransaction;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
@@ -20,6 +22,7 @@ use App\Http\Requests\Banks\AssignBankTransactionRequest;
 use App\Http\Requests\Banks\AttachBankFeeRequest;
 use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
+use App\Http\Requests\Banks\BankProposalRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
@@ -27,14 +30,17 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\User;
 use App\Services\Banks\BankFees;
 use App\Services\Banks\BankLinkSearch;
+use App\Services\Banks\BankProposals;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
 use App\Support\PaymentTitle;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -87,6 +93,8 @@ final class BankTransactionController extends Controller
                 $block = $rows();
                 $fees = $block['fees'];
                 $orphans = $block['orphans'];
+                // «Maybe it is…» under the lone movements to sort, read once for the block
+                $proposals = $show === 'unsorted' ? resolve(BankProposals::class)->for($block['rows']) : [];
 
                 return $block['rows']
                     ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction(
@@ -95,6 +103,7 @@ final class BankTransactionController extends Controller
                         $show === 'all',
                         $fees[$transaction->id] ?? null,
                         in_array($transaction->id, $orphans, true),
+                        $proposals[$transaction->id] ?? null,
                     ))
                     ->values()
                     ->all();
@@ -187,6 +196,54 @@ final class BankTransactionController extends Controller
         }
 
         return to_route('budget.bank.index');
+    }
+
+    /**
+     * *Yes* on «Maybe it is…»: links the expense or income already recorded, pays the due date or marks the transfer
+     * the proposal of the movement says (`key`). After a due date the filter that pays it from then on may be saved,
+     * and the message says so (`filter_id` in the message, for *Edit the filter*).
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     * @throws ValidationException (`key`) when the key is not, or not any more, the proposal of the movement
+     */
+    public function accept(BankProposalRequest $request, AcceptBankProposal $accept, #[CurrentUser] User $user): RedirectResponse
+    {
+        $key = $request->proposalKey();
+        $result = $accept->handle($request->transaction(), $key, $user);
+        $payment = $result['payment'];
+        $filter = $result['filter'];
+
+        if ($payment === null) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
+
+            return to_route('budget.bank.index');
+        }
+
+        $planned = $payment instanceof Expense ? $payment->plannedExpense : $payment->plannedIncome;
+        $title = str_starts_with($key, 'planned_') && $planned !== null && $payment->occurrence_date !== null
+            ? PaymentTitle::for($planned->displayTitle(), $payment->occurrence_date)
+            : $payment->label();
+        $message = match (true) {
+            ! str_starts_with($key, 'planned_') => 'Linked: :title',
+            $payment instanceof Income => $filter !== null ? 'Arrived: :title · from now on it is recorded by itself' : 'Arrived: :title',
+            default => $filter !== null ? 'Paid: :title · from now on it pays itself' : 'Paid: :title',
+        };
+        Inertia::flash('toast', ['type' => 'success', 'message' => __($message, ['title' => $title]), ...($filter !== null ? ['filter_id' => $filter->id] : [])]);
+
+        return to_route('budget.bank.index');
+    }
+
+    /**
+     * *No* on «Maybe it is…»: the movement remembers the key, so the proposal does not come back and the next
+     * candidate can be proposed.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     */
+    public function reject(BankProposalRequest $request, RejectBankProposal $reject): RedirectResponse
+    {
+        $reject->handle($request->transaction(), $request->proposalKey());
+
+        return back(fallback: route('budget.bank.index'));
     }
 
     /**

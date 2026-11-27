@@ -15,6 +15,8 @@ enum BankMatchSource: string
 
     /** Paid by a rule of a planned item. */
     case Rule = 'rule';
+    /** A filter took it and proposed the planned item or the expense, and the person said yes. */
+    case Proposed = 'proposed';
     /** The person said it belongs to a planned item (*È di una spesa fissa*). */
     case Assigned = 'assigned';
     /** The person made a new expense or income from it (*Crea la spesa*). */
