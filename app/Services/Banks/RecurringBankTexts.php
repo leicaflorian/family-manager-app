@@ -50,6 +50,39 @@ final class RecurringBankTexts
     }
 
     /**
+     * Whether the transactions of a group come back every month: the same rule as for a text (`groupChain()`).
+     *
+     * @param  iterable<int, BankTransaction>  $transactions  the transactions of one group
+     */
+    public function groupRecurs(iterable $transactions): bool
+    {
+        return $this->groupChain($transactions) !== null;
+    }
+
+    /**
+     * The three transactions, oldest first, that make a group recurring: the latest run of three calendar months in a
+     * row among its booked transactions of the last four months (commissions out), each within 20% of the first.
+     * Null when they do not come back every month. A group is made by a mandate or a counterparty, so its texts can
+     * differ, and the rule looks at the transactions as they are, not at their text.
+     *
+     * @param  iterable<int, BankTransaction>  $transactions  the transactions of one group
+     * @return list<BankTransaction>|null
+     */
+    public function groupChain(iterable $transactions): ?array
+    {
+        $since = $this->since()->toDateString();
+        $rows = array_values(collect($transactions)
+            ->filter(static fn (BankTransaction $row): bool => $row->status === BankTransactionStatus::Booked
+                && (string) $row->booked_on?->toDateString() >= $since
+                && ! BankText::isFee($row->text))
+            ->sortBy([['booked_on', 'asc'], ['id', 'asc']])
+            ->all());
+        $chains = $this->chains($rows);
+
+        return $chains === [] ? null : $chains[array_key_last($chains)];
+    }
+
+    /**
      * The three transactions, oldest first, that make the text of a transaction recurring: the run that contains it,
      * else the one of its month, else the latest run. Null when its text does not come back every month.
      *
@@ -93,7 +126,7 @@ final class RecurringBankTexts
             return $this->groups;
         }
 
-        $since = CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS - 1)->startOfMonth();
+        $since = $this->since();
         $groups = [];
 
         $rows = BankTransaction::query()
@@ -110,6 +143,14 @@ final class RecurringBankTexts
         }
 
         return $this->groups = $groups;
+    }
+
+    /**
+     * The first day of the oldest month that is looked at.
+     */
+    private function since(): CarbonImmutable
+    {
+        return CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS - 1)->startOfMonth();
     }
 
     /**
