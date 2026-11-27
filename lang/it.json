@@ -2734,8 +2734,6 @@
     "The search did not work. Try again.": "La ricerca non ha funzionato. Riprova.",
     ":organization · already marked on :date": ":organization · già segnata il :date",
     "Already marked on :date": "Già segnata il :date",
-    ":organization · ended · due on :date": ":organization · finita · da pagare il :date",
-    "Ended · due on :date": "Finita · da pagare il :date",
     ":organization · :date": ":organization · :date",
     "Links the transaction to the income already recorded, without creating another one.": "Collega il movimento all'entrata registrata, senza crearne un'altra.",
     "Links the transaction to the expense already recorded, without creating another one.": "Collega il movimento alla spesa registrata, senza crearne un'altra.",
@@ -2744,5 +2742,13 @@
     "The due date of :date is marked as received.": "Si segna arrivata la scadenza del :date.",
     "The due date of :date is marked as paid.": "Si segna pagata la scadenza del :date.",
     "Link the transaction": "Collega",
-    "Mark as received": "Segna arrivata"
+    "Mark as received": "Segna arrivata",
+    ":organization · ended on :end · to mark on :date": ":organization · finita il :end · da segnare il :date",
+    "Ended on :end · to mark on :date": "Finita il :end · da segnare il :date",
+    ":organization · ended on :end · due on :date": ":organization · finita il :end · da pagare il :date",
+    "Ended on :end · due on :date": "Finita il :end · da pagare il :date",
+    ":organization · to mark on :date, late": ":organization · da segnare il :date, in ritardo",
+    ":organization · to mark on :date": ":organization · da segnare il :date",
+    "To mark on :date, late": "Da segnare il :date, in ritardo",
+    "To mark on :date": "Da segnare il :date"
 }

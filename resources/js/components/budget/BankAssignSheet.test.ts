@@ -20,6 +20,7 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         estimated: true,
         paid_on: null,
         ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -33,6 +34,7 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         estimated: true,
         paid_on: null,
         ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -46,6 +48,7 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         estimated: false,
         paid_on: null,
         ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -59,6 +62,7 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         estimated: false,
         paid_on: null,
         ended: false,
+        ended_on: null,
     },
 ];
 
@@ -217,9 +221,24 @@ describe('BankAssignSheet', () => {
         ).toBeInTheDocument();
     });
 
-    it('says an ended planned item has ended and which due date it would settle', async () => {
+    it('an ended planned item says when it ended', async () => {
         stubServer({
-            planned: [{ ...choices[0]!, ended: true }],
+            planned: [
+                {
+                    ...choices[0]!,
+                    ended: true,
+                    ended_on: '2026-02-28',
+                    due_on: '2026-02-18',
+                },
+                {
+                    ...choices[1]!,
+                    kind: 'income',
+                    ended: true,
+                    ended_on: '2026-02-28',
+                    due_on: '2026-02-18',
+                    organization: null,
+                },
+            ],
             recorded: [],
         });
         open();
@@ -227,7 +246,25 @@ describe('BankAssignSheet', () => {
 
         expect(
             await screen.findByText(
-                'Edison Energia · ended · due on 05/11/2026',
+                'Edison Energia · ended on 28/02/2026 · due on 18/02/2026',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Ended on 28/02/2026 · to mark on 18/02/2026'),
+        ).toBeInTheDocument();
+    });
+
+    it('an income due date says «to mark», not «due»', async () => {
+        stubServer({
+            planned: [{ ...choices[0]!, kind: 'income', late: true }],
+            recorded: [],
+        });
+        open({ transaction: { ...transaction, amount: 35 } });
+        await settle();
+
+        expect(
+            await screen.findByText(
+                'Edison Energia · to mark on 05/11/2026, late',
             ),
         ).toBeInTheDocument();
     });

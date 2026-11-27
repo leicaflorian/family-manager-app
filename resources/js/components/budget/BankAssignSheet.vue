@@ -217,10 +217,34 @@ function plannedDetail(choice: App.Data.BankPlannedChoiceData): string {
             : trans('Already marked on :date', values);
     }
 
+    const income = choice.kind === 'income';
+    const times = { ...values, end: date(choice.ended_on ?? choice.due_on) };
+
     if (choice.ended) {
+        if (income) {
+            return choice.organization
+                ? trans(
+                      ':organization · ended on :end · to mark on :date',
+                      times,
+                  )
+                : trans('Ended on :end · to mark on :date', times);
+        }
+
         return choice.organization
-            ? trans(':organization · ended · due on :date', values)
-            : trans('Ended · due on :date', values);
+            ? trans(':organization · ended on :end · due on :date', times)
+            : trans('Ended on :end · due on :date', times);
+    }
+
+    if (income) {
+        if (choice.organization) {
+            return choice.late
+                ? trans(':organization · to mark on :date, late', values)
+                : trans(':organization · to mark on :date', values);
+        }
+
+        return choice.late
+            ? trans('To mark on :date, late', values)
+            : trans('To mark on :date', values);
     }
 
     if (choice.organization) {

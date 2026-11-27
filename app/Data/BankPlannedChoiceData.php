@@ -30,6 +30,7 @@ final class BankPlannedChoiceData extends Data
      * @param  bool  $estimated  the amount is an estimate
      * @param  string|null  $paid_on  the day of the payment already recorded for the due date, which the transaction would link to instead of paying (`yyyy-mm-dd`)
      * @param  bool  $ended  the planned item has ended
+     * @param  string|null  $ended_on  the day it ended (`yyyy-mm-dd`), null while it has not ended
      */
     public function __construct(
         public readonly string $kind,
@@ -43,6 +44,7 @@ final class BankPlannedChoiceData extends Data
         public readonly bool $estimated,
         public readonly ?string $paid_on = null,
         public readonly bool $ended = false,
+        public readonly ?string $ended_on = null,
     ) {}
 
     /**
@@ -54,6 +56,7 @@ final class BankPlannedChoiceData extends Data
      */
     public static function fromDeadline(PlannedExpense|PlannedIncome $planned, Deadline $deadline, CarbonImmutable $today): self
     {
+        $ended = $planned->end_date !== null && $planned->end_date->toDateString() < $today->toDateString();
         $fee = $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0;
 
         return new self(
@@ -67,7 +70,8 @@ final class BankPlannedChoiceData extends Data
             amount: round((float) $planned->amount + $fee, 2),
             estimated: (bool) $planned->is_estimated,
             paid_on: $deadline->payment?->date?->toDateString(),
-            ended: $planned->end_date !== null && $planned->end_date->toDateString() < $today->toDateString(),
+            ended: $ended,
+            ended_on: $ended ? $planned->end_date->toDateString() : null,
         );
     }
 }

@@ -65,7 +65,8 @@ test('finds a planned income whose closest due date is already paid by hand', fu
         ->assertJsonPath('planned.0.kind', 'income')
         ->assertJsonPath('planned.0.due_on', '2026-11-18')
         ->assertJsonPath('planned.0.paid_on', '2026-11-18')
-        ->assertJsonPath('planned.0.ended', false);
+        ->assertJsonPath('planned.0.ended', false)
+        ->assertJsonPath('planned.0.ended_on', null);
 });
 
 test('finds an ended planned expense with a far unpaid due date', function (): void {
@@ -79,7 +80,8 @@ test('finds an ended planned expense with a far unpaid due date', function (): v
         ->assertJsonPath('planned.0.title', 'Assicurazione auto')
         ->assertJsonPath('planned.0.due_on', '2026-08-01')
         ->assertJsonPath('planned.0.paid_on', null)
-        ->assertJsonPath('planned.0.ended', true);
+        ->assertJsonPath('planned.0.ended', true)
+        ->assertJsonPath('planned.0.ended_on', '2026-08-31');
 });
 
 test('finds a recorded single expense of years ago by a word of its title', function (): void {

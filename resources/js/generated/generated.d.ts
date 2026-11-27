@@ -127,6 +127,7 @@ readonly amount: number,
 readonly estimated: boolean,
 readonly paid_on: string | null,
 readonly ended: boolean,
+readonly ended_on: string | null,
 };
 export type BankRecordedChoiceData = {
 readonly kind: string,
