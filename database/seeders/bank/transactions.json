@@ -131,5 +131,187 @@
         "text": "COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Gym Club S.r.l. CID.IT12ZZZ0000012345678901 MAN.GYM000456",
         "counterparty": "Gym Club S.r.l.",
         "booked": true
+    },
+    {
+        "days_ago": 14,
+        "amount": 105.4,
+        "text": "ACCREDITO INPS ASSEGNO UNICO FIGLI",
+        "counterparty": "INPS",
+        "booked": true
+    },
+    {
+        "days_ago": 44,
+        "amount": 105.4,
+        "text": "ACCREDITO INPS ASSEGNO UNICO FIGLI",
+        "counterparty": "INPS",
+        "booked": true
+    },
+    {
+        "days_ago": 74,
+        "amount": 105.4,
+        "text": "ACCREDITO INPS ASSEGNO UNICO FIGLI",
+        "counterparty": "INPS",
+        "booked": true
+    },
+    {
+        "days_ago": 84,
+        "amount": 105.4,
+        "text": "ACCREDITO INPS ASSEGNO UNICO FIGLI",
+        "counterparty": "INPS",
+        "booked": true
+    },
+    {
+        "days_ago": 2,
+        "amount": -45.0,
+        "text": "PAGAMENTO POS ENI STATION VIA EMILIA",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 9,
+        "amount": -12.0,
+        "text": "PAGAMENTO POS ENI LAVAGGIO SELF MODENA",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 16,
+        "amount": -52.3,
+        "text": "PAGAMENTO POS ENI STATION BOLOGNA",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 23,
+        "amount": -48.1,
+        "text": "PAGAMENTO POS ENI STATION MODENA NORD",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 37,
+        "amount": -50.0,
+        "text": "PAGAMENTO POS ENI STATION VIA EMILIA",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 51,
+        "amount": -46.8,
+        "text": "PAGAMENTO POS ENI STATION REGGIO",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 72,
+        "amount": -49.5,
+        "text": "PAGAMENTO POS ENI STATION BOLOGNA",
+        "counterparty": "ENI",
+        "booked": true
+    },
+    {
+        "days_ago": 8,
+        "amount": 0.04,
+        "text": "ACCREDITO CASHBACK SCONTIPOSTE",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 19,
+        "amount": 0.35,
+        "text": "ACCREDITO CASHBACK SCONTIPOSTE",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 31,
+        "amount": 1.2,
+        "text": "ACCREDITO CASHBACK SCONTIPOSTE",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 47,
+        "amount": 0.18,
+        "text": "ACCREDITO CASHBACK SCONTIPOSTE",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 60,
+        "amount": 0.62,
+        "text": "ACCREDITO CASHBACK SCONTIPOSTE",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 2,
+        "amount": -23.4,
+        "text": "PAGAMENTO POS FARMACIA COMUNALE",
+        "counterparty": "FARMACIA COMUNALE",
+        "booked": true
+    },
+    {
+        "days_ago": 7,
+        "amount": -89.9,
+        "text": "PAGAMENTO POS DECATHLON",
+        "counterparty": "DECATHLON",
+        "booked": true
+    },
+    {
+        "days_ago": 11,
+        "amount": -120.0,
+        "text": "BONIFICO A FAVORE DI MARIO ROSSI IDRAULICO",
+        "counterparty": "Mario Rossi",
+        "booked": true
+    },
+    {
+        "days_ago": 13,
+        "amount": -18.5,
+        "text": "PAGAMENTO POS LIBRERIA FELTRINELLI",
+        "counterparty": "FELTRINELLI",
+        "booked": true
+    },
+    {
+        "days_ago": 15,
+        "amount": -34.99,
+        "text": "PAGAMENTO POS AMAZON EU",
+        "counterparty": "AMAZON EU",
+        "booked": true
+    },
+    {
+        "days_ago": 22,
+        "amount": -9.9,
+        "text": "ADDEBITO SDD TELEPASS",
+        "counterparty": "TELEPASS",
+        "booked": true
+    },
+    {
+        "days_ago": 26,
+        "amount": -4.2,
+        "text": "PAGAMENTO POS BAR CENTRALE",
+        "counterparty": "BAR CENTRALE",
+        "booked": true
+    },
+    {
+        "days_ago": 29,
+        "amount": -65.0,
+        "text": "BONIFICO RIMBORSO SPESE CONDOMINIO",
+        "counterparty": null,
+        "booked": true
+    },
+    {
+        "days_ago": 41,
+        "amount": -28.0,
+        "text": "PAGAMENTO POS PIZZERIA DA MARIO",
+        "counterparty": "PIZZERIA DA MARIO",
+        "booked": true
+    },
+    {
+        "days_ago": 55,
+        "amount": -16.0,
+        "text": "IMPOSTA DI BOLLO CONTO",
+        "counterparty": null,
+        "booked": true
     }
 ]

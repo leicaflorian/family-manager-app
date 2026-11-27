@@ -546,8 +546,8 @@ test('the Bianchis have the link to the bank on, with a trial bank and its trans
             ->and($connection->sessionId())->not->toBeNull()
             ->and($account->bank_connection_id)->toBe($connection->id)
             ->and($account->bank_account_uid)->toBe('fake-account')
-            ->and(BankTransaction::query()->count())->toBe(19)
-            ->and(BankTransaction::query()->unsorted()->count())->toBe(18)
+            ->and(BankTransaction::query()->count())->toBe(45)
+            ->and(BankTransaction::query()->unsorted()->count())->toBe(44)
             ->and(BankTransaction::query()->where('status', BankTransactionStatus::Pending)->count())->toBe(1);
     });
 });

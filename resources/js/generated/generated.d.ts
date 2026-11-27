@@ -115,6 +115,21 @@ readonly id: number,
 readonly amount: number,
 readonly booked_on: string | null,
 };
+export type BankGroupData = {
+readonly key: string,
+readonly name: string,
+readonly kind: string,
+readonly account: string,
+readonly count: number,
+readonly min: number,
+readonly max: number,
+readonly from: string,
+readonly to: string,
+readonly proposal_action: string | null,
+readonly proposal_title: string | null,
+readonly proposal_detail: string | null,
+readonly recurring_url: string | null,
+};
 export type BankInstitutionData = {
 readonly name: string,
 readonly country: string,
