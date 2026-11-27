@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Mail\NotifyMailLimit;
 use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
@@ -275,4 +276,21 @@ test('the mail limit notice is still sent once a day', function (): void {
 
         expect(ReminderNotice::query()->whereNull('bank_transaction_id')->where('user_id', $this->admin->id)->count())->toBe(1);
     });
+});
+
+test('the notice of a debit that paid two planned expenses names both and the month, and leads to the first payment', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    $first = insideFamilyOf($this->admin, function (): int {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1);
+
+        return (int) $transaction->refresh()->expense_id;
+    });
+
+    $row = bellRows($this->admin)[0];
+
+    expect($row['title'])->toBe('Paid by the bank · Luce and Gas November 2026')
+        ->and($row['due_text'])->toBe("165,65\u{A0}€ from Conto BPER")
+        ->and($row['href'])->toBe(route('budget.movements.show', ['kind' => 'expense', 'id' => $first]));
 });

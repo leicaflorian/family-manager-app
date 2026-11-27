@@ -79,3 +79,20 @@ test('a different amount is not', function (): void {
         expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
     });
 });
+
+test('the Gas payment of a dual-fuel debit belongs to that debit: not free nor found for another one', function (): void {
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $debit = enelDualFuelDebit($bill['account']);
+        $luce = Expense::factory()->create(['family_id' => $debit->family_id, 'planned_expense_id' => $bill['luce']->id, 'amount' => 96.25, 'date' => '2026-11-21']);
+        $gas = Expense::factory()->create(['family_id' => $debit->family_id, 'planned_expense_id' => $bill['gas']->id, 'amount' => 69.40, 'date' => '2026-11-21']);
+        $debit->forceFill(['expense_id' => $luce->id])->save();
+        $gas->forceFill(['bank_transaction_id' => $debit->id])->save();
+        $other = enelDualFuelDebit($bill['account'], '-69.40');
+        $duplicates = resolve(BankDuplicates::class);
+
+        expect($duplicates->isFree($gas, $other))->toBeFalse()
+            ->and($duplicates->isFree($gas, $debit))->toBeTrue()
+            ->and($duplicates->find($other, $bill['gas']))->toBeNull();
+    });
+});

@@ -11,9 +11,11 @@ use App\Enums\ReminderStatus;
 use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
+use App\Models\PlannedExpense;
 use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
+use App\Support\PaymentTitle;
 use App\Support\Reminders\DueText;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -126,6 +128,7 @@ final readonly class NoticeList
             'mail.organization',
             'bankTransaction.expense',
             'bankTransaction.income',
+            'bankTransaction.splitExpenses.plannedExpense',
             'bankConnection',
         ];
     }
@@ -223,16 +226,18 @@ final readonly class NoticeList
     /**
      * The row of a payment the bank settled: «Paid by the bank · Luce novembre 2026» (for an income «Arrived in the
      * bank · …»), the first line of the notice under it, leading to the payment. When the payment is gone (*It was not
-     * this one*), it is named by the text of the bank and leads to the transactions of the bank.
+     * this one*), it is named by the text of the bank and leads to the transactions of the bank. A debit that paid
+     * more planned expenses together names them all with the month of the first due date: «Paid by the bank · Luce
+     * and Gas novembre 2026», leading to the first payment.
      *
      * @param  ReminderNotice  $notice  the notice
-     * @param  BankTransaction  $transaction  its transaction, with `expense` and `income` loaded
+     * @param  BankTransaction  $transaction  its transaction, with `expense`, `income` and `splitExpenses.plannedExpense` loaded
      */
     private function bankRow(ReminderNotice $notice, BankTransaction $transaction): ReminderNoticeData
     {
         $payment = $transaction->movement();
         $first = ($notice->lines ?? [])[0] ?? null;
-        $title = $payment->title ?? $transaction->text;
+        $title = $this->splitTitle($transaction) ?? $payment->title ?? $transaction->text;
 
         return new ReminderNoticeData(
             id: $notice->id,
@@ -249,6 +254,30 @@ final readonly class NoticeList
                 ? route('budget.bank.index')
                 : route('budget.movements.show', ['kind' => $payment instanceof Expense ? 'expense' : 'income', 'id' => $payment->id]),
         );
+    }
+
+    /**
+     * The name of a debit that paid more planned expenses together: their titles, «Luce and Gas», and the month of the
+     * first due date, as the title of a payment; null for a debit that paid one.
+     *
+     * @param  BankTransaction  $transaction  the transaction, with `splitExpenses.plannedExpense` loaded
+     */
+    private function splitTitle(BankTransaction $transaction): ?string
+    {
+        $payments = $transaction->splitExpenses
+            ->filter(static fn (Expense $expense): bool => $expense->plannedExpense instanceof PlannedExpense && $expense->occurrence_date instanceof CarbonImmutable)
+            ->sortBy('planned_expense_id')
+            ->values();
+        $earliest = $payments->first();
+
+        if ($payments->count() < 2 || ! $earliest?->occurrence_date instanceof CarbonImmutable) {
+            return null;
+        }
+
+        $titles = $payments->map(static fn (Expense $expense): string => (string) $expense->plannedExpense?->displayTitle())->all();
+        $last = array_pop($titles);
+
+        return PaymentTitle::for(__(':first and :second', ['first' => implode(', ', $titles), 'second' => $last]), $earliest->occurrence_date);
     }
 
     /**

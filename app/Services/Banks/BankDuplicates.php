@@ -22,7 +22,8 @@ final class BankDuplicates
 
     /**
      * The payment of the planned item with the same amount to the cent, dated within 5 days of the bank transaction,
-     * and not already linked to another bank transaction. The closest date wins.
+     * and not already linked to another bank transaction (also as one of the expenses a debit paid together,
+     * `expenses.bank_transaction_id`). The closest date wins.
      *
      * @param  BankTransaction  $transaction  The bank transaction.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
@@ -47,6 +48,7 @@ final class BankDuplicates
             ->whereBetween('date', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
             ->whereRaw('round(amount * 100) = ?', [$cents])
             ->whereNotIn('id', BankTransaction::query()->whereKeyNot($transaction->id)->whereNotNull($column)->select($column))
+            ->when($isExpense, static fn ($query) => $query->where(static fn ($query) => $query->whereNull('bank_transaction_id')->orWhere('bank_transaction_id', $transaction->id)))
             ->get()
             ->sortBy(static fn (Expense|Income $payment): int => abs((int) round($day->startOfDay()->diffInDays($payment->date?->startOfDay(), false))))
             ->first();
@@ -55,13 +57,18 @@ final class BankDuplicates
     }
 
     /**
-     * Whether a payment is free for the bank transaction: not linked to another bank transaction.
+     * Whether a payment is free for the bank transaction: not linked to another bank transaction, nor one of the
+     * expenses another debit paid together.
      *
      * @param  Expense|Income  $payment  The payment.
      * @param  BankTransaction  $transaction  The bank transaction that would link to it.
      */
     public function isFree(Expense|Income $payment, BankTransaction $transaction): bool
     {
+        if ($payment instanceof Expense && $payment->bank_transaction_id !== null && $payment->bank_transaction_id !== $transaction->id) {
+            return false;
+        }
+
         return ! BankTransaction::query()
             ->whereKeyNot($transaction->id)
             ->where($this->column($payment instanceof Expense), $payment->id)

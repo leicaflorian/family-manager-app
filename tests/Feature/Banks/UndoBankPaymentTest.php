@@ -173,3 +173,55 @@ test('undoing locks the bank row and then the planned item before any plain read
             static fn (string $sql): bool => str_starts_with(strtolower(ltrim($sql)), 'select') && ! str_contains($sql, 'for update'),
         )))->toBe([]);
 });
+
+test('undoing the debit of the dual-fuel bill takes back both payments and reopens both due dates', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    [$bill, $transaction] = insideBianchi(function (): array {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1)
+            ->and(Expense::query()->count())->toBe(2);
+
+        return [$bill, $transaction->refresh()];
+    });
+
+    $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($bill, $transaction): void {
+        $transaction->refresh();
+        expect(Expense::query()->count())->toBe(0)
+            ->and(Document::query()->find($bill['document']->id))->not->toBeNull()
+            ->and($transaction->expense_id)->toBeNull()
+            ->and($transaction->matched_by)->toBeNull()
+            ->and($transaction->declined_at)->not->toBeNull()
+            ->and($transaction->splitExpenses()->count())->toBe(0)
+            ->and(resolve(Deadlines::class)->find($bill['luce'], CarbonImmutable::parse('2026-11-23'))->isPaid())->toBeFalse()
+            ->and(resolve(Deadlines::class)->find($bill['gas'], CarbonImmutable::parse('2026-11-30'))->isPaid())->toBeFalse();
+    });
+});
+
+test('undoing the dual-fuel debit locks the bank row, then both planned expenses in order of id, before any plain read', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    [$bill, $transaction] = insideBianchi(function (): array {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        resolve(MatchBankTransactions::class)->handle([$transaction]);
+
+        return [$bill, $transaction];
+    });
+
+    DB::enableQueryLog();
+    $this->actingAs($this->marco)->delete("/budget/bank/{$transaction->id}/payment")->assertRedirect(route('budget.bank.index'));
+    $log = DB::getQueryLog();
+    $start = array_find_key($log, static fn (array $query): bool => str_contains($query['query'], 'from `bank_transactions`') && str_contains($query['query'], 'for update'));
+    $inside = array_slice($log, (int) $start + 1);
+    $locks = array_values(array_filter($inside, static fn (array $query): bool => str_contains($query['query'], 'from `planned_expenses`') && str_contains($query['query'], 'for update')));
+    $secondLock = array_find_key($inside, static fn (array $query): bool => $query === ($locks[1] ?? null));
+
+    expect($start)->not->toBeNull()
+        ->and(array_map(static fn (array $query): mixed => $query['bindings'][0] ?? null, array_slice($locks, 0, 2)))->toBe([$bill['luce']->id, $bill['gas']->id])
+        ->and(array_values(array_filter(
+            array_slice($inside, 0, (int) $secondLock),
+            static fn (array $query): bool => str_starts_with(strtolower(ltrim($query['query'])), 'select') && ! str_contains($query['query'], 'for update'),
+        )))->toBe([]);
+});
