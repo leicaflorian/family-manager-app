@@ -406,10 +406,10 @@ const bianchiPeople: App.Data.OptionData[] = [
 
 /** The organizations of the Bianchis as an organization menu gets them. */
 const bianchiOrganizations: App.Data.OptionData[] = [
-    { value: '4', label: 'Comune di Bologna', help: null, title: null },
-    { value: '1', label: 'Edison', help: null, title: null },
-    { value: '6', label: 'Scuola Passo a Due', help: null, title: null },
-    { value: '5', label: 'Studio Rinaldi', help: null, title: null },
+    { value: '4', label: 'Comune di Bologna', help: null },
+    { value: '1', label: 'Edison', help: null },
+    { value: '6', label: 'Scuola Passo a Due', help: null },
+    { value: '5', label: 'Studio Rinaldi', help: null },
 ];
 
 /**
@@ -451,9 +451,8 @@ export const utilityFormFields: App.Data.CardFieldData[] = [
                 value: 'electricity',
                 label: 'Electricity',
                 help: null,
-                title: null,
             },
-            { value: 'gas', label: 'Gas', help: null, title: null },
+            { value: 'gas', label: 'Gas', help: null },
         ],
         true,
     ),
@@ -464,7 +463,7 @@ export const utilityFormFields: App.Data.CardFieldData[] = [
         bianchiOrganizations,
     ),
     cardField('home_id', 'Residence', 'card', [
-        { value: '1', label: 'Casa di via Roma', help: null, title: null },
+        { value: '1', label: 'Casa di via Roma', help: null },
     ]),
     cardField('person_id', 'Account holder', 'person', bianchiPeople),
     cardField('customer_code', 'Customer code', 'text'),
@@ -508,8 +507,8 @@ export const enrollmentFields: App.Data.CardFieldData[] = [
         'Type',
         'choice',
         [
-            { value: 'school', label: 'School', help: null, title: null },
-            { value: 'sport', label: 'Sport', help: null, title: null },
+            { value: 'school', label: 'School', help: null },
+            { value: 'sport', label: 'Sport', help: null },
         ],
         true,
     ),
