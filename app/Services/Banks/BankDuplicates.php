@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
@@ -25,14 +26,17 @@ final readonly class BankDuplicates
     public function __construct(private BankFees $fees) {}
 
     /**
-     * The payment of the planned item with the same amount to the cent (a direct debit with its commission counts as
-     * the two together, `BankFees::amounts()`), dated within 7 days of the bank transaction, and not already linked to
-     * another bank transaction (a commission linked to it does not count). The closest date wins.
+     * The expense or income somebody already recorded for the bank transaction: free (not linked to another bank
+     * transaction; a commission linked to it does not count), of the same direction, with the same amount to the cent
+     * (a direct debit with its commission counts as the two together, `BankFees::amounts()`, the commission found as
+     * the filter says), dated within 7 days of the bank transaction, before or after. With a planned item only its
+     * payments count (a filter that pays a due date, a settling). The closest date wins.
      *
      * @param  BankTransaction  $transaction  The bank transaction.
-     * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
+     * @param  PlannedExpense|PlannedIncome|null  $planned  The planned item it pays, to look only among its payments.
+     * @param  BankFilter|null  $filter  The filter that takes the transaction, which says how its commission is found.
      */
-    public function find(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): Expense|Income|null
+    public function findAny(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null, ?BankFilter $filter = null): Expense|Income|null
     {
         $day = $transaction->booked_on;
 
@@ -40,12 +44,14 @@ final readonly class BankDuplicates
             return null;
         }
 
-        $amounts = $this->fees->amounts($transaction);
-        $isExpense = $planned instanceof PlannedExpense;
+        $amounts = $this->fees->amounts($transaction, $filter);
+        $isExpense = $planned === null ? $transaction->kind() === 'expense' : $planned instanceof PlannedExpense;
         $column = $this->column($isExpense);
-        $query = $isExpense
-            ? Expense::query()->where('planned_expense_id', $planned->id)
-            : Income::query()->where('planned_income_id', $planned->id);
+        $query = $isExpense ? Expense::query() : Income::query();
+
+        if ($planned !== null) {
+            $query->where($isExpense ? 'planned_expense_id' : 'planned_income_id', $planned->id);
+        }
 
         /** @var Expense|Income|null $found */
         $found = $query
@@ -57,6 +63,28 @@ final readonly class BankDuplicates
             ->first();
 
         return $found;
+    }
+
+    /**
+     * Takes a payment for the bank transaction inside the transaction that links them: the payment is locked, then
+     * the other bank transactions that have it are read with a locking read, which sees what another transaction
+     * committed while this one waited. Two bank transactions that found the same free payment at the same moment
+     * take it once: the second finds it taken. Called after the bank row (and the planned item) are locked.
+     *
+     * @param  Expense|Income  $payment  The payment found free (`findAny()`).
+     * @param  BankTransaction  $transaction  The bank transaction, locked.
+     * @return bool whether the payment is still there and free
+     */
+    public function claim(Expense|Income $payment, BankTransaction $transaction): bool
+    {
+        if (! $payment->newQuery()->whereKey($payment->getKey())->lockForUpdate()->exists()) {
+            return false;
+        }
+
+        return ! $this->others($transaction)
+            ->where($this->column($payment instanceof Expense), $payment->getKey())
+            ->lockForUpdate()
+            ->exists();
     }
 
     /**

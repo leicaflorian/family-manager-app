@@ -35,7 +35,7 @@ test('finds the payment recorded seven days before', function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
         $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-03']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
     });
 });
 
@@ -44,7 +44,7 @@ test('does not find the one of eight days before', function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
         Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-02']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
     });
 });
 
@@ -55,7 +55,7 @@ test('an income payment by hand is found for a planned income', function (): voi
         $transaction = BankTransaction::factory()->create(['family_id' => $familyId, 'amount' => '1500.00', 'booked_on' => '2026-11-27']);
         $hand = Income::factory()->create(['family_id' => $familyId, 'planned_income_id' => $planned->id, 'amount' => 1500, 'date' => '2026-11-26']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
     });
 });
 
@@ -65,7 +65,7 @@ test('one already linked to another bank transaction is not', function (): void 
         $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
         BankTransaction::factory()->create(['family_id' => $planned->family_id, 'expense_id' => $hand->id]);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
     });
 });
 
@@ -75,7 +75,7 @@ test('one linked to this same bank transaction is still found', function (): voi
         $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
         $transaction->update(['expense_id' => $hand->id]);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
     });
 });
 
@@ -84,7 +84,7 @@ test('a different amount is not', function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
         Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418.01, 'date' => '2026-11-10']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
     });
 });
 
@@ -96,7 +96,7 @@ test('an expense with a fee transaction is not taken', function (): void {
         $fee = BankTransaction::factory()->create(['family_id' => $planned->family_id, 'expense_id' => $hand->id, 'matched_by' => BankMatchSource::Fee]);
 
         expect(resolve(BankDuplicates::class)->isFree($hand, $transaction))->toBeTrue()
-            ->and(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue()
+            ->and(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue()
             ->and($fee->refresh()->expense_id)->toBe($hand->id);
     });
 });
@@ -114,6 +114,6 @@ test('finds the recorded expense of 10,40 for a debit of 10,00 with a commission
         $row('COMMISSIONI '.$mandate, '-0.40', '2026-11-25');
         $hand = Expense::factory()->create(['family_id' => $familyId, 'planned_expense_id' => $planned->id, 'amount' => 10.4, 'date' => '2026-11-24']);
 
-        expect(resolve(BankDuplicates::class)->find($debit, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($debit, $planned)?->is($hand))->toBeTrue();
     });
 });

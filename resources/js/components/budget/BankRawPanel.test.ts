@@ -42,6 +42,7 @@ const row: App.Data.BankTransactionData = {
     orphan_fee: false,
     transfer: null,
     account_id: 4,
+    two_filters: null,
 };
 
 describe('BankRawPanel', () => {

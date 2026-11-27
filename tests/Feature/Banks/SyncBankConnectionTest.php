@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
 use App\Enums\BankConnectionStatus;
+use App\Enums\BankFilterFee;
 use App\Enums\BankMatchSource;
 use App\Exceptions\Banks\BankConsentEnded;
 use App\Exceptions\Banks\BankFeedFailed;
 use App\Exceptions\Banks\BankLimitReached;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -230,10 +232,11 @@ test('a commission that arrives before its debit does not pay the due date', fun
         $this->travelTo(CarbonImmutable::parse('2026-11-25 10:00', 'Europe/Rome'));
         [$connection, $account] = bankSyncSetup();
         $text = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
-        PlannedExpense::factory()->create([
-            'family_id' => $account->family_id, 'title' => 'Ricarica Satispay', 'bank_match' => 'MAN.SAT0023101207360112900', 'amount' => 10.0,
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $account->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0,
             'fee_amount' => null, 'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => $account->id,
         ]);
+        BankFilter::factory()->pays($satispay)->create(['family_id' => $account->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::Auto]);
         $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-11-24'), null, -0.40, 'EUR', 'COMMISSIONI '.$text, null, true);
         $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-11-25'), null, -10.0, 'EUR', $text, null, true);
 

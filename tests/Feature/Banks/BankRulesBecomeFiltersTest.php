@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\MatchBankTransactions;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
+use App\Models\BankTransaction;
+use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -126,4 +132,31 @@ test('an item without an account reads every account, whatever the default is', 
     bankRulesBecomeFiltersRun();
 
     expect(DB::table('bank_filters')->where('planned_expense_id', $planned->id)->sole()->financial_account_id)->toBeNull();
+});
+
+test('the planned item still pays its due date after the change', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-06 07:00', 'Europe/Rome'));
+    $user = registerFamily();
+    $account = FinancialAccount::factory()->create([
+        'family_id' => $user->family_id, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $user->family_id])->id,
+    ]);
+    $luce = PlannedExpense::factory()->create([
+        'family_id' => $user->family_id, 'title' => 'Luce', 'amount' => 72, 'fee_amount' => null, 'start_date' => '2026-01-05',
+        'financial_account_id' => $account->id, 'bank_match' => 'SDD.*EDISON',
+    ]);
+    $transaction = BankTransaction::factory()->create([
+        'family_id' => $user->family_id, 'financial_account_id' => $account->id, 'text' => 'ADDEBITO SDD EDISON ENERGIA',
+        'amount' => '-72.40', 'booked_on' => '2026-11-05', 'value_on' => '2026-11-05',
+    ]);
+
+    bankRulesBecomeFiltersRun();
+
+    insideFamilyOf($user, function () use ($transaction, $luce): void {
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1);
+
+        $payment = Expense::query()->where('planned_expense_id', $luce->id)->sole();
+        expect($payment->occurrence_date?->toDateString())->toBe('2026-11-05')
+            ->and($transaction->refresh()->expense_id)->toBe($payment->id)
+            ->and($transaction->bank_filter_id)->toBe(BankFilter::query()->where('planned_expense_id', $luce->id)->sole()->id);
+    });
 });

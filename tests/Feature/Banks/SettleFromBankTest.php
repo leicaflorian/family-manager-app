@@ -17,7 +17,6 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\ReminderNotice;
 use App\Models\User;
-use App\Services\Banks\BankMatcher;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -72,12 +71,9 @@ function bankSettleTransaction(string $text, string $amount, string $day, array 
     ]);
 }
 
-/** Settles a transaction with the planned item the matcher finds, as the rule does. */
-function bankSettleRun(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null): Expense|Income|null
+/** Settles a transaction with the planned item, as a filter that pays it does. */
+function bankSettleRun(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): Expense|Income|null
 {
-    $planned ??= resolve(BankMatcher::class)->planned($transaction);
-    expect($planned)->not->toBeNull();
-
     return resolve(SettleFromBank::class)->handle($transaction, $planned, BankMatchSource::Rule);
 }
 
@@ -107,9 +103,9 @@ test('the Edison debit of 72,40 € pays Luce of 05/11/2026 with the title Luce 
 
 test('the rent of 651,00 € becomes 651,00 € of which 1,00 € of fee', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Affitto', 'BONIFICO.*ROSSI MARIO.*AFFITTO', 650.0, '2026-01-01', ['fee_amount' => 1.0]);
+        $rent = bankSettlePlanned('Affitto', 'BONIFICO.*ROSSI MARIO.*AFFITTO', 650.0, '2026-01-01', ['fee_amount' => 1.0]);
 
-        $expense = bankSettleRun(bankSettleTransaction('BONIFICO A ROSSI MARIO CAUSALE AFFITTO NOVEMBRE', '-651.00', '2026-11-02'));
+        $expense = bankSettleRun(bankSettleTransaction('BONIFICO A ROSSI MARIO CAUSALE AFFITTO NOVEMBRE', '-651.00', '2026-11-02'), $rent);
 
         expect($expense)->toBeInstanceOf(Expense::class)
             ->and($expense->title)->toBe('Affitto novembre 2026')
@@ -120,9 +116,9 @@ test('the rent of 651,00 € becomes 651,00 € of which 1,00 € of fee', funct
 
 test('a fee as big as the amount is left out', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Commissioni', 'CANONE CONTO', 0.0, '2026-01-01', ['fee_amount' => 3.0]);
+        $canone = bankSettlePlanned('Commissioni', 'CANONE CONTO', 0.0, '2026-01-01', ['fee_amount' => 3.0]);
 
-        $expense = bankSettleRun(bankSettleTransaction('CANONE CONTO NOVEMBRE', '-3.00', '2026-11-01'));
+        $expense = bankSettleRun(bankSettleTransaction('CANONE CONTO NOVEMBRE', '-3.00', '2026-11-01'), $canone);
 
         expect((float) $expense?->amount)->toBe(3.0)
             ->and($expense?->fee_amount)->toBeNull();
@@ -159,7 +155,7 @@ test('the documents waiting on the planned expense move to the payment', functio
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
         $bill = Document::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'date' => '2026-10-28']);
 
-        $expense = bankSettleRun(bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05'));
+        $expense = bankSettleRun(bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05'), $luce);
 
         expect($expense?->documents()->pluck('documents.id')->all())->toBe([$bill->id]);
     });
@@ -188,10 +184,9 @@ test('a due date paid in the meantime is linked, with no second expense and no e
     insideBianchi(function (): void {
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-11-05');
         $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
-        $planned = resolve(BankMatcher::class)->planned($transaction);
-        expect($planned?->is($luce))->toBeTrue();
+        $planned = $luce;
 
-        // Somebody records the payment by hand, with another amount, after the rule chose Luce
+        // Somebody records the payment by hand, with another amount, after the filter chose Luce
         $byHand = resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05')), CarbonImmutable::parse('2026-11-04'), 70.0, null, null);
 
         expect(bankSettleRun($transaction, $planned)?->is($byHand))->toBeTrue()
@@ -292,14 +287,14 @@ test('a declined transaction or one put aside pays nothing', function (array $st
 
 test('everyone in the family gets a bell notice, with the second line only when the amount is far from the planned one', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
-        bankSettlePlanned('Gas', 'ENI PLENITUDE', 45.0, '2026-01-10');
-        bankSettlePlanned('Acqua', 'ACQUEDOTTO', 30.0, '2026-01-15', ['is_estimated' => true]);
+        $light = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        $gas = bankSettlePlanned('Gas', 'ENI PLENITUDE', 45.0, '2026-01-10');
+        $water = bankSettlePlanned('Acqua', 'ACQUEDOTTO', 30.0, '2026-01-15', ['is_estimated' => true]);
 
         $luce = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
-        bankSettleRun($luce);
-        bankSettleRun(bankSettleTransaction('SDD ENI PLENITUDE', '-72.40', '2026-11-10'));
-        bankSettleRun(bankSettleTransaction('SDD ACQUEDOTTO', '-72.40', '2026-11-15'));
+        bankSettleRun($luce, $light);
+        bankSettleRun(bankSettleTransaction('SDD ENI PLENITUDE', '-72.40', '2026-11-10'), $gas);
+        bankSettleRun(bankSettleTransaction('SDD ACQUEDOTTO', '-72.40', '2026-11-15'), $water);
 
         $marco = ReminderNotice::query()->where('user_id', $this->marco->id)->orderBy('id')->get();
         $laura = ReminderNotice::query()->where('user_id', $this->laura->id)->orderBy('id')->get();
@@ -373,11 +368,11 @@ function bankSettleSatispay(bool $fee = false): string
 
 test('a direct debit with a detached commission pays the planned expense of 10,40 that has a fee of 0,40', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
         $debit = bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04');
         $fee = bankSettleTransaction(bankSettleSatispay(true), '-0.40', '2026-11-05');
 
-        $expense = bankSettleRun($debit);
+        $expense = bankSettleRun($debit, $satispay);
 
         $fee->refresh();
         expect($expense)->toBeInstanceOf(Expense::class)
@@ -391,9 +386,9 @@ test('a direct debit with a detached commission pays the planned expense of 10,4
 
 test('it is recorded as 10,00 and becomes 10,40 when the commission is attached', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
 
-        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'));
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'), $satispay);
 
         expect((float) $expense?->amount)->toBe(10.0)
             ->and($expense?->fee_amount)->toBeNull();
@@ -407,9 +402,9 @@ test('it is recorded as 10,00 and becomes 10,40 when the commission is attached'
 
 test('a planned expense without a fee is paid as today', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04');
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04');
 
-        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'));
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'), $satispay);
 
         expect((float) $expense?->amount)->toBe(10.0)
             ->and($expense?->fee_amount)->toBeNull()

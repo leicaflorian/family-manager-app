@@ -38,6 +38,7 @@ final class BankTransactionData extends Data
      * @param  bool  $orphan_fee  the row is a commission whose direct debit is not among the ones to sort
      * @param  BankTransferData|null  $transfer  the account on the other side, when it is a transfer between the family's own accounts
      * @param  int|null  $account_id  the account of the transaction (`financial_account_id`)
+     * @param  list<string>|null  $two_filters  the names of the filters that all take it, when two or more do: none of them settles it
      */
     public function __construct(
         public readonly int $id,
@@ -60,6 +61,7 @@ final class BankTransactionData extends Data
         public readonly bool $orphan_fee = false,
         public readonly ?BankTransferData $transfer = null,
         public readonly ?int $account_id = null,
+        public readonly ?array $two_filters = null,
     ) {}
 
     /**
@@ -70,8 +72,9 @@ final class BankTransactionData extends Data
      * @param  bool  $withLink  whether to read the expense or income it is linked to (the list *All* does; they must be loaded)
      * @param  BankTransaction|null  $fee  the commission paired with this direct debit
      * @param  bool  $orphanFee  this is a commission whose direct debit is not to sort
+     * @param  list<string>|null  $twoFilters  the names of the filters that take it, when two or more do
      */
-    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false, ?BankTransaction $fee = null, bool $orphanFee = false): self
+    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false, ?BankTransaction $fee = null, bool $orphanFee = false, ?array $twoFilters = null): self
     {
         $account = $transaction->financialAccount;
 
@@ -96,6 +99,7 @@ final class BankTransactionData extends Data
             $orphanFee,
             $transaction->transfer_account_id === null ? null : BankTransferData::fromTransaction($transaction),
             $transaction->financial_account_id,
+            $twoFilters,
         );
     }
 

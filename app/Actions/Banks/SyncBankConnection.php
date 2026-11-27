@@ -17,8 +17,8 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Reads the transactions of every account of a bank connection, saves them and lets the rules of the planned items pay
- * with the new booked ones. Runs inside the family of the connection. No error of the bank leaves it: it becomes the
+ * Reads the transactions of every account of a bank connection, saves them and lets the bank filters settle the
+ * new booked ones. Runs inside the family of the connection. No error of the bank leaves it: it becomes the
  * status of the connection.
  */
 final readonly class SyncBankConnection
@@ -26,7 +26,7 @@ final readonly class SyncBankConnection
     /**
      * @param  BankFeed  $feed  the link to the bank
      * @param  StoreBankEntries  $store  saves what the bank gives
-     * @param  MatchBankTransactions  $match  pays the due dates the new transactions settle
+     * @param  MatchBankTransactions  $match  applies the bank filters to the new transactions
      * @param  WatchBankConsents  $watch  tells the admins when the bank took the consent back
      * @param  MarkBankTransfer  $transfers  pairs the new transactions that are the other half of a transfer
      * @param  AttachBankFee  $fees  joins the new commissions to the expense of their debit
@@ -37,7 +37,7 @@ final readonly class SyncBankConnection
      * Reads the connection. An account with no transactions is read from `first_days` ago, the others from
      * `overlap_days` before the last read. A consent that ended asks the person to connect again, a limit of the bank
      * changes nothing (the next read tries again), as another read saving the same rows at the same moment does, any other failure is reported and saved as the last error. The
-     * booked transactions saved before any of these, the 90 days of a first read included, go to the rules, the oldest
+     * booked transactions saved before any of these, the 90 days of a first read included, go to the filters, the oldest
      * first; then the new commissions join the expense of their debit when it is linked.
      *
      * @param  BankConnection  $connection  the connection to read
@@ -48,7 +48,7 @@ final readonly class SyncBankConnection
     {
         $fresh = $this->read($connection, $visitor);
 
-        // The second half of a transfer the person already marked: it is paired, not left to sort or to a rule
+        // The second half of a transfer the person already marked: it is paired, not left to sort or to a filter
         $this->transfers->pairNew($fresh);
 
         // The oldest first, as a person would sort them: a late due date is paid by the first transaction after it

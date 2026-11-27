@@ -49,6 +49,7 @@ const row = (id: number, day: string, amount: number) =>
         orphan_fee: false,
         transfer: null,
         account_id: 4,
+        two_filters: null,
     }) satisfies App.Data.BankTransactionData;
 
 beforeEach(() => {

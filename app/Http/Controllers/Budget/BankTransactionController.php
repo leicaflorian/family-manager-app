@@ -20,12 +20,14 @@ use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankFees;
+use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
@@ -81,6 +83,8 @@ final class BankTransactionController extends Controller
             'rows' => Inertia::merge(function () use ($rows, $show): array {
                 // One read of the last months for the whole page, none for the other lists
                 $texts = resolve(RecurringBankTexts::class);
+                // One read of the filters for the whole page: a row to sort that two filters take names them
+                $bankFilters = resolve(BankFilters::class);
                 $block = $rows();
                 $fees = $block['fees'];
                 $orphans = $block['orphans'];
@@ -92,6 +96,7 @@ final class BankTransactionController extends Controller
                         $show === 'all',
                         $fees[$transaction->id] ?? null,
                         in_array($transaction->id, $orphans, true),
+                        $show === 'unsorted' ? self::twoFilters($bankFilters, $transaction) : null,
                     ))
                     ->values()
                     ->all();
@@ -281,6 +286,20 @@ final class BankTransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
 
         return to_route('budget.bank.index');
+    }
+
+    /**
+     * The names of the filters that take a transaction to sort, when two or more do (none of them settles it), else null.
+     *
+     * @param  BankFilters  $filters  the filters of the family, read once for the page
+     * @param  BankTransaction  $transaction  the transaction
+     * @return list<string>|null
+     */
+    private static function twoFilters(BankFilters $filters, BankTransaction $transaction): ?array
+    {
+        $taking = $filters->matching($transaction);
+
+        return $taking->count() >= 2 ? array_values($taking->map(static fn (BankFilter $filter): string => $filter->name)->all()) : null;
     }
 
     /**

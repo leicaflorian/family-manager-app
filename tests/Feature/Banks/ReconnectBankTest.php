@@ -6,6 +6,7 @@ use App\Actions\Banks\SettleFromBank;
 use App\Contracts\BankFeed;
 use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\FinancialAccount;
@@ -84,6 +85,7 @@ test('a transaction refused with Not this one and one put aside stay so after di
             'amount' => abs((float) $refused->amount), 'fee_amount' => null, 'start_date' => $refused->booked_on?->toDateString(),
             'financial_account_id' => null,
         ]);
+        BankFilter::factory()->pays($planned)->create(['family_id' => $this->marco->family_id, 'contains' => [], 'pattern' => BankMatch::fromText((string) $refused->text)]);
         resolve(SettleFromBank::class)->handle($refused, $planned, BankMatchSource::Rule);
         $rows[1]->forceFill(['ignored_at' => now()])->save();
 

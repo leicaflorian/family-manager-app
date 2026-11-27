@@ -7,8 +7,10 @@ use App\Actions\Banks\DetachBankFee;
 use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
+use App\Enums\BankFilterFee;
 use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -127,10 +129,11 @@ test('a commission that arrives after its debit is attached at the next read', f
         $connection = BankConnection::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id]);
         $connection->writeSession('session-'.$connection->id, CarbonImmutable::now()->addDays(100));
         $account = FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'uid-1']);
-        PlannedExpense::factory()->create([
-            'family_id' => $connection->family_id, 'title' => 'Ricarica Satispay', 'bank_match' => 'MAN.SAT0023101207360112900', 'amount' => 10.0,
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $connection->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0,
             'fee_amount' => null, 'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => $account->id,
         ]);
+        BankFilter::factory()->pays($satispay)->create(['family_id' => $connection->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::Auto]);
         $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-11-24'), CarbonImmutable::parse('2026-11-24'), -10.0, 'EUR', attachBankFeeText(), null, true);
         $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-11-25'), CarbonImmutable::parse('2026-11-25'), -0.40, 'EUR', attachBankFeeText(true), null, true);
 

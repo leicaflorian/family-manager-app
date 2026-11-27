@@ -375,4 +375,12 @@ return [
         'words' => 'Recognise it with these words',
         'none' => 'No commission',
     ],
+    'bank_filter_outcome' => [
+        'paid' => 'Paid the due date',
+        'created' => 'Created the expense',
+        'linked' => 'Linked to an expense already recorded',
+        'transferred' => 'Marked as a transfer',
+        'ignored' => 'Ignored',
+        'none' => 'Nothing done',
+    ],
 ];

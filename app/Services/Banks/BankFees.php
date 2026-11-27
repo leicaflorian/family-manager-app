@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Enums\BankFilterFee;
+use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Support\Banks\BankFilterCriteria;
+use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,17 +28,28 @@ final class BankFees
     private const int DAYS = 5;
 
     /**
-     * The commission of a direct debit, among the booked transactions of the family (linked or not).
+     * The commission of a direct debit, among the booked transactions of the family (linked or not). The filter that
+     * takes the debit says how to find it: by itself (`auto`, also without a filter: the same mandate and creditor),
+     * with its own words (`words`: on the same account, in the same direction, within five days, smaller than the
+     * debit, not taken by another expense, the closest), or not at all (`none`).
      *
      * @param  BankTransaction  $debit  the direct debit
+     * @param  BankFilter|null  $filter  the filter that takes the debit
      */
-    public function feeOf(BankTransaction $debit): ?BankTransaction
+    public function feeOf(BankTransaction $debit, ?BankFilter $filter = null): ?BankTransaction
     {
-        if (BankText::isFee($debit->text) || $this->key($debit) === null) {
+        if (BankText::isFee($debit->text)) {
             return null;
         }
 
-        return ($this->match($this->around($debit))[$debit->id] ?? null)?->fee;
+        if ($filter?->fee_mode === BankFilterFee::Words) {
+            return $this->byWords($debit, $filter);
+        }
+
+        return match ($filter->fee_mode ?? BankFilterFee::Auto) {
+            BankFilterFee::None, BankFilterFee::Words => null,
+            BankFilterFee::Auto => $this->key($debit) === null ? null : ($this->match($this->around($debit))[$debit->id] ?? null)?->fee,
+        };
     }
 
     /**
@@ -41,24 +57,31 @@ final class BankFees
      * there, else the debit alone.
      *
      * @param  BankTransaction  $debit  the debit
+     * @param  BankFilter|null  $filter  the filter that takes the debit, which says how its commission is found
      * @return list<int>
      */
-    public function amounts(BankTransaction $debit): array
+    public function amounts(BankTransaction $debit, ?BankFilter $filter = null): array
     {
-        $fee = $this->feeOf($debit);
+        $fee = $this->feeOf($debit, $filter);
 
         return [$this->cents($debit) + ($fee instanceof BankTransaction ? $this->cents($fee) : 0)];
     }
 
     /**
      * Whether the bank writes (or can write) the commission of a debit as a transaction of its own: the commission is
-     * there, or the debit has a mandate and its commission can still come.
+     * there, or the debit has a mandate and its commission can still come. A filter that recognises the commission
+     * with its words says it is written apart; one without a commission says it is not.
      *
      * @param  BankTransaction  $debit  the debit
+     * @param  BankFilter|null  $filter  the filter that takes the debit
      */
-    public function isDetached(BankTransaction $debit): bool
+    public function isDetached(BankTransaction $debit, ?BankFilter $filter = null): bool
     {
-        return ! BankText::isFee($debit->text) && (BankText::mandate($debit->text) !== null || $this->feeOf($debit) instanceof BankTransaction);
+        return match ($filter->fee_mode ?? BankFilterFee::Auto) {
+            BankFilterFee::None => false,
+            BankFilterFee::Words => true,
+            BankFilterFee::Auto => ! BankText::isFee($debit->text) && (BankText::mandate($debit->text) !== null || $this->feeOf($debit) instanceof BankTransaction),
+        };
     }
 
     /**
@@ -142,6 +165,49 @@ final class BankFees
         }
 
         return ['fees' => $fees, 'hidden' => $hidden, 'orphans' => $orphans];
+    }
+
+    /**
+     * The commission of a debit found with the words of its filter: a booked euro transaction on the same account and
+     * in the same direction, at most five days from the debit, smaller than it, that the words of the commission take,
+     * still to sort or already joined to the expense of this debit; the closest wins (then the oldest row).
+     *
+     * @param  BankTransaction  $debit  the debit
+     * @param  BankFilter  $filter  the filter, with `fee_contains` and `fee_excludes`
+     */
+    private function byWords(BankTransaction $debit, BankFilter $filter): ?BankTransaction
+    {
+        $criteria = BankFilterCriteria::fromArray([
+            'contains' => $filter->fee_contains,
+            'excludes' => $filter->fee_excludes,
+            'direction' => $debit->kind(),
+            'accountId' => $debit->financial_account_id,
+        ]);
+
+        if (! $criteria->isSafe() || ($debit->booked_on ?? $debit->value_on) === null) {
+            return null;
+        }
+
+        $day = $this->day($debit);
+
+        return BankTransaction::query()
+            ->whereKeyNot($debit->id)
+            ->where('financial_account_id', $debit->financial_account_id)
+            ->where('status', BankTransactionStatus::Booked)
+            ->where('currency', 'EUR')
+            ->where('amount', $debit->kind() === 'expense' ? '<' : '>', 0)
+            ->whereBetween('booked_on', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
+            ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
+            ->whereNull('income_id')
+            ->where(static fn (Builder $query) => $query->whereNull('expense_id')
+                ->when($debit->expense_id !== null, static fn (Builder $query) => $query->orWhere(static fn (Builder $query) => $query
+                    ->where('expense_id', $debit->expense_id)->where('matched_by', BankMatchSource::Fee))))
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (BankTransaction $row): bool => $this->cents($row) < $this->cents($debit) && BankFilterMatch::matches($criteria, $row))
+            ->sortBy(fn (BankTransaction $row): int => abs($this->index($row) - $this->index($debit)))
+            ->first();
     }
 
     /**

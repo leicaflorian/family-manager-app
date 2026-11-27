@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Banks;
 
 use App\Enums\BankMatchSource;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Services\Banks\BankFees;
@@ -77,14 +78,15 @@ final readonly class AttachBankFee
      * after the link; a commission that is not there yet joins when it arrives (`forNew`).
      *
      * @param  BankTransaction  $debit  the debit, linked
+     * @param  BankFilter|null  $filter  the filter that took the debit, which says how its commission is found
      */
-    public function forDebit(BankTransaction $debit): void
+    public function forDebit(BankTransaction $debit, ?BankFilter $filter = null): void
     {
         if ($debit->expense_id === null || $debit->matched_by === BankMatchSource::Fee || BankText::isFee($debit->text)) {
             return;
         }
 
-        $fee = $this->fees->feeOf($debit);
+        $fee = $this->fees->feeOf($debit, $filter);
         $expense = $fee instanceof BankTransaction ? Expense::query()->find($debit->expense_id) : null;
 
         if ($fee instanceof BankTransaction && $expense instanceof Expense) {

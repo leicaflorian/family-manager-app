@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\MatchBankTransactions;
 use App\Enums\Role;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Employment;
 use App\Models\Enrollment;
@@ -377,7 +379,7 @@ it('the planned form of a transaction that does not come back every month is emp
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', ''));
 });
 
-it('saving that planned expense pays the three due dates with the three transactions', function (): void {
+it('saving that planned expense pays nothing by itself, its filter pays the three due dates with the three transactions', function (): void {
     $rows = bankPlannedPagesNetflix();
     $values = $this->actingAs($this->marco)
         ->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $rows[2]->id]))
@@ -387,9 +389,17 @@ it('saving that planned expense pays the three due dates with the three transact
         ->assertRedirect();
 
     $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Netflix International')->sole());
-    $payments = insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
+    $payments = fn () => insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
 
-    expect($payments->map(fn ($payment): ?string => $payment->occurrence_date?->toDateString())->all())->toBe(['2026-08-12', '2026-09-12', '2026-10-12'])
-        ->and($payments->map(fn ($payment): string => (string) $payment->amount)->all())->toBe(['13.99', '13.99', '15.99'])
+    // The rule of the form is kept but pays nothing any more: the bank filters do the paying
+    expect($planned->bank_match)->toBe($values['bank_match'])
+        ->and($payments())->toHaveCount(0);
+
+    insideBianchi(fn (): int => resolve(MatchBankTransactions::class)->forFilter(
+        BankFilter::factory()->pays($planned)->create(['family_id' => $planned->family_id, 'contains' => [], 'pattern' => $planned->bank_match]),
+    ));
+
+    expect($payments()->map(fn ($payment): ?string => $payment->occurrence_date?->toDateString())->all())->toBe(['2026-08-12', '2026-09-12', '2026-10-12'])
+        ->and($payments()->map(fn ($payment): string => (string) $payment->amount)->all())->toBe(['13.99', '13.99', '15.99'])
         ->and(insideBianchi(fn () => BankTransaction::query()->whereKey(array_map(fn (BankTransaction $row): int => $row->id, $rows))->whereNull('expense_id')->count()))->toBe(0);
 });

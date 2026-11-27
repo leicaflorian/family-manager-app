@@ -2229,6 +2229,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         orphan_fee: false,
         transfer: null,
         account_id: 4,
+        two_filters: null,
     },
     {
         id: 2,
@@ -2251,6 +2252,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         orphan_fee: false,
         transfer: null,
         account_id: 4,
+        two_filters: null,
     },
     {
         id: 1,
@@ -2273,6 +2275,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         orphan_fee: false,
         transfer: null,
         account_id: 4,
+        two_filters: null,
     },
 ];
 
