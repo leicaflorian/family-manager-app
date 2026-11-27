@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -79,6 +80,8 @@ use Illuminate\Support\Facades\DB;
  * @property-read Person|null $person
  * @property-read User|null $pinner
  * @property-read PlannedExpense|null $plannedExpense
+ * @property-read Collection<int, PlannedExpense> $waitingPlans
+ * @property-read int|null $waiting_plans_count
  * @property-read Collection<int, Subscription> $subscriptions
  * @property-read int|null $subscriptions_count
  * @property-read Collection<int, Utility> $utilities
@@ -90,6 +93,7 @@ use Illuminate\Support\Facades\DB;
  * @method static Builder<static>|Document newModelQuery()
  * @method static Builder<static>|Document newQuery()
  * @method static Builder<static>|Document query()
+ * @method static Builder<static>|Document waitingFor(list<int> $plannedIds)
  *
  * @mixin \Eloquent
  */
@@ -262,6 +266,51 @@ final class Document extends FamilyModel
     public function plannedExpense(): BelongsTo
     {
         return $this->belongsTo(PlannedExpense::class);
+    }
+
+    /**
+     * The other planned expenses it waits on, besides the one in `planned_expense_id` (a bill of electricity and gas).
+     *
+     * @return BelongsToMany<PlannedExpense, $this>
+     */
+    public function waitingPlans(): BelongsToMany
+    {
+        return $this->belongsToMany(PlannedExpense::class, 'document_planned_expense');
+    }
+
+    /**
+     * Makes the document wait on a planned expense: in the column when it waits on nothing yet, in the table when it
+     * already waits on another one. Doing it twice for the same planned expense changes nothing.
+     *
+     * @param  PlannedExpense  $planned  The planned expense it waits on.
+     */
+    public function waitOn(PlannedExpense $planned): void
+    {
+        if ($this->planned_expense_id === null) {
+            $this->planned_expense_id = $planned->id;
+            $this->save();
+
+            return;
+        }
+
+        if ($this->planned_expense_id !== $planned->id) {
+            $this->waitingPlans()->syncWithoutDetaching([$planned->id]);
+        }
+    }
+
+    /**
+     * Keeps the documents waiting on one of the planned expenses, from the column or from the table.
+     *
+     * @param  Builder<Document>  $query  the query
+     * @param  list<int>  $plannedIds  ids of the planned expenses
+     */
+    #[Scope]
+    protected function waitingFor(Builder $query, array $plannedIds): void
+    {
+        $query->where(static function (Builder $query) use ($plannedIds): void {
+            $query->whereIn('documents.planned_expense_id', $plannedIds)
+                ->orWhereIn('documents.id', DB::table('document_planned_expense')->select('document_id')->whereIn('planned_expense_id', $plannedIds));
+        });
     }
 
     /**

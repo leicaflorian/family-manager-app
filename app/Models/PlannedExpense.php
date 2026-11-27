@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -56,6 +57,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read FinancialAccount|null $financialAccount
  * @property-read Organization|null $organization
  * @property-read Person|null $person
+ * @property-read Collection<int, Document> $waitingDocuments
+ * @property-read int|null $waiting_documents_count
  *
  * @method static PlannedExpenseFactory factory($count = null, $state = [])
  * @method static Builder<static>|PlannedExpense newModelQuery()
@@ -81,6 +84,16 @@ final class PlannedExpense extends FamilyModel
     public function exceptions(): HasMany
     {
         return $this->hasMany(PlannedExpenseException::class, 'planned_expense_id');
+    }
+
+    /**
+     * The documents that wait on it through `document_planned_expense` (those with it in `planned_expense_id` are not here).
+     *
+     * @return BelongsToMany<Document, $this>
+     */
+    public function waitingDocuments(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'document_planned_expense');
     }
 
     /**

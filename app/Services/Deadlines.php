@@ -78,7 +78,7 @@ final readonly class Deadlines
 
         $payments = $this->groupBy(Expense::query()->with('financialAccount')->whereIn('planned_expense_id', $expenses->modelKeys())->orderBy('date')->get(), 'planned_expense_id')
             + $this->groupBy(Income::query()->with('financialAccount')->whereIn('planned_income_id', $incomes->modelKeys())->orderBy('date')->get(), 'planned_income_id', 'income');
-        $documents = $this->groupBy(Document::query()->whereIn('planned_expense_id', $expenses->modelKeys())->get(), 'planned_expense_id');
+        $documents = $this->waitingDocuments($expenses->modelKeys());
 
         // The default account is looked up once for the whole collection, and only if some planned item has no account
         $default = null;
@@ -322,6 +322,28 @@ final readonly class Deadlines
         }
 
         return $planned->displayTitle();
+    }
+
+    /**
+     * The documents waiting on each planned expense, from the column and from the table of a bill that waits on more.
+     *
+     * @param  array<int, int|string>  $plannedIds  Ids of the planned expenses.
+     * @return array<string, list<Document>>
+     */
+    private function waitingDocuments(array $plannedIds): array
+    {
+        $ids = array_values(array_map(intval(...), $plannedIds));
+        $grouped = [];
+
+        foreach (Document::query()->waitingFor($ids)->with('waitingPlans:planned_expenses.id')->get() as $document) {
+            $waitsOn = [$document->planned_expense_id, ...$document->waitingPlans->modelKeys()];
+
+            foreach (array_unique(array_intersect($waitsOn, $ids)) as $id) {
+                $grouped["expense:{$id}"][] = $document;
+            }
+        }
+
+        return $grouped;
     }
 
     /**
