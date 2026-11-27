@@ -397,6 +397,131 @@ export const utilityFields: App.Data.CardFieldData[] = [
     },
 ];
 
+/** The people of the Bianchis as a person menu gets them: the full name, the first name for a composed title. */
+const bianchiPeople: App.Data.OptionData[] = [
+    { value: '2', label: 'Giulia Bianchi', help: null, title: 'Giulia' },
+    { value: '3', label: 'Laura Bianchi', help: null, title: 'Laura' },
+    { value: '1', label: 'Marco Bianchi', help: null, title: 'Marco' },
+];
+
+/** The organizations of the Bianchis as an organization menu gets them. */
+const bianchiOrganizations: App.Data.OptionData[] = [
+    { value: '4', label: 'Comune di Bologna', help: null, title: null },
+    { value: '1', label: 'Edison', help: null, title: null },
+    { value: '6', label: 'Scuola Passo a Due', help: null, title: null },
+    { value: '5', label: 'Studio Rinaldi', help: null, title: null },
+];
+
+/**
+ * A field of a card form with no condition, as the server sends it.
+ *
+ * @param column - the column
+ * @param label - the label
+ * @param kind - the kind of field
+ * @param options - the options of a menu
+ * @param required - whether it must have a value
+ * @returns the field
+ */
+function cardField(
+    column: string,
+    label: string,
+    kind: string,
+    options: App.Data.OptionData[] = [],
+    required = false,
+): App.Data.CardFieldData {
+    return {
+        column,
+        label,
+        kind,
+        required,
+        options,
+        show_when: {},
+        label_when: {},
+    };
+}
+
+/** The fields of a utility that name it, as `cards/EditCard` gets them. */
+export const utilityFormFields: App.Data.CardFieldData[] = [
+    cardField(
+        'type',
+        'Type',
+        'dropdown',
+        [
+            {
+                value: 'electricity',
+                label: 'Electricity',
+                help: null,
+                title: null,
+            },
+            { value: 'gas', label: 'Gas', help: null, title: null },
+        ],
+        true,
+    ),
+    cardField(
+        'organization_id',
+        'Supplier',
+        'organization',
+        bianchiOrganizations,
+    ),
+    cardField('home_id', 'Residence', 'card', [
+        { value: '1', label: 'Casa di via Roma', help: null, title: null },
+    ]),
+    cardField('person_id', 'Account holder', 'person', bianchiPeople),
+    cardField('customer_code', 'Customer code', 'text'),
+];
+
+/** How the name of a utility is composed (`titleParts`): type - supplier, or type - residence. */
+export const utilityTitleParts: string[][] = [
+    ['type'],
+    ['organization_id', 'home_id'],
+];
+
+/** The fields of an employment that name it. */
+export const employmentFields: App.Data.CardFieldData[] = [
+    cardField('person_id', 'Person', 'person', bianchiPeople, true),
+    cardField(
+        'organization_id',
+        'Employer',
+        'organization',
+        bianchiOrganizations,
+    ),
+    cardField('job_title', 'Role', 'text'),
+];
+
+/** How the name of an employment is composed: first name - employer. */
+export const employmentTitleParts: string[][] = [
+    ['person_id'],
+    ['organization_id'],
+];
+
+/** The fields of an enrollment that name it. */
+export const enrollmentFields: App.Data.CardFieldData[] = [
+    cardField('person_id', 'Person', 'person', bianchiPeople, true),
+    cardField(
+        'organization_id',
+        'Organization',
+        'organization',
+        bianchiOrganizations,
+    ),
+    cardField(
+        'type',
+        'Type',
+        'choice',
+        [
+            { value: 'school', label: 'School', help: null, title: null },
+            { value: 'sport', label: 'Sport', help: null, title: null },
+        ],
+        true,
+    ),
+];
+
+/** How the name of an enrollment is composed: first name - type - organization. */
+export const enrollmentTitleParts: string[][] = [
+    ['person_id'],
+    ['type'],
+    ['organization_id'],
+];
+
 const edison: App.Data.CardData = {
     ...pandaRow,
     type: 'utility',

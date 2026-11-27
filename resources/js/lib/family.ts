@@ -17,6 +17,7 @@ import {
 } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { plainText } from './text';
+import { cn } from './utils';
 
 /** The fields of the form of a person, as the inputs hold them. */
 export type PersonFormValues = {
@@ -223,3 +224,16 @@ export function organizationValues(
         notes: organization?.notes ?? '',
     };
 }
+
+/**
+ * The classes of the field of the types of an organization, a `togglebuttons`
+ * with more than one choice: chips that wrap, filled when chosen. The full
+ * form and the quick panel of the card form bind them with `v-bind`.
+ */
+export const organizationTypeChips = {
+    'options-class': cn('$reset m-0 flex list-none flex-wrap gap-2 p-0'),
+    'option-class': cn('$reset'),
+    'input-class': cn(
+        '$reset h-10 cursor-pointer rounded-full border border-edge-soft bg-card px-4 text-body-sm text-ink transition-[background-color,border-color,color] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-on-action motion-reduce:transition-none',
+    ),
+};

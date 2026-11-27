@@ -105,3 +105,67 @@ export function fieldInput(kind: string): string {
 export function isMenuField(kind: string): boolean {
     return menus.has(kind);
 }
+
+/**
+ * The text of the chosen value of a field, as the name of a card uses it: the
+ * short `title` of its option (the first name of a person), else the label.
+ *
+ * @param field - the field, or undefined when the type has no such column
+ * @param value - the value of the field now
+ * @returns the text, or null when nothing is chosen
+ */
+function chosenText(
+    field: App.Data.CardFieldData | undefined,
+    value: unknown,
+): string | null {
+    // A value of a menu or of a text is text, an id from the server a number
+    if (
+        field === undefined ||
+        (typeof value !== 'string' && typeof value !== 'number')
+    ) {
+        return null;
+    }
+
+    const text = String(value);
+
+    if (text === '') {
+        return null;
+    }
+
+    if (field.options.length === 0) {
+        return text;
+    }
+
+    const option = field.options.find((choice) => choice.value === text);
+
+    return option ? (option.title ?? option.label) : null;
+}
+
+/**
+ * The name a card will have with the values now, as the server composes it
+ * (`label()` of the card): for each part the first column with a value,
+ * the parts joined with « - », the empty ones left out.
+ *
+ * @param parts - how the type composes its name (`titleParts`), empty for a type with its own *Name*
+ * @param fields - the fields of the form, with their options
+ * @param values - the values now, by column
+ * @returns the name, empty while nothing composes it
+ */
+export function composeTitle(
+    parts: string[][],
+    fields: App.Data.CardFieldData[],
+    values: Record<string, unknown>,
+): string {
+    const byColumn = new Map(fields.map((field) => [field.column, field]));
+
+    return parts
+        .map((columns) =>
+            columns
+                .map((column) =>
+                    chosenText(byColumn.get(column), values[column]),
+                )
+                .find((text) => text !== null),
+        )
+        .filter((text): text is string => text !== undefined)
+        .join(' - ');
+}

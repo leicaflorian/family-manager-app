@@ -4,7 +4,18 @@ import { fireEvent, render, screen } from '@testing-library/vue';
 import { router } from '@inertiajs/vue3';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import formkitConfig from '@/formkit.config';
-import { loanFields, policyFields, utilityFields } from '@/test/fixtures';
+import type { VisitOptions } from '@inertiajs/core';
+import {
+    employmentFields,
+    employmentTitleParts,
+    loanFields,
+    organizationTypes,
+    policyFields,
+    utilityFields,
+    utilityFormFields,
+    utilityTitleParts,
+} from '@/test/fixtures';
+import { hasChanges } from '@/lib/unsavedChanges';
 import { choose, openMenu, renderPage, settle, shown } from '@/test/page';
 import FmCardForm from './FmCardForm.vue';
 
@@ -306,6 +317,168 @@ describe('FmCardForm', () => {
             expect(
                 screen.queryByTestId('loan-figures'),
             ).not.toBeInTheDocument();
+        });
+    });
+
+    describe('the composed title', () => {
+        it('shows, read-only at the top, the name the card will have, and follows the menus', async () => {
+            renderPage(FmCardForm, {
+                fields: utilityFormFields,
+                values: { type: 'gas', organization_id: null, home_id: 1 },
+                titleParts: utilityTitleParts,
+            });
+
+            const title = screen.getByLabelText('Title');
+            expect(title).toHaveAttribute('readonly');
+            expect(title).toHaveValue('Gas - Casa di via Roma');
+
+            await choose('Supplier', 'Edison');
+
+            expect(screen.getByLabelText('Title')).toHaveValue('Gas - Edison');
+        });
+
+        it('uses the first name of the person', () => {
+            renderPage(FmCardForm, {
+                fields: employmentFields,
+                values: { person_id: 1, organization_id: 5 },
+                titleParts: employmentTitleParts,
+            });
+
+            expect(screen.getByLabelText('Title')).toHaveValue(
+                'Marco - Studio Rinaldi',
+            );
+        });
+
+        it('says where it comes from while nothing composes it', () => {
+            renderPage(FmCardForm, {
+                fields: employmentFields,
+                values: {},
+                titleParts: employmentTitleParts,
+            });
+
+            expect(screen.getByLabelText('Title')).toHaveValue('');
+            expect(screen.getByLabelText('Title')).toHaveAttribute(
+                'placeholder',
+                'It is made from the fields below',
+            );
+        });
+
+        it('is not there for a type with its own name', () => {
+            renderPage(FmCardForm, { fields: utilityFormFields, values: {} });
+
+            expect(screen.queryByLabelText('Title')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('a new organization from the menu', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        /** The props of a utility being written, with the «+». */
+        const utility = {
+            fields: utilityFormFields,
+            values: { type: 'electricity', organization_id: null, home_id: 1 },
+            titleParts: utilityTitleParts,
+            canCreateOrganization: true,
+            organizationTypes,
+        };
+
+        it('offers the «+» beside every organization menu, only to who can add one', () => {
+            const view = renderPage(FmCardForm, utility);
+
+            expect(
+                screen.getAllByRole('button', { name: 'New organization' }),
+            ).toHaveLength(1);
+
+            view.unmount();
+            renderPage(FmCardForm, {
+                ...utility,
+                canCreateOrganization: false,
+            });
+
+            expect(
+                screen.queryByRole('button', { name: 'New organization' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('chooses the organization added, keeping what was written', async () => {
+            let visit: VisitOptions | undefined;
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options) => {
+                    visit = options as VisitOptions;
+                },
+            );
+            const view = renderPage(FmCardForm, utility);
+            await choose('Type', 'Gas');
+            await fireEvent.update(
+                screen.getByLabelText('Customer code'),
+                'C-123',
+            );
+            await settle();
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'New organization' }),
+            );
+            await screen.findByRole('dialog', { name: 'New organization' });
+            await userEvent.type(
+                screen.getByLabelText('Name'),
+                'Autofficina Rossi',
+            );
+            await settle();
+            await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+            await settle();
+
+            // The page comes back with the new option, then the flash arrives
+            await view.rerender({
+                ...utility,
+                fields: utilityFormFields.map((field) =>
+                    field.column === 'organization_id'
+                        ? {
+                              ...field,
+                              options: [
+                                  ...field.options,
+                                  {
+                                      value: '12',
+                                      label: 'Autofficina Rossi',
+                                      help: null,
+                                      title: null,
+                                  },
+                              ],
+                          }
+                        : field,
+                ),
+                values: structuredClone(utility.values),
+            });
+            visit?.onFlash?.({
+                organization: { id: 12, name: 'Autofficina Rossi' },
+            });
+            await settle();
+
+            expect(
+                screen.queryByRole('dialog', { name: 'New organization' }),
+            ).not.toBeInTheDocument();
+            expect(screen.getByLabelText('Supplier')).toHaveValue(
+                'Autofficina Rossi',
+            );
+            expect(screen.getByLabelText('Customer code')).toHaveValue('C-123');
+            expect(screen.getByLabelText('Title')).toHaveValue(
+                'Gas - Autofficina Rossi',
+            );
+            expect(hasChanges()).toBe(true);
+
+            await userEvent.click(
+                screen.getAllByRole('button', { name: 'Save' }).at(-1)!,
+            );
+            await settle();
+
+            expect(view.emitted('submit')?.[0]).toEqual([
+                expect.objectContaining({
+                    type: 'gas',
+                    organization_id: '12',
+                    customer_code: 'C-123',
+                }),
+            ]);
         });
     });
 });

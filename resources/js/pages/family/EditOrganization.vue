@@ -15,7 +15,7 @@ import FmOrganizationMark from '@/components/fm/FmOrganizationMark.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import { withMethod } from '@/lib/forms';
 import { errors, listErrors } from '@/lib/errors';
-import { organizationValues } from '@/lib/family';
+import { organizationTypeChips, organizationValues } from '@/lib/family';
 import { index, show, store, update } from '@/routes/organizations';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
 import { usePageMeta } from '@/composables/usePageMeta';
@@ -115,9 +115,7 @@ const { title, head } = usePageMeta({
                     :label="$t('What kind it is')"
                     name="types"
                     :options="types"
-                    options-class="$reset m-0 flex list-none flex-wrap gap-2 p-0"
-                    option-class="$reset"
-                    input-class="$reset h-10 cursor-pointer rounded-full border border-edge-soft bg-card px-4 text-body-sm text-ink transition-[background-color,border-color,color] duration-150 ease-out aria-pressed:border-action aria-pressed:bg-action aria-pressed:text-on-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action motion-reduce:transition-none"
+                    v-bind="organizationTypeChips"
                     :errors="typeErrors"
                 />
                 <div class="grid grid-cols-2 gap-3">

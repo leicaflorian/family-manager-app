@@ -5,10 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import {
     healthCard,
     loanFields,
+    organizationTypes,
     pandaRow,
     policyBudget,
     policyDetail,
     policyFields,
+    utilityFormFields,
+    utilityTitleParts,
 } from '@/test/fixtures';
 import {
     choose,
@@ -905,5 +908,52 @@ describe('With the Budget off', () => {
         });
 
         expect(screen.queryByTestId('card-payments')).not.toBeInTheDocument();
+    });
+});
+
+describe('The name of a utility and its new organization', () => {
+    /** The type of a utility, as the server sends it. */
+    const utilityType = {
+        type: 'utility',
+        label: 'Utility',
+        plural_label: 'Utilities',
+        description: '',
+        area: 'home',
+        area_label: 'Home',
+    };
+
+    it('shows the composed title and the «+» beside the supplier', () => {
+        renderPage(EditCard, {
+            type: utilityType,
+            fields: utilityFormFields,
+            values: { type: 'electricity', organization_id: 1, home_id: 1 },
+            card: null,
+            titleParts: utilityTitleParts,
+            canCreateOrganization: true,
+            organizationTypes,
+        });
+
+        expect(screen.getByLabelText('Title')).toHaveValue(
+            'Electricity - Edison',
+        );
+        expect(
+            screen.getByRole('button', { name: 'New organization' }),
+        ).toBeInTheDocument();
+    });
+
+    it('has no «+» when the server says the person cannot add one', () => {
+        renderPage(EditCard, {
+            type: utilityType,
+            fields: utilityFormFields,
+            values: {},
+            card: null,
+            titleParts: utilityTitleParts,
+            canCreateOrganization: false,
+            organizationTypes: [],
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'New organization' }),
+        ).not.toBeInTheDocument();
     });
 });
