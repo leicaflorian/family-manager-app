@@ -73,8 +73,64 @@ final class BankFees
             return [];
         }
 
+        $outside = $this->outside($rows, $debits);
+
+        return array_map(static fn (object $pair): BankTransaction => $pair->fee, $this->match($rows->concat($outside)));
+    }
+
+    /**
+     * What a block of unsorted rows shows about commissions, with `debitOf()` as the only judge: a commission whose
+     * debit is still to sort is hidden from its own block (it is not a row) and shown under that debit, wherever the
+     * debit is; a commission with no debit to sort stays a row, an orphan. The commissions that sit outside the block
+     * but near its debits are read with one query.
+     *
+     * @param  Collection<int, BankTransaction>  $rows  the transactions on show
+     * @return array{fees: array<int, BankTransaction>, hidden: list<int>, orphans: list<int>} the commission of each debit on show (by the id of the debit), the ids of the commissions to leave out, the ids of the orphans
+     */
+    public function onPage(Collection $rows): array
+    {
+        $debits = $rows->filter(fn (BankTransaction $row): bool => $this->key($row) !== null && ! BankText::isFee($row->text));
+        $shown = $rows->pluck('id')->flip();
+        $onShow = $debits->pluck('id')->flip();
+        $fees = [];
+        $hidden = [];
+        $orphans = [];
+        $candidates = $rows->filter(fn (BankTransaction $row): bool => BankText::isFee($row->text))
+            ->concat($debits->isEmpty() ? [] : $this->outside($rows, $debits));
+
+        foreach ($candidates as $fee) {
+            $debit = $this->debitOf($fee);
+
+            if ($debit instanceof BankTransaction && $onShow->has($debit->id)) {
+                $fees[$debit->id] = $fee;
+            }
+
+            if (! $shown->has($fee->id)) {
+                continue;
+            }
+
+            if ($debit instanceof BankTransaction) {
+                $hidden[] = $fee->id;
+            } else {
+                $orphans[] = $fee->id;
+            }
+        }
+
+        return ['fees' => $fees, 'hidden' => $hidden, 'orphans' => $orphans];
+    }
+
+    /**
+     * The commissions near the debits of a block that are not in the block, with one query.
+     *
+     * @param  Collection<int, BankTransaction>  $rows  the transactions on show
+     * @param  Collection<int, BankTransaction>  $debits  the direct debits among them
+     * @return Collection<int, BankTransaction>
+     */
+    private function outside(Collection $rows, Collection $debits): Collection
+    {
         $days = $debits->map(fn (BankTransaction $row): CarbonImmutable => $this->day($row));
-        $outside = BankTransaction::query()
+
+        return BankTransaction::query()
             ->whereIn('financial_account_id', $debits->pluck('financial_account_id')->unique()->all())
             ->where('status', BankTransactionStatus::Booked)
             ->where('currency', 'EUR')
@@ -83,8 +139,6 @@ final class BankFees
             ->where(fn (Builder $query) => $query->where('text', 'like', 'COMMISSIONI%')->orWhere('text', 'like', 'COMMISSIONE%'))
             ->whereNotIn('id', $rows->pluck('id')->all())
             ->get();
-
-        return array_map(static fn (object $pair): BankTransaction => $pair->fee, $this->match($rows->concat($outside)));
     }
 
     /**

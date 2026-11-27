@@ -26,7 +26,6 @@ use App\Services\Banks\BankFees;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
-use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
 use App\Support\PaymentTitle;
@@ -83,11 +82,10 @@ final class BankTransactionController extends Controller
                 $fees = $block['fees'];
                 $orphans = $block['orphans'];
 
-                // A commission never comes back every month: it is the debit that does
                 return $block['rows']
                     ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction(
                         $transaction,
-                        $show === 'unsorted' && ! BankText::isFee($transaction->text) && $texts->recurs($transaction),
+                        $show === 'unsorted' && $texts->recurs($transaction),
                         $show === 'all',
                         $fees[$transaction->id] ?? null,
                         in_array($transaction->id, $orphans, true),
@@ -271,9 +269,9 @@ final class BankTransactionController extends Controller
     /**
      * A block of the list *To sort*, newest first (a pending one by the day the bank gave), with one row more than
      * shown to know whether another block follows. A commission paired with a direct debit is not a row: its debit
-     * carries it (`fees`, by the id of the debit). One whose debit is still to sort but on another block is left out
-     * of this one, and shows under its debit on the block of the debit (`pairs()` reads the commissions that sit
-     * outside the block). One with no debit to sort is a row, an orphan (`orphans`, by id).
+     * carries it (`fees`, by the id of the debit). One whose debit is still to sort, on this block or another, is left
+     * out of its own block and shown under that debit; `BankFees::onPage()` decides both from `debitOf()`, so it shows
+     * once. One with no debit to sort is a row, an orphan (`orphans`, by id).
      *
      * @param  int  $page  the number of the block, from 1
      * @return array{rows: Collection<int, BankTransaction>, more: bool, fees: array<int, BankTransaction>, orphans: list<int>}
@@ -292,29 +290,9 @@ final class BankTransactionController extends Controller
             ->get();
 
         $shown = $rows->take(BankRows::PER_PAGE)->values();
-        $fees = $bankFees->pairs($shown);
-        $paired = array_map(static fn (BankTransaction $fee): int => $fee->id, $fees);
-        $orphans = [];
-        $rest = $shown->filter(function (BankTransaction $row) use ($bankFees, $paired, &$orphans): bool {
-            if (! BankText::isFee($row->text)) {
-                return true;
-            }
+        $found = $bankFees->onPage($shown);
+        $rest = $shown->reject(static fn (BankTransaction $row): bool => in_array($row->id, $found['hidden'], true))->values();
 
-            // Shown under its debit
-            if (in_array($row->id, $paired, true)) {
-                return false;
-            }
-
-            // Its debit may be on another block: then the commission is shown there, under the debit
-            if ($bankFees->debitOf($row) instanceof BankTransaction) {
-                return false;
-            }
-
-            $orphans[] = $row->id;
-
-            return true;
-        })->values();
-
-        return ['rows' => $rest, 'more' => $rows->count() > BankRows::PER_PAGE, 'fees' => $fees, 'orphans' => $orphans];
+        return ['rows' => $rest, 'more' => $rows->count() > BankRows::PER_PAGE, 'fees' => $found['fees'], 'orphans' => $found['orphans']];
     }
 }

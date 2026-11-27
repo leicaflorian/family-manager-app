@@ -428,3 +428,33 @@ it('a commission is not an orphan when its debit is on the next block', function
     $this->get(route('budget.bank.index', ['page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('rows', fn ($rows): bool => collect($rows)->firstWhere('id', $debit->id)['fee']['id'] === $fee->id));
 });
+
+it('a commission between two debits of one mandate on two blocks shows exactly once, under its own debit', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    // The commission is 2 days from the older debit and 3 from the newer one, which is on the first block
+    $newer = bankTransactionPagesSatispay($connection, '2026-11-08', '-10.00');
+    $fee = bankTransactionPagesSatispay($connection, '2026-11-05', '-0.40', true);
+    $older = bankTransactionPagesSatispay($connection, '2026-11-03', '-10.00');
+
+    foreach (range(1, 50) as $index) {
+        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'booked_on' => '2026-11-07', 'value_on' => '2026-11-07']);
+    }
+
+    $seen = [];
+    foreach ([1, 2] as $block) {
+        $this->get(route('budget.bank.index', ['page' => $block]))->assertInertia(function (AssertableInertia $page) use (&$seen, $fee): void {
+            $rows = collect($page->toArray()['props']['rows']);
+            foreach ($rows as $row) {
+                if ($row['id'] === $fee->id) {
+                    $seen[] = 'row';
+                }
+                if (($row['fee']['id'] ?? null) === $fee->id) {
+                    $seen[] = $row['id'];
+                }
+            }
+        });
+    }
+
+    expect($seen)->toBe([$older->id])
+        ->and($newer->id)->not->toBe($older->id);
+});

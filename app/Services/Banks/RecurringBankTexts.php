@@ -37,13 +37,15 @@ final class RecurringBankTexts
 
     /**
      * Whether the text of a transaction comes back every month on its account and in its direction: the same key
-     * `chain()` uses, so a row that says yes always has a run to start the planned form from.
+     * `chain()` uses, so a row that says yes always has a run to start the planned form from. A commission never does:
+     * it is its direct debit that comes back.
      *
      * @param  BankTransaction  $transaction  A transaction of the family.
      */
     public function recurs(BankTransaction $transaction): bool
     {
         return $transaction->status === BankTransactionStatus::Booked
+            && ! BankText::isFee($transaction->text)
             && $this->chain($transaction) !== null;
     }
 
