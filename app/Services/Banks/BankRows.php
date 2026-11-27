@@ -158,7 +158,6 @@ final class BankRows
             BankRowStatus::Linked => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->withoutFees()->where(static fn (Builder $query): Builder => $query->whereNotNull('expense_id')->orWhereNotNull('income_id')),
             BankRowStatus::Fee => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id'),
             BankRowStatus::Unsorted => $query->whereNull('ignored_at')->whereNull('transfer_account_id')->whereNull('expense_id')->whereNull('income_id'),
-            default => $query->whereRaw('1 = 0'),
         };
     }
 }
