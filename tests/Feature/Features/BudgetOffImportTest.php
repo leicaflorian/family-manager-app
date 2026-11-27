@@ -154,6 +154,12 @@ test('with the Budget off, an import that asks for money is refused', function (
     'the movement target' => [['targets' => ['movement' => 'new']], 'files.0.also.targets.movement'],
     'the consumption' => [['consumption' => true], 'files.0.also.consumption'],
     'a correction of the consumption' => [['overrides' => ['consumption' => ['quantity' => 10]]], 'files.0.also.overrides.consumption'],
+    'the expense of a supply' => [['supplies' => [0 => ['movement' => true]]], 'files.0.also.supplies.0.movement'],
+    'a due date of a supply' => [['supplies' => [0 => ['due' => true]]], 'files.0.also.supplies.0.due'],
+    'the consumption of a supply' => [['supplies' => [1 => ['consumption' => true]]], 'files.0.also.supplies.1.consumption'],
+    'a correction of the expense of a supply' => [['supplies' => [0 => ['overrides' => ['movement' => ['amount' => 10]]]]], 'files.0.also.supplies.0.overrides.movement'],
+    'a correction of the consumption of a supply' => [['supplies' => [1 => ['overrides' => ['consumption' => ['quantity' => 10]]]]], 'files.0.also.supplies.1.overrides.consumption'],
+    'the expense target of a supply' => [['supplies' => [0 => ['targets' => ['movement' => 'new']]]], 'files.0.also.supplies.0.targets.movement'],
 ]);
 
 test('with the Budget off, an import as the page sends it saves the document and the event, and no money', function (): void {

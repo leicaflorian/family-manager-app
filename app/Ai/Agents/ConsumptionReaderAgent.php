@@ -43,8 +43,8 @@ Rules:
 - total_amount: the total to pay of the bill, in euro, as a number.
 TXT;
 
-    /** When and how the model lists the supplies of a bill that has more than one. */
-    private const string SUPPLIES_RULE = '- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay; period_start, period_end and the consumption_* fields of the document are those of the first supply.';
+    /** When and how the model lists the supplies of a bill that has more than one, and what the fields of the document hold then. */
+    private const string SUPPLIES_RULE = ReadingPrompt::SUPPLIES_LIST.'; period_start, period_end and the consumption_* fields of the document are those of the first supply.';
 
     /** What goes to the model with the file. */
     public const string REQUEST = 'Read the consumption of this document.';

@@ -10,6 +10,7 @@ use App\Data\Reading\EventProposalData;
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\MovementProposalData;
 use App\Data\Reading\ProposalData;
+use App\Data\Reading\RecordDraftData;
 use App\Enums\Feature;
 use App\Enums\RecordKind;
 use App\Models\Document;
@@ -46,20 +47,26 @@ final class ImportRequest extends FormRequest
     /** Where what each file does too sits in the body. */
     private const string ALSO = 'files.%d.also.';
 
+    /** Where the choices of the supplies of a bill with more than one sit, under what the file does too. */
+    private const string SUPPLY = 'supplies.%d.';
+
+    /** The places of the rules of what a file does too: of the file, and of each supply of a bill with more than one. */
+    private const array PLACES = ['files.*.also.', 'files.*.also.supplies.*.'];
+
     /** A text correction, as long as a text field of the forms. */
     private const array TEXT = ['nullable', 'string', 'max:255'];
 
     /** An amount correction, bound as the amount of the expense form. */
     private const array PRICE = ['nullable', 'numeric', 'min:0', 'max:99999999'];
 
-    /** @var array<string, list<string>> the rules of the money choices when the Budget is off: only a refusal (`false`) or nothing passes */
+    /** @var array<string, list<string>> the rules of the money choices when the Budget is off, of the file and of each supply: only a refusal (`false`) or nothing passes */
     private const array MONEY_OFF = [
-        'files.*.also.movement' => ['sometimes', 'nullable', 'declined'],
-        'files.*.also.consumption' => ['sometimes', 'nullable', 'declined'],
-        'files.*.also.due' => ['sometimes', 'nullable', 'declined'],
-        'files.*.also.overrides.movement' => ['prohibited'],
-        'files.*.also.overrides.consumption' => ['prohibited'],
-        'files.*.also.targets.movement' => ['prohibited'],
+        'movement' => ['sometimes', 'nullable', 'declined'],
+        'consumption' => ['sometimes', 'nullable', 'declined'],
+        'due' => ['sometimes', 'nullable', 'declined'],
+        'overrides.movement' => ['prohibited'],
+        'overrides.consumption' => ['prohibited'],
+        'targets.movement' => ['prohibited'],
     ];
 
     /**
@@ -90,11 +97,8 @@ final class ImportRequest extends FormRequest
             'files.*' => ['required', 'array:file_id,document,also'],
             'files.*.file_id' => [...DocumentRules::fileId(), 'distinct'],
             'files.*.document' => ['required', 'array'],
-            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type,replace_policies,consumption'],
-            'files.*.also.movement' => ['sometimes', 'boolean'],
+            'files.*.also' => ['sometimes', 'array:movement,event,records,overrides,targets,due,policy,create_card,card_type,replace_policies,consumption,supplies'],
             'files.*.also.event' => ['sometimes', 'boolean'],
-            'files.*.also.consumption' => ['sometimes', 'boolean'],
-            'files.*.also.due' => ['sometimes', 'nullable', 'boolean'],
             'files.*.also.create_card' => ['sometimes', 'boolean'],
             // The card of the proposal the page showed: the choices of its box are dropped for another card
             'files.*.also.card_type' => ['sometimes', 'nullable', 'string', 'max:50'],
@@ -102,35 +106,35 @@ final class ImportRequest extends FormRequest
             'files.*.also.records' => ['sometimes', 'array', 'list'],
             // The old policies to cancel: only the ones proposed are taken, read again when saving
             'files.*.also.replace_policies' => ['sometimes', 'array', 'list', 'max:20'],
-            'files.*.also.overrides' => ['sometimes', 'array'],
-            'files.*.also.overrides.movement' => ['sometimes', 'array'],
-            // The ids of the corrections go into new rows: only those of the family
-            'files.*.also.overrides.movement.category_id' => ['nullable', new OfFamily('expense_categories')],
-            'files.*.also.overrides.movement.organization_id' => ['nullable', new OfFamily('organizations')],
-            'files.*.also.overrides.movement.financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'files.*.also.overrides.records' => ['sometimes', 'array'],
             'files.*.also.overrides.records.*' => ['array'],
             'files.*.also.overrides.records.*.home_id' => ['nullable', new OfFamily('homes')],
             // The fields of the box of the card of the category depend on its type: each is bound as a text field
             'files.*.also.overrides.records.card.*' => ['nullable', 'max:255'],
             'files.*.also.targets' => ['sometimes', 'array'],
-            // The corrections are bound as in the forms of the expense and of the cards
-            'files.*.also.overrides.movement.title' => self::TEXT,
-            'files.*.also.overrides.movement.amount' => self::PRICE,
-            'files.*.also.overrides.movement.fee_amount' => self::PRICE,
             'files.*.also.overrides.event' => ['sometimes', 'array'],
             'files.*.also.overrides.event.title' => self::TEXT,
             'files.*.also.overrides.event.outcome' => self::TEXT,
-            'files.*.also.overrides.consumption' => ['sometimes', 'array'],
-            'files.*.also.overrides.consumption.quantity' => ['nullable', 'numeric', 'gt:0', 'max:'.ImportChoices::MAX_QUANTITY, 'decimal:0,3'],
-            'files.*.also.overrides.consumption.period_start' => ['nullable', 'date_format:Y-m-d'],
-            'files.*.also.overrides.consumption.period_end' => ['nullable', 'date_format:Y-m-d'],
-            'files.*.also.overrides.consumption.is_estimated' => ['sometimes', 'boolean'],
+            // The choices of each supply of a bill with more than one, as those of a bill alone
+            'files.*.also.supplies' => ['sometimes', 'array', 'max:'.ImportChoices::MAX_SUPPLIES],
+            'files.*.also.supplies.*' => ['array:movement,record,consumption,due,targets,overrides'],
+            'files.*.also.supplies.*.record' => ['sometimes', 'boolean'],
+            'files.*.also.supplies.*.targets' => ['sometimes', 'array'],
+            'files.*.also.supplies.*.overrides.record' => ['sometimes', 'array'],
+            'files.*.also.supplies.*.overrides.record.home_id' => ['nullable', new OfFamily('homes')],
         ];
+
+        foreach (self::PLACES as $place) {
+            $rules += $this->moneyRules($place);
+        }
 
         // Without the Budget nothing about money is accepted: the page does not send it, so a body that does is wrong
         if (! resolve(FamilyFeatures::class)->on(Feature::Budget)) {
-            $rules = [...$rules, ...self::MONEY_OFF];
+            foreach (self::PLACES as $place) {
+                foreach (self::MONEY_OFF as $key => $rule) {
+                    $rules[$place.$key] = $rule;
+                }
+            }
         }
 
         foreach (ImportChoices::RECORD_FIELDS as $kind => $fields) {
@@ -142,22 +146,57 @@ final class ImportRequest extends FormRequest
                 };
                 if ($bound !== null) {
                     $rules[sprintf('files.*.also.overrides.records.%s.%s', $kind, $field)] = $bound;
+                    if ($kind === RecordKind::Utility->value) {
+                        $rules[sprintf('files.*.also.supplies.*.overrides.record.%s', $field)] = $bound;
+                    }
                 }
             }
         }
 
         foreach (array_keys($this->array('files')) as $index) {
-            // The last day of a corrected period is not before the first, when both are corrected
-            if ($this->filled(sprintf('files.%s.also.overrides.consumption.period_start', $index))) {
-                $rules[sprintf('files.%s.also.overrides.consumption.period_end', $index)] = [
-                    'nullable', 'date_format:Y-m-d', sprintf('after_or_equal:files.%s.also.overrides.consumption.period_start', $index),
-                ];
+            $also = sprintf('files.%s.also.', $index);
+            $places = [$also, ...array_map(static fn (int|string $supply): string => $also.sprintf(self::SUPPLY, $supply), array_keys($this->array($also.'supplies')))];
+            foreach ($places as $place) {
+                // The last day of a corrected period is not before the first, when both are corrected
+                if ($this->filled($place.'overrides.consumption.period_start')) {
+                    $rules[$place.'overrides.consumption.period_end'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$place.'overrides.consumption.period_start'];
+                }
             }
 
             $rules += DocumentRules::rules($this->input(sprintf('files.%s.document.links', $index)), sprintf(self::DOCUMENT, $index));
         }
 
         return $rules;
+    }
+
+    /**
+     * The rules of the boxes and corrections of the expense and of the consumption, of a file or of one supply.
+     *
+     * @param  string  $place  where they sit (`files.*.also.` or `files.*.also.supplies.*.`)
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function moneyRules(string $place): array
+    {
+        return [
+            $place.'movement' => ['sometimes', 'boolean'],
+            $place.'consumption' => ['sometimes', 'boolean'],
+            $place.'due' => ['sometimes', 'nullable', 'boolean'],
+            $place.'overrides' => ['sometimes', 'array'],
+            $place.'overrides.movement' => ['sometimes', 'array'],
+            // The ids of the corrections go into new rows: only those of the family
+            $place.'overrides.movement.category_id' => ['nullable', new OfFamily('expense_categories')],
+            $place.'overrides.movement.organization_id' => ['nullable', new OfFamily('organizations')],
+            $place.'overrides.movement.financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
+            // The corrections are bound as in the forms of the expense and of the cards
+            $place.'overrides.movement.title' => self::TEXT,
+            $place.'overrides.movement.amount' => self::PRICE,
+            $place.'overrides.movement.fee_amount' => self::PRICE,
+            $place.'overrides.consumption' => ['sometimes', 'array'],
+            $place.'overrides.consumption.quantity' => ['nullable', 'numeric', 'gt:0', 'max:'.ImportChoices::MAX_QUANTITY, 'decimal:0,3'],
+            $place.'overrides.consumption.period_start' => ['nullable', 'date_format:Y-m-d'],
+            $place.'overrides.consumption.period_end' => ['nullable', 'date_format:Y-m-d'],
+            $place.'overrides.consumption.is_estimated' => ['sometimes', 'boolean'],
+        ];
     }
 
     /**
@@ -241,8 +280,45 @@ final class ImportRequest extends FormRequest
      */
     private function problems(ProposalData $proposal, ImportChoices $choices): array
     {
+        $problems = [
+            ...$this->moneyProblems($proposal->movement, $proposal->consumption, $choices),
+            ...$this->recordProblems($proposal->records, $choices, $proposal->cardType),
+        ];
+
+        $target = $choices->targets['event'];
+        if (is_int($target) && HealthEvent::query()->find($target) === null) {
+            $problems['targets.event'] = ImportErrors::gone('event');
+        } elseif ($choices->event && $proposal->event instanceof EventProposalData && $proposal->event->existing === null && $proposal->event->blocked !== null) {
+            $problems['event'] = ImportErrors::event();
+        }
+
+        // Each supply of a bill with more than one, with its own choices; its utility box is `record`
+        foreach ($proposal->supplies as $supply) {
+            $own = $choices->forSupply($supply->index);
+            $found = [
+                ...$this->moneyProblems($supply->movement, $supply->consumption, $own),
+                ...$this->recordProblems($supply->record instanceof RecordDraftData ? [$supply->record] : [], $own, null),
+            ];
+            foreach ($found as $key => $message) {
+                $key = strtr($key, ['targets.records.'.RecordKind::Utility->value => 'targets.record', 'records.'.RecordKind::Utility->value => 'record']);
+                $problems[sprintf(self::SUPPLY, $supply->index).$key] = $message;
+            }
+        }
+
+        return $problems;
+    }
+
+    /**
+     * What stops the expense or income and the consumption, of a file or of one supply.
+     *
+     * @param  MovementProposalData|null  $movement  the movement side
+     * @param  ConsumptionProposalData|null  $consumption  the consumption side
+     * @param  ImportChoices  $choices  the choices of the file, or of the supply
+     * @return array<string, string>
+     */
+    private function moneyProblems(?MovementProposalData $movement, ?ConsumptionProposalData $consumption, ImportChoices $choices): array
+    {
         $problems = [];
-        $movement = $proposal->movement;
         $kind = $movement->values->kind ?? 'expense';
 
         $target = $choices->targets['movement'];
@@ -252,31 +328,38 @@ final class ImportRequest extends FormRequest
             $problems['movement'] = ImportErrors::movement($kind, $movement->due instanceof DueData && ($choices->due ?? $movement->due->suggested));
         }
 
-        $target = $choices->targets['event'];
-        if (is_int($target) && HealthEvent::query()->find($target) === null) {
-            $problems['targets.event'] = ImportErrors::gone('event');
-        } elseif ($choices->event && $proposal->event instanceof EventProposalData && $proposal->event->existing === null && $proposal->event->blocked !== null) {
-            $problems['event'] = ImportErrors::event();
-        }
-
-        $consumption = $proposal->consumption;
         if ($consumption instanceof ConsumptionProposalData && $consumption->blocked !== null && ($choices->consumption ?? $consumption->suggested)) {
             $problems['consumption'] = $consumption->blocked;
         }
 
-        foreach ($choices->recordTargets($proposal->cardType) as $kind => $target) {
+        return $problems;
+    }
+
+    /**
+     * What stops the boxes of the cards: a card picked by hand no longer there, a ticked new card missing its fields.
+     *
+     * @param  list<RecordDraftData>  $drafts  the boxes
+     * @param  ImportChoices  $choices  the choices of the file, or of the supply
+     * @param  string|null  $cardType  the type of the card of the document category
+     * @return array<string, string>
+     */
+    private function recordProblems(array $drafts, ImportChoices $choices, ?string $cardType): array
+    {
+        $problems = [];
+
+        foreach ($choices->recordTargets($cardType) as $kind => $target) {
             // A card of the category picked by hand needs its type; without one there is no such box
-            if ($kind === RecordKind::Card->value && $proposal->cardType === null) {
+            if ($kind === RecordKind::Card->value && $cardType === null) {
                 continue;
             }
 
-            $model = RecordLabel::model(RecordKind::from($kind), $proposal->cardType);
+            $model = RecordLabel::model(RecordKind::from($kind), $cardType);
             if (is_int($target) && $model::query()->find($target) === null) {
                 $problems['targets.records.'.$kind] = ImportErrors::gone('card');
             }
         }
 
-        foreach ($proposal->records as $draft) {
+        foreach ($drafts as $draft) {
             if (in_array($draft->kind, $choices->records, true) && $draft->existing === null && $draft->missing !== [] && ! isset($problems['targets.records.'.$draft->kind->value])) {
                 $problems['records.'.$draft->kind->value] = ImportErrors::record($draft->title, $draft->missing);
             }

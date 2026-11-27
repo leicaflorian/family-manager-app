@@ -48,8 +48,11 @@ TXT."\n".self::SUPPLIES_RULE."\n".<<<'TXT'
 - confidence: low if the document is hard to read or you are unsure what it is.
 TXT;
 
-    /** The rule of the supplies of a dual-fuel bill: one entry per supply, the document fields from the first one. */
-    public const string SUPPLIES_RULE = '- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay, due_date the single deadline, customer_code the customer code; supply_point_code, utility_type and the consumption_* fields of the document are those of the first supply.';
+    /** When the model lists the supplies of a bill that has more than one, and how: the part shared with the short reading of the consumption. */
+    public const string SUPPLIES_LIST = '- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay';
+
+    /** When and how the model lists the supplies of a bill that has more than one, and what the fields of the document hold then. */
+    public const string SUPPLIES_RULE = self::SUPPLIES_LIST.', due_date the single deadline, customer_code the customer code; supply_point_code, utility_type and the consumption_* fields of the document are those of the first supply.';
 
     /** The rule of the period of a bill or payslip, shared with the short reading of the consumption. */
     public const string PERIOD_RULE = <<<'TXT'

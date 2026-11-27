@@ -248,6 +248,11 @@ final readonly class Proposal
      */
     private function consumption(Extraction $x, DocumentProposalData $document, array $records, ImportChoices $choices): ?ConsumptionProposalData
     {
+        // Before looking for the utility: most papers are not a bill with a consumption
+        if (! $this->readsConsumption($x)) {
+            return null;
+        }
+
         $links = array_key_exists('links', $choices->document) ? DocumentRules::links($choices->document['links']) : $document->links;
         $ids = array_column(array_filter($links, static fn (array $link): bool => $link['type'] === 'utility'), 'id');
         $utility = $ids === [] ? null : Utility::query()->whereKey($ids)->orderBy('id')->get()
@@ -258,6 +263,16 @@ final readonly class Proposal
         $utility ??= $draft instanceof RecordDraftData && $draft->existing !== null ? Utility::query()->find($draft->existing['id']) : null;
 
         return $this->consumptionOf($x, $utility, $utility instanceof Utility ? null : $this->createdType($draft, $choices), $choices);
+    }
+
+    /**
+     * Whether the reading is of a utility bill that found a consumption: only that proposes one.
+     *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply
+     */
+    private function readsConsumption(Extraction $x): bool
+    {
+        return $x->kind === 'utility_bill' && ($x->consumption_quantity !== null || $x->consumption_unit !== null);
     }
 
     /**
@@ -287,7 +302,7 @@ final readonly class Proposal
      */
     private function consumptionOf(Extraction $x, ?Utility $utility, ?UtilityType $created, ImportChoices $choices): ?ConsumptionProposalData
     {
-        if ($x->kind !== 'utility_bill' || ($x->consumption_quantity === null && $x->consumption_unit === null)) {
+        if (! $this->readsConsumption($x)) {
             return null;
         }
 
