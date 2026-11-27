@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankTransactionStatus;
 use App\Models\BankConnection;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
@@ -70,7 +71,7 @@ test('reads the filters once for many transactions', function (): void {
     BankFilter::factory()->for($family)->create(['contains' => ['edison']]);
     $transactions = BankTransaction::factory()->for($family)->count(5)->create(['financial_account_id' => $account->id, 'text' => 'EDISON', 'amount' => '-5.00']);
     $filters = new BankFilters;
-    $filters->matching($transactions->first());
+    $filters->matching($transactions->firstOrFail());
 
     DB::enableQueryLog();
     foreach ($transactions as $transaction) {
@@ -117,4 +118,23 @@ test("never reads another family's filters or transactions", function (): void {
     expect((new BankFilters)->matching($mine))->toBeEmpty()
         ->and((new BankFilters)->taken(new BankFilterCriteria(contains: ['edison']))->pluck('id')->all())->toBe([$mine->id])
         ->and($foreign->id)->not->toBe($mine->id);
+});
+
+test('a pending or non-euro transaction matches no filter', function (): void {
+    [$family, $account] = bankFiltersFamily();
+    BankFilter::factory()->for($family)->create(['contains' => ['edison']]);
+    $make = fn (array $extra) => BankTransaction::factory()->for($family)->create(['financial_account_id' => $account->id, 'text' => 'EDISON', 'amount' => '-5.00', ...$extra]);
+    $filters = new BankFilters;
+
+    expect($filters->matching($make(['status' => BankTransactionStatus::Pending])))->toBeEmpty()
+        ->and($filters->matching($make(['currency' => 'USD'])))->toBeEmpty()
+        ->and($filters->matching($make([])))->toHaveCount(1);
+});
+
+test('taken leaves out non-euro rows', function (): void {
+    [$family, $account] = bankFiltersFamily();
+    $euro = BankTransaction::factory()->for($family)->create(['financial_account_id' => $account->id, 'text' => 'EDISON', 'amount' => '-5.00']);
+    BankTransaction::factory()->for($family)->create(['financial_account_id' => $account->id, 'text' => 'EDISON', 'amount' => '-5.00', 'currency' => 'USD']);
+
+    expect((new BankFilters)->taken(new BankFilterCriteria(contains: ['edison']))->pluck('id')->all())->toBe([$euro->id]);
 });

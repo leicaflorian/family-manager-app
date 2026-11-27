@@ -32,20 +32,27 @@ final class BankFilters
     private ?Collection $filters = null;
 
     /**
-     * The filters that take the transaction, oldest first. A filter whose criteria are not safe never takes one.
+     * The filters that take the transaction, oldest first. A filter whose criteria are not safe never takes one, and
+     * neither does a transaction that is not booked or not in euros. Whether it is already linked, ignored or a transfer
+     * is not said here: whoever applies a filter checks `unsorted()` (`taken()` lists linked ones on purpose, to show
+     * what a filter already did).
      *
      * @param  BankTransaction  $transaction  the transaction
      * @return Collection<int, BankFilter>
      */
     public function matching(BankTransaction $transaction): Collection
     {
+        if ($transaction->status !== BankTransactionStatus::Booked || $transaction->currency !== 'EUR') {
+            return new Collection;
+        }
+
         return $this->all()
             ->filter(static fn (BankFilter $filter): bool => BankFilterMatch::matches($filter->criteria(), $transaction))
             ->values();
     }
 
     /**
-     * The booked transactions of the last days that the criteria take, linked ones included, newest first.
+     * The booked euro transactions of the last days that the criteria take, linked ones included, newest first.
      *
      * @param  BankFilterCriteria  $criteria  what the filter takes
      * @param  int  $days  how many days back to look
@@ -63,6 +70,7 @@ final class BankFilters
         return BankTransaction::query()
             ->with('financialAccount')
             ->where('status', BankTransactionStatus::Booked)
+            ->where('currency', 'EUR')
             ->where('booked_on', '>=', CarbonImmutable::today('Europe/Rome')->subDays($days))
             ->where('amount', $criteria->direction === 'income' ? '>' : '<', 0)
             ->when($account !== null, static fn ($query) => $query->where('financial_account_id', $account))
