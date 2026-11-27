@@ -13,7 +13,9 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankDuplicates;
 use App\Services\Banks\BankMatcher;
+use App\Services\Banks\BankSplit;
 use App\Services\Deadlines;
+use App\Support\Banks\BankSplitMatch;
 use App\Support\Deadline;
 use App\Support\PlannedKind;
 use Carbon\CarbonImmutable;
@@ -36,6 +38,7 @@ final readonly class SettleFromBank
         private Deadlines $deadlines,
         private RecordPayment $recordPayment,
         private NotifyBankPayment $notify,
+        private BankSplit $split,
     ) {}
 
     /**
@@ -94,7 +97,7 @@ final readonly class SettleFromBank
 
             try {
                 try {
-                    $payment = $this->pay($current, $planned, $deadline);
+                    $payment = $this->record($current, $deadline, abs((float) $current->amount));
                 } catch (ValidationException) {
                     // Paid by somebody who did not wait for the lock: only the payment rolled back, the lock is still held
                     return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate));
@@ -106,25 +109,128 @@ final readonly class SettleFromBank
 
             $this->link($current, $payment, $by);
             // Who assigned it by hand knows already; a rule tells everyone
-            $assigner = $by === BankMatchSource::Assigned ? Auth::guard('web')->id() : null;
-            $this->notify->handle($current, $payment, $deadline, is_numeric($assigner) ? (int) $assigner : null);
+            $this->notify->handle($current, $payment, $deadline, $this->assigner($by));
 
             return $payment;
         });
     }
 
     /**
-     * Records the payment of the due date as the bank tells it.
+     * Settles a debit that pays more planned expenses together (`BankSplit`), in one transaction. The bank transaction
+     * is locked first, then the planned expenses in order of id, before anything is read, as in `handle`. Under the
+     * locks the split is found again: when it is no longer the same (a due date paid or changed meanwhile) nothing is
+     * written and the debit goes to the rule of one planned expense.
+     *
+     * - `pay`: one payment for each due date, for the amount of the due date, on the day the debit was booked and on
+     *   its account, and one notice for everyone in the family about the debit;
+     * - `link`: the payments already recorded, without a notice.
+     *
+     * Every payment gets the debit in `bank_transaction_id`, and the debit is linked to the first one (`$by` for `pay`,
+     * `Duplicate` for `link`). A transaction declined by *It was not this one* is settled only for `Assigned`.
+     *
+     * @param  BankTransaction  $transaction  The transaction of the bank.
+     * @param  BankSplitMatch  $match  The split found before the locks.
+     * @param  BankMatchSource  $by  How it was recognised: by a rule, or by the person.
+     * @return list<Expense> the payments, in order of id of their planned expense; empty when nothing was settled
+     */
+    public function split(BankTransaction $transaction, BankSplitMatch $match, BankMatchSource $by): array
+    {
+        return DB::transaction(function () use ($transaction, $match, $by): array {
+            $current = BankTransaction::query()->unsorted()
+                ->when($by !== BankMatchSource::Assigned, static fn (Builder $query): Builder => $query->whereNull('declined_at'))
+                ->whereKey($transaction->id)->lockForUpdate()->first();
+
+            if (! $current instanceof BankTransaction || ! $current->booked_on instanceof CarbonImmutable) {
+                return [];
+            }
+
+            $planned = array_map(static fn (Deadline $deadline): PlannedExpense|PlannedIncome => $deadline->planned, $match->deadlines);
+            usort($planned, static fn (PlannedExpense|PlannedIncome $a, PlannedExpense|PlannedIncome $b): int => $a->id <=> $b->id);
+
+            foreach ($planned as $item) {
+                PlannedKind::lock($item);
+            }
+
+            $again = $this->split->find($current);
+
+            if (! $again instanceof BankSplitMatch || ! $match->sameAs($again)) {
+                return [];
+            }
+
+            $payments = $again->mode === 'pay' ? $this->payAll($current, $again) : $again->payments;
+
+            if ($payments === []) {
+                return [];
+            }
+
+            foreach ($payments as $payment) {
+                $payment->forceFill(['bank_transaction_id' => $current->id])->save();
+            }
+
+            $this->link($current, $payments[0], $again->mode === 'pay' ? $by : BankMatchSource::Duplicate);
+
+            if ($again->mode === 'pay') {
+                $this->notify->handleSplit($current, $payments, $this->assigner($by));
+            }
+
+            return $payments;
+        });
+    }
+
+    /**
+     * Records one payment for each due date of a split, for the amount of the due date, all or none: a due date paid
+     * or gone meanwhile rolls back the ones already written and gives none.
      *
      * @param  BankTransaction  $transaction  The transaction, locked.
-     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
+     * @param  BankSplitMatch  $match  The split, found under the locks.
+     * @return list<Expense>
+     */
+    private function payAll(BankTransaction $transaction, BankSplitMatch $match): array
+    {
+        try {
+            return DB::transaction(function () use ($transaction, $match): array {
+                $payments = [];
+
+                foreach ($match->deadlines as $deadline) {
+                    $payment = $this->record($transaction, $deadline, $deadline->occurrence->amount);
+
+                    if ($payment instanceof Expense) {
+                        $payments[] = $payment;
+                    }
+                }
+
+                return $payments;
+            });
+        } catch (ValidationException|NotFoundHttpException) {
+            return [];
+        }
+    }
+
+    /**
+     * The account that assigned the transaction by hand, who knows already and gets no notice; none for a rule.
+     *
+     * @param  BankMatchSource  $by  How it was recognised.
+     */
+    private function assigner(BankMatchSource $by): ?int
+    {
+        $assigner = $by === BankMatchSource::Assigned ? Auth::guard('web')->id() : null;
+
+        return is_numeric($assigner) ? (int) $assigner : null;
+    }
+
+    /**
+     * Records the payment of a due date for an amount, on the day the transaction was booked and on its account, with
+     * the fee of the planned expense when it is smaller than the amount.
+     *
+     * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  Deadline  $deadline  The due date it settles.
+     * @param  float  $amount  The amount of the payment.
      *
      * @throws ValidationException if the due date is already paid
      */
-    private function pay(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, Deadline $deadline): Expense|Income
+    private function record(BankTransaction $transaction, Deadline $deadline, float $amount): Expense|Income
     {
-        $amount = abs((float) $transaction->amount);
+        $planned = $deadline->planned;
         $fee = $planned instanceof PlannedExpense ? (float) $planned->fee_amount : 0.0;
 
         // The bank says the whole amount, commission included: a commission as big as the amount cannot be part of it

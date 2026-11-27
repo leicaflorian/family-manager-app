@@ -141,8 +141,8 @@ final class DocumentController extends Controller
 
         DB::transaction(function () use ($document, $store, $forget): void {
             $this->links->sync($document, []);
-            // The row read from the bill goes with it; a row written by hand stays, its link emptied by the database
-            $document->consumption()->where('source', ConsumptionSource::Reading)->delete();
+            // The rows read from the bill go with it (one per utility); a row written by hand stays, its link emptied by the database
+            $document->consumptions()->where('source', ConsumptionSource::Reading)->delete();
             // The deleted document takes its open automatic reminders with it (DeadlineObserver) through their rows, so the rows go after.
             $document->delete();
             $forget->handle($document);

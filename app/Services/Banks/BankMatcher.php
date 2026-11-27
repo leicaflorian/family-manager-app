@@ -28,32 +28,14 @@ final readonly class BankMatcher
     public function __construct(private Deadlines $deadlines, private Occurrences $occurrences) {}
 
     /**
-     * The planned item the transaction pays: among the planned expenses (for money out) or incomes (for money in)
-     * that have a rule, have not ended before the day, read the account of the transaction (`RuleAccount`) and whose rule
-     * matches the text,
-     * the only one, or the one whose planned amount (amount plus fee) is closest to the amount of the transaction.
-     * Two at the same distance give none.
+     * The planned item the transaction pays: among the candidates (`candidates`), the only one, or the one whose
+     * planned amount (amount plus fee) is closest to the amount of the transaction. Two at the same distance give none.
      *
      * @param  BankTransaction  $transaction  The transaction.
      */
     public function planned(BankTransaction $transaction): PlannedExpense|PlannedIncome|null
     {
-        if ($transaction->currency !== 'EUR' || ! $transaction->booked_on instanceof CarbonImmutable) {
-            return null;
-        }
-
-        $day = $transaction->booked_on->toDateString();
-        $query = $transaction->kind() === 'expense' ? PlannedExpense::query() : PlannedIncome::query();
-
-        /** @var Collection<int, PlannedExpense|PlannedIncome> $candidates */
-        $candidates = $query
-            ->whereNotNull('bank_match')
-            ->where('bank_match', '!=', '')
-            ->where(static fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $day))
-            ->get()
-            ->filter(static fn (PlannedExpense|PlannedIncome $planned): bool => BankMatch::matches((string) $planned->bank_match, (string) $transaction->text)
-                && RuleAccount::reads($planned->financial_account_id, $transaction->financial_account_id))
-            ->values();
+        $candidates = $this->candidates($transaction);
 
         if ($candidates->count() <= 1) {
             return $candidates->first();
@@ -72,6 +54,37 @@ final readonly class BankMatcher
         }
 
         return $first;
+    }
+
+    /**
+     * The planned items that recognise the transaction: the planned expenses (for money out) or incomes (for money in)
+     * that have a rule, have not ended before the day, read the account of the transaction (`RuleAccount`) and whose
+     * rule matches the text. None for a transaction not in euros or not booked.
+     *
+     * @param  BankTransaction  $transaction  The transaction.
+     * @return Collection<int, PlannedExpense|PlannedIncome>
+     */
+    public function candidates(BankTransaction $transaction): Collection
+    {
+        if ($transaction->currency !== 'EUR' || ! $transaction->booked_on instanceof CarbonImmutable) {
+            return new Collection;
+        }
+
+        $day = $transaction->booked_on->toDateString();
+        $query = $transaction->kind() === 'expense' ? PlannedExpense::query() : PlannedIncome::query();
+
+        /** @var Collection<int, PlannedExpense|PlannedIncome> $candidates */
+        $candidates = $query
+            ->whereNotNull('bank_match')
+            ->where('bank_match', '!=', '')
+            ->where(static fn ($query) => $query->whereNull('end_date')->orWhere('end_date', '>=', $day))
+            ->orderBy('id')
+            ->get()
+            ->filter(static fn (PlannedExpense|PlannedIncome $planned): bool => BankMatch::matches((string) $planned->bank_match, (string) $transaction->text)
+                && RuleAccount::reads($planned->financial_account_id, $transaction->financial_account_id))
+            ->values();
+
+        return $candidates;
     }
 
     /**

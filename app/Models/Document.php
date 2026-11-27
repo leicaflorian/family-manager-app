@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 use LogicException;
@@ -50,7 +49,6 @@ use LogicException;
  * @property-read Collection<int, Belonging> $belongings
  * @property-read int|null $belongings_count
  * @property-read DocumentCategory|null $category
- * @property-read UtilityConsumption|null $consumption
  * @property-read Collection<int, UtilityConsumption> $consumptions
  * @property-read int|null $consumptions_count
  * @property-read Collection<int, Employment> $employments
@@ -126,16 +124,6 @@ final class Document extends FamilyModel
     public function file(): BelongsTo
     {
         return $this->belongsTo(File::class);
-    }
-
-    /**
-     * The consumption row read from this bill, if any (a row written by hand has no document once the bill is gone).
-     *
-     * @return HasOne<UtilityConsumption, $this>
-     */
-    public function consumption(): HasOne
-    {
-        return $this->hasOne(UtilityConsumption::class);
     }
 
     /**

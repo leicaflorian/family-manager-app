@@ -4,21 +4,25 @@ declare(strict_types=1);
 
 use App\Actions\Families\CreateFamily;
 use App\Enums\DocumentStatus;
+use App\Enums\ExceptionType;
 use App\Enums\InsurancePolicyStatus;
 use App\Enums\IntervalUnit;
 use App\Enums\ReminderStatus;
 use App\Enums\SubscriptionStatus;
 use App\Enums\UtilityType;
+use App\Models\BankTransaction;
 use App\Models\Document;
 use App\Models\Employment;
 use App\Models\Family;
 use App\Models\FamilySetting;
+use App\Models\FinancialAccount;
 use App\Models\InsurancePolicy;
 use App\Models\Loan;
 use App\Models\MaintenanceRecord;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
+use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
 use App\Models\Reminder;
 use App\Models\Subscription;
@@ -238,4 +242,51 @@ function mailServerDown(): void
 {
     config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1, 'mail.mailers.smtp.timeout' => 2]);
     Mail::swap(new MailManager(app()));
+}
+
+/**
+ * The dual-fuel Enel bill of the Bianchi, inside the current family: *Luce* (72,00 € estimated, monthly from
+ * 23/01/2026) and *Gas* (55,00 € estimated, monthly from 30/10/2026), both with the rule `ENEL ENERGIA` on *Conto BPER*
+ * (4821), with the exceptions of 96,25 € on 23/11/2026 and 69,40 € on 30/11/2026, and the bill of 05/11/2026 waiting
+ * on both.
+ *
+ * @return array{luce: PlannedExpense, gas: PlannedExpense, account: FinancialAccount, document: Document}
+ */
+function enelDualFuelBill(): array
+{
+    $family = CurrentFamily::id();
+    $account = FinancialAccount::factory()->create(['family_id' => $family, 'name' => 'Conto BPER', 'last_four_digits' => '4821']);
+    $planned = static function (string $title, float $amount, string $start, string $due, float $override) use ($family, $account): PlannedExpense {
+        $expense = PlannedExpense::factory()->create([
+            'family_id' => $family, 'title' => $title, 'amount' => $amount, 'fee_amount' => null, 'is_estimated' => true,
+            'start_date' => $start, 'end_date' => null, 'bank_match' => 'ENEL ENERGIA', 'financial_account_id' => $account->id,
+        ]);
+        PlannedExpenseException::factory()->create([
+            'family_id' => $family, 'planned_expense_id' => $expense->id, 'occurrence_date' => $due,
+            'type' => ExceptionType::AmountOverride, 'amount_override' => $override,
+        ]);
+
+        return $expense;
+    };
+    $luce = $planned('Luce', 72.0, '2026-01-23', '2026-11-23', 96.25);
+    $gas = $planned('Gas', 55.0, '2026-10-30', '2026-11-30', 69.40);
+    $document = Document::factory()->create(['family_id' => $family, 'title' => 'Bolletta luce e gas novembre 2026', 'date' => '2026-11-05', 'planned_expense_id' => null]);
+    $document->waitOn($luce);
+    $document->waitOn($gas);
+
+    return ['luce' => $luce, 'gas' => $gas, 'account' => $account, 'document' => $document];
+}
+
+/**
+ * The Enel debit of the dual-fuel bill on *Conto BPER*, booked on 21/11/2026, inside the current family.
+ *
+ * @param  FinancialAccount  $account  *Conto BPER*
+ * @param  string  $amount  the amount, with the sign
+ */
+function enelDualFuelDebit(FinancialAccount $account, string $amount = '-165.65'): BankTransaction
+{
+    return BankTransaction::factory()->create([
+        'family_id' => CurrentFamily::id(), 'financial_account_id' => $account->id, 'text' => 'ADDEBITO SDD ENEL ENERGIA SPA',
+        'amount' => $amount, 'booked_on' => '2026-11-21', 'value_on' => '2026-11-21',
+    ]);
 }

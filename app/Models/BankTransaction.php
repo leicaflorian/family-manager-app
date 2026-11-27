@@ -11,9 +11,11 @@ use Database\Factories\BankTransactionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -45,12 +47,15 @@ use Illuminate\Support\Facades\Config;
  * @property-read Family $family
  * @property-read FinancialAccount $financialAccount
  * @property-read Income|null $income
+ * @property-read Collection<int, Expense> $splitExpenses
+ * @property-read int|null $split_expenses_count
  *
  * @method static BankTransactionFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankTransaction ignored()
  * @method static Builder<static>|BankTransaction newModelQuery()
  * @method static Builder<static>|BankTransaction newQuery()
  * @method static Builder<static>|BankTransaction query()
+ * @method static Builder<static>|BankTransaction splitHeads()
  * @method static Builder<static>|BankTransaction unsorted()
  *
  * @mixin \Eloquent
@@ -122,13 +127,19 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
-     * Links the transaction to the expense or income it belongs to and saves it. The caller has the row locked.
+     * Links the transaction to the expense or income it belongs to and saves it. A movement that is not one of the
+     * expenses the debit paid together ends that split (`releaseSplit`). The caller has the row locked.
      *
      * @param  Expense|Income  $movement  The movement.
      * @param  BankMatchSource  $by  How the link came.
      */
     public function linkTo(Expense|Income $movement, BankMatchSource $by): void
     {
+        // A movement outside the split the debit paid ends that split: its other expenses are free again
+        if (! $movement instanceof Expense || $movement->bank_transaction_id !== $this->id) {
+            $this->releaseSplit();
+        }
+
         $this->forceFill([
             'expense_id' => $movement instanceof Expense ? $movement->id : null,
             'income_id' => $movement instanceof Income ? $movement->id : null,
@@ -192,5 +203,59 @@ final class BankTransaction extends FamilyModel
             'ignored_at' => 'immutable_datetime',
             'declined_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * The expenses it paid together, when one debit pays more planned expenses (a bill of electricity and gas); the
+     * first one is also in `expense_id`. Empty for a transaction that paid one expense.
+     *
+     * @return HasMany<Expense, $this>
+     */
+    public function splitExpenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * The expenses the debit paid together, trusted only while the expense it is linked to is one of them: a split
+     * whose first payment was deleted or replaced is over. Empty for a debit that paid one expense.
+     *
+     * @return list<Expense> in order of their due date, then of id
+     */
+    public function splitPayments(): array
+    {
+        $payments = $this->splitExpenses;
+
+        if ($this->expense_id === null || ! $payments->contains('id', $this->expense_id)) {
+            return [];
+        }
+
+        return array_values($payments->sortBy([
+            static fn (Expense $a, Expense $b): int => ($a->occurrence_date?->toDateString() ?? '') <=> ($b->occurrence_date?->toDateString() ?? ''),
+            static fn (Expense $a, Expense $b): int => $a->id <=> $b->id,
+        ])->all());
+    }
+
+    /**
+     * Ends the split the debit paid: its expenses no longer belong to it. Called when the expense it is linked to
+     * goes or is replaced; the caller has the row locked.
+     */
+    public function releaseSplit(): void
+    {
+        Expense::query()->where('bank_transaction_id', $this->id)->update(['bank_transaction_id' => null]);
+        $this->unsetRelation('splitExpenses');
+    }
+
+    /**
+     * The transactions that still head a split: linked to an expense that is one of the expenses they paid together.
+     *
+     * @param  Builder<BankTransaction>  $query
+     */
+    #[Scope]
+    protected function splitHeads(Builder $query): void
+    {
+        $query->whereExists(static fn ($exists) => $exists->from('expenses')
+            ->whereColumn('expenses.id', 'bank_transactions.expense_id')
+            ->whereColumn('expenses.bank_transaction_id', 'bank_transactions.id'));
     }
 }

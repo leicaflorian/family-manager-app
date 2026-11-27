@@ -11,6 +11,7 @@ use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 test('a bank transaction is unsorted until linked, ignored or pending', function (): void {
     $family = Family::factory()->create();
@@ -97,4 +98,24 @@ test('many connections can be made in one process, in one family too', function 
     BankConnection::factory()->count(8)->for($family)->create();
 
     expect(BankConnection::query()->withoutGlobalScopes()->where('family_id', $family->id)->count())->toBe(8);
+});
+
+test('an expense can belong to the bank transaction that paid it together with others', function (): void {
+    $family = Family::factory()->create();
+
+    CurrentFamily::using($family->id, function () use ($family): void {
+        $transaction = BankTransaction::factory()->for($family)->create();
+        $luce = Expense::factory()->for($family)->create(['bank_transaction_id' => $transaction->id]);
+        $gas = Expense::factory()->for($family)->create(['bank_transaction_id' => $transaction->id]);
+        $alone = Expense::factory()->for($family)->create();
+
+        expect($alone->bank_transaction_id)->toBeNull()
+            ->and($luce->bankTransaction?->is($transaction))->toBeTrue()
+            ->and($transaction->splitExpenses()->orderBy('id')->pluck('id')->all())->toBe([$luce->id, $gas->id])
+            ->and(collect(Schema::getIndexes('expenses'))->contains(static fn (array $index): bool => $index['columns'] === ['bank_transaction_id']))->toBeTrue();
+
+        $transaction->delete();
+
+        expect($luce->refresh()->bank_transaction_id)->toBeNull();
+    });
 });

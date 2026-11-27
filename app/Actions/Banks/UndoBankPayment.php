@@ -25,14 +25,16 @@ final readonly class UndoBankPayment
     public function __construct(private DeleteMovement $delete) {}
 
     /**
-     * Undoes the payment in one transaction. The bank transaction is locked first and the planned item right after,
-     * in the same order as `SettleFromBank`, so an undo and a settling wait for each other. Which planned item to lock
-     * is read before the transaction starts, so no plain read comes before the locks (MySQL fixes the snapshot at the
-     * first one); the payment is read after them and must still settle that planned item.
+     * Undoes the payment in one transaction. The bank transaction is locked first and the planned items right after,
+     * in order of id, as `SettleFromBank` does, so an undo and a settling wait for each other. Which planned items to
+     * lock is read before the transaction starts, so no plain read comes before the locks (MySQL fixes the snapshot at
+     * the first one); the payments are read after them and must still settle those planned items. A debit that paid
+     * more planned expenses together (`splitPayments`, only while its first payment is one of them) takes back all its
+     * payments.
      *
      * @param  BankTransaction  $transaction  The transaction linked to the payment.
      *
-     * @throws HttpException (422) if the transaction is not linked, was linked as a duplicate or created by hand, or its payment moved to another planned item meanwhile
+     * @throws HttpException (422) if the transaction is not linked, was linked as a duplicate or created by hand, or its payments moved to other planned items meanwhile
      */
     public function handle(BankTransaction $transaction): void
     {
@@ -40,37 +42,64 @@ final readonly class UndoBankPayment
 
         DB::transaction(function () use ($transaction, $planned): void {
             $current = BankTransaction::query()->whereKey($transaction->id)->lockForUpdate()->first();
-            $locked = $planned === null ? null : $planned[0]::query()->lockForUpdate()->find($planned[1]);
+            $locked = [];
+
+            foreach ($planned as [$class, $id]) {
+                $row = $class::query()->lockForUpdate()->find($id);
+
+                if ($row !== null) {
+                    $locked[] = $row->id;
+                }
+            }
+
             $payment = $current?->expense_id !== null ? $current->expense : $current?->income;
+            $payments = $current?->splitPayments() ?? [];
+            $payments = $payments === [] && $payment !== null ? [$payment] : $payments;
+            $settled = array_map($this->plannedId(...), $payments);
+            sort($settled);
 
             if (! $current instanceof BankTransaction || $payment === null || ! in_array($current->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true)
-                || $this->plannedId($payment) !== $locked?->id) {
+                || $settled !== $locked) {
                 abort(422, __('This payment was not recorded by the bank, so it cannot be undone from here.'));
             }
 
             $current->forceFill(['expense_id' => null, 'income_id' => null, 'matched_by' => null, 'declined_at' => now()])->save();
-            $this->delete->handle($payment);
+
+            foreach ($payments as $item) {
+                $this->delete->handle($item);
+            }
         });
     }
 
     /**
-     * The class and id of the planned item the payment of the transaction settles, read as it is now; null when the
-     * transaction pays nothing or a payment of no planned item.
+     * The class and id of each planned item the payments of the transaction settle, read as they are now, in order of
+     * id: one, or more for a debit that paid more planned expenses together; empty when the transaction pays nothing
+     * or a payment of no planned item.
      *
      * @param  BankTransaction  $transaction  The transaction.
-     * @return array{class-string<PlannedExpense>|class-string<PlannedIncome>, int}|null
+     * @return list<array{class-string<PlannedExpense>|class-string<PlannedIncome>, int}>
      */
-    private function plannedOf(BankTransaction $transaction): ?array
+    private function plannedOf(BankTransaction $transaction): array
     {
-        $current = BankTransaction::query()->with(['expense', 'income'])->find($transaction->id);
+        $current = BankTransaction::query()->with(['expense', 'income', 'splitExpenses'])->find($transaction->id);
         $payment = $current === null ? null : ($current->expense ?? $current->income);
+
+        $split = $current?->splitPayments() ?? [];
+
+        if ($split !== []) {
+            $ids = array_values(array_filter(array_map(static fn (Expense $expense): ?int => $expense->planned_expense_id, $split)));
+            sort($ids);
+
+            return array_map(static fn (int $id): array => [PlannedExpense::class, $id], $ids);
+        }
+
         $id = $payment === null ? null : $this->plannedId($payment);
 
         if ($id === null) {
-            return null;
+            return [];
         }
 
-        return [$payment instanceof Expense ? PlannedExpense::class : PlannedIncome::class, $id];
+        return [[$payment instanceof Expense ? PlannedExpense::class : PlannedIncome::class, $id]];
     }
 
     /**
