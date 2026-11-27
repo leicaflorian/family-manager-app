@@ -170,6 +170,8 @@ readonly link: App.Data.BankLinkData | null,
 readonly provider_id: string,
 readonly read_at: string,
 readonly bank_status: string,
+readonly fee: App.Data.BankFeeData | null,
+readonly orphan_fee: boolean,
 };
 export type BankTransferData = {
 readonly account: string,

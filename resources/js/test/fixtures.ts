@@ -2225,6 +2225,8 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         provider_id: 'tx-1',
         read_at: '2026-11-06T08:00',
         bank_status: 'pending',
+        fee: null,
+        orphan_fee: false,
     },
     {
         id: 2,
@@ -2243,6 +2245,8 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         provider_id: 'tx-2',
         read_at: '2026-11-06T08:00',
         bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
     },
     {
         id: 1,
@@ -2261,6 +2265,8 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         provider_id: 'tx-3',
         read_at: '2026-11-06T08:00',
         bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
     },
 ];
 

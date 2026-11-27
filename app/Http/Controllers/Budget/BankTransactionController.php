@@ -22,9 +22,11 @@ use App\Models\Expense;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Services\Banks\BankFees;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
+use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
 use App\Support\PaymentTitle;
@@ -54,7 +56,7 @@ final class BankTransactionController extends Controller
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family
      */
-    public function index(BankListRequest $filters, BankRows $all): Response
+    public function index(BankListRequest $filters, BankRows $all, BankFees $bankFees): Response
     {
         $show = match ($filters->query('show')) {
             'all', 'ignored' => 'all',
@@ -64,11 +66,11 @@ final class BankTransactionController extends Controller
         $page = max(1, $filters->integer('page'));
         $block = null;
         // One query for both `rows` and `next`, run the first time either is asked
-        $rows = function () use (&$block, $show, $all, $filters, $page): array {
+        $rows = function () use (&$block, $show, $all, $filters, $page, $bankFees): array {
             return $block ??= match ($show) {
-                'all' => $all->page($filters, $page),
-                'filters' => ['rows' => new Collection, 'more' => false],
-                default => $this->unsortedBlock($page),
+                'all' => [...$all->page($filters, $page), 'fees' => [], 'orphans' => []],
+                'filters' => ['rows' => new Collection, 'more' => false, 'fees' => [], 'orphans' => []],
+                default => $this->unsortedBlock($page, $bankFees),
             };
         };
 
@@ -77,9 +79,19 @@ final class BankTransactionController extends Controller
             'rows' => Inertia::merge(function () use ($rows, $show): array {
                 // One read of the last months for the whole page, none for the other lists
                 $texts = resolve(RecurringBankTexts::class);
+                $block = $rows();
+                $fees = $block['fees'];
+                $orphans = $block['orphans'];
 
-                return $rows()['rows']
-                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction($transaction, $show === 'unsorted' && $texts->recurs($transaction), $show === 'all'))
+                // A commission never comes back every month: it is the debit that does
+                return $block['rows']
+                    ->map(static fn (BankTransaction $transaction): BankTransactionData => BankTransactionData::fromTransaction(
+                        $transaction,
+                        $show === 'unsorted' && ! BankText::isFee($transaction->text) && $texts->recurs($transaction),
+                        $show === 'all',
+                        $fees[$transaction->id] ?? null,
+                        in_array($transaction->id, $orphans, true),
+                    ))
                     ->values()
                     ->all();
             })->matchOn('id'),
@@ -258,12 +270,15 @@ final class BankTransactionController extends Controller
 
     /**
      * A block of the list *To sort*, newest first (a pending one by the day the bank gave), with one row more than
-     * shown to know whether another block follows.
+     * shown to know whether another block follows. A commission paired with a direct debit is not a row: its debit
+     * carries it (`fees`, by the id of the debit). One whose debit is still to sort but on another block is left out
+     * of this one, and shows under its debit on the block of the debit (`pairs()` reads the commissions that sit
+     * outside the block). One with no debit to sort is a row, an orphan (`orphans`, by id).
      *
      * @param  int  $page  the number of the block, from 1
-     * @return array{rows: Collection<int, BankTransaction>, more: bool}
+     * @return array{rows: Collection<int, BankTransaction>, more: bool, fees: array<int, BankTransaction>, orphans: list<int>}
      */
-    private function unsortedBlock(int $page): array
+    private function unsortedBlock(int $page, BankFees $bankFees): array
     {
         $rows = BankTransaction::query()
             ->with('financialAccount')
@@ -276,6 +291,30 @@ final class BankTransactionController extends Controller
             ->take(BankRows::PER_PAGE + 1)
             ->get();
 
-        return ['rows' => $rows->take(BankRows::PER_PAGE)->values(), 'more' => $rows->count() > BankRows::PER_PAGE];
+        $shown = $rows->take(BankRows::PER_PAGE)->values();
+        $fees = $bankFees->pairs($shown);
+        $paired = array_map(static fn (BankTransaction $fee): int => $fee->id, $fees);
+        $orphans = [];
+        $rest = $shown->filter(function (BankTransaction $row) use ($bankFees, $paired, &$orphans): bool {
+            if (! BankText::isFee($row->text)) {
+                return true;
+            }
+
+            // Shown under its debit
+            if (in_array($row->id, $paired, true)) {
+                return false;
+            }
+
+            // Its debit may be on another block: then the commission is shown there, under the debit
+            if ($bankFees->debitOf($row) instanceof BankTransaction) {
+                return false;
+            }
+
+            $orphans[] = $row->id;
+
+            return true;
+        })->values();
+
+        return ['rows' => $rest, 'more' => $rows->count() > BankRows::PER_PAGE, 'fees' => $fees, 'orphans' => $orphans];
     }
 }

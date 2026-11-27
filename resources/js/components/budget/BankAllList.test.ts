@@ -23,6 +23,8 @@ const base: App.Data.BankTransactionData = {
     provider_id: 'tx-1',
     read_at: '2026-11-25T07:00',
     bank_status: 'booked',
+    fee: null,
+    orphan_fee: false,
 };
 
 const linked: App.Data.BankTransactionData = {

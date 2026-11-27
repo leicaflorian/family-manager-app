@@ -33,6 +33,8 @@ final class BankTransactionData extends Data
      * @param  string  $provider_id  the id the bank gave it
      * @param  string  $read_at  when it was read from the bank (`yyyy-mm-ddThh:mm`, Rome)
      * @param  string  $bank_status  whether the bank booked it (a `BankTransactionStatus` value)
+     * @param  BankFeeData|null  $fee  the commission the bank charged for this direct debit, shown under it
+     * @param  bool  $orphan_fee  the row is a commission whose direct debit is not among the ones to sort
      */
     public function __construct(
         public readonly int $id,
@@ -51,6 +53,8 @@ final class BankTransactionData extends Data
         public readonly string $provider_id,
         public readonly string $read_at,
         public readonly string $bank_status,
+        public readonly ?BankFeeData $fee = null,
+        public readonly bool $orphan_fee = false,
     ) {}
 
     /**
@@ -59,8 +63,10 @@ final class BankTransactionData extends Data
      * @param  BankTransaction  $transaction  the transaction, with its account loaded
      * @param  bool  $recurring  its text comes back every month
      * @param  bool  $withLink  whether to read the expense or income it is linked to (the list *All* does; they must be loaded)
+     * @param  BankTransaction|null  $fee  the commission paired with this direct debit
+     * @param  bool  $orphanFee  this is a commission whose direct debit is not to sort
      */
-    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false): self
+    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false, ?BankTransaction $fee = null, bool $orphanFee = false): self
     {
         $account = $transaction->financialAccount;
 
@@ -81,6 +87,8 @@ final class BankTransactionData extends Data
             $transaction->provider_id,
             ($transaction->created_at ?? now())->setTimezone('Europe/Rome')->format('Y-m-d\TH:i'),
             $transaction->status->value,
+            $fee instanceof BankTransaction ? BankFeeData::fromTransaction($fee) : null,
+            $orphanFee,
         );
     }
 

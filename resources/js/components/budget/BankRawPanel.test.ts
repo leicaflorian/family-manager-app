@@ -38,6 +38,8 @@ const row: App.Data.BankTransactionData = {
     provider_id: '2026111700731845529',
     read_at: '2026-11-27T07:00',
     bank_status: 'booked',
+    fee: null,
+    orphan_fee: false,
 };
 
 describe('BankRawPanel', () => {

@@ -91,6 +91,26 @@ function allProps(
 }
 
 describe('Budget, From the bank', () => {
+    it('a direct debit shows its commission under it and both amounts', () => {
+        const debit = {
+            ...bankTransactions[1],
+            id: 40,
+            text: 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. MAN.SAT0023101207360112900',
+            amount: -10,
+            booked_on: '2026-11-24',
+            value_on: '2026-11-24',
+            fee: { id: 41, amount: -0.4, booked_on: '2026-11-25' },
+        };
+        renderPage(BankTransactions, props({ rows: [debit] }));
+
+        const row = screen.getByText(/Satispay Europe/).closest('li')!;
+        expect(
+            within(row).getByText('+ 0,40 € commission, 25/11'),
+        ).toBeInTheDocument();
+        expect(within(row).getByText('-10,00 €')).toBeInTheDocument();
+        expect(within(row).getByText('+ 0,40 €')).toBeInTheDocument();
+    });
+
     it('lists the transactions with the day, the account and the amount', () => {
         renderPage(BankTransactions, props());
 

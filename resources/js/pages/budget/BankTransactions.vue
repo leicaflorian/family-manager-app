@@ -636,6 +636,22 @@ const { title, head } = usePageMeta({
                                     ? row.account
                                     : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
                             }}</span>
+                            <span
+                                v-if="row.fee"
+                                class="text-meta text-ink-soft"
+                                >{{
+                                    $t('+ :fee commission, :day', {
+                                        fee: money(
+                                            Math.abs(row.fee.amount),
+                                            row.currency,
+                                        ),
+                                        day: dayOf({
+                                            booked_on: row.fee.booked_on,
+                                            value_on: null,
+                                        }),
+                                    })
+                                }}</span
+                            >
                             <Link
                                 v-if="wide && recurs(row)"
                                 :href="recurUrl(row)"
@@ -664,17 +680,30 @@ const { title, head } = usePageMeta({
                                 }}</span>
                             </span>
                         </span>
-                        <span
-                            :class="
-                                cn(
-                                    'shrink-0 text-amount whitespace-nowrap',
-                                    wide && 'text-right',
-                                    row.pending && 'text-ink-soft',
-                                    row.amount > 0 && 'text-paid',
-                                )
-                            "
-                            >{{ money(row.amount, row.currency) }}</span
-                        >
+                        <span class="flex shrink-0 flex-col items-end">
+                            <span
+                                :class="
+                                    cn(
+                                        'shrink-0 text-amount whitespace-nowrap',
+                                        wide && 'text-right',
+                                        row.pending && 'text-ink-soft',
+                                        row.amount > 0 && 'text-paid',
+                                    )
+                                "
+                                >{{ money(row.amount, row.currency) }}</span
+                            >
+                            <span
+                                v-if="row.fee"
+                                class="text-meta whitespace-nowrap text-ink-soft"
+                                >+
+                                {{
+                                    money(
+                                        Math.abs(row.fee.amount),
+                                        row.currency,
+                                    )
+                                }}</span
+                            >
+                        </span>
                     </div>
                     <span v-if="wide" class="flex justify-end">
                         <template v-if="can_sort">
