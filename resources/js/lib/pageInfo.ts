@@ -638,6 +638,12 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
                     'Some cards, such as a subscription, also create their planned expense.',
                 ),
             ),
+            trans(
+                'For utilities, jobs and enrollments the title makes itself from the fields you choose: at the top you see how it will be.',
+            ),
+            trans(
+                'The + next to the organization creates a new one with name and type, and chooses it right away. You add the rest from the organization page.',
+            ),
         ],
     }),
     'card-payments': () => ({
