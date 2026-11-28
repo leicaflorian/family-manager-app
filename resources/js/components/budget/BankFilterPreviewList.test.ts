@@ -121,13 +121,14 @@ describe('BankFilterPreviewList', () => {
             preview: bankFilterPreview,
             feeMode: 'auto',
             droppable: true,
+            grouped: true,
         });
 
         await userEvent.click(
             screen.getByRole('button', { name: 'It is not of this group' }),
         );
 
-        expect(view.emitted().drop).toEqual([[row.transaction]]);
+        expect(view.emitted().drop).toEqual([[row]]);
     });
 
     it('without droppable there is no It is not of this group', () => {

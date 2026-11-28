@@ -59,13 +59,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Inertia\Support\SessionKey;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -217,7 +218,7 @@ final class BankTransactionController extends Controller
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the planned item is not of the family
      * @throws ValidationException (`planned_id`) when the planned item has no due date to pay; (`movement_id`) when the recorded movement cannot be linked
      */
-    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle, LinkRecordedMovement $link, BankSimilar $similar): RedirectResponse
+    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle, LinkRecordedMovement $link, BankSimilar $similar): SymfonyResponse
     {
         $transaction = $request->transaction();
         $movement = $request->movement();
@@ -227,7 +228,7 @@ final class BankTransactionController extends Controller
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Linked: :title', ['title' => $linked instanceof Expense ? $linked->title : $linked->label()])]);
             $similar->offer($transaction);
 
-            return to_route('budget.bank.index');
+            return $this->answer(to_route('budget.bank.index'));
         }
 
         $planned = $request->planned();
@@ -236,7 +237,7 @@ final class BankTransactionController extends Controller
         if (! $payment instanceof Expense && ! $payment instanceof Income) {
             // Linked, put aside or declared pending meanwhile: it is not in the list any more, nothing to pay twice
             if (! BankTransaction::query()->unsorted()->whereKey($transaction->id)->exists()) {
-                return to_route('budget.bank.index');
+                return $this->answer(to_route('budget.bank.index'));
             }
 
             throw ValidationException::withMessages(['planned_id' => $planned instanceof PlannedExpense
@@ -255,13 +256,13 @@ final class BankTransactionController extends Controller
 
         // Without a filter that pays it, whoever may make one is led to the form of the new filter, filled from here
         if (Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]) && ! BankFilter::existsPayingFor($planned)) {
-            return to_route('budget.bank.filters.create', ['planned' => ($planned instanceof PlannedExpense ? 'expense:' : 'income:').$planned->id, 'from' => $transaction->id]);
+            return $this->answer(to_route('budget.bank.filters.create', ['planned' => ($planned instanceof PlannedExpense ? 'expense:' : 'income:').$planned->id, 'from' => $transaction->id]));
         }
 
         // The form of the new filter already takes the similar movements, so the page has nothing more to offer
         $similar->offer($transaction);
 
-        return to_route('budget.bank.index');
+        return $this->answer(to_route('budget.bank.index'));
     }
 
     /**
@@ -364,7 +365,7 @@ final class BankTransactionController extends Controller
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
      * @throws HttpException (422) if the transaction is linked to an expense or an income, or still pending
      */
-    public function ignore(BankTransaction $transaction): RedirectResponse
+    public function ignore(BankTransaction $transaction): SymfonyResponse
     {
         Gate::authorize('update', $transaction);
 
@@ -384,7 +385,7 @@ final class BankTransactionController extends Controller
             $current->save();
         });
 
-        return back(fallback: route('budget.bank.index'));
+        return $this->answer(back(fallback: route('budget.bank.index')));
     }
 
     /**
@@ -394,11 +395,11 @@ final class BankTransactionController extends Controller
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
      */
-    public function leave(LeaveBankGroupRequest $request, RejectBankProposal $reject): RedirectResponse|HttpResponse
+    public function leave(LeaveBankGroupRequest $request, RejectBankProposal $reject): SymfonyResponse
     {
         $reject->handle($request->transaction(), 'group:'.$request->groupKey());
 
-        return $request->expectsJson() ? response()->noContent() : back(fallback: route('budget.bank.index'));
+        return $this->answer(back(fallback: route('budget.bank.index')));
     }
 
     /**
@@ -423,14 +424,14 @@ final class BankTransactionController extends Controller
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the account is not of the family
      * @throws ValidationException (`account_id`) when the account is the one of the movement
      */
-    public function transfer(MarkBankTransferRequest $request, MarkBankTransfer $mark, BankSimilar $similar): RedirectResponse
+    public function transfer(MarkBankTransferRequest $request, MarkBankTransfer $mark, BankSimilar $similar): SymfonyResponse
     {
         $transaction = $request->transaction();
         $mark->handle($transaction, $request->account());
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
         $similar->offer($transaction);
 
-        return to_route('budget.bank.index');
+        return $this->answer(to_route('budget.bank.index'));
     }
 
     /**
@@ -459,6 +460,24 @@ final class BankTransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Linked: :title', ['title' => $expense->title])]);
 
         return to_route('budget.bank.index');
+    }
+
+    /**
+     * The answer of an action on a movement: the page it leads to for a visit, an empty answer for the form of a
+     * filter, which asks with JSON and stays where it is. The form shows its own message, so the toast and the offer
+     * of similar movements written for the next page are taken back.
+     *
+     * @param  RedirectResponse  $redirect  where a visit goes
+     */
+    private function answer(RedirectResponse $redirect): SymfonyResponse
+    {
+        if (! request()->expectsJson()) {
+            return $redirect;
+        }
+
+        session()->forget(SessionKey::FLASH_DATA);
+
+        return response()->noContent();
     }
 
     /**

@@ -7,7 +7,8 @@
  * Each movement has its day, its text with the words found highlighted, the commission found (or none), the amount
  * and what the filter will do to it; one another filter already takes says which, since two filters on the same
  * movement cannot be saved. With `droppable` each movement has *It is not of this group* (`drop`), as the board
- * *Dalla-banca-filtro-escludi* draws it: the form changes the filter to leave it out.
+ * *Dalla-banca-filtro-escludi* draws it, or *Leave it out* when the filter does not come from a group (`grouped`):
+ * the form changes the filter to leave it out.
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
@@ -27,6 +28,7 @@ const {
     error = null,
     loading = false,
     droppable = false,
+    grouped = false,
 } = defineProps<{
     /** The movements the filter takes and what saving it would do, as the server answers. */
     preview: App.Data.BankFilterPreviewData;
@@ -38,11 +40,13 @@ const {
     loading?: boolean;
     /** Each movement has *It is not of this group*: who writes can change the filter. */
     droppable?: boolean;
+    /** The filter comes from a group: the button says *It is not of this group*, else *Leave it out*. */
+    grouped?: boolean;
 }>();
 
 const emit = defineEmits<{
-    /** *It is not of this group* was tapped on a movement. */
-    drop: [row: App.Data.BankTransactionData];
+    /** *It is not of this group* (or *Leave it out*) was tapped on a movement. */
+    drop: [row: App.Data.BankFilterPreviewRowData];
 }>();
 
 const wide = useWideLayout();
@@ -269,8 +273,12 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                         :icon="CircleMinus"
                         class="ml-auto"
                         :disabled="loading"
-                        @click="emit('drop', row.transaction)"
-                        >{{ $t('It is not of this group') }}</FmButton
+                        @click="emit('drop', row)"
+                        >{{
+                            grouped
+                                ? $t('It is not of this group')
+                                : $t('Leave it out')
+                        }}</FmButton
                     >
                 </div>
             </li>

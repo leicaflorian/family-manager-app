@@ -332,7 +332,7 @@ test('an ended planned item is paid when its due date was chosen', function (): 
     $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
 
     $this->actingAs($this->marco)->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id])->assertStatus(422)->assertJsonValidationErrors('planned_id');
-    $this->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id, 'occurrence' => '2026-08-01'])->assertRedirect();
+    $this->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id, 'occurrence' => '2026-08-01'])->assertNoContent();
 
     insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $old->id)->sole()->occurrence_date?->toDateString())->toBe('2026-08-01'));
 });

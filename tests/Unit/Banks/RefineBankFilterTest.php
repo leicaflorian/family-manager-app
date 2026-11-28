@@ -157,3 +157,10 @@ test('the refined criteria still take every kept transaction and not the dropped
     'a word in Contiene' => fn (): array => [refineBankFilterBar(), ['ROSSI']],
     'an amount range' => fn (): array => [refineBankFilterAmounts(), ['EDISON']],
 ]);
+
+test('null when the filter does not take the dropped one any more: nothing to change', function (): void {
+    [$keep] = refineBankFilterEni();
+    $criteria = BankFilterCriteria::fromArray(['contains' => ['ENI', 'POS'], 'excludes' => ['LAVAGGIO']]);
+
+    expect(RefineBankFilter::without($criteria, $keep, refineBankFilterRow('PAGAMENTO POS ENI LAVAGGIO SELF MODENA CARTA *1234', '-12.00')))->toBeNull();
+});

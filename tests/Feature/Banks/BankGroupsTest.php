@@ -441,3 +441,41 @@ it('the preview with drop gives the refined criteria', function (): void {
     $this->actingAs($this->marco);
     $this->postJson(route('budget.bank.filters.preview'), [...$fields, 'drop' => $theirs->id])->assertNotFound();
 });
+
+it('the actions the form of a filter sends answer in place, without a page and without a toast', function (): void {
+    bankGroupsSimilarOn();
+    $savings = FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]);
+    $ignored = bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-01');
+    $moved = bankGroupsRow('GIROCONTO RISPARMIO', '-100.00', '2026-11-02');
+    $linked = bankGroupsRow('PAGAMENTO POS FARMACIA', '-23.90', '2026-11-03');
+    $expense = Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Farmacia', 'amount' => 23.9, 'date' => '2026-11-03', 'planned_expense_id' => null]);
+
+    $this->postJson(route('budget.bank.ignore', $ignored))->assertNoContent();
+    $this->postJson(route('budget.bank.transfer', $moved), ['account_id' => $savings->id])->assertNoContent();
+    $this->postJson(route('budget.bank.assign', $linked), ['kind' => 'expense', 'movement_id' => $expense->id])->assertNoContent();
+
+    expect($ignored->refresh()->ignored_at)->not->toBeNull()
+        ->and($moved->refresh()->transfer_account_id)->toBe($savings->id)
+        ->and($linked->refresh()->expense_id)->toBe($expense->id)
+        ->and(session('inertia.flash_data'))->toBeEmpty();
+
+    // A refusal is a message the form can show
+    $this->postJson(route('budget.bank.ignore', $linked))->assertStatus(422);
+});
+
+it('a group of two: the movement leaves it and is ignored from the form, though the group is gone', function (): void {
+    bankGroupsSimilarOn();
+    $first = bankGroupsRow('PAGAMENTO POS ENI STATION', '-30.00', '2026-11-10', ['counterparty' => 'Eni']);
+    $wash = bankGroupsRow('PAGAMENTO POS ENI LAVAGGIO', '-12.00', '2026-11-12', ['counterparty' => 'Eni']);
+    $key = resolve(BankGroups::class)->keyOf($wash);
+    expect(resolve(BankGroups::class)->find($key))->not->toBeNull();
+
+    $this->from(route('budget.bank.filters.create', ['group' => $key]))
+        ->postJson(route('budget.bank.leave', $wash), ['group' => $key])->assertNoContent();
+    $this->from(route('budget.bank.filters.create', ['group' => $key]))
+        ->postJson(route('budget.bank.ignore', $wash))->assertNoContent();
+
+    expect(resolve(BankGroups::class)->find($key))->toBeNull()
+        ->and($wash->refresh()->ignored_at)->not->toBeNull()
+        ->and($first->refresh()->ignored_at)->toBeNull();
+});

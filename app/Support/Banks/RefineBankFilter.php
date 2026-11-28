@@ -18,7 +18,8 @@ final class RefineBankFilter
 {
     /**
      * The criteria that leave `$drop` out and keep every one of `$keep`, with what changed. Null when none of the
-     * three ways is enough (or nothing is kept: the filter would take nothing).
+     * three ways is enough, when nothing is kept (the filter would take nothing) or when the filter does not take
+     * `$drop` already (a list that changed meanwhile).
      *
      * @param  BankFilterCriteria  $criteria  what the filter takes now
      * @param  Collection<int, BankTransaction>  $keep  the movements it must still take
@@ -27,7 +28,8 @@ final class RefineBankFilter
      */
     public static function without(BankFilterCriteria $criteria, Collection $keep, BankTransaction $drop): ?array
     {
-        if ($keep->isEmpty()) {
+        // Nothing kept would leave a filter that takes nothing; a movement the filter already leaves needs no change
+        if ($keep->isEmpty() || ! BankFilterMatch::matches(self::anyAccount($criteria), $drop)) {
             return null;
         }
 
@@ -105,12 +107,23 @@ final class RefineBankFilter
      */
     private static function checked(BankFilterCriteria $refined, string $change, string $value, Collection $keep, BankTransaction $drop): ?array
     {
-        $anyAccount = new BankFilterCriteria($refined->contains, $refined->excludes, $refined->direction, null, $refined->amountMin, $refined->amountMax, $refined->pattern);
+        $anyAccount = self::anyAccount($refined);
         $good = $refined->isSafe()
             && ! BankFilterMatch::matches($anyAccount, $drop)
             && $keep->every(static fn (BankTransaction $row): bool => BankFilterMatch::matches($anyAccount, $row));
 
         return $good ? ['criteria' => $refined, 'change' => $change, 'value' => $value] : null;
+    }
+
+    /**
+     * The criteria on every account: the account does not change here, and reading whether it is linked to a bank
+     * would ask the database (`RuleAccount`).
+     *
+     * @param  BankFilterCriteria  $criteria  the criteria
+     */
+    private static function anyAccount(BankFilterCriteria $criteria): BankFilterCriteria
+    {
+        return new BankFilterCriteria($criteria->contains, $criteria->excludes, $criteria->direction, null, $criteria->amountMin, $criteria->amountMax, $criteria->pattern);
     }
 
     /**

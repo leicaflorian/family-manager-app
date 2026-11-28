@@ -26,6 +26,7 @@ const {
     group = null,
     word = null,
     accounts,
+    error = null,
 } = defineProps<{
     /** The movement taken out. */
     transaction: App.Data.BankTransactionData;
@@ -35,6 +36,8 @@ const {
     word?: string | null;
     /** The open accounts of the family, for *It is a transfer*. */
     accounts: { id: number; name: string; connected: boolean }[];
+    /** Why the movement could not leave its group, null when it could. */
+    error?: string | null;
 }>();
 
 const { money } = useFormat();
@@ -155,6 +158,9 @@ function markTransfer(accountId: number): void {
                 money(transaction.amount, transaction.currency)
             }}</span>
         </div>
+        <p v-if="error" role="alert" class="m-0 text-body-sm text-overdue">
+            {{ error }}
+        </p>
         <p v-if="done" role="status" class="m-0 text-row text-paid">
             {{ $t('Done: the movement is sorted.') }}
         </p>

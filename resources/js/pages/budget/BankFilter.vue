@@ -22,6 +22,7 @@ import {
     onMounted,
     reactive,
     ref,
+    toRaw,
     watch,
 } from 'vue';
 import BankFilterAi from '@/components/budget/BankFilterAi.vue';
@@ -101,11 +102,14 @@ const previewLoading = ref(false);
 /** The address of the tab *Filters*, where *Cancel*, *Close* and the trail lead. */
 const filtersUrl = bankIndex({ query: { show: 'filters' } }).url;
 
-/** The movements taken out with *It is not of this group*, the last one last. */
-const dropped = ref<App.Data.BankTransactionData[]>([]);
+/** The ids of the movements taken out with *It is not of this group*, which the filter must leave and the AI reads as such. */
+const droppedIds = ref<number[]>([]);
 
-/** Their ids, which the filter must leave and the AI reads as such. */
-const droppedIds = computed((): number[] => dropped.value.map((row) => row.id));
+/** The movement the box *Movement taken out* asks about: the last one taken out that is still to sort (and of the group). */
+const askedAbout = ref<App.Data.BankTransactionData | null>(null);
+
+/** Why the movement could not leave the group, shown in its box. */
+const leaveError = ref<string | null>(null);
 
 /** The movements the AI reads: the ones the filter written so far takes, but those taken out (the first fifty are read). */
 const aiKeep = computed((): number[] => {
@@ -189,12 +193,49 @@ type Criteria = Pick<
     'contains' | 'excludes' | 'amount_min' | 'amount_max'
 >;
 
-/** The last change of *It is not of this group*: what changed, how many the filter took then and what it replaced. */
+/** The last change of *It is not of this group*: what changed, how many the filter took then, what it replaced and the criteria it left. */
 const change = ref<{
     refined: App.Data.BankFilterRefinementData;
     count: number;
-    before: Criteria;
+    before: Partial<Criteria>;
+    applied: string;
 } | null>(null);
+
+/**
+ * The criteria of the form as one text, to see whether the person changed them after a change.
+ *
+ * @returns the words and the amounts, serialized
+ */
+function criteriaKey(): string {
+    return JSON.stringify([
+        values.contains,
+        values.excludes,
+        values.amount_min,
+        values.amount_max,
+    ]);
+}
+
+/**
+ * The fields a change of *It is not of this group* writes, with their new values: only the one it changed.
+ *
+ * @param refined - what the server found
+ * @returns the fields and their values
+ */
+function changedFields(
+    refined: App.Data.BankFilterRefinementData,
+): Partial<Criteria> {
+    switch (refined.change) {
+        case 'excludes':
+            return { excludes: [...refined.excludes] };
+        case 'contains':
+            return { contains: [...refined.contains] };
+        default:
+            return {
+                amount_min: refined.amount_min ?? '',
+                amount_max: refined.amount_max ?? '',
+            };
+    }
+}
 
 /** Nothing was found to leave the movement out, and the AI cannot read. */
 const notFound = ref(false);
@@ -276,12 +317,19 @@ const added = computed(
 );
 
 /**
- * *It is not of this group*: the movement leaves the group of the address, and the server changes the filter to leave
- * it out (or says the AI can be asked). The list is the one of the changed filter at once.
+ * *It is not of this group* (*Leave it out* without a group): the server changes the filter to leave the movement out
+ * (or says the AI can be asked), and the list is the one of the changed filter at once. A movement still to sort is
+ * asked about in the box *Movement taken out*; one of the group of the address also leaves the group for good. A
+ * movement already sorted, or of another group, only changes the filter.
  *
- * @param row - the movement taken out
+ * @param preview - the row of the movement taken out
  */
-async function drop(row: App.Data.BankTransactionData): Promise<void> {
+async function drop(preview: App.Data.BankFilterPreviewRowData): Promise<void> {
+    const row = preview.transaction;
+    const toSort = preview.will !== 'linked';
+    const ofGroup =
+        props.group != null && (props.example_ids ?? []).includes(row.id);
+
     cancelPreview();
     const mine = ++latest;
     const current = new AbortController();
@@ -289,17 +337,24 @@ async function drop(row: App.Data.BankTransactionData): Promise<void> {
     controller = current;
     previewLoading.value = true;
     notFound.value = false;
-    dropped.value = [
-        ...dropped.value.filter((other) => other.id !== row.id),
-        row,
+    droppedIds.value = [
+        ...droppedIds.value.filter((id) => id !== row.id),
+        row.id,
     ];
 
-    if (props.group) {
+    if (toSort && (props.group == null || ofGroup)) {
+        askedAbout.value = row;
+        leaveError.value = null;
+    }
+
+    if (toSort && ofGroup && props.group) {
         leaveGroup(row.id, props.group.key).catch((failure: unknown) => {
-            previewError.value =
-                failure instanceof Error
-                    ? failure.message
-                    : trans('This did not work. Try again in a while.');
+            if (askedAbout.value?.id === row.id) {
+                leaveError.value =
+                    failure instanceof Error
+                        ? failure.message
+                        : trans('This did not work. Try again in a while.');
+            }
         });
     }
 
@@ -319,22 +374,21 @@ async function drop(row: App.Data.BankTransactionData): Promise<void> {
         previewError.value = null;
 
         if (answer.refined) {
+            const fields = changedFields(answer.refined);
+            const before = Object.fromEntries(
+                Object.keys(fields).map((field) => [
+                    field,
+                    structuredClone(toRaw(values[field as keyof Criteria])),
+                ]),
+            ) as Partial<Criteria>;
+
+            Object.assign(values, fields);
             change.value = {
                 refined: answer.refined,
                 count: answer.rows.length,
-                before: {
-                    contains: [...values.contains],
-                    excludes: [...values.excludes],
-                    amount_min: values.amount_min,
-                    amount_max: values.amount_max,
-                },
+                before,
+                applied: criteriaKey(),
             };
-            Object.assign(values, {
-                contains: [...answer.refined.contains],
-                excludes: [...answer.refined.excludes],
-                amount_min: answer.refined.amount_min ?? '',
-                amount_max: answer.refined.amount_max ?? '',
-            });
         } else if (answer.ai && aiButtons.value) {
             change.value = null;
             void aiButtons.value.improve();
@@ -356,20 +410,39 @@ async function drop(row: App.Data.BankTransactionData): Promise<void> {
     }
 }
 
-/** *Undo the change*: the words and the amounts go back to what they were; the movement stays out of its group. */
+/** *Undo the change*: the field it changed goes back to what it was; the movement stays out of its group. */
 function undoChange(): void {
     if (change.value === null) {
         return;
     }
 
-    Object.assign(values, {
-        contains: [...change.value.before.contains],
-        excludes: [...change.value.before.excludes],
-        amount_min: change.value.before.amount_min,
-        amount_max: change.value.before.amount_max,
-    });
+    Object.assign(values, structuredClone(toRaw(change.value.before)));
     change.value = null;
 }
+
+// The box of the change says what the filter is now: once the person changes the words or the amounts, it goes
+watch(criteriaKey, (key) => {
+    if (change.value !== null && key !== change.value.applied) {
+        change.value = null;
+    }
+});
+
+/** The props of the box *Movement taken out*, in its place on the phone or beside the form. */
+const droppedBox = computed(() =>
+    askedAbout.value === null
+        ? null
+        : {
+              key: askedAbout.value.id,
+              transaction: askedAbout.value,
+              group: props.group?.name ?? null,
+              word:
+                  change.value?.refined.change === 'excludes'
+                      ? change.value.refined.value
+                      : null,
+              error: leaveError.value,
+              accounts: props.options.transfer_accounts,
+          },
+);
 
 // The planned items, the categories and the cards are of one direction: another direction starts without them
 watch(
@@ -546,18 +619,7 @@ const { title, head } = usePageMeta({
             }}
         </p>
 
-        <BankFilterDropped
-            v-if="!wide && dropped.length > 0"
-            :key="dropped[dropped.length - 1]!.id"
-            :transaction="dropped[dropped.length - 1]!"
-            :group="group?.name ?? null"
-            :word="
-                change?.refined.change === 'excludes'
-                    ? change.refined.value
-                    : null
-            "
-            :accounts="options.transfer_accounts"
-        />
+        <BankFilterDropped v-if="!wide && droppedBox" v-bind="droppedBox" />
 
         <div
             class="flex flex-col gap-4 wide:grid wide:grid-cols-[minmax(0,520px)_minmax(0,1fr)] wide:items-start wide:gap-6"
@@ -616,23 +678,16 @@ const { title, head } = usePageMeta({
                 class="flex min-w-0 flex-col gap-4 wide:sticky wide:top-[calc(var(--app-header,0px)+--spacing(6))]"
             >
                 <BankFilterDropped
-                    v-if="wide && dropped.length > 0"
-                    :key="dropped[dropped.length - 1]!.id"
-                    :transaction="dropped[dropped.length - 1]!"
-                    :group="group?.name ?? null"
-                    :word="
-                        change?.refined.change === 'excludes'
-                            ? change.refined.value
-                            : null
-                    "
-                    :accounts="options.transfer_accounts"
+                    v-if="wide && droppedBox"
+                    v-bind="droppedBox"
                 />
                 <BankFilterPreviewList
                     :preview="shownPreview"
                     :fee-mode="values.fee_mode"
                     :error="previewError"
                     :loading="previewLoading"
-                    :droppable="canSave"
+                    :droppable="canSave && values.pattern === null"
+                    :grouped="group != null"
                     @drop="drop"
                 />
                 <div

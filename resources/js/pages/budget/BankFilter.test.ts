@@ -664,8 +664,21 @@ describe('The form of a bank filter', () => {
          */
         function server(
             dropAnswer: Partial<App.Data.BankFilterPreviewData>,
+            leaveRefused: string | null = null,
         ): void {
             request.mockImplementation((config) => {
+                if (leaveRefused !== null && config.url.endsWith('/leave')) {
+                    return Promise.reject({
+                        response: {
+                            status: 422,
+                            data: {
+                                message: leaveRefused,
+                                errors: { group: [leaveRefused] },
+                            },
+                        },
+                    });
+                }
+
                 const data = (config.data ?? {}) as Record<string, unknown>;
                 let body: unknown = {};
 
@@ -705,13 +718,20 @@ describe('The form of a bank filter', () => {
                     draft,
                     preview: before,
                     group: { key: 'abc', name: 'Eni (POS)' },
+                    example_ids: [21, 22, 23],
                     ...changes,
                 }),
             );
         }
 
-        /** Taps *It is not of this group* on the car wash. */
-        async function dropWash(): Promise<void> {
+        /**
+         * Taps the button of the car wash that takes it out.
+         *
+         * @param name - the label of the button
+         */
+        async function dropWash(
+            name = 'It is not of this group',
+        ): Promise<void> {
             const list = screen.getByRole('region', {
                 name: 'The movements it takes · 3',
             });
@@ -719,11 +739,7 @@ describe('The form of a bank filter', () => {
                 .getAllByRole('listitem')
                 .find((item) => item.textContent?.includes('LAVAGGIO'))!;
 
-            await userEvent.click(
-                within(row).getByRole('button', {
-                    name: 'It is not of this group',
-                }),
-            );
+            await userEvent.click(within(row).getByRole('button', { name }));
         }
 
         /** The calls made to an address so far. */
@@ -873,6 +889,161 @@ describe('The form of a bank filter', () => {
                 ),
             ).toBeInTheDocument();
             expect(calls('/budget/bank/filters/suggest')).toHaveLength(0);
+            await pause();
+        });
+
+        it('Undo the change puts back only what it changed', async () => {
+            // The server answers the other words written another way: only Does not contain is its change
+            server({
+                rows: kept,
+                refined: { ...refined, contains: ['eni', 'pos'] },
+                ai: false,
+            });
+            renderEni();
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+            const contains = screen
+                .getAllByRole('combobox', { name: 'Contains the words' })
+                .find((input) => input.getAttribute('name') === 'contains')!
+                .closest<HTMLElement>('[data-type]')!;
+
+            expect(within(contains).getByText('ENI')).toBeInTheDocument();
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Undo the change' }),
+            );
+            await settle();
+
+            expect(within(excludesField()).queryByText('LAVAGGIO')).toBeNull();
+            expect(within(contains).getByText('ENI')).toBeInTheDocument();
+            await pause();
+        });
+
+        it('the box of the change goes once the words are changed by hand', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni();
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+
+            await userEvent.type(
+                screen
+                    .getAllByRole('combobox', { name: 'Contains the words' })
+                    .find(
+                        (input) => input.getAttribute('name') === 'contains',
+                    )!,
+                'STATION{Enter}',
+            );
+            await settle();
+
+            expect(
+                screen.queryByText(
+                    'Now it takes 2 movements, all those of the group but the one taken out.',
+                ),
+            ).toBeNull();
+            expect(
+                screen.queryByText(
+                    'Added now: only the movement taken out has this word.',
+                ),
+            ).toBeNull();
+            await pause();
+        });
+
+        it('a movement already sorted only changes the filter: it does not leave the group and is not asked about', async () => {
+            const linked = { ...wash, will: 'linked' };
+            server({ rows: kept, refined, ai: false });
+            renderEni({ preview: { ...before, rows: [...kept, linked] } });
+
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+
+            expect(calls('/budget/bank/23/leave')).toHaveLength(0);
+            expect(
+                screen.queryByRole('region', { name: 'Movement taken out' }),
+            ).toBeNull();
+            await pause();
+        });
+
+        it('a movement of another group does not leave this one', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni({ example_ids: [21, 22] });
+
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+
+            expect(calls('/budget/bank/23/leave')).toHaveLength(0);
+            expect(
+                screen.queryByRole('region', { name: 'Movement taken out' }),
+            ).toBeNull();
+            await pause();
+        });
+
+        it('a refusal to leave the group shows in the box, not over the list', async () => {
+            server(
+                { rows: kept, refined, ai: false },
+                'This movement is not in this group any more: look at the groups again.',
+            );
+            renderEni();
+
+            await dropWash();
+
+            const box = await screen.findByRole('region', {
+                name: 'Movement taken out',
+            });
+            expect(
+                await within(box).findByText(
+                    'This movement is not in this group any more: look at the groups again.',
+                ),
+            ).toBeInTheDocument();
+            const list = screen.getByRole('region', {
+                name: /The movements it takes/,
+            });
+            expect(within(list).queryByRole('alert')).toBeNull();
+            await pause();
+        });
+
+        it('an advanced filter has no button to take a movement out', () => {
+            renderEni({
+                draft: { ...draft, pattern: 'ENI.*POS', contains: [] },
+            });
+
+            expect(
+                screen.queryByRole('button', {
+                    name: 'It is not of this group',
+                }),
+            ).toBeNull();
+        });
+
+        it('a filter that does not come from a group says Leave it out', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni({ group: null, example_ids: [] });
+
+            await dropWash('Leave it out');
+            const box = await screen.findByRole('region', {
+                name: 'Movement taken out',
+            });
+
+            expect(
+                screen.queryByRole('button', {
+                    name: 'It is not of this group',
+                }),
+            ).toBeNull();
+            expect(
+                screen.getByText(
+                    'Now it takes 2 movements, all of them but the one taken out.',
+                ),
+            ).toBeInTheDocument();
+            expect(
+                within(box).getByText('Taken out of the filter'),
+            ).toBeInTheDocument();
+            expect(calls('/budget/bank/23/leave')).toHaveLength(0);
             await pause();
         });
     });
