@@ -172,7 +172,7 @@ describe('BankFilterAi', () => {
         );
         expect(
             screen.getByText(
-                'The AI suggests a new organization: Enel Energia. Add it from Organizations, then choose it here.',
+                'The AI suggests a new organization: Enel Energia. You can save the filter without it and add the organization later.',
             ),
         ).toBeInTheDocument();
     });
@@ -217,5 +217,33 @@ describe('BankFilterAi', () => {
             await screen.findByText('Automatic reading is not on.'),
         ).toBeInTheDocument();
         expect(values.contains).toEqual(['SATISPAY', 'DOMICILIAZIONE']);
+    });
+
+    it('has no buttons on an advanced filter', () => {
+        renderPage(BankFilterAi, {
+            modelValue: formValues({ ...bankFilters[0]!, pattern: 'ENEL.*' }),
+            ai: true,
+            keep: [9],
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'Write it with the AI' }),
+        ).toBeNull();
+    });
+
+    it('says when it starts and when it ends, and tells that it filled by itself', async () => {
+        answers(filled);
+        const values = formValues(bankFilters[1]!);
+        const view = renderPage(BankFilterAi, {
+            modelValue: values,
+            ai: true,
+            keep: [9],
+            auto: true,
+        });
+
+        await waitFor(() => expect(values.title).toBe('Bolletta luce'));
+
+        expect(view.emitted('busy')).toEqual([[true], [false]]);
+        expect(view.emitted('filled')).toHaveLength(1);
     });
 });

@@ -2966,5 +2966,5 @@
     "The AI is writing…": "L'AI sta scrivendo…",
     "Undo the change": "Annulla la modifica",
     "I changed the filter.": "Ho cambiato il filtro.",
-    "The AI suggests a new organization: :name. Add it from Organizations, then choose it here.": "L'AI propone un ente nuovo: :name. Aggiungilo da Enti, poi sceglilo qui."
+    "The AI suggests a new organization: :name. You can save the filter without it and add the organization later.": "L'AI propone un ente nuovo: :name. Puoi salvare il filtro senza e aggiungere l'ente dopo."
 }

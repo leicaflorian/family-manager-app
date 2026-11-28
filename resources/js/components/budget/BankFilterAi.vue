@@ -6,11 +6,13 @@
  * group without a proposal opens, which is what *Create the filter* asked for): it reads the movements the filter
  * takes now and proposes the words; in the fill mode (`auto`) also the title, the category and the organization. Its
  * sentence stays under the buttons with *Undo the change*, which puts back what it replaced. An organization the
- * family does not have is only named: it is added from *Organizations*. Hidden without the AI.
+ * family does not have is only named: the filter saves without it and the organization is added later. Hidden without
+ * the AI and on an advanced filter (an expression, not words). `busy` tells the form to lock the words while a call
+ * is on its way; `filled` says the automatic fill ended, so the form takes the filled values as its start.
  */
 import { LoaderCircle, Sparkles, Undo2, WandSparkles } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import type { BankFilterFormValues } from '@/lib/bankFilters';
 import { BankFilterSuggestError, suggestFilter } from '@/lib/bankFilters';
@@ -26,6 +28,13 @@ const {
     keep: number[];
     /** Asks the AI once, in the fill mode, when the form opens: a group without a proposal. */
     auto?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** A call starts (true) or ends (false): the words of the form are locked meanwhile. */
+    busy: [busy: boolean];
+    /** The automatic fill of a form that was just opened ended and wrote its proposal. */
+    filled: [];
 }>();
 
 /** The fields of the form, changed in place. */
@@ -65,7 +74,7 @@ const canAsk = computed(
  *
  * @param mode - `words` for the words only, `fill` for the title, category and organization too
  */
-async function ask(mode: 'words' | 'fill'): Promise<void> {
+async function ask(mode: 'words' | 'fill', opening = false): Promise<void> {
     if (!canAsk.value) {
         return;
     }
@@ -106,6 +115,11 @@ async function ask(mode: 'words' | 'fill'): Promise<void> {
         }
 
         before.value = snapshot;
+
+        if (opening) {
+            emit('filled');
+        }
+
         note.value = suggestion.explanation || trans('I changed the filter.');
         newOrganization.value = suggestion.organization_is_new
             ? suggestion.organization
@@ -138,15 +152,20 @@ function undo(): void {
     newOrganization.value = null;
 }
 
+watch(busy, (call) => emit('busy', call !== null));
+
 onMounted(() => {
-    if (auto && ai) {
-        void ask('fill');
+    if (auto && ai && values.value.pattern === null) {
+        void ask('fill', true);
     }
 });
 </script>
 
 <template>
-    <div v-if="ai" class="mb-3.5 flex flex-col gap-2">
+    <div
+        v-if="ai && values.pattern === null"
+        class="mb-3.5 flex flex-col gap-2"
+    >
         <div class="flex flex-wrap gap-2">
             <FmButton
                 variant="neutral"
@@ -187,7 +206,7 @@ onMounted(() => {
                 <span class="text-body-sm text-ink">{{ note }}</span>
                 <span v-if="newOrganization" class="text-body-sm text-ink">{{
                     $t(
-                        'The AI suggests a new organization: :name. Add it from Organizations, then choose it here.',
+                        'The AI suggests a new organization: :name. You can save the filter without it and add the organization later.',
                         { name: newOrganization },
                     )
                 }}</span>

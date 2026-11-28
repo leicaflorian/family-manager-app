@@ -12,7 +12,14 @@
 import { Head, router } from '@inertiajs/vue3';
 import { TriangleAlert, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import {
+    computed,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
 import BankFilterAi from '@/components/budget/BankFilterAi.vue';
 import BankFilterActionFields from '@/components/budget/BankFilterActionFields.vue';
 import BankFilterCriteriaFields from '@/components/budget/BankFilterCriteriaFields.vue';
@@ -52,6 +59,10 @@ const props = defineProps<{
     can_pay: boolean;
     /** Whether the AI can read: without it the AI buttons of the words are hidden. */
     ai?: boolean;
+    /** The movements a new filter starts from (the movement or the group), which the AI reads while the filter takes none. */
+    example_ids?: number[];
+    /** The address asked the AI to fill this new filter (`ai=1`): once, and the address loses it at once. */
+    ask_ai?: boolean;
 }>();
 
 /** How long to wait after the last change before asking the preview, in milliseconds. */
@@ -79,15 +90,21 @@ const previewLoading = ref(false);
 const filtersUrl = bankIndex({ query: { show: 'filters' } }).url;
 
 /** The movements the AI reads: the ones the filter written so far takes (the first fifty are read). */
-const aiKeep = computed((): number[] =>
-    shownPreview.value.rows.map((row) => row.transaction.id),
-);
+const aiKeep = computed((): number[] => {
+    const taken = shownPreview.value.rows.map((row) => row.transaction.id);
+
+    // Without a word the filter takes nothing: the example it started from is what the AI reads
+    return taken.length > 0 ? taken : (props.example_ids ?? []);
+});
+
+/** The AI is writing: the words cannot change meanwhile. */
+const aiBusy = ref(false);
 
 /**
- * A new filter that starts from a movement or a group without a proposal asks the AI once for its title, category and
- * organization, as *Create the filter* on the group promises.
+ * The address asked the AI (`ai=1`, from *Create the filter* on a group without a proposal): it fills the title,
+ * category and organization once. Read at the start, so what follows never asks again.
  */
-const askAtOpen = props.filter === null && props.draft?.action === null;
+const askAtOpen = props.ask_ai === true && props.filter === null;
 
 /** Who looks can change this filter: always for a new one. */
 const canSave = computed(
@@ -177,6 +194,22 @@ watch(
 onBeforeUnmount(() => {
     cancelPreview();
     latest++;
+});
+
+// The request of the AI comes once: the address loses `ai=1` at once, so a reload or Back never asks (and pays) again
+onMounted(() => {
+    if (!askAtOpen) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ai');
+    router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        props: (current) => ({ ...current, ask_ai: false }),
+        preserveState: true,
+        preserveScroll: true,
+    });
 });
 
 /** While the form has changes not saved, leaving the page asks first. */
@@ -300,12 +333,15 @@ const { title, head } = usePageMeta({
                         v-model="values"
                         :options="options"
                         :problems="problems"
+                        :words-locked="aiBusy"
                     >
                         <BankFilterAi
                             v-model="values"
                             :ai="ai"
                             :keep="aiKeep"
                             :auto="askAtOpen"
+                            @busy="aiBusy = $event"
+                            @filled="changes.reset()"
                         />
                     </BankFilterCriteriaFields>
                     <BankFilterFeeFields

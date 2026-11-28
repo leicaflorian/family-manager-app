@@ -14,11 +14,17 @@ import type {
 import { wordsFieldProps } from '@/lib/bankFilters';
 import { errors } from '@/lib/errors';
 
-const { options, problems = {} } = defineProps<{
+const {
+    options,
+    problems = {},
+    wordsLocked = false,
+} = defineProps<{
     /** The choices of the form: the accounts the bank reads. */
     options: BankFilterFormOptions;
     /** The messages of the server, by field. */
     problems?: Record<string, string>;
+    /** The words cannot change now (the AI is writing them). */
+    wordsLocked?: boolean;
 }>();
 
 /** The fields of the form, changed in place. */
@@ -63,6 +69,7 @@ const accounts = computed(() => [
             <FormKit
                 v-bind="words"
                 v-model="values.contains"
+                :disabled="wordsLocked"
                 :label="$t('Contains the words')"
                 name="contains"
                 :help="
@@ -75,6 +82,7 @@ const accounts = computed(() => [
             <FormKit
                 v-bind="words"
                 v-model="values.excludes"
+                :disabled="wordsLocked"
                 :label="$t('Does not contain')"
                 name="excludes"
                 optional

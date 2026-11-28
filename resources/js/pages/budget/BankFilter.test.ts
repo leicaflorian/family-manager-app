@@ -440,48 +440,158 @@ describe('The form of a bank filter', () => {
         await pause();
     });
 
-    it('a new filter from a group without a proposal asks the AI for title, category and organization when it opens', async () => {
-        request.mockImplementation((config) =>
-            Promise.resolve({
-                status: 200,
-                headers: {},
-                data: JSON.stringify(
-                    config.url === '/budget/bank/filters/suggest'
-                        ? {
-                              contains: ['SATISPAY'],
-                              excludes: ['COMMISSIONI'],
-                              title: 'Ricarica Satispay',
-                              category: 'Varie',
-                              category_id: 3,
-                              organization: null,
-                              organization_id: null,
-                              organization_is_new: false,
-                              explanation: 'Takes the Satispay top-ups.',
-                          }
-                        : bankFilterPreview,
-                ),
-            }),
-        );
-        renderPage(
-            BankFilter,
-            props({
-                filter: null,
-                draft: { ...satispay, id: null, action: null, title: null },
-                ai: true,
-            }),
-        );
+    describe('the AI fills a new filter once, when asked with ai=1', () => {
+        const fill = {
+            contains: ['SATISPAY'],
+            excludes: ['COMMISSIONI'],
+            title: 'Ricarica Satispay',
+            category: 'Varie',
+            category_id: 3,
+            organization: null,
+            organization_id: null,
+            organization_is_new: false,
+            explanation: 'Takes the Satispay top-ups.',
+        };
+        const draft = { ...satispay, id: null, action: null, title: null };
 
-        expect(
-            await screen.findByText('Takes the Satispay top-ups.'),
-        ).toBeInTheDocument();
-        expect(request).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: { keep: [9], drop: [], mode: 'fill' },
-            }),
-        );
-        expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue(
-            'Ricarica Satispay',
-        );
-        await pause();
+        let replace: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(() => {
+            replace = vi.spyOn(router, 'replace').mockImplementation(() => {});
+            window.history.replaceState(
+                null,
+                '',
+                '/budget/bank/filters/create?group=abc&ai=1',
+            );
+            request.mockImplementation((config) =>
+                Promise.resolve({
+                    status: 200,
+                    headers: {},
+                    data: JSON.stringify(
+                        config.url === '/budget/bank/filters/suggest'
+                            ? fill
+                            : bankFilterPreview,
+                    ),
+                }),
+            );
+        });
+
+        /** The calls made to the AI so far. */
+        function suggestions(): unknown[] {
+            return request.mock.calls.filter(
+                ([config]) => config.url === '/budget/bank/filters/suggest',
+            );
+        }
+
+        it('asks once, fills title and category, takes ai=1 out of the address and is not a change', async () => {
+            renderPage(
+                BankFilter,
+                props({ filter: null, draft, ai: true, ask_ai: true }),
+            );
+
+            expect(
+                await screen.findByText('Takes the Satispay top-ups.'),
+            ).toBeInTheDocument();
+            expect(suggestions()).toHaveLength(1);
+            expect(request).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: { keep: [9], drop: [], mode: 'fill' },
+                }),
+            );
+            expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue(
+                'Ricarica Satispay',
+            );
+            expect(replace).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    url: '/budget/bank/filters/create?group=abc',
+                }),
+            );
+            expect(hasChanges()).toBe(false);
+            await pause();
+        });
+
+        it('does not ask without ai=1, and a second mount without it does not ask again', async () => {
+            const first = renderPage(
+                BankFilter,
+                props({ filter: null, draft, ai: true, ask_ai: false }),
+            );
+            await pause();
+            first.unmount();
+            renderPage(
+                BankFilter,
+                props({ filter: null, draft, ai: true, ask_ai: false }),
+            );
+            await pause();
+
+            expect(suggestions()).toHaveLength(0);
+            expect(replace).not.toHaveBeenCalled();
+        });
+
+        it('Write it with the AI works from the example movement while the filter takes none', async () => {
+            renderPage(
+                BankFilter,
+                props({
+                    filter: null,
+                    draft: { ...draft, contains: [] },
+                    preview: { ...bankFilterPreview, rows: [] },
+                    example_ids: [41, 42],
+                    ai: true,
+                }),
+            );
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Write it with the AI' }),
+            );
+
+            await screen.findByText('Takes the Satispay top-ups.');
+            expect(suggestions()[0]).toEqual([
+                expect.objectContaining({
+                    data: { keep: [41, 42], drop: [], mode: 'words' },
+                }),
+            ]);
+            await pause();
+        });
+
+        it('the words are locked while the AI writes', async () => {
+            /** The field of the words of the matches (the commission has one with the same label). */
+            const words = (): HTMLElement =>
+                screen
+                    .getAllByRole('combobox', { name: 'Contains the words' })
+                    .find(
+                        (input) => input.getAttribute('name') === 'contains',
+                    )!;
+
+            let release: () => void = () => {};
+            request.mockImplementation(
+                (config) =>
+                    new Promise((resolve) => {
+                        const answer = {
+                            status: 200,
+                            headers: {},
+                            data: JSON.stringify(
+                                config.url === '/budget/bank/filters/suggest'
+                                    ? fill
+                                    : bankFilterPreview,
+                            ),
+                        };
+                        if (config.url === '/budget/bank/filters/suggest') {
+                            release = () => resolve(answer);
+                        } else {
+                            resolve(answer);
+                        }
+                    }),
+            );
+            renderPage(BankFilter, props({ ai: true }));
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Write it with the AI' }),
+            );
+
+            expect(words()).toBeDisabled();
+            release();
+            await screen.findByText('Takes the Satispay top-ups.');
+            expect(words()).toBeEnabled();
+            await pause();
+        });
     });
 });

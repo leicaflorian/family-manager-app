@@ -402,3 +402,24 @@ test('the pages are 404 while the feed is off', function (): void {
     bankFilterPagesStore()->assertNotFound();
     $this->postJson(route('budget.bank.filters.preview'), bankFilterPagesForm())->assertNotFound();
 });
+
+test('the form from a movement gives it as the example, and asks the AI by itself only with ai=1', function (): void {
+    $row = bankFilterPagesRow('DOMICILIAZIONE ADDEBITO DIRETTO SEPA SATISPAY EUROPE', '-10.00', '2026-11-24', ['counterparty' => 'Satispay Europe S.A.']);
+
+    $this->get(route('budget.bank.filters.create', ['from' => $row->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('example_ids', [$row->id])
+            ->where('ask_ai', false));
+
+    $this->get(route('budget.bank.filters.create', ['from' => $row->id, 'ai' => 1]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('ask_ai', true));
+});
+
+test('a saved filter and a form from nowhere never ask the AI by themselves', function (): void {
+    $filter = bankFilterPagesFilter();
+
+    $this->get(route('budget.bank.filters.create', ['ai' => 1]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('example_ids', [])->where('ask_ai', false));
+    $this->get(route('budget.bank.filters.edit', [$filter, 'ai' => 1]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('ask_ai', false));
+});

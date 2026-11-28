@@ -45,6 +45,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class BankFilterController extends Controller
 {
+    /** @var list<int> The movements a new filter starts from (the movement or the group of the address), read while the proposal is made. */
+    private array $exampleIds = [];
+
     /**
      * The form of a new filter, filled when it comes from somewhere: `?planned=expense:12` pays that planned item
      * (only for who may create a filter that pays), `?from=<movement>` takes the words, the direction and the account
@@ -57,7 +60,7 @@ final class BankFilterController extends Controller
     {
         Gate::authorize('viewAny', BankFilter::class);
 
-        return $this->form(null, $this->draft($request), $preview, $rows);
+        return $this->form(null, $this->draft($request), $preview, $rows, $request->query('ai') === '1');
     }
 
     /**
@@ -144,8 +147,9 @@ final class BankFilterController extends Controller
      *
      * @param  BankFilter|null  $filter  the filter being changed
      * @param  BankFilterDraft|null  $draft  the proposal of a new filter
+     * @param  bool  $asked  whether the address carries `ai=1`, the person's request for the AI to fill a proposal that has no action
      */
-    private function form(?BankFilter $filter, ?BankFilterDraft $draft, BankFilterPreview $preview, BankRows $rows): Response
+    private function form(?BankFilter $filter, ?BankFilterDraft $draft, BankFilterPreview $preview, BankRows $rows, bool $asked = false): Response
     {
         $canPay = Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]);
         $columns = $filter?->only($filter->getFillable()) ?? $draft?->toArray() ?? [];
@@ -175,6 +179,9 @@ final class BankFilterController extends Controller
             ],
             'can_pay' => $canPay,
             'ai' => resolve(DocumentReader::class)->isActive(),
+            // The movements the buttons of the AI read when the filter takes none yet, and whether to ask once now
+            'example_ids' => $this->exampleIds,
+            'ask_ai' => $asked && $draft instanceof BankFilterDraft && ! $draft->action instanceof BankFilterAction,
         ]);
     }
 
@@ -205,6 +212,7 @@ final class BankFilterController extends Controller
 
         if (is_string($fromId) && ctype_digit($fromId)) {
             $from = BankTransaction::query()->findOrFail((int) $fromId);
+            $this->exampleIds = [$from->id];
         }
 
         if ($planned === null && ! $from instanceof BankTransaction) {
@@ -240,6 +248,7 @@ final class BankFilterController extends Controller
     {
         $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
         $proposal = resolve(BankGroupProposals::class)->visibleFor(new Collection([$group]))[$group->key];
+        $this->exampleIds = array_values($group->transactions->map(static fn (BankTransaction $transaction): int => $transaction->id)->all());
 
         return BankFilterDraft::fromGroup($group, $proposal);
     }

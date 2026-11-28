@@ -391,14 +391,15 @@ test('an empty keep, a wrong mode or too many ids answer 422', function (): void
     expect($reader->filters())->toBe(1);
 });
 
-test('the route is closed to a member, and 404 while the feed is off', function (): void {
+test('a member may ask it too, and it is 404 while the feed is off', function (): void {
     [$family] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
     suggestBankFilterFeedOn($family);
     $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
     $body = ['keep' => [$mine->id], 'mode' => 'words'];
 
+    // The request writes nothing and names no action: a member who may create a filter that does not pay asks it
     $this->actingAs(User::factory()->for($family)->create(['role' => Role::Member]))
-        ->postJson(route('budget.bank.filters.suggest'), $body)->assertForbidden();
+        ->postJson(route('budget.bank.filters.suggest'), $body)->assertOk();
 
     $this->actingAs(User::factory()->for($family)->create(['role' => Role::Admin]));
     $family->forceFill(['bank_feed_enabled' => false])->save();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Banks;
 
 use App\Actions\Banks\SuggestBankFilter;
+use App\Enums\BankFilterAction;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -30,13 +31,13 @@ final class SuggestBankFilterRequest extends FormRequest
     private ?array $dropRows = null;
 
     /**
-     * Who may create a filter, with every id found in the family.
+     * Whoever may create a filter that does not pay, with every id found in the family.
      *
      * @throws NotFoundHttpException when a movement is not of the family
      */
     public function authorize(): bool
     {
-        if (! $this->user()?->can('create', BankFilter::class)) {
+        if (! $this->user()?->can('create', [BankFilter::class, BankFilterAction::Create])) {
             return false;
         }
 
