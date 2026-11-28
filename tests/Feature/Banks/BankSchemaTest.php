@@ -126,24 +126,35 @@ test('it keeps working fields when its category is deleted', function (): void {
     CurrentFamily::using($family->id, function () use ($family): void {
         $category = ExpenseCategory::factory()->for($family)->create();
         $organization = Organization::factory()->for($family)->create();
-        $account = FinancialAccount::factory()->for($family)->create();
         $filter = BankFilter::factory()->for($family)->create([
             'category_id' => $category->id,
             'organization_id' => $organization->id,
-            'financial_account_id' => $account->id,
             'contains' => ['edison'],
         ]);
 
         $category->delete();
         $organization->delete();
-        $account->delete();
         $filter->refresh();
 
         expect($filter->category_id)->toBeNull()
             ->and($filter->organization_id)->toBeNull()
-            ->and($filter->financial_account_id)->toBeNull()
             ->and($filter->contains)->toBe(['edison'])
             ->and($filter->action)->toBe(BankFilterAction::Create);
+    });
+});
+
+test('a filter is deleted with the account it reads, never widened to every account', function (): void {
+    $family = Family::factory()->create();
+
+    CurrentFamily::using($family->id, function () use ($family): void {
+        $account = FinancialAccount::factory()->for($family)->create();
+        $filter = BankFilter::factory()->for($family)->create(['financial_account_id' => $account->id]);
+        $other = BankFilter::factory()->for($family)->create(['financial_account_id' => null]);
+
+        $account->delete();
+
+        expect(BankFilter::query()->whereKey($filter->id)->exists())->toBeFalse()
+            ->and(BankFilter::query()->whereKey($other->id)->exists())->toBeTrue();
     });
 });
 

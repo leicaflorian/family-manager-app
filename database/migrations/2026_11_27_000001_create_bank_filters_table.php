@@ -25,7 +25,8 @@ return new class extends Migration
             $table->json('contains')->comment('Words or phrases the text must all have');
             $table->json('excludes')->comment('Words or phrases the text must not have');
             $table->string('direction', 20)->default('expense')->comment('expense or income');
-            Columns::optional($table, 'financial_account_id', 'financial_accounts');
+            // Cascade: without its account a filter would read every account
+            $table->foreignId('financial_account_id')->nullable()->constrained('financial_accounts')->cascadeOnDelete();
             $table->decimal('amount_min', 12, 2)->nullable();
             $table->decimal('amount_max', 12, 2)->nullable();
             $table->string('pattern', 200)->nullable()->comment('The expression of an advanced filter, without delimiters');
