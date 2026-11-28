@@ -68,6 +68,36 @@ final readonly class BankDuplicates
     }
 
     /**
+     * The key of a due date a preview would pay, in the list of what earlier transactions take.
+     *
+     * @param  CarbonImmutable  $originalDate  the original date of the due date (the one the rules give)
+     */
+    public static function dueKey(CarbonImmutable $originalDate): string
+    {
+        return 'due:'.$originalDate->toDateString();
+    }
+
+    /**
+     * The original dates (`yyyy-mm-dd`) of the due dates among the keys of what earlier transactions take
+     * (`dueKey()`).
+     *
+     * @param  list<string>  $used  the keys
+     * @return list<string>
+     */
+    public static function dueDatesOf(array $used): array
+    {
+        $dates = [];
+
+        foreach ($used as $key) {
+            if (str_starts_with($key, 'due:')) {
+                $dates[] = substr($key, 4);
+            }
+        }
+
+        return $dates;
+    }
+
+    /**
      * The ids of the payments of one direction among the keys of what earlier transactions would take
      * (`expense:<id>`, `income:<id>`), as `findAny()` skips them.
      *

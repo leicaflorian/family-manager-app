@@ -17,6 +17,7 @@ use App\Support\Banks\BankMatch;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * What the system proposes a filter does with a group, taken from what the family already has: a planned expense or
@@ -71,6 +72,24 @@ final class BankGroupProposals
         }
 
         return $proposals;
+    }
+
+    /**
+     * The proposals the signed-in person may act on: those of `forAll()`, a proposal to pay left out (as if the group
+     * had none) for who cannot create a filter that pays. The page and the form of a new filter both ask here, so
+     * they agree.
+     *
+     * @param  Collection<int, BankGroup>  $groups  the groups
+     * @return array<string, BankFilterDraft|null> by the key of the group
+     */
+    public function visibleFor(Collection $groups): array
+    {
+        $mayPay = Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]);
+
+        return array_map(
+            static fn (?BankFilterDraft $proposal): ?BankFilterDraft => $proposal?->action === BankFilterAction::Pay && ! $mayPay ? null : $proposal,
+            $this->forAll($groups),
+        );
     }
 
     /**

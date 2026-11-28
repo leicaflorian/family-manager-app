@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -200,7 +201,7 @@ final class BankFilterController extends Controller
 
     /**
      * The filter that takes a group of movements: its words, direction and account and what the system proposes for
-     * it. A proposal to pay is left out for who may not create a filter that pays.
+     * it, a proposal to pay left out for who may not create a filter that pays (`BankGroupProposals::visibleFor()`).
      *
      * @param  string  $key  the key of the group
      *
@@ -209,11 +210,7 @@ final class BankFilterController extends Controller
     private function groupDraft(string $key): BankFilterDraft
     {
         $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
-        $proposal = resolve(BankGroupProposals::class)->for($group);
-
-        if ($proposal?->action === BankFilterAction::Pay && ! Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])) {
-            $proposal = null;
-        }
+        $proposal = resolve(BankGroupProposals::class)->visibleFor(new Collection([$group]))[$group->key];
 
         return BankFilterDraft::fromGroup($group, $proposal);
     }

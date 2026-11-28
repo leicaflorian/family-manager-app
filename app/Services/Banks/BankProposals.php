@@ -64,11 +64,12 @@ final readonly class BankProposals
      * (then the most points, then the lowest id); the others take their next one.
      *
      * @param  Collection<int, BankTransaction>  $rows  the movements of the block
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $groupsRead  what `BankGroups::read()` gave, when the page has it already, so the groups are not read again
      * @return array<int, BankProposalData> by the id of the movement; a movement with no proposal is left out
      */
-    public function for(Collection $rows): array
+    public function for(Collection $rows, ?array $groupsRead = null): array
     {
-        $candidates = $this->candidatesOf($rows);
+        $candidates = $this->candidatesOf($rows, $groupsRead);
 
         return $this->assign($candidates);
     }
@@ -91,11 +92,12 @@ final readonly class BankProposals
      * The candidates of each movement that can have one, the best first.
      *
      * @param  Collection<int, BankTransaction>  $rows  the movements
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $groupsRead  what `BankGroups::read()` gave
      * @return array<int, list<array{proposal: BankProposalData, points: int, days: int}>> by the id of the movement
      */
-    private function candidatesOf(Collection $rows): array
+    private function candidatesOf(Collection $rows, ?array $groupsRead = null): array
     {
-        $rows = $this->eligible($rows);
+        $rows = $this->eligible($rows, $groupsRead);
 
         if ($rows->isEmpty()) {
             return [];
@@ -135,9 +137,10 @@ final readonly class BankProposals
      * The movements that can have a proposal: booked, in euros, still to sort, not a commission and in no group.
      *
      * @param  Collection<int, BankTransaction>  $rows  the movements
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $groupsRead  what `BankGroups::read()` gave
      * @return Collection<int, BankTransaction>
      */
-    private function eligible(Collection $rows): Collection
+    private function eligible(Collection $rows, ?array $groupsRead = null): Collection
     {
         $rows = $rows->filter(static fn (BankTransaction $row): bool => $row->status === BankTransactionStatus::Booked
             && $row->booked_on instanceof CarbonImmutable
@@ -152,7 +155,7 @@ final readonly class BankProposals
 
         $grouped = [];
 
-        foreach ($this->groups->all() as $group) {
+        foreach ($this->groups->all($groupsRead) as $group) {
             foreach ($group->transactions as $member) {
                 $grouped[$member->id] = true;
             }

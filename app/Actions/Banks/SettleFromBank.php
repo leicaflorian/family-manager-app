@@ -155,13 +155,9 @@ final readonly class SettleFromBank
         }
 
         // The due dates the earlier movements of the preview take are passed over by the fallback, as paid ones are in the save
-        $taken = array_values(array_map(
-            static fn (string $key): string => substr($key, 4),
-            array_filter($used, static fn (string $key): bool => str_starts_with($key, 'due:')),
-        ));
-        $deadline = $this->matcher->deadline($transaction, $planned, $taken);
+        $deadline = $this->matcher->deadline($transaction, $planned, BankDuplicates::dueDatesOf($used));
 
-        if (! $deadline instanceof Deadline || in_array('due:'.$deadline->occurrence->originalDate->toDateString(), $used, true)) {
+        if (! $deadline instanceof Deadline || in_array(BankDuplicates::dueKey($deadline->occurrence->originalDate), $used, true)) {
             return null;
         }
 
