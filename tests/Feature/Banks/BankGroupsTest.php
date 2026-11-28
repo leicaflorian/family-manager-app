@@ -626,3 +626,30 @@ it('says the commission when a movement like it has one, and carries it under it
         ->assertInertiaFlash('similar.fee', true)
         ->assertInertiaFlash('similar.rows.0.fee.id', $fee->id);
 });
+
+it('offers nothing when the words of the draft would not take the movements like it', function (): void {
+    bankGroupsSimilarOn();
+    // Same counterparty, so one group, but no word of the texts in common
+    $rows = collect([['1', 'BONIFICO ALFA'], ['2', 'PRELIEVO BETA'], ['3', 'ADDEBITO GAMMA']])
+        ->map(fn (array $row): BankTransaction => bankGroupsRow($row[1], '-10.00', '2026-11-0'.$row[0], ['counterparty' => 'Zeta Srl']));
+    expect(resolve(BankGroups::class)->siblings($rows[0]))->toHaveCount(2);
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlashMissing('similar');
+});
+
+it('a movement cannot leave a group that is gone, and nothing is written', function (): void {
+    bankGroupsSimilarOn();
+    $first = bankGroupsRow('PAGAMENTO POS ENI STATION', '-30.00', '2026-11-10', ['counterparty' => 'Eni']);
+    $wash = bankGroupsRow('PAGAMENTO POS ENI LAVAGGIO', '-12.00', '2026-11-12', ['counterparty' => 'Eni']);
+    $key = resolve(BankGroups::class)->keyOf($wash);
+    $this->postJson(route('budget.bank.leave', $wash), ['group' => $key])->assertNoContent();
+
+    // The group had two: the one left is alone, and has no group to leave
+    $this->postJson(route('budget.bank.leave', $first), ['group' => $key])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('group');
+
+    expect($first->refresh()->rejected_proposals)->toBeNull();
+});

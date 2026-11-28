@@ -2863,7 +2863,6 @@
     "Filters work on the new movements and, when you save them, on the ones still to sort. An expense created by a filter goes away with :undo.": "I filtri lavorano sui movimenti nuovi e, quando li salvi, su quelli ancora da sistemare. Una spesa creata da un filtro si toglie con :undo.",
     "For example «:example».": "Per esempio «:example».",
     "For texts without a mandate or with a different one.": "Per i testi senza mandato o con un mandato diverso.",
-    "Going out": "Uscita",
     "It changes only as text.": "Si cambia solo come testo.",
     "It comes from the rule of a planned item: it changes only as text.": "Viene dalla regola di una spesa o entrata fissa: si cambia solo come testo.",
     "It comes from the rule of the planned expense :name: it changes only as text.": "Viene dalla regola della spesa fissa :name: si cambia solo come testo.",

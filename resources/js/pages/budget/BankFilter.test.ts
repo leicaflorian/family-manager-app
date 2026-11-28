@@ -817,6 +817,21 @@ describe('The form of a bank filter', () => {
             ).toBeInTheDocument();
         });
 
+        it('the close X is a link that goes back to the filters of From the bank', async () => {
+            const visit = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            renderEni();
+            const close = screen.getByRole('link', { name: 'Close' });
+
+            expect(close).toHaveAttribute('href', '/budget/bank?show=filters');
+            await userEvent.click(close);
+            expect(visit).toHaveBeenCalledWith(
+                '/budget/bank?show=filters',
+                expect.anything(),
+            );
+        });
+
         it('the last movement the filter takes has no button to take it out', () => {
             renderEni({ preview: { ...before, rows: [kept[0]!] } });
 
