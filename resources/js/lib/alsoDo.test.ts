@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { consumptionDraft, ferriProposal, homeDraft } from '@/test/fixtures';
+import {
+    consumptionDraft,
+    dualFuelProposal,
+    ferriProposal,
+    homeDraft,
+} from '@/test/fixtures';
 import {
     actionTexts,
     consumptionHint,
@@ -22,6 +27,7 @@ import {
     recordHint,
     recordLabel,
     recordWarnings,
+    supplyProposal,
 } from './alsoDo';
 
 const expense = ferriProposal.movement!;
@@ -879,6 +885,14 @@ describe('consumption box', () => {
         ]);
     });
 
+    it('in the group of a supply asks to tick the utility of the supply', () => {
+        const none = consumption({ utility: null, complete: ['utility'] });
+
+        expect(consumptionWarnings(none, false, true)).toEqual([
+            'To record the consumption tick the utility of this supply.',
+        ]);
+    });
+
     it('lists the fields to fill in the box while it is ticked', () => {
         const missing = consumption(
             { fill: ['quantity', 'period_start', 'period_end'] },
@@ -889,5 +903,172 @@ describe('consumption box', () => {
             'Fill in «Consumption», «From», «To» here below.',
         ]);
         expect(consumptionWarnings(missing, false)).toEqual([]);
+    });
+});
+
+describe('supplyProposal', () => {
+    const [electricity, gas] = dualFuelProposal.supplies;
+
+    it('makes a supply a proposal of a bill alone, with the same document', () => {
+        expect(supplyProposal(dualFuelProposal, gas!)).toEqual({
+            ...dualFuelProposal,
+            movement: gas!.movement,
+            consumption: gas!.consumption,
+            records: [gas!.record],
+            event: null,
+            policy: null,
+            warnings: [],
+            createCard: false,
+            cardType: null,
+            supplies: [],
+        });
+    });
+
+    it('has no card without the box of the utility', () => {
+        expect(
+            supplyProposal(dualFuelProposal, { ...electricity!, record: null })
+                .records,
+        ).toEqual([]);
+    });
+});
+
+describe('the supplies in what a file misses', () => {
+    const [, gas] = dualFuelProposal.supplies;
+    const withGas = (
+        changes: Partial<App.Data.Reading.SupplyProposalData>,
+    ): App.Data.Reading.ProposalData => ({
+        ...dualFuelProposal,
+        supplies: [{ ...gas!, ...changes }],
+    });
+    const nothing = { movement: false, event: false, records: [] };
+
+    it('counts the fields of a ticked supply', () => {
+        const proposal = withGas({
+            movement: {
+                ...gas!.movement!,
+                fill: ['amount'],
+                complete: ['date'],
+            },
+        });
+        const ticked = {
+            ...nothing,
+            supplies: { 1: { movement: true, record: false } },
+        };
+
+        expect(documentNeeds(proposal, ticked)).toEqual(['date']);
+        expect(missingData('Bolletta', proposal, ticked)).toEqual([
+            'Date',
+            'Gas · PDR 00881234567890: Amount',
+        ]);
+    });
+
+    it('leaves out a field written in the supply and an unticked supply', () => {
+        const proposal = withGas({
+            movement: { ...gas!.movement!, fill: ['amount'] },
+        });
+
+        expect(
+            missingData('Bolletta', proposal, {
+                ...nothing,
+                supplies: {
+                    1: {
+                        movement: true,
+                        record: false,
+                        overrides: {
+                            movement: { amount: 70 },
+                            record: {},
+                            consumption: {},
+                        },
+                    },
+                },
+            }),
+        ).toEqual([]);
+        expect(
+            missingData('Bolletta', proposal, {
+                ...nothing,
+                supplies: { 1: { movement: false, record: false } },
+            }),
+        ).toEqual([]);
+    });
+});
+
+describe('the line of a box of a supply', () => {
+    const gas = dualFuelProposal.supplies[1]!.record!;
+
+    it('says why the box of a new utility starts unticked', () => {
+        expect(recordHint(gas, { ticked: false, target: 'auto' })).toBe(
+            "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+        );
+    });
+
+    it('drops the line once the box is ticked', () => {
+        expect(
+            recordHint(gas, { ticked: true, target: 'auto' }),
+        ).toBeUndefined();
+    });
+});
+
+describe('what a bill of two supplies misses', () => {
+    const [electricity, gas] = dualFuelProposal.supplies;
+    const noAmount = (
+        supply: App.Data.Reading.SupplyProposalData,
+    ): App.Data.Reading.SupplyProposalData => ({
+        ...supply,
+        movement: { ...supply.movement!, fill: ['amount'] },
+    });
+
+    it('names the supply of each field, once per supply', () => {
+        expect(
+            missingData(
+                'Bolletta',
+                {
+                    ...dualFuelProposal,
+                    supplies: [noAmount(electricity!), noAmount(gas!)],
+                },
+                {
+                    movement: false,
+                    event: false,
+                    records: [],
+                    supplies: {
+                        0: { movement: true, record: true },
+                        1: { movement: true, record: false },
+                    },
+                },
+            ),
+        ).toEqual([
+            'Luce · POD IT 001 E 87654321: Amount',
+            'Gas · PDR 00881234567890: Amount',
+        ]);
+    });
+
+    it('counts the same field of two boxes of a bill alone twice, as before', () => {
+        const draft = {
+            ...homeDraft,
+            existing: null,
+            fields: [
+                { ...homeDraft.fields[0]!, required: true, label: 'Name' },
+            ],
+            values: {},
+        };
+
+        expect(
+            missingData(
+                'Bolletta',
+                {
+                    ...ferriProposal,
+                    movement: null,
+                    event: null,
+                    records: [
+                        { ...draft, kind: 'vehicle' },
+                        { ...draft, kind: 'belonging' },
+                    ],
+                },
+                {
+                    movement: false,
+                    event: false,
+                    records: ['vehicle', 'belonging'],
+                },
+            ),
+        ).toEqual(['Name', 'Name']);
     });
 });

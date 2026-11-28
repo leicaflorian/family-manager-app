@@ -1,0 +1,295 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Budget;
+
+use App\Actions\Banks\SaveBankFilter;
+use App\Actions\Banks\SuggestBankFilter;
+use App\Contracts\DocumentReader;
+use App\Data\BankFilterData;
+use App\Data\BankFilterPreviewData;
+use App\Data\BankFilterRefinementData;
+use App\Data\Banks\BankFilterSuggestionData;
+use App\Enums\BankFilterAction;
+use App\Exceptions\Reading\ReadingFailed;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Banks\BankFilterPreviewRequest;
+use App\Http\Requests\Banks\SaveBankFilterRequest;
+use App\Http\Requests\Banks\SuggestBankFilterRequest;
+use App\Models\BankFilter;
+use App\Models\BankTransaction;
+use App\Services\Banks\BankFilterPreview;
+use App\Services\Banks\BankFilters;
+use App\Services\Banks\BankGroupProposals;
+use App\Services\Banks\BankGroups;
+use App\Services\Banks\BankRows;
+use App\Services\BudgetFormOptions;
+use App\Support\Banks\BankFilterCriteria;
+use App\Support\Banks\BankFilterDraft;
+use App\Support\Banks\RefineBankFilter;
+use App\Support\PlannedKind;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * *From the bank → Filters*: the form of a filter, new or changed, with the movements it takes while it is written,
+ * and saving and deleting it. Everyone of the family sees the filters; who saves which one says `BankFilterPolicy`.
+ * Every address is 404 while the link to the bank is off.
+ */
+final class BankFilterController extends Controller
+{
+    /**
+     * The form of a new filter, filled when it comes from somewhere: `?planned=expense:12` pays that planned item
+     * (only for who may create a filter that pays), `?from=<movement>` takes the words, the direction and the account
+     * of a movement, with `COMMISSIONI` among the words it must not have, `?group=<key>` takes the words and the proposal
+     * of a group of movements still to sort.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when the planned item, the movement or the group is not of the family
+     */
+    public function create(Request $request, BankFilterPreview $preview, BankRows $rows): Response
+    {
+        Gate::authorize('viewAny', BankFilter::class);
+        $start = $this->draft($request);
+
+        return $this->form(null, $start['draft'], $preview, $rows, $request->query('ai') === '1', $start['examples'], $start['group']);
+    }
+
+    /**
+     * Saves a new filter and lets it sort at once what it takes; the toast says how many.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when an id named is not of the family
+     */
+    public function store(SaveBankFilterRequest $request, SaveBankFilter $save): RedirectResponse
+    {
+        return $this->saved($save->handle($request->validated()));
+    }
+
+    /**
+     * The form of a saved filter, with the movements it takes now.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when the filter is not of the family
+     */
+    public function edit(BankFilter $filter, BankFilterPreview $preview, BankRows $rows): Response
+    {
+        Gate::authorize('view', $filter);
+
+        return $this->form($filter, null, $preview, $rows);
+    }
+
+    /**
+     * Saves a changed filter and lets it sort at once what it takes now; the toast says how many.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when the filter or an id named is not of the family
+     */
+    public function update(SaveBankFilterRequest $request, BankFilter $filter, SaveBankFilter $save): RedirectResponse
+    {
+        return $this->saved($save->handle($request->validated(), $filter));
+    }
+
+    /**
+     * Deletes a filter. What it sorted stays as it is: the expenses it created and the links it made remain, the
+     * movements only lose the name of the filter.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when the filter is not of the family
+     */
+    public function destroy(BankFilter $filter): RedirectResponse
+    {
+        Gate::authorize('delete', $filter);
+
+        $filter->delete();
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Filter deleted. What it sorted stays as it is.')]);
+
+        return to_route('budget.bank.index', ['show' => 'filters']);
+    }
+
+    /**
+     * The movements a filter being written takes and what saving it would do. Writes nothing. With `drop` (*It is not
+     * of this group*) the criteria first change to leave that movement out and take all the others (`RefineBankFilter`):
+     * the answer says how (`refined`) and lists what the changed filter takes; when nothing is found the list stays and
+     * `ai` says whether the AI can be asked.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when an id named is not of the family
+     */
+    public function preview(BankFilterPreviewRequest $request, BankFilterPreview $preview, BankFilters $filters): JsonResponse
+    {
+        $criteria = $request->criteria();
+        $drop = $request->dropped();
+
+        if (! $drop instanceof BankTransaction) {
+            return response()->json($preview->for($criteria, $request->filterColumns(), $request->changing()));
+        }
+
+        $keep = $filters->taken($criteria, config()->integer('bank_feed.first_days'), except: $drop->id);
+        $refined = RefineBankFilter::without($criteria, $keep, $drop);
+        $data = $preview->for($refined['criteria'] ?? $criteria, $request->filterColumns(), $request->changing());
+
+        return response()->json(new BankFilterPreviewData(
+            $data->rows,
+            $data->summary,
+            $data->conflicts,
+            $refined === null ? null : BankFilterRefinementData::fromRefined($refined),
+            $refined === null && resolve(DocumentReader::class)->isActive(),
+        ));
+    }
+
+    /**
+     * The words, and in the fill mode the title, category and organization, the AI proposes for the movements the
+     * filter must take and leave. Asked only by a button; writes nothing. A reading that is off, used up or without an
+     * answer is a 422 with its message under `keep`.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when a movement is not of the family
+     * @throws ValidationException when the reading is off, used up or gives no answer
+     */
+    public function suggest(SuggestBankFilterRequest $request, SuggestBankFilter $suggest): JsonResponse
+    {
+        try {
+            $suggestion = $suggest->handle($request->keep(), $request->drop(), $request->mode(), app()->getLocale());
+        } catch (ReadingFailed $failure) {
+            report($failure);
+
+            throw ValidationException::withMessages(['keep' => $failure->getMessage()]);
+        }
+
+        return response()->json(BankFilterSuggestionData::fromSuggestion($suggestion));
+    }
+
+    /**
+     * The page of the form: the filter or the proposal, the preview of what it takes, the choices of its fields.
+     *
+     * @param  BankFilter|null  $filter  the filter being changed
+     * @param  BankFilterDraft|null  $draft  the proposal of a new filter
+     * @param  bool  $asked  whether the address carries `ai=1`, the person's request for the AI to fill a proposal that has no action
+     * @param  list<int>  $examples  the movements a new filter starts from (the movement or the group of the address)
+     * @param  array{key: string, name: string}|null  $group  the group a new filter starts from
+     */
+    private function form(?BankFilter $filter, ?BankFilterDraft $draft, BankFilterPreview $preview, BankRows $rows, bool $asked = false, array $examples = [], ?array $group = null): Response
+    {
+        $canPay = Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]);
+        $columns = $filter?->only($filter->getFillable()) ?? $draft?->toArray() ?? [];
+        $criteria = $filter?->criteria() ?? BankFilterCriteria::fromArray([
+            'contains' => $columns['contains'] ?? null,
+            'excludes' => $columns['excludes'] ?? null,
+            'direction' => $columns['direction'] ?? null,
+            'accountId' => $columns['financial_account_id'] ?? null,
+            'amountMin' => $columns['amount_min'] ?? null,
+            'amountMax' => $columns['amount_max'] ?? null,
+            'pattern' => $columns['pattern'] ?? null,
+        ]);
+        $options = BudgetFormOptions::forMovement();
+
+        return Inertia::render('budget/BankFilter', [
+            'filter' => $filter instanceof BankFilter ? BankFilterData::fromFilter(
+                $filter->loadForPage(),
+            ) : null,
+            'draft' => $draft?->toData(),
+            'preview' => $preview->for($criteria, $columns, $filter?->id),
+            // The accounts the bank reads, to choose the one the filter reads, and the open ones for a transfer
+            'options' => [
+                ...$options,
+                'accounts' => $rows->accounts(),
+                'transfer_accounts' => $rows->transferAccounts(),
+                'planned' => $canPay ? $options['planned'] : [],
+            ],
+            'can_pay' => $canPay,
+            'ai' => resolve(DocumentReader::class)->isActive(),
+            // The movements the buttons of the AI read when the filter takes none yet, and whether to ask once now
+            'example_ids' => $examples,
+            'ask_ai' => $asked && $draft instanceof BankFilterDraft && ! $draft->action instanceof BankFilterAction,
+            // The group of the address: a movement taken out of the list leaves it too
+            'group' => $group,
+        ]);
+    }
+
+    /**
+     * The proposal of a new filter from the address (null when it comes from nowhere), with the movements it starts
+     * from and the group of the address. A planned item is taken only by who may create a filter that pays it.
+     *
+     * @return array{draft: ?BankFilterDraft, examples: list<int>, group: array{key: string, name: string}|null}
+     *
+     * @throws ModelNotFoundException if the movement is not of the family
+     * @throws NotFoundHttpException if the planned item or the group is not of the family
+     */
+    private function draft(Request $request): array
+    {
+        $planned = null;
+        $from = null;
+        $groupKey = $request->query('group');
+
+        if (is_string($groupKey) && $groupKey !== '') {
+            return $this->groupDraft($groupKey);
+        }
+
+        $plannedKey = $request->query('planned');
+        $fromId = $request->query('from');
+
+        if (is_string($plannedKey) && preg_match('/^(expense|income):(\d+)$/', $plannedKey, $parts) === 1
+            && Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])) {
+            $planned = PlannedKind::find($parts[1], $parts[2]);
+        }
+
+        if (is_string($fromId) && ctype_digit($fromId)) {
+            $from = BankTransaction::query()->findOrFail((int) $fromId);
+        }
+
+        $examples = $from instanceof BankTransaction ? [$from->id] : [];
+
+        if ($planned === null && ! $from instanceof BankTransaction) {
+            return ['draft' => null, 'examples' => [], 'group' => null];
+        }
+
+        // From a movement alone the draft is what happened to the movement (a due date paid, an expense, a transfer),
+        // with the words it shares with the others of its group, as the offer that links here said
+        if ($planned === null) {
+            $siblings = resolve(BankGroups::class)->siblings($from);
+
+            return ['draft' => BankFilterDraft::fromLink($from, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]), $siblings), 'examples' => $examples, 'group' => null];
+        }
+
+        return ['draft' => BankFilterDraft::fromPlanned($planned, $from), 'examples' => $examples, 'group' => null];
+    }
+
+    /**
+     * The filter that takes a group of movements: its words, direction and account and what the system proposes for
+     * it, a proposal to pay left out for who may not create a filter that pays (`BankGroupProposals::visibleFor()`).
+     *
+     * @param  string  $key  the key of the group
+     * @return array{draft: BankFilterDraft, examples: list<int>, group: array{key: string, name: string}}
+     *
+     * @throws NotFoundHttpException when the group does not exist (any more)
+     */
+    private function groupDraft(string $key): array
+    {
+        $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
+        $proposal = resolve(BankGroupProposals::class)->visibleFor(new Collection([$group]))[$group->key];
+
+        return [
+            'draft' => BankFilterDraft::fromGroup($group, $proposal),
+            'examples' => array_values($group->transactions->map(static fn (BankTransaction $transaction): int => $transaction->id)->all()),
+            'group' => ['key' => $group->key, 'name' => $group->name],
+        ];
+    }
+
+    /**
+     * Back to the tab *Filters* after a save, with how many movements the filter sorted.
+     *
+     * @param  array{filter: BankFilter, settled: int}  $result  what the save gave
+     */
+    private function saved(array $result): RedirectResponse
+    {
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(
+            '{0} Filter saved.|{1} Filter saved: it sorted 1 movement.|[2,*] Filter saved: it sorted :count movements.',
+            $result['settled'],
+        )]);
+
+        return to_route('budget.bank.index', ['show' => 'filters']);
+    }
+}

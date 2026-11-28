@@ -441,3 +441,30 @@ describe('the box of the card of the category', function (): void {
             ->and($draft->missing)->toBe([]);
     });
 });
+
+describe('the box of a supply', function (): void {
+    test('with the utility of the supply, the box links it, ticked', function (): void {
+        $gas = unsaved(Utility::class, ['id' => 5, 'type' => 'gas', 'supply_point_code' => '00881234567890']);
+
+        $draft = RecordDrafts::supply(draftReading(['kind' => 'utility_bill', 'utility_type' => 'gas', 'supply_point_code' => '00881234567890']), foundNothing(), draftDocument(), $gas);
+
+        expect($draft->kind)->toBe(RecordKind::Utility)
+            ->and($draft->existing)->toBe(['id' => 5, 'title' => 'Gas (00881234567890)'])
+            ->and($draft->suggested)->toBeTrue()
+            ->and($draft->missing)->toBe([]);
+    });
+
+    test('without it, the box creates the utility of the supply, with the issuer and the only home', function (): void {
+        $draft = RecordDrafts::supply(
+            draftReading(['kind' => 'utility_bill', 'utility_type' => 'gas', 'supply_point_code' => '00881234567890', 'customer_code' => '310045678']),
+            foundNothing(),
+            draftDocument(['organization_id' => 3, 'organization_name' => 'Enel Energia']),
+            null,
+        );
+
+        expect($draft->existing)->toBeNull()
+            ->and($draft->title)->toBe('the utility Gas · Enel Energia')
+            ->and($draft->values)->toMatchArray(['type' => 'gas', 'supply_point_code' => '00881234567890', 'customer_code' => '310045678', 'organization_id' => 3, 'home_id' => 1])
+            ->and($draft->suggested)->toBeTrue();
+    });
+});

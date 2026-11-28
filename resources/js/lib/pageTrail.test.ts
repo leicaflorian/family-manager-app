@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { createTrailState, isSectionPage, SECTION_PAGES } from './pageTrail';
+import {
+    createTrailState,
+    hasTitleTools,
+    isSectionPage,
+    SECTION_PAGES,
+} from './pageTrail';
 
 describe('createTrailState', () => {
     it('sets and clears the pieces', () => {
@@ -28,6 +33,22 @@ describe('isSectionPage', () => {
         expect(isSectionPage('budget/Comparison')).toBe(false);
         expect(isSectionPage('budget/Consumption')).toBe(false);
     });
+
+    it('is false for From the bank, which shows its trail under Budget', () => {
+        expect(isSectionPage('budget/BankTransactions')).toBe(false);
+    });
+});
+
+describe('hasTitleTools', () => {
+    it('is true for the section pages and the pages under a section in the sidebar', () => {
+        expect(hasTitleTools('Home')).toBe(true);
+        expect(hasTitleTools('budget/BankTransactions')).toBe(true);
+    });
+
+    it('is false for an inner page', () => {
+        expect(hasTitleTools('cards/Card')).toBe(false);
+        expect(hasTitleTools('budget/BankFilter')).toBe(false);
+    });
 });
 
 describe('SECTION_PAGES', () => {
@@ -42,7 +63,6 @@ describe('SECTION_PAGES', () => {
                 'mail/ReceivedMails',
                 'budget/Movements',
                 'budget/Planned',
-                'budget/BankTransactions',
                 'family/People',
                 'family/Organizations',
                 'settings/Settings',

@@ -2,25 +2,27 @@
 
 declare(strict_types=1);
 
-use App\Contracts\DocumentReader;
 use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
+use App\Enums\ExceptionType;
 use App\Enums\Role;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\Income;
+use App\Models\Organization;
 use App\Models\PlannedExpense;
+use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
 use App\Models\User;
-use App\Support\Banks\BankMatch;
+use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Pest\Expectation;
-use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-05 07:00', 'Europe/Rome'));
@@ -266,6 +268,84 @@ test('assigning pays the closest open due date of the chosen planned expense', f
     });
 });
 
+test('assign with a movement links it as a duplicate', function (): void {
+    $transaction = bankSortOne(['amount' => '-72.40']);
+    $expense = insideBianchi(fn (): Expense => Expense::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'title' => 'Luce a mano', 'amount' => 72.4, 'date' => '2026-10-01']));
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'movement_id' => $expense->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('toast.message', 'Linked: Luce a mano');
+
+    insideBianchi(function () use ($transaction, $expense): void {
+        $transaction->refresh();
+
+        expect($transaction->expense_id)->toBe($expense->id)
+            ->and($transaction->matched_by)->toBe(BankMatchSource::Duplicate)
+            ->and(Expense::query()->count())->toBe(1);
+    });
+});
+
+test('assign with an occurrence pays that due date and not the closest', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-10-05'])
+        ->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $luce->id)->sole()->occurrence_date?->toDateString())->toBe('2026-10-05'));
+});
+
+test('a due date moved by an exception is paid when its original date is sent', function (): void {
+    $luce = bankSortPlanned('Luce');
+    insideBianchi(fn (): PlannedExpenseException => PlannedExpenseException::factory()->create([
+        'family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'type' => ExceptionType::DateOverride, 'occurrence_date' => '2026-11-05', 'date_override' => '2026-11-20',
+    ]));
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-18', 'value_on' => '2026-11-18']);
+
+    $this->actingAs($this->marco)->getJson(route('budget.bank.candidates', ['transaction' => $transaction->id, 'q' => 'luce']))
+        ->assertJsonPath('planned.0.due_on', '2026-11-20')
+        ->assertJsonPath('planned.0.occurrence', '2026-11-05');
+    $this->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-11-05'])->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $luce->id)->sole()->occurrence_date?->toDateString())->toBe('2026-11-05'));
+});
+
+test('a chosen due date is not replaced by a payment of another one recorded nearby', function (): void {
+    $luce = bankSortPlanned('Luce');
+    $november = insideBianchi(fn (): Expense => Expense::factory()->create([
+        'family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'amount' => 72.4, 'date' => '2026-11-01', 'occurrence_date' => '2026-11-05',
+    ]));
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id, 'occurrence' => '2026-10-05'])->assertRedirect();
+
+    insideBianchi(function () use ($transaction, $november): void {
+        $linked = Expense::query()->findOrFail($transaction->refresh()->expense_id);
+
+        expect($linked->is($november))->toBeFalse()
+            ->and($linked->occurrence_date?->toDateString())->toBe('2026-10-05');
+    });
+});
+
+test('an ended planned item is paid when its due date was chosen', function (): void {
+    $old = bankSortPlanned('Vecchia rata', '2026-08-01', ['end_date' => '2026-08-31']);
+    $transaction = bankSortOne(['amount' => '-72.40', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->actingAs($this->marco)->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id])->assertStatus(422)->assertJsonValidationErrors('planned_id');
+    $this->postJson(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $old->id, 'occurrence' => '2026-08-01'])->assertNoContent();
+
+    insideBianchi(fn (): Expectation => expect(Expense::query()->where('planned_expense_id', $old->id)->sole()->occurrence_date?->toDateString())->toBe('2026-08-01'));
+});
+
+test('a member can link a recorded expense', function (): void {
+    $transaction = bankSortOne(['amount' => '-72.40']);
+    $expense = insideBianchi(fn (): Expense => Expense::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'amount' => 72.4]));
+
+    $this->actingAs($this->laura)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'movement_id' => $expense->id])->assertRedirect();
+
+    insideBianchi(fn (): Expectation => expect($transaction->refresh()->expense_id)->toBe($expense->id));
+});
+
 test('assigning a credit pays a planned income and an income of a debit is refused', function (): void {
     $salary = insideBianchi(fn (): PlannedIncome => PlannedIncome::factory()->create([
         'family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'title' => 'Stipendio', 'amount' => 1500, 'start_date' => '2026-01-27', 'financial_account_id' => null, 'end_date' => null,
@@ -347,19 +427,21 @@ test('assigning answers 404 while the feed is off', function (): void {
     $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id])->assertNotFound();
 });
 
-test('an admin lands on the planned form with the rule sheet ready when there is no rule yet, a member stays on the list', function (): void {
+test('assigning to a planned item without a filter leads an admin to the new filter and a member back to the list', function (): void {
     $luce = bankSortPlanned('Luce');
-    $withRule = bankSortPlanned('Gas', '2026-01-05', ['bank_match' => 'ENEL']);
+    $withFilter = bankSortPlanned('Gas', '2026-01-05');
+    insideBianchi(fn (): BankFilter => BankFilter::factory()->pays($withFilter)->create(['family_id' => $withFilter->family_id]));
     $first = bankSortOne(['amount' => '-72.40']);
     $second = bankSortOne(['amount' => '-72.40']);
     $third = bankSortOne(['amount' => '-72.40']);
 
     $this->actingAs($this->marco)->post(route('budget.bank.assign', $first), ['kind' => 'expense', 'planned_id' => $luce->id])
-        ->assertRedirect(route('budget.planned.edit', ['kind' => 'expense', 'id' => $luce->id, 'rule_from' => $first->id]));
+        ->assertRedirect(route('budget.bank.filters.create', ['planned' => 'expense:'.$luce->id, 'from' => $first->id]));
 
-    $this->post(route('budget.bank.assign', $second), ['kind' => 'expense', 'planned_id' => $withRule->id])->assertRedirect(route('budget.bank.index'));
+    // The old rule text does not count any more: only a filter does
+    $this->post(route('budget.bank.assign', $second), ['kind' => 'expense', 'planned_id' => $withFilter->id])->assertRedirect(route('budget.bank.index'));
 
-    // Another due date for a member: the planned item has no rule, but she cannot change it
+    // The same planned item for a member: she cannot make a filter that pays
     $other = bankSortPlanned('Acqua', '2026-01-05');
     $this->actingAs($this->laura)->post(route('budget.bank.assign', $third), ['kind' => 'expense', 'planned_id' => $other->id])->assertRedirect(route('budget.bank.index'));
 });
@@ -384,37 +466,16 @@ test('a transaction that was declined can be assigned by hand', function (): voi
     expect($transaction->refresh()->expense_id)->not->toBeNull();
 });
 
-test('the planned items of the sheet are those of the kind with a due date to pay, with the closest date', function (): void {
+test('the page no longer sends the planned items of the sheet, which asks the search route', function (): void {
     bankSortPlanned('Luce', '2026-01-05', ['amount' => 72, 'is_estimated' => true]);
-    bankSortPlanned('Bollo', '2027-06-01');
-    bankSortPlanned('Vecchio', '2025-01-05', ['end_date' => '2026-06-01']);
     $transaction = bankSortOne(['amount' => '-72.40']);
 
     $this->actingAs($this->marco)->get(route('budget.bank.index', ['assign' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->missing('planned_options')
-        ->reloadOnly('planned_options', fn (AssertableInertia $reload): AssertableInertia => $reload
-            ->has('planned_options', 1)
-            ->where('planned_options.0.title', 'Luce')
-            ->where('planned_options.0.kind', 'expense')
-            ->where('planned_options.0.due_on', '2026-11-05')
-            ->where('planned_options.0.late', false)
-            ->where('planned_options.0.estimated', true)
-            ->where('planned_options.0.amount', 72)));
+        ->missing('planned_options'));
 
-    $this->get(route('budget.bank.index', ['assign' => 99999999]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->reloadOnly('planned_options', fn (AssertableInertia $reload): AssertableInertia => $reload->where('planned_options', [])));
-});
-
-test('the planned form starts from the text of the transaction when the reading is off', function (): void {
-    $transaction = bankSortOne(['text' => 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789']);
-    app()->instance(DocumentReader::class, (new FakeDocumentReader)->off());
-
-    $this->actingAs($this->marco)->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('values.bank_match', BankMatch::fromText($transaction->text)));
-
-    app()->instance(DocumentReader::class, new FakeDocumentReader);
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('values.bank_match', null));
+    $this->getJson(route('budget.bank.candidates', ['transaction' => $transaction->id]))
+        ->assertOk()
+        ->assertJsonPath('planned.0.title', 'Luce');
 });
 
 test('a new movement from the bank finds and locks its planned item before reading anything of it', function (): void {
@@ -457,4 +518,121 @@ test('a due date paid while the movement from the bank starts saving gives the e
     expect($paid->done)->toBeTrue()
         ->and(insideBianchi(fn (): int => Expense::query()->where('planned_expense_id', $luce->id)->count()))->toBe(1)
         ->and($transaction->refresh()->expense_id)->toBeNull();
+});
+
+/**
+ * A commission left alone: the text the bank writes for it, with no debit to sort.
+ *
+ * @param  array<string, mixed>  $attributes  what differs from a booked commission of 0,40 €
+ */
+function bankSortFee(array $attributes = []): BankTransaction
+{
+    return bankSortOne([
+        'text' => 'COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900',
+        'amount' => '-0.40', 'booked_on' => '2026-08-26', 'value_on' => '2026-08-26', ...$attributes,
+    ]);
+}
+
+/**
+ * A recorded expense of the Bianchi.
+ *
+ * @param  array<string, mixed>  $attributes  more columns
+ */
+function bankSortExpense(array $attributes = []): Expense
+{
+    return insideBianchi(fn (): Expense => Expense::factory()->create([
+        'family_id' => Family::query()->where('name', 'Bianchi')->sole()->id,
+        'title' => 'Ricarica Satispay', 'amount' => 10, 'fee_amount' => null, 'date' => '2026-08-25', ...$attributes,
+    ]));
+}
+
+test('attaches the orphan commission to the chosen expense', function (): void {
+    $fee = bankSortFee();
+    $expense = bankSortExpense();
+
+    $this->actingAs($this->marco)->post(route('budget.bank.fee', $fee), ['expense_id' => $expense->id])->assertRedirect(route('budget.bank.index'));
+
+    insideBianchi(function () use ($fee, $expense): void {
+        expect((float) $expense->refresh()->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and($fee->refresh()->expense_id)->toBe($expense->id)
+            ->and($fee->matched_by)->toBe(BankMatchSource::Fee);
+    });
+});
+
+test('refuses a movement that is not a commission', function (): void {
+    $plain = bankSortOne(['text' => 'PAGAMENTO POS FARMACIA COMUNALE 7 BOLOGNA', 'amount' => '-0.40']);
+    $expense = bankSortExpense();
+
+    $this->actingAs($this->marco)->post(route('budget.bank.fee', $plain), ['expense_id' => $expense->id])->assertSessionHasErrors('expense_id');
+
+    insideBianchi(function () use ($plain, $expense): void {
+        expect((float) $expense->refresh()->amount)->toBe(10.0)
+            ->and($plain->refresh()->expense_id)->toBeNull();
+    });
+});
+
+test('refuses an expense that already has a bank fee', function (): void {
+    $expense = bankSortExpense(['amount' => 10.4, 'fee_amount' => 0.4]);
+    insideBianchi(fn (): BankTransaction => bankSortFee(['expense_id' => $expense->id, 'matched_by' => BankMatchSource::Fee]));
+    $other = bankSortFee(['booked_on' => '2026-08-27', 'value_on' => '2026-08-27']);
+
+    $this->actingAs($this->marco)->post(route('budget.bank.fee', $other), ['expense_id' => $expense->id])->assertSessionHasErrors('expense_id');
+
+    insideBianchi(function () use ($other, $expense): void {
+        expect((float) $expense->refresh()->amount)->toBe(10.4)
+            ->and($other->refresh()->expense_id)->toBeNull();
+    });
+});
+
+test('a member can do it', function (): void {
+    $fee = bankSortFee();
+    $expense = bankSortExpense();
+
+    $this->actingAs($this->laura)->post(route('budget.bank.fee', $fee), ['expense_id' => $expense->id])->assertRedirect(route('budget.bank.index'));
+
+    expect($fee->refresh()->expense_id)->toBe($expense->id);
+});
+
+test('an expense of another family answers 404', function (): void {
+    $fee = bankSortFee();
+    $other = registerFamily('Rossi', 'rossi@example.com');
+    $foreign = CurrentFamily::using($other->family_id, fn (): Expense => Expense::factory()->create(['family_id' => $other->family_id, 'amount' => 10]));
+
+    $this->actingAs($this->marco)->post(route('budget.bank.fee', $fee), ['expense_id' => $foreign->id])->assertNotFound();
+});
+
+test('the search for a commission lists only recorded expenses, starting from the organization of the text', function (): void {
+    $fee = bankSortFee();
+    $satispay = insideBianchi(fn (): Organization => Organization::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'name' => 'Satispay']));
+    $mine = bankSortExpense(['organization_id' => $satispay->id]);
+    bankSortExpense(['title' => 'Luce', 'amount' => 0.4]);
+    $linked = bankSortExpense(['organization_id' => $satispay->id, 'title' => 'Ricarica già collegata']);
+    insideBianchi(fn (): BankTransaction => bankSortOne(['expense_id' => $linked->id, 'text' => 'ADDEBITO']));
+    bankSortPlanned('Satispay mensile');
+
+    $this->actingAs($this->marco)->getJson(route('budget.bank.candidates', ['transaction' => $fee->id, 'fee' => 1]))
+        ->assertOk()
+        ->assertJsonPath('planned', [])
+        ->assertJsonPath('organization', 'Satispay')
+        ->assertJsonCount(2, 'recorded')
+        ->assertJsonFragment(['id' => $mine->id])
+        ->assertJsonFragment(['id' => $linked->id]);
+});
+
+test('a word searches the recorded expenses for a commission, and an expense with a bank commission is not listed', function (): void {
+    $fee = bankSortFee();
+    $free = bankSortExpense(['title' => 'Ricarica libera']);
+    $taken = bankSortExpense(['title' => 'Ricarica con commissione', 'amount' => 10.4, 'fee_amount' => 0.4]);
+    insideBianchi(fn (): BankTransaction => bankSortFee(['expense_id' => $taken->id, 'matched_by' => BankMatchSource::Fee, 'booked_on' => '2026-08-27', 'value_on' => '2026-08-27']));
+    bankSortPlanned('Ricarica pianificata');
+
+    $this->actingAs($this->marco)->getJson(route('budget.bank.candidates', ['transaction' => $fee->id, 'fee' => 1, 'q' => 'ricarica']))
+        ->assertOk()
+        ->assertJsonPath('planned', [])
+        ->assertJsonCount(1, 'recorded')
+        ->assertJsonPath('recorded.0.id', $free->id);
+
+    $this->getJson(route('budget.bank.candidates', ['transaction' => $fee->id, 'fee' => 1]))
+        ->assertJsonMissing(['id' => $taken->id]);
 });

@@ -7,15 +7,17 @@ namespace App\Services\Reading;
 use App\Data\Reading\DocumentProposalData;
 use App\Data\Reading\Extraction;
 use App\Data\Reading\FoundLineData;
+use App\Data\Reading\SupplyData;
 use App\Enums\UtilityType;
 use App\Models\Employment;
-use App\Models\Vehicle;
+use App\Models\Utility;
 use App\Support\CurrentFamily;
+use App\Support\Money;
+use App\Support\Reading\BillTitle;
 use App\Support\Reading\Choices;
-use App\Support\Reading\ReadingText;
+use App\Support\Reading\TypeCategory;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Number;
 
 /**
  * What the reading proposes for a document, the `document` profile of the old reader: title, category, dates,
@@ -60,16 +62,17 @@ final readonly class DocumentProposal
     {
         $links = $this->links->resolve($x, $context);
         $utility = $links->utility;
-        $vehicle = $links->vehicle;
         $organizationId = $links->organizationId;
         $personId = $links->personId;
         $issuer = $links->issuer;
         $date = ValidDate::of($x->issue_date) ?? ValidDate::of($x->due_date);
         $category = Choices::pick($context->documentCategories, $x->document_category_id);
         $titleDate = $x->kind === 'payslip' ? ValidDate::of($x->period_start) ?? $date : $date;
+        $types = $this->types($x, $utility);
+        $utilities = $x->isMultiSupply() ? $links->utilities : array_filter([$utility]);
 
         $cards = array_values(array_filter([
-            $this->link('utility', $utility?->id),
+            ...array_map(fn (Utility $found): ?array => $this->link('utility', $found->id), $utilities),
             $this->link('vehicle', $links->vehicleId),
             $this->link('insurance_policy', $links->policy?->id),
             $this->link('subscription', $links->subscription?->id),
@@ -77,16 +80,43 @@ final readonly class DocumentProposal
         ]));
 
         return new DocumentProposalData(
-            title: $this->title($x, $issuer ?? __('Document', [], $locale), $utility->type->value ?? $x->utility_type, $vehicle, $titleDate, $locale),
-            category_id: $category,
+            title: BillTitle::of($x, $issuer ?? __('Document', [], $locale), $types, $links->vehicle, $titleDate, $locale),
+            category_id: $x->isMultiSupply() ? $this->typesCategory($types, $context) ?? $category : $category,
             person_id: $personId,
             organization_id: $organizationId,
             date: $date,
             expiry_date: in_array($x->kind, Extraction::NO_EXPIRY, true) ? null : ValidDate::of($x->expiry_date),
             links: $cards,
-            headline: $this->headline($x->kind, $utility->type->value ?? $x->utility_type, $locale),
+            headline: $this->headline($x->kind, $types, $locale),
             found: $this->found($x, $issuer, $locale),
         );
+    }
+
+    /**
+     * The types of supply of a bill: of each supply when there are more, otherwise of the utility found or as read.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  Utility|null  $utility  the utility found for the only supply
+     * @return list<string> values of `UtilityType`, without repetitions
+     */
+    private function types(Extraction $x, ?Utility $utility): array
+    {
+        $types = $x->isMultiSupply()
+            ? array_map(static fn (SupplyData $supply): ?string => $supply->utility_type, $x->supplies)
+            : [$utility->type->value ?? $x->utility_type];
+
+        return array_values(array_unique(array_filter($types, is_string(...))));
+    }
+
+    /**
+     * The document category right above the categories of all the types («Casa e utenze» for «Luce» and «Gas»).
+     *
+     * @param  list<string>  $types  values of `UtilityType`
+     * @param  ReadingContext  $context  the lists of the family
+     */
+    private function typesCategory(array $types, ReadingContext $context): ?int
+    {
+        return TypeCategory::commonParent(array_map(UtilityType::from(...), $types), $context->documentCategories);
     }
 
     /**
@@ -123,54 +153,16 @@ final readonly class DocumentProposal
     }
 
     /**
-     * The title of the document: what the paper is, the issuer, and the month and year of its date.
-     *
-     * @param  Extraction  $x  what the model read
-     * @param  string  $issuer  who made the paper
-     * @param  string|null  $utilityType  the kind of supply of a bill
-     * @param  Vehicle|null  $vehicle  the vehicle of a road tax
-     * @param  string|null  $date  `YYYY-MM-DD`
-     * @param  string  $locale  the language of the title
-     */
-    private function title(Extraction $x, string $issuer, ?string $utilityType, ?Vehicle $vehicle, ?string $date, string $locale): string
-    {
-        $parsed = ValidDate::carbon($date);
-        $year = $parsed?->format('Y');
-        $month = $parsed instanceof CarbonImmutable ? ReadingText::month($parsed, $locale) : null;
-        $with = ['issuer' => $issuer, 'month' => $month, 'year' => $year];
-        $put = static fn (string $without, string $withDate): string => __($parsed instanceof CarbonImmutable ? $withDate : $without, $with, $locale);
-
-        return match ($x->kind) {
-            'utility_bill' => match ($utilityType) {
-                'electricity' => $put('Electricity bill', 'Electricity bill :month :year'),
-                'gas' => $put('Gas bill', 'Gas bill :month :year'),
-                'water' => $put('Water bill', 'Water bill :month :year'),
-                'internet' => $put('Internet bill', 'Internet bill :month :year'),
-                'phone' => $put('Phone bill', 'Phone bill :month :year'),
-                'waste_tax' => $put('Waste tax bill', 'Waste tax bill :month :year'),
-                'tv_license' => $put('TV license bill', 'TV license bill :month :year'),
-                default => $put('Bill :issuer', 'Bill :issuer :month :year'),
-            },
-            'receipt' => __('Receipt :issuer', $with, $locale),
-            'invoice' => $put('Invoice :issuer', 'Invoice :issuer :month :year'),
-            'payment_receipt' => $put('Payment receipt :issuer', 'Payment receipt :issuer :month :year'),
-            'payslip' => $put('Payslip', 'Payslip :month :year'),
-            'road_tax' => __($year === null ? 'Road tax :vehicle' : 'Road tax :vehicle :year', [...$with, 'vehicle' => $vehicle->name ?? $x->plate_number ?? __('car', [], $locale)], $locale),
-            default => __($parsed instanceof CarbonImmutable ? ':title :month :year' : ':title', [...$with, 'title' => $x->title ?? $issuer], $locale),
-        };
-    }
-
-    /**
      * The sentence of the box on top of the form: what the paper is.
      *
      * @param  string|null  $kind  one of `Extraction::KINDS`
-     * @param  string|null  $utilityType  the kind of supply of a bill
+     * @param  list<string>  $types  the kinds of supply of a bill, one for each different one
      * @param  string  $locale  the language of the sentence
      */
-    private function headline(?string $kind, ?string $utilityType, string $locale): string
+    private function headline(?string $kind, array $types, string $locale): string
     {
         return match ($kind) {
-            'utility_bill' => match ($utilityType) {
+            'utility_bill' => count($types) > 1 ? __(BillTitle::isElectricityAndGas($types) ? 'I found an electricity and gas bill' : 'I found a bill', [], $locale) : match ($types[0] ?? null) {
                 UtilityType::Electricity->value => __('I found an electricity bill', [], $locale),
                 UtilityType::Gas->value => __('I found a gas bill', [], $locale),
                 UtilityType::Water->value => __('I found a water bill', [], $locale),
@@ -204,10 +196,30 @@ final readonly class DocumentProposal
         $due = ValidDate::carbon($x->due_date);
         $lines = [
             $issuer === null ? null : new FoundLineData(__('Who sent it', [], $locale), $issuer),
-            $x->total_amount === null ? null : new FoundLineData(__('How much', [], $locale), (Number::currency($x->total_amount, 'EUR', 'it') ?: (string) $x->total_amount)),
+            $x->total_amount === null ? null : new FoundLineData(__('How much', [], $locale), $this->howMuch($x, $x->total_amount, $locale)),
             $due instanceof CarbonImmutable ? new FoundLineData(__('Due on', [], $locale), $due->format('d/m/Y')) : null,
         ];
 
         return array_values(array_filter($lines));
+    }
+
+    /**
+     * The total of the paper and, with more than one supply, the amount of each: «165,65 € · luce 96,25 €, gas 69,40 €».
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  float  $total  the total to pay
+     * @param  string  $locale  the language of the names of the types
+     */
+    private function howMuch(Extraction $x, float $total, string $locale): string
+    {
+        $parts = [];
+        foreach ($x->isMultiSupply() ? $x->supplies : [] as $supply) {
+            if ($supply->amount !== null) {
+                $type = $supply->utility_type === null ? '' : mb_strtolower(BillTitle::typeLabel($supply->utility_type, $locale)).' ';
+                $parts[] = $type.Money::euro($supply->amount);
+            }
+        }
+
+        return Money::euro($total).($parts === [] ? '' : ' · '.implode(', ', $parts));
     }
 }

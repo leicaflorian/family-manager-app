@@ -7,6 +7,8 @@ namespace App\Services\Banks;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankText;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 
@@ -36,14 +38,49 @@ final class RecurringBankTexts
 
     /**
      * Whether the text of a transaction comes back every month on its account and in its direction: the same key
-     * `chain()` uses, so a row that says yes always has a run to start the planned form from.
+     * `chain()` uses, so a row that says yes always has a run to start the planned form from. A commission never does:
+     * it is its direct debit that comes back.
      *
      * @param  BankTransaction  $transaction  A transaction of the family.
      */
     public function recurs(BankTransaction $transaction): bool
     {
         return $transaction->status === BankTransactionStatus::Booked
+            && ! BankText::isFee($transaction->text)
             && $this->chain($transaction) !== null;
+    }
+
+    /**
+     * Whether the transactions of a group come back every month: the same rule as for a text (`groupChain()`).
+     *
+     * @param  iterable<int, BankTransaction>  $transactions  the transactions of one group
+     */
+    public function groupRecurs(iterable $transactions): bool
+    {
+        return $this->groupChain($transactions) !== null;
+    }
+
+    /**
+     * The three transactions, oldest first, that make a group recurring: the latest run of three calendar months in a
+     * row among its booked transactions of the last four months (commissions out), each within 20% of the first.
+     * Null when they do not come back every month. A group is made by a mandate or a counterparty, so its texts can
+     * differ, and the rule looks at the transactions as they are, not at their text.
+     *
+     * @param  iterable<int, BankTransaction>  $transactions  the transactions of one group
+     * @return list<BankTransaction>|null
+     */
+    public function groupChain(iterable $transactions): ?array
+    {
+        $since = $this->since()->toDateString();
+        $rows = array_values(collect($transactions)
+            ->filter(static fn (BankTransaction $row): bool => $row->status === BankTransactionStatus::Booked
+                && (string) $row->booked_on?->toDateString() >= $since
+                && ! BankText::isFee($row->text))
+            ->sortBy([['booked_on', 'asc'], ['id', 'asc']])
+            ->all());
+        $chains = $this->chains($rows);
+
+        return $chains === [] ? null : $chains[array_key_last($chains)];
     }
 
     /**
@@ -90,7 +127,7 @@ final class RecurringBankTexts
             return $this->groups;
         }
 
-        $since = CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS - 1)->startOfMonth();
+        $since = $this->since();
         $groups = [];
 
         $rows = BankTransaction::query()
@@ -101,12 +138,20 @@ final class RecurringBankTexts
             ->get();
 
         foreach ($rows as $row) {
-            if (BankMatch::signature($row->text) !== '') {
+            if (BankMatch::signature($row->text) !== '' && ! BankText::isFee($row->text)) {
                 $groups[$this->key($row)][] = $row;
             }
         }
 
         return $this->groups = $groups;
+    }
+
+    /**
+     * The first day of the oldest month that is looked at.
+     */
+    private function since(): CarbonImmutable
+    {
+        return CarbonImmutable::today('Europe/Rome')->subMonths(self::MONTHS - 1)->startOfMonth();
     }
 
     /**
@@ -160,19 +205,9 @@ final class RecurringBankTexts
      */
     private function near(BankTransaction $first, BankTransaction $other): bool
     {
-        $base = $this->cents($first);
+        $base = Money::absCents($first->amount);
 
-        return abs($this->cents($other) - $base) * self::TOLERANCE_DIVISOR <= $base;
-    }
-
-    /**
-     * The amount in cents, without the sign.
-     *
-     * @param  BankTransaction  $transaction  The transaction.
-     */
-    private function cents(BankTransaction $transaction): int
-    {
-        return (int) round(abs((float) $transaction->amount) * 100);
+        return abs(Money::absCents($other->amount) - $base) * self::TOLERANCE_DIVISOR <= $base;
     }
 
     /**

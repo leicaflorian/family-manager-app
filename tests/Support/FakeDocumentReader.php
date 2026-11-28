@@ -6,7 +6,6 @@ namespace Tests\Support;
 
 use App\Actions\Mail\RecordMailFilterCall;
 use App\Contracts\DocumentReader;
-use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Extraction;
@@ -16,6 +15,7 @@ use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingSource;
 use App\Support\Corners;
+use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -52,8 +52,15 @@ final class FakeDocumentReader implements DocumentReader
      */
     private ?array $corners = null;
 
-    /** What the model writes as the rule of a bank payment, until `suggestsRule()` says otherwise. */
-    private BankRuleSuggestion $rule;
+    /** What the model proposes as a bank filter, until `suggestsFilter()` says otherwise. */
+    private BankFilterSuggestion $filter;
+
+    /**
+     * The requests for a bank filter so far, with what was sent.
+     *
+     * @var list<array{keep: list<string>, drop: list<string>, names: array{categories: list<string>, organizations: list<string>, planned: list<string>}, locale: string}>
+     */
+    private array $filterRequests = [];
 
     /**
      * What the short reading of the consumption finds, by the id of the file read; a file not in the map is not a bill.
@@ -64,9 +71,6 @@ final class FakeDocumentReader implements DocumentReader
 
     /** The readings of the consumption asked so far. */
     private int $consumptionReads = 0;
-
-    /** The rules asked so far. */
-    private int $rules = 0;
 
     /** The screenings asked so far. */
     private int $screenings = 0;
@@ -81,7 +85,7 @@ final class FakeDocumentReader implements DocumentReader
     {
         $this->extraction = Extraction::from(['kind' => 'other', 'confidence' => 'low']);
         $this->screening = new MailScreeningAnswer('unsure', null);
-        $this->rule = new BankRuleSuggestion('', '');
+        $this->filter = new BankFilterSuggestion([], [], null, null, null, '');
     }
 
     /**
@@ -111,13 +115,13 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
-     * Every request for the rule of a bank payment gives this suggestion.
+     * Every request for a bank filter gives this suggestion.
      *
-     * @param  BankRuleSuggestion  $suggestion  what the model writes
+     * @param  BankFilterSuggestion  $suggestion  what the model proposes
      */
-    public function suggestsRule(BankRuleSuggestion $suggestion): self
+    public function suggestsFilter(BankFilterSuggestion $suggestion): self
     {
-        $this->rule = $suggestion;
+        $this->filter = $suggestion;
         $this->failure = null;
 
         return $this;
@@ -209,11 +213,21 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
-     * How many rules of a bank payment were asked.
+     * How many bank filters were asked.
      */
-    public function rules(): int
+    public function filters(): int
     {
-        return $this->rules;
+        return count($this->filterRequests);
+    }
+
+    /**
+     * What each request for a bank filter sent, in order.
+     *
+     * @return list<array{keep: list<string>, drop: list<string>, names: array{categories: list<string>, organizations: list<string>, planned: list<string>}, locale: string}>
+     */
+    public function filterRequests(): array
+    {
+        return $this->filterRequests;
     }
 
     /**
@@ -307,32 +321,33 @@ final class FakeDocumentReader implements DocumentReader
     }
 
     /**
-     * Counts the request, then gives the suggestion of `suggestsRule()` or throws the error of `fails()`. As the real
-     * one, it records the call (Gemini 3.8 Flash, 200 tokens in and 30 out) as a `bank_rule` of the account signed in, unless the error is one with no answer (`ReadingFailed::$paid` false).
+     * Keeps what was sent, then gives the suggestion of `suggestsFilter()` or throws the error of `fails()`. As the
+     * real one, it records the call (Gemini 3.8 Flash, 400 tokens in and 60 out) as a `bank_filter` of the account
+     * signed in, unless the error is one with no answer (`ReadingFailed::$paid` false).
      *
-     * @param  list<string>  $examples  the texts of the transactions
-     * @param  string  $locale  the language of the explanation
+     * @param  list<string>  $keep  the texts of the transactions to take
+     * @param  list<string>  $drop  the texts of the transactions to leave
+     * @param  array{categories: list<string>, organizations: list<string>, planned: list<string>}  $names  the names of the family
+     * @param  string  $locale  the language of the answer
      *
      * @throws ReadingFailed when `fails()` was called
      */
-    public function bankRule(array $examples, string $locale): BankRuleSuggestion
+    public function bankFilter(array $keep, array $drop, array $names, string $locale): BankFilterSuggestion
     {
-        $this->rules++;
+        $this->filterRequests[] = ['keep' => $keep, 'drop' => $drop, 'names' => $names, 'locale' => $locale];
 
         $userId = Auth::guard('web')->id();
-
-        // as the real reader, an answer that was paid for is recorded before it is found unusable
         $failure = $this->failure;
 
         if (! $failure instanceof ReadingFailed || $failure->paid) {
-            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 200, 30, 0, ReadingPurpose::BankRule, $userId === null ? null : (int) $userId);
+            (new RecordMailFilterCall)->handle('gemini', 'gemini-3.8-flash', 400, 60, 0, ReadingPurpose::BankFilter, $userId === null ? null : (int) $userId);
         }
 
         if ($failure instanceof ReadingFailed) {
             throw $failure;
         }
 
-        return $this->rule;
+        return $this->filter;
     }
 
     /**

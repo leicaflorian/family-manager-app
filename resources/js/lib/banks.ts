@@ -1,6 +1,12 @@
 import { trans } from 'laravel-vue-i18n';
-import { formatDate, todayInRome } from '@/lib/format';
+import {
+    formatDate,
+    formatDayMonth,
+    formatMoney,
+    todayInRome,
+} from '@/lib/format';
 import { listNames } from '@/lib/names';
+import type { FlashSimilar } from '@/types/ui';
 
 /**
  * The letters of the tile of a bank without a logo: the first of the first two words, or of the first two humps
@@ -55,4 +61,92 @@ export function readTimes(hours: number[]): string {
     return listNames(
         hours.map((hour) => trans('at :hour', { hour: String(hour) })),
     );
+}
+
+/**
+ * An amount of a bank transaction as the lists of *From the bank* write it: money that came in with the «+», as the
+ * boards draw it; money that went out keeps its minus.
+ *
+ * @param amount - the amount, with its sign
+ * @param currency - the code of the currency
+ * @returns «+407,60 €», «-18,40 €»
+ */
+export function bankMoney(amount: number, currency: string): string {
+    return `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`;
+}
+
+/**
+ * The day a bank transaction is listed with: the booked one, for a pending transaction the one the bank gave.
+ *
+ * @param row - the transaction (only its two days are read)
+ * @param now - the moment taken as now, the clock if missing
+ * @returns «06/11», with the year only for a day that is not of this year; empty without any day
+ */
+export function dayOf(
+    row: { booked_on: string | null; value_on: string | null },
+    now: Date = new Date(),
+): string {
+    const day = row.booked_on ?? row.value_on;
+
+    if (!day) {
+        return '';
+    }
+
+    return day.slice(0, 4) === todayInRome(now).slice(0, 4)
+        ? formatDayMonth(day)
+        : formatDate(day);
+}
+
+/**
+ * Whether the reason of the flash `similar` has its shape: null (the server has no name or words for it), or the
+ * kind and the name.
+ *
+ * @param reason - the reason the flash carries
+ * @returns true when it can be read
+ */
+function isSimilarReason(reason: unknown): boolean {
+    if (reason === null) {
+        return true;
+    }
+
+    const value = reason as { kind?: unknown; name?: unknown } | undefined;
+
+    return (
+        typeof value === 'object' &&
+        (value.kind === 'mandate' || value.kind === 'words') &&
+        typeof value.name === 'string'
+    );
+}
+
+/**
+ * The flash `similar` of a visit, if it is there and has the shape the server gives it: the count, the rows, the
+ * action, the filter, the reason, the kind, the amounts, the days and the address of the form.
+ *
+ * @param flash - the flash of the page (or of a visit)
+ * @returns what the server flashed after a movement of a group was sorted by hand, null without it or with another shape
+ */
+export function similarOf(flash: unknown): FlashSimilar | null {
+    const value = (
+        flash as { similar?: Record<keyof FlashSimilar, unknown> } | null
+    )?.similar;
+
+    return value !== undefined &&
+        value !== null &&
+        typeof value.count === 'number' &&
+        value.count > 0 &&
+        Array.isArray(value.rows) &&
+        (value.action === 'pay' ||
+            value.action === 'create' ||
+            value.action === 'transfer') &&
+        (value.kind === 'expense' || value.kind === 'income') &&
+        typeof value.filter === 'object' &&
+        value.filter !== null &&
+        isSimilarReason(value.reason) &&
+        typeof value.min === 'number' &&
+        typeof value.max === 'number' &&
+        typeof value.from === 'string' &&
+        typeof value.to === 'string' &&
+        typeof value.url === 'string'
+        ? (value as unknown as FlashSimilar)
+        : null;
 }

@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Data\Reading\Extraction;
+use App\Data\Reading\SupplyData;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingPrompt;
 use Illuminate\JsonSchema\JsonSchemaTypeFactory;
+use Tests\Support\EnelBill;
 
 /**
  * A context with the given lists.
@@ -241,5 +243,103 @@ describe('consumption fields', function (): void {
         expect(ReadingPrompt::SYSTEM)->toContain('Smc')
             ->toContain('not the yearly consumption')
             ->toContain('meter reading');
+    });
+});
+
+describe('supplies', function (): void {
+    test('the schema asks for the supplies, a list of objects with the 13 fields, all required', function (): void {
+        $supplies = ReadingPrompt::schema(new JsonSchemaTypeFactory)['supplies']->toArray();
+        $item = $supplies['items'];
+
+        expect(array_search('supplies', Extraction::FIELDS, true))->toBe(array_search('customer_code', Extraction::FIELDS, true) + 1)
+            ->and($supplies['type'])->toBe('array')
+            ->and(Extraction::SUPPLY_FIELDS)->toHaveCount(13)
+            ->and(array_keys($item['properties']))->toBe(Extraction::SUPPLY_FIELDS)
+            ->and($item['required'])->toBe(Extraction::SUPPLY_FIELDS)
+            ->and($item['additionalProperties'])->toBeFalse()
+            ->and($item['properties']['utility_type']['enum'])->toContain('gas')->toContain(null)
+            ->and($item['properties']['consumption_unit']['enum'])->toBe(['kwh', 'smc', 'm3', null])
+            ->and($item['properties']['amount']['type'])->toBe(['number', 'null'])
+            ->and($item['properties']['period_start']['format'])->toBe('date')
+            ->and($item['properties']['consumption_estimated']['type'])->toBe(['boolean', 'null'])
+            ->and($item['properties']['supply_point_code']['type'])->toBe(['string', 'null']);
+    });
+
+    test('the dual-fuel bill keeps both supplies, and the document is the first one', function (): void {
+        // the model put the gas on the document fields: they are written again from the first supply
+        $x = ReadingPrompt::parse(EnelBill::answer([
+            'supply_point_code' => EnelBill::PDR, 'utility_type' => 'gas', 'consumption_quantity' => 48.0, 'consumption_unit' => 'smc',
+        ]), readingContext());
+
+        expect($x->supplies)->toHaveCount(2)
+            ->and($x->isMultiSupply())->toBeTrue()
+            ->and($x->supplies[0])->toBeInstanceOf(SupplyData::class)
+            ->and($x->supplies[0]->toArray())->toBe(EnelBill::electricity())
+            ->and($x->supplies[1]->toArray())->toBe(EnelBill::gas())
+            ->and($x->supply_point_code)->toBe(EnelBill::POD)
+            ->and($x->utility_type)->toBe('electricity')
+            ->and($x->consumption_quantity)->toBe(201.0)
+            ->and($x->consumption_unit)->toBe('kwh')
+            ->and($x->total_amount)->toBe(165.65)
+            ->and($x->customer_code)->toBe(EnelBill::CUSTOMER);
+    });
+
+    test('a supply without code and amount is dropped, and one supply left is no list', function (): void {
+        $x = ReadingPrompt::parse(EnelBill::answer([
+            'supplies' => [EnelBill::electricity(), EnelBill::gas(['supply_point_code' => null, 'amount' => null])],
+        ]), readingContext());
+
+        expect($x->supplies)->toBe([])->and($x->isMultiSupply())->toBeFalse();
+    });
+
+    test('elements that are not objects are dropped', function (): void {
+        $x = ReadingPrompt::parse(EnelBill::answer(['supplies' => [EnelBill::electricity(), 'gas', [1, 2], EnelBill::gas()]]), readingContext());
+
+        expect($x->supplies)->toHaveCount(2)->and($x->supplies[1]->supply_point_code)->toBe(EnelBill::PDR);
+    });
+
+    test('a type or a unit outside the choices becomes null', function (): void {
+        $x = ReadingPrompt::parse(EnelBill::answer([
+            'supplies' => [EnelBill::electricity(), EnelBill::gas(['utility_type' => 'steam', 'consumption_unit' => 'mc'])],
+        ]), readingContext());
+
+        expect($x->supplies[1]->utility_type)->toBeNull()->and($x->supplies[1]->consumption_unit)->toBeNull();
+    });
+
+    test('a reading saved without the supplies has none', function (): void {
+        $x = Extraction::from(['kind' => 'utility_bill', 'confidence' => 'high']);
+
+        expect($x->supplies)->toBe([])->and($x->isMultiSupply())->toBeFalse();
+    });
+
+    test('the view of one supply is the reading with the values of that supply', function (): void {
+        $x = ReadingPrompt::parse(EnelBill::answer(), readingContext())->forSupply(1);
+
+        expect($x->total_amount)->toBe(69.40)
+            ->and($x->supply_point_code)->toBe(EnelBill::PDR)
+            ->and($x->utility_type)->toBe('gas')
+            ->and($x->period_start)->toBe('2026-10-01')
+            ->and($x->period_end)->toBe('2026-10-31')
+            ->and($x->consumption_quantity)->toBe(48.0)
+            ->and($x->consumption_unit)->toBe('smc')
+            ->and($x->title)->toBeNull()
+            ->and($x->supplies)->toBe([])
+            ->and($x->due_date)->toBe('2026-11-21')
+            ->and($x->issue_date)->toBe('2026-11-05')
+            ->and($x->issuer_name)->toBe('Enel Energia')
+            ->and($x->customer_code)->toBe(EnelBill::CUSTOMER)
+            ->and($x->iban_last_four)->toBe('4821');
+    });
+
+    test('the view of a supply leaves the reading as it was', function (): void {
+        $x = ReadingPrompt::parse(EnelBill::answer(), readingContext());
+        $x->forSupply(1);
+
+        expect($x->total_amount)->toBe(165.65)->and($x->supplies)->toHaveCount(2)->and($x->title)->toBe('Bolletta luce e gas');
+    });
+
+    test('the system text has the rule of the supplies', function (): void {
+        expect(ReadingPrompt::SYSTEM)->toContain(ReadingPrompt::SUPPLIES_RULE)
+            ->and(ReadingPrompt::SUPPLIES_RULE)->toBe('- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay, due_date the single deadline, customer_code the customer code; supply_point_code, utility_type and the consumption_* fields of the document are those of the first supply.');
     });
 });

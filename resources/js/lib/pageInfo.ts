@@ -32,6 +32,7 @@ export const PAGE_INFO_KEYS = [
     'comparison',
     'consumption',
     'bank-transactions',
+    'bank-filter',
     'card',
     'card-new',
     'card-form',
@@ -381,7 +382,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
             only(
                 'bank_feed',
                 trans(
-                    'With a linked bank, the rule How it shows in the bank pays the due date by itself.',
+                    'With a linked bank, a filter that pays the due date records the payment by itself.',
                 ),
             ),
         ],
@@ -520,7 +521,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
             ),
             trans('It belongs to a planned expense pays its closest due date.'),
             trans(
-                'Ignore hides a movement nobody has to deal with: it goes under Ignored.',
+                'Ignore hides a movement nobody has to deal with: you find it under All.',
             ),
             trans('Update reads the banks now.'),
         ],
@@ -531,6 +532,37 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
             ),
         ],
         link: { label: trans('Linked banks'), href: () => banks().url },
+    }),
+    'bank-filter': () => ({
+        feature: 'bank_feed',
+        title: trans('A bank filter'),
+        purpose: [
+            trans(
+                'A filter recognises the movements of the bank that look alike and sorts them by itself, every time the bank is read.',
+            ),
+        ],
+        steps: [
+            trans(
+                'Write the words the text of the movement has: beside the form you see at once the movements the filter takes.',
+            ),
+            trans(
+                'Choose what it does: pay a due date, create the expense, mark a transfer or ignore.',
+            ),
+            trans(
+                'Save: the filter also sorts the movements still to sort that it takes.',
+            ),
+        ],
+        notes: [
+            trans(
+                'A movement is taken by one filter only: while another filter takes one, the filter cannot be saved.',
+            ),
+            trans(
+                'Before creating an expense, the filter looks for one already recorded with the same amount, so nothing is doubled.',
+            ),
+            trans(
+                'An expense created by a filter goes away with It was not this one.',
+            ),
+        ],
     }),
     card: () => ({
         title: trans('A card'),
@@ -784,6 +816,12 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         notes: [
             trans('Do not import this file leaves it in To sort.'),
             trans('A file still being read is waited for.'),
+            only(
+                'budget',
+                trans(
+                    'A bill of electricity and gas together is imported once: the document goes to both utilities, with an expense and a consumption for each supply.',
+                ),
+            ),
         ],
     }),
     upload: () => ({

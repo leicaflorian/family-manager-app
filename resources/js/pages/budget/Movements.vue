@@ -18,6 +18,8 @@ import { useLayoutMode } from '@/composables/useLayoutMode';
 import {
     ChartColumn,
     ChartPie,
+    ChevronRight,
+    Landmark,
     Plus,
     Receipt,
     Search,
@@ -58,6 +60,7 @@ import type { FilterPill } from '@/lib/filters';
 import { rangePills } from '@/lib/filters';
 import { expenseIcon } from '@/lib/icons';
 import { comparison, consumption } from '@/routes/budget';
+import { index as bankIndex } from '@/routes/budget/bank';
 import { create, show } from '@/routes/budget/movements';
 
 const props = defineProps<{
@@ -331,10 +334,7 @@ const { title, head } = usePageMeta({
                 }}</FmButton>
             </template>
         </FmTitle>
-        <FmTabs
-            :tabs="budgetTabs('movements', bankFeed)"
-            :label="$t('Budget')"
-        />
+        <FmTabs :tabs="budgetTabs('movements')" :label="$t('Budget')" />
 
         <!-- The other pages of the Budget: they have no tab; on the tablet and the computer the sidebar has them under Budget -->
         <nav
@@ -342,6 +342,48 @@ const { title, head } = usePageMeta({
             :aria-label="$t('More in the budget')"
         >
             <FmCard list>
+                <FmRow
+                    v-if="bankFeed"
+                    :title="$t('From the bank')"
+                    :subtitle="
+                        bankFeed.unsorted > 0
+                            ? $tChoice(
+                                  '{1} :count movement to sort|[2,*] :count movements to sort',
+                                  bankFeed.unsorted,
+                              )
+                            : $t('Nothing left to sort')
+                    "
+                    :href="bankIndex().url"
+                    :aria-label="
+                        bankFeed.unsorted > 0
+                            ? $t('From the bank, :count to sort', {
+                                  count: String(bankFeed.unsorted),
+                              })
+                            : undefined
+                    "
+                >
+                    <template #before>
+                        <span
+                            class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-banks-soft text-banks-text"
+                        >
+                            <FmIcon :icon="Landmark" :size="20" />
+                        </span>
+                    </template>
+                    <template #after>
+                        <span class="flex items-center gap-3">
+                            <span
+                                v-if="bankFeed.unsorted > 0"
+                                class="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
+                                >{{ bankFeed.unsorted }}</span
+                            >
+                            <FmIcon
+                                :icon="ChevronRight"
+                                :size="20"
+                                class="text-ink-faint"
+                            />
+                        </span>
+                    </template>
+                </FmRow>
                 <FmRow
                     :title="$t('Planned and spent')"
                     :subtitle="

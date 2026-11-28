@@ -3,6 +3,7 @@
  */
 import type { InertiaConfig } from '@inertiajs/core';
 import type { MovementFormOptions } from '@/lib/budget';
+import type { BankFilterFormOptions } from '@/lib/bankFilters';
 
 /** My account: Marco Bianchi, the only administrator. */
 export const account: App.Data.AccountData = {
@@ -918,7 +919,6 @@ export const danceRow: App.Data.PlannedRowData = {
     color: '#E5A50A',
     ended: false,
     fee: 0,
-    bank_match: null,
 };
 
 /** The gas bill: an estimate, for the whole family, with the card of the supply. */
@@ -1176,7 +1176,6 @@ export const newPlannedValues = {
     organization_id: null,
     financial_account_id: null,
     person_id: null,
-    bank_match: null,
     category_id: null,
     card: null,
     deadline_field: null,
@@ -2058,6 +2057,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             complete: [],
             cardType: null,
             replaces: [],
+            hint: null,
         },
     ],
     policy: null,
@@ -2065,6 +2065,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
     createCard: false,
     cardType: null,
     consumption: null,
+    supplies: [],
 };
 
 /**
@@ -2138,6 +2139,7 @@ export const homeDraft: App.Data.Reading.RecordDraftData = {
     complete: [],
     cardType: 'home',
     replaces: [],
+    hint: null,
 };
 
 /**
@@ -2220,6 +2222,17 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: true,
         ignored: false,
         recurring: false,
+        status: 'pending',
+        link: null,
+        provider_id: 'tx-1',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'pending',
+        fee: null,
+        orphan_fee: false,
+        transfer: null,
+        account_id: 4,
+        proposal: null,
+        two_filters: null,
     },
     {
         id: 2,
@@ -2233,6 +2246,17 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: false,
         ignored: false,
         recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: 'tx-2',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
+        transfer: null,
+        account_id: 4,
+        proposal: null,
+        two_filters: null,
     },
     {
         id: 1,
@@ -2246,8 +2270,204 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         pending: false,
         ignored: false,
         recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: 'tx-3',
+        read_at: '2026-11-06T08:00',
+        bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
+        transfer: null,
+        account_id: 4,
+        proposal: null,
+        two_filters: null,
     },
 ];
+
+/**
+ * «Maybe it is…» as `BankProposals` sends it under a lone movement: an expense already recorded, a due date to pay
+ * and a transfer from another account.
+ */
+export const bankProposals: Record<
+    'recorded' | 'deadline' | 'transfer',
+    App.Data.BankProposalData
+> = {
+    recorded: {
+        key: 'expense:812',
+        type: 'movement',
+        title: 'Spesa Famila',
+        date: '2026-11-15',
+        amount: 23.9,
+        recorded: true,
+    },
+    deadline: {
+        key: 'planned_income:6:2026-11-18',
+        type: 'deadline',
+        title: 'Assegno Unico novembre 2026',
+        date: '2026-11-18',
+        amount: 407.6,
+        recorded: false,
+    },
+    transfer: {
+        key: 'transfer:9',
+        type: 'transfer',
+        title: 'Buddy Bank',
+        date: null,
+        amount: null,
+        recorded: false,
+    },
+};
+
+/**
+ * The groups of the tab *To sort*, as `BankTransactionController` sends them (`groups`), biggest first: one an
+ * expense recorded before proposes to create, a planned income to mark received, one with no proposal, a credit with
+ * no proposal and one that comes back every month.
+ */
+export const bankGroups: App.Data.BankGroupData[] = [
+    {
+        key: '3f9a1c2b7d4e',
+        name: 'Satispay Europe',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 11,
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-24',
+        proposal_action: 'create',
+        proposal_title: 'Ricarica Satispay',
+        proposal_detail: 'Varie · Satispay',
+        recurring_url: null,
+    },
+    {
+        key: '8b20d64e1a77',
+        name: 'INPS · Assegno Unico',
+        kind: 'income',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 3,
+        min: 407.6,
+        max: 407.6,
+        from: '2026-09-17',
+        to: '2026-11-17',
+        proposal_action: 'pay',
+        proposal_title: null,
+        proposal_detail: 'Assegno Unico',
+        recurring_url: null,
+    },
+    {
+        key: 'c41e09f3b285',
+        name: 'Eni (POS)',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 7,
+        min: 25,
+        max: 60,
+        from: '2026-09-05',
+        to: '2026-11-20',
+        proposal_action: 'create',
+        proposal_title: 'Carburante',
+        proposal_detail: 'Auto · Eni',
+        recurring_url: null,
+    },
+    {
+        key: '5d7f2a90c3e1',
+        name: 'Cashback ScontiPoste',
+        kind: 'income',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 6,
+        min: 0.04,
+        max: 1.2,
+        from: '2026-09-10',
+        to: '2026-11-10',
+        proposal_action: null,
+        proposal_title: null,
+        proposal_detail: null,
+        recurring_url: null,
+    },
+    {
+        key: 'e6a3b1d84f02',
+        name: 'Virgin Active',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 3,
+        min: 49,
+        max: 49,
+        from: '2026-09-01',
+        to: '2026-11-01',
+        proposal_action: null,
+        proposal_title: null,
+        proposal_detail: null,
+        recurring_url: '/budget/planned/expense/create?bank=71',
+    },
+];
+
+/**
+ * A movement of a group, as `group_rows` brings it: the transaction as the list has it (no commission of its own:
+ * the one of the group row goes with it).
+ *
+ * @param id - the id of the transaction
+ * @param day - the day it was booked (`yyyy-mm-dd`)
+ * @param amount - the amount, negative for money out
+ * @returns the transaction
+ */
+function bankGroupTransaction(
+    id: number,
+    day: string,
+    amount: number,
+): App.Data.BankTransactionData {
+    return {
+        id,
+        booked_on: day,
+        value_on: day,
+        text: 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900',
+        counterparty: 'Satispay Europe S.A.',
+        amount,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: `tx-${id}`,
+        read_at: '2026-11-25T07:00',
+        bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
+        transfer: null,
+        account_id: 4,
+        proposal: null,
+        two_filters: null,
+    };
+}
+
+/**
+ * The movements of the group *Satispay Europe*, newest first, as `group_rows` brings them when the group opens: the
+ * newest links the expense already recorded, the others create one, each with its commission of the day after.
+ */
+export const bankGroupRows: App.Data.BankGroupRowData[] = [
+    ['2026-11-24', -10, '2026-11-25'],
+    ['2026-11-17', -20, '2026-11-18'],
+    ['2026-11-10', -50, '2026-11-11'],
+    ['2026-11-03', -10, '2026-11-04'],
+    ['2026-10-27', -30, '2026-10-28'],
+    ['2026-10-20', -10, '2026-10-21'],
+    ['2026-10-13', -15, '2026-10-14'],
+    ['2026-10-06', -25, '2026-10-07'],
+    ['2026-09-29', -10, '2026-09-30'],
+    ['2026-09-15', -40, '2026-09-16'],
+    ['2026-09-02', -10, '2026-09-03'],
+].map(([day, amount, feeDay], index) => ({
+    transaction: bankGroupTransaction(
+        60 + index * 2,
+        day as string,
+        amount as number,
+    ),
+    fee: { id: 61 + index * 2, amount: -0.4, booked_on: feeDay as string },
+    will: index === 0 ? 'link' : 'create',
+    will_title: index === 0 ? 'Ricarica Satispay' : null,
+    will_on: index === 0 ? '2026-11-24' : null,
+}));
 
 /**
  * A month of the Consumption page as the server sends it: a whole month covered by one bill, with the same month
@@ -2412,4 +2632,400 @@ export const consumptionPage: App.Data.Consumption.ConsumptionPageData = {
     toCheck: [],
     canCreate: true,
     canRead: true,
+};
+
+/**
+ * The filters of the bank, as the tab *Filters* receives them (`bank_filters`): one that creates the expense with the
+ * commission found by its words, and one that pays a planned expense that ended.
+ */
+export const bankFilters: App.Data.BankFilterData[] = [
+    {
+        id: 2,
+        name: 'Luce',
+        contains: ['EDISON'],
+        excludes: [],
+        direction: 'expense',
+        financial_account_id: 4,
+        amount_min: null,
+        amount_max: null,
+        pattern: null,
+        fee_mode: 'auto',
+        fee_contains: [],
+        fee_excludes: [],
+        action: 'pay',
+        planned_expense_id: 7,
+        planned_income_id: null,
+        title: null,
+        title_with_month: false,
+        category_id: null,
+        organization_id: null,
+        person_id: null,
+        card: null,
+        notes: null,
+        transfer_account_id: null,
+        account: 'Conto BancoPosta ·· 3307',
+        planned: { kind: 'expense', id: 7, title: 'Luce' },
+        taken: 0,
+        missing: 'The planned expense ended on 05/06/2026.',
+        can: { update: true, delete: true },
+        category: null,
+        organization: null,
+        transfer_account: null,
+    },
+    {
+        id: 1,
+        name: 'Satispay',
+        contains: ['SATISPAY', 'DOMICILIAZIONE'],
+        excludes: ['COMMISSIONI'],
+        direction: 'expense',
+        financial_account_id: null,
+        amount_min: null,
+        amount_max: null,
+        pattern: null,
+        fee_mode: 'words',
+        fee_contains: ['COMMISSIONI', 'SATISPAY'],
+        fee_excludes: [],
+        action: 'create',
+        planned_expense_id: null,
+        planned_income_id: null,
+        title: 'Ricarica Satispay',
+        title_with_month: false,
+        category_id: 3,
+        organization_id: 5,
+        person_id: null,
+        card: null,
+        notes: null,
+        transfer_account_id: null,
+        account: null,
+        planned: null,
+        taken: 2,
+        missing: null,
+        can: { update: true, delete: true },
+        category: 'Varie',
+        organization: 'Satispay',
+        transfer_account: null,
+    },
+];
+
+/** The preview of the filter *Satispay* while it is written: one movement it would link, as the server answers. */
+export const bankFilterPreview: App.Data.BankFilterPreviewData = {
+    rows: [
+        {
+            transaction: {
+                id: 9,
+                booked_on: '2026-11-24',
+                value_on: '2026-11-24',
+                text: 'DOMICILIAZIONE SATISPAY EUROPE',
+                counterparty: 'Satispay Europe S.A.',
+                amount: -10,
+                currency: 'EUR',
+                account: 'Conto BancoPosta ·· 3307',
+                pending: false,
+                ignored: false,
+                recurring: false,
+                status: 'unsorted',
+                link: null,
+                provider_id: 'tx-9',
+                read_at: '2026-11-25T07:00',
+                bank_status: 'booked',
+                fee: null,
+                orphan_fee: false,
+                transfer: null,
+                account_id: 4,
+                proposal: null,
+                two_filters: null,
+            },
+            hits: ['SATISPAY', 'DOMICILIAZIONE'],
+            fee: { id: 10, amount: -0.4, booked_on: '2026-11-25' },
+            will: 'link',
+            will_title: 'Ricarica Satispay',
+            taken_by: null,
+            will_on: '2026-11-23',
+            to_sort: true,
+        },
+    ],
+    summary: { pay: 0, create: 0, link: 1, transfer: 0, ignore: 0 },
+    conflicts: 0,
+    refined: null,
+    ai: false,
+};
+
+/** The choices of the form of a bank filter, as `BankFilterController` sends them: the accounts the bank reads and the open ones for a transfer. */
+export const bankFilterOptions: BankFilterFormOptions = {
+    ...movementOptions,
+    categories: [
+        { value: '3', label: 'Varie', help: null },
+        ...movementOptions.categories,
+    ],
+    accounts: [{ id: 4, name: 'Conto BancoPosta ·· 3307' }],
+    transfer_accounts: [{ id: 6, name: 'Libretto postale', connected: false }],
+};
+
+/**
+ * The proposal of the dual-fuel Enel bill of the Bianchi, as `Proposal::build()` sends it (task 5): the electricity
+ * links its utility and its planned expense *Luce*, the gas utility without codes is not taken, so the box of the
+ * gas creates one, unticked, with the line that says why.
+ */
+export const dualFuelProposal: App.Data.Reading.ProposalData = {
+    fileId: 34,
+    document: {
+        title: 'Bolletta luce e gas novembre 2026',
+        category_id: 2,
+        person_id: null,
+        organization_id: 2,
+        date: '2026-11-05',
+        expiry_date: null,
+        links: [
+            {
+                type: 'utility',
+                id: 1,
+            },
+        ],
+        headline: 'Ho trovato una bolletta della luce e del gas',
+        found: [
+            {
+                label: 'Da chi arriva',
+                value: 'Enel Energia',
+            },
+            {
+                label: 'Quanto',
+                value: '165,65 € · luce 96,25 €, gas 69,40 €',
+            },
+            {
+                label: 'Entro il',
+                value: '21/11/2026',
+            },
+        ],
+    },
+    movement: null,
+    event: null,
+    records: [],
+    policy: null,
+    warnings: [],
+    createCard: false,
+    cardType: 'utility',
+    consumption: null,
+    supplies: [
+        {
+            index: 0,
+            utility_type: 'electricity',
+            supply_point_code: 'IT 001 E 87654321',
+            amount: 96.25,
+            heading: 'Luce · POD IT 001 E 87654321',
+            record: {
+                kind: 'utility',
+                title: "l'utenza Luce · Enel Energia",
+                values: {
+                    type: 'electricity',
+                    supply_point_code: 'IT 001 E 87654321',
+                    customer_code: '310045678',
+                    organization_id: 2,
+                    person_id: null,
+                    home_id: 1,
+                    activation_date: null,
+                },
+                suggested: true,
+                missing: [],
+                existing: {
+                    id: 1,
+                    title: 'Luce (IT 001 E 87654321)',
+                },
+                candidates: [
+                    {
+                        id: 3,
+                        label: 'Acqua',
+                    },
+                    {
+                        id: 2,
+                        label: 'Gas',
+                    },
+                    {
+                        id: 4,
+                        label: 'Internet',
+                    },
+                    {
+                        id: 1,
+                        label: 'Luce (IT 001 E 87654321)',
+                    },
+                ],
+                reminder: null,
+                fields: [],
+                complete: [],
+                cardType: 'utility',
+                replaces: [],
+                hint: null,
+            },
+            movement: {
+                values: {
+                    kind: 'expense',
+                    title: 'Luce novembre 2026',
+                    amount: 96.25,
+                    fee_amount: null,
+                    date: '2026-11-21',
+                    due_date: '2026-11-21',
+                    organization_id: 2,
+                    category_id: 5,
+                    financial_account_id: 1,
+                    person_id: 1,
+                    income_type: null,
+                    employment_id: null,
+                    notes: 'Bolletta luce e gas di settembre e ottobre 2026\nPeriodo: 01/09/2026 – 30/09/2026',
+                    lead: {
+                        id: 8,
+                        title: 'Luce',
+                        amount: 72,
+                        is_estimated: true,
+                    },
+                },
+                suggested: true,
+                duplicate: null,
+                changes: [],
+                warnings: [],
+                others: 0,
+                blocked: null,
+                due: {
+                    suggested: false,
+                    date: '2026-11-21',
+                    plan: null,
+                    occurrence: null,
+                    mode: 'new',
+                },
+                pays: null,
+                candidates: [
+                    {
+                        id: 72,
+                        title: 'Parcheggio',
+                        date: '2026-10-24',
+                        amount: 12,
+                    },
+                ],
+                fill: [],
+                complete: [],
+            },
+            consumption: {
+                values: {
+                    period_start: '2026-09-01',
+                    period_end: '2026-09-30',
+                    quantity: 201,
+                    unit: 'kwh',
+                    amount: 96.25,
+                    is_estimated: false,
+                },
+                suggested: true,
+                utility: {
+                    id: 1,
+                    title: 'Luce - Enel Energia',
+                },
+                blocked: null,
+                fill: [],
+                complete: [],
+                priceWarning: false,
+            },
+        },
+        {
+            index: 1,
+            utility_type: 'gas',
+            supply_point_code: '00881234567890',
+            amount: 69.4,
+            heading: 'Gas · PDR 00881234567890',
+            record: {
+                kind: 'utility',
+                title: "l'utenza Gas · Enel Energia",
+                values: {
+                    type: 'gas',
+                    supply_point_code: '00881234567890',
+                    customer_code: '310045678',
+                    organization_id: 2,
+                    person_id: null,
+                    home_id: 1,
+                    activation_date: null,
+                },
+                suggested: false,
+                missing: [],
+                existing: null,
+                candidates: [
+                    {
+                        id: 3,
+                        label: 'Acqua',
+                    },
+                    {
+                        id: 2,
+                        label: 'Gas',
+                    },
+                    {
+                        id: 4,
+                        label: 'Internet',
+                    },
+                    {
+                        id: 1,
+                        label: 'Luce (IT 001 E 87654321)',
+                    },
+                ],
+                reminder: null,
+                fields: [],
+                complete: [],
+                cardType: 'utility',
+                replaces: [],
+                hint: "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+            },
+            movement: {
+                values: {
+                    kind: 'expense',
+                    title: 'Bolletta gas novembre 2026',
+                    amount: 69.4,
+                    fee_amount: null,
+                    date: '2026-11-21',
+                    due_date: '2026-11-21',
+                    organization_id: 2,
+                    category_id: 6,
+                    financial_account_id: 1,
+                    person_id: null,
+                    income_type: null,
+                    employment_id: null,
+                    notes: 'Bolletta luce e gas di settembre e ottobre 2026\nPeriodo: 01/10/2026 – 31/10/2026',
+                    lead: null,
+                },
+                suggested: true,
+                duplicate: null,
+                changes: [],
+                warnings: [],
+                others: 0,
+                blocked: null,
+                due: {
+                    suggested: false,
+                    date: '2026-11-21',
+                    plan: null,
+                    occurrence: null,
+                    mode: 'new',
+                },
+                pays: null,
+                candidates: [
+                    {
+                        id: 72,
+                        title: 'Parcheggio',
+                        date: '2026-10-24',
+                        amount: 12,
+                    },
+                ],
+                fill: [],
+                complete: [],
+            },
+            consumption: {
+                values: {
+                    period_start: '2026-10-01',
+                    period_end: '2026-10-31',
+                    quantity: 48,
+                    unit: 'smc',
+                    amount: 69.4,
+                    is_estimated: false,
+                },
+                suggested: false,
+                utility: null,
+                blocked: "Per segnare i consumi scegli l'utenza qui sopra.",
+                fill: [],
+                complete: ['utility'],
+                priceWarning: false,
+            },
+        },
+    ],
 };

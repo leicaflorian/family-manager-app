@@ -457,11 +457,14 @@ export function consumptionHint(
  *
  * @param consumption - the consumption of the proposal
  * @param ticked - whether its box is ticked
+ * @param supply - the box is in the group of a supply of a bill with more
+ *   than one: its utility is the box of the group, to tick
  * @returns the lines
  */
 export function consumptionWarnings(
     consumption: App.Data.Reading.ConsumptionProposalData,
     ticked: boolean,
+    supply = false,
 ): string[] {
     const { quantity, amount, unit } = consumption.values;
     const lines: string[] = [];
@@ -477,9 +480,13 @@ export function consumptionWarnings(
 
     if (consumption.complete.includes('utility')) {
         lines.push(
-            trans(
-                'To record the consumption choose the utility above, in «Link it to».',
-            ),
+            supply
+                ? trans(
+                      'To record the consumption tick the utility of this supply.',
+                  )
+                : trans(
+                      'To record the consumption choose the utility above, in «Link it to».',
+                  ),
         );
     }
 
@@ -516,6 +523,11 @@ export function recordHint(
         cardType?: string | null;
     },
 ): string | undefined {
+    // The server says why the box of a supply starts unticked: the family already has a utility of that type
+    if (!state.ticked && draft.hint) {
+        return draft.hint;
+    }
+
     if (!state.ticked && !draft.suggested && !draft.existing) {
         // The box the category asks for: the rules of the reading (100 €, a shop on a receipt) do not count
         if (
@@ -836,11 +848,7 @@ export function candidateOptions(
  */
 export function documentNeeds(
     proposal: App.Data.Reading.ProposalData,
-    ticked: {
-        movement: boolean;
-        event: boolean;
-        records: App.Enums.RecordKind[];
-    },
+    ticked: TickedBoxes,
 ): string[] {
     const { movement, event, records } = proposal;
     const columns = [
@@ -854,6 +862,7 @@ export function documentNeeds(
                     ticked.records.includes(draft.kind) && !draft.existing,
             )
             .flatMap((draft) => draft.complete),
+        ...eachSupply(proposal, ticked, documentNeeds),
     ];
 
     return [...new Set(columns)];
@@ -865,6 +874,94 @@ type WrittenFields = {
     event?: Record<string, unknown>;
     records?: Partial<Record<App.Enums.RecordKind, Record<string, unknown>>>;
 };
+
+/** The boxes of one supply of a bill, as `ImportAlso` sends them under `supplies`. */
+type TickedSupply = {
+    movement: boolean;
+    record: boolean;
+    overrides?: {
+        movement: Record<string, unknown>;
+        record: Record<string, unknown>;
+        consumption?: Record<string, unknown>;
+    };
+};
+
+/** Which boxes of *What I do too* are ticked, as `ImportAlso` sends them. */
+type TickedBoxes = {
+    movement: boolean;
+    event: boolean;
+    records: App.Enums.RecordKind[];
+    overrides?: WrittenFields;
+    /** The boxes of each supply of a bill with more than one, by its index. */
+    supplies?: Record<number, TickedSupply>;
+};
+
+/**
+ * One supply of a bill as the proposal of a bill alone: the same document, the
+ * expense, the consumption and the utility of the supply, nothing else. The
+ * boxes of a supply are drawn and checked as the ones of a bill alone.
+ *
+ * @param proposal - the proposal of the bill
+ * @param supply - one of its supplies
+ * @returns the proposal of the supply
+ */
+export function supplyProposal(
+    proposal: App.Data.Reading.ProposalData,
+    supply: App.Data.Reading.SupplyProposalData,
+): App.Data.Reading.ProposalData {
+    return {
+        ...proposal,
+        movement: supply.movement,
+        consumption: supply.consumption,
+        records: supply.record ? [supply.record] : [],
+        event: null,
+        policy: null,
+        warnings: [],
+        createCard: false,
+        cardType: null,
+        supplies: [],
+    };
+}
+
+/**
+ * What a rule about the boxes of a file gives for each supply of a bill, as if each one were a bill alone.
+ *
+ * @param proposal - the proposal of the bill
+ * @param ticked - the boxes ticked, with the ones of each supply
+ * @param rule - what to work out for one proposal and its boxes, told which supply it is
+ * @returns what the rule gives for every supply, one after the other
+ */
+function eachSupply(
+    proposal: App.Data.Reading.ProposalData,
+    ticked: TickedBoxes,
+    rule: (
+        proposal: App.Data.Reading.ProposalData,
+        ticked: TickedBoxes,
+        supply: App.Data.Reading.SupplyProposalData,
+    ) => string[],
+): string[] {
+    return proposal.supplies.flatMap((supply) => {
+        const boxes = ticked.supplies?.[supply.index];
+
+        if (!boxes) {
+            return [];
+        }
+
+        return rule(
+            supplyProposal(proposal, supply),
+            {
+                movement: boxes.movement,
+                event: false,
+                records: boxes.record ? ['utility'] : [],
+                overrides: {
+                    movement: boxes.overrides?.movement,
+                    records: { utility: boxes.overrides?.record },
+                },
+            },
+            supply,
+        );
+    });
+}
 
 /**
  * Whether a field of a box has a value, written by the person or already in the proposal.
@@ -890,14 +987,7 @@ function filled(value: unknown): boolean {
 export function missingData(
     title: string,
     proposal: App.Data.Reading.ProposalData | undefined,
-    ticked:
-        | {
-              movement: boolean;
-              event: boolean;
-              records: App.Enums.RecordKind[];
-              overrides?: WrittenFields;
-          }
-        | undefined,
+    ticked: TickedBoxes | undefined,
 ): string[] {
     const document = [
         ...(title.trim() === '' ? ['What it is'] : []),
@@ -912,9 +1002,37 @@ export function missingData(
         return document.map((label) => trans(label));
     }
 
+    return [
+        ...document.map((label) => trans(label)),
+        ...boxesMissing(proposal, ticked).map((label) => trans(label)),
+        // The same field can miss in two supplies: each one says which supply it is
+        ...eachSupply(proposal, ticked, (own, boxes, supply) =>
+            boxesMissing(own, boxes).map((label) =>
+                trans(':supply: :field', {
+                    supply: supply.heading,
+                    field: trans(label),
+                }),
+            ),
+        ),
+    ];
+}
+
+/**
+ * The fields still to fill in the ticked boxes of a file: what the proposal lists, without what the person already
+ * wrote.
+ *
+ * @param proposal - what the file does too
+ * @param ticked - which boxes are ticked, with the fields written in them
+ * @returns the names of the fields, not translated yet
+ */
+function boxesMissing(
+    proposal: App.Data.Reading.ProposalData,
+    ticked: TickedBoxes,
+): string[] {
     const written = ticked.overrides ?? {};
     const { movement, event, records } = proposal;
-    const boxes = [
+
+    return [
         ...(movement && ticked.movement && !movement.duplicate
             ? movement.fill
                   .filter((column) => !filled(written.movement?.[column]))
@@ -943,6 +1061,4 @@ export function missingData(
                     .map((field) => field.label),
             ),
     ];
-
-    return [...document, ...boxes].map((label) => trans(label));
 }

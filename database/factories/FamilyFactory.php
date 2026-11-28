@@ -13,14 +13,15 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 final class FamilyFactory extends Factory
 {
     /**
-     * A family with an Italian last name.
+     * A family with an Italian last name, never "Bianchi": the seeded family of that name is looked up
+     * by name in the tests (`->where('name', 'Bianchi')->sole()`), and a second one made it throw.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
-            'name' => fake()->lastName(),
+            'name' => fake()->valid(fn (string $name): bool => $name !== 'Bianchi')->lastName(),
             'welcomed_at' => now(),
             'budget_enabled' => true,
             'mail_enabled' => true,

@@ -110,10 +110,119 @@ readonly last_synced_at: string | null,
 readonly accounts: string[],
 readonly syncing: boolean,
 };
+export type BankFeeData = {
+readonly id: number,
+readonly amount: number,
+readonly booked_on: string | null,
+};
+export type BankFilterData = {
+readonly id: number | null,
+readonly name: string,
+readonly contains: string[],
+readonly excludes: string[],
+readonly direction: string,
+readonly financial_account_id: number | null,
+readonly amount_min: number | null,
+readonly amount_max: number | null,
+readonly pattern: string | null,
+readonly fee_mode: string,
+readonly fee_contains: string[],
+readonly fee_excludes: string[],
+readonly action: string | null,
+readonly planned_expense_id: number | null,
+readonly planned_income_id: number | null,
+readonly title: string | null,
+readonly title_with_month: boolean,
+readonly category_id: number | null,
+readonly organization_id: number | null,
+readonly person_id: number | null,
+readonly card: string | null,
+readonly notes: string | null,
+readonly transfer_account_id: number | null,
+readonly account: string | null,
+readonly planned: {
+kind: string,
+id: number,
+title: string,
+} | null,
+readonly taken: number,
+readonly missing: string | null,
+readonly can: {
+update: boolean,
+delete: boolean,
+},
+readonly category: string | null,
+readonly organization: string | null,
+readonly transfer_account: string | null,
+};
+export type BankFilterPreviewData = {
+readonly rows: App.Data.BankFilterPreviewRowData[],
+readonly summary: {
+pay: number,
+create: number,
+link: number,
+transfer: number,
+ignore: number,
+},
+readonly conflicts: number,
+readonly refined: App.Data.BankFilterRefinementData | null,
+readonly ai: boolean,
+};
+export type BankFilterPreviewRowData = {
+readonly transaction: App.Data.BankTransactionData,
+readonly hits: string[],
+readonly fee: App.Data.BankFeeData | null,
+readonly will: string,
+readonly will_title: string | null,
+readonly taken_by: string | null,
+readonly will_on: string | null,
+readonly to_sort: boolean,
+};
+export type BankFilterRefinementData = {
+readonly contains: string[],
+readonly excludes: string[],
+readonly amount_min: string | null,
+readonly amount_max: string | null,
+readonly change: string,
+readonly value: string,
+};
+export type BankGroupData = {
+readonly key: string,
+readonly name: string,
+readonly kind: string,
+readonly account: string,
+readonly count: number,
+readonly min: number,
+readonly max: number,
+readonly from: string,
+readonly to: string,
+readonly proposal_action: string | null,
+readonly proposal_title: string | null,
+readonly proposal_detail: string | null,
+readonly recurring_url: string | null,
+};
+export type BankGroupRowData = {
+readonly transaction: App.Data.BankTransactionData,
+readonly fee: App.Data.BankFeeData | null,
+readonly will: string,
+readonly will_title: string | null,
+readonly will_on: string | null,
+};
 export type BankInstitutionData = {
 readonly name: string,
 readonly country: string,
 readonly logo: string | null,
+};
+export type BankLinkData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly url: string,
+readonly how: string,
+readonly filter_id: number | null,
+readonly filter_name: string | null,
+readonly undo: string | null,
+readonly undo_url: string | null,
 };
 export type BankPlannedChoiceData = {
 readonly kind: string,
@@ -121,9 +230,29 @@ readonly id: number,
 readonly title: string,
 readonly organization: string | null,
 readonly due_on: string,
+readonly occurrence: string,
 readonly late: boolean,
 readonly amount: number,
 readonly estimated: boolean,
+readonly paid_on: string | null,
+readonly ended: boolean,
+readonly ended_on: string | null,
+};
+export type BankProposalData = {
+readonly key: string,
+readonly type: string,
+readonly title: string,
+readonly date: string | null,
+readonly amount: number | null,
+readonly recorded: boolean,
+};
+export type BankRecordedChoiceData = {
+readonly kind: string,
+readonly id: number,
+readonly title: string,
+readonly organization: string | null,
+readonly date: string,
+readonly amount: number,
 };
 export type BankTransactionData = {
 readonly id: number,
@@ -137,6 +266,22 @@ readonly account: string | null,
 readonly pending: boolean,
 readonly ignored: boolean,
 readonly recurring: boolean,
+readonly status: string,
+readonly link: App.Data.BankLinkData | null,
+readonly provider_id: string,
+readonly read_at: string,
+readonly bank_status: string,
+readonly fee: App.Data.BankFeeData | null,
+readonly orphan_fee: boolean,
+readonly transfer: App.Data.BankTransferData | null,
+readonly account_id: number | null,
+readonly proposal: App.Data.BankProposalData | null,
+readonly two_filters: string[] | null,
+};
+export type BankTransferData = {
+readonly account: string,
+readonly direction: string,
+readonly paired: boolean,
 };
 export type CalendarSettingsData = {
 readonly on: boolean,
@@ -558,6 +703,15 @@ readonly booked_on: string | null,
 readonly text: string,
 readonly account: string | null,
 readonly undo_url: string | null,
+readonly how: string,
+readonly fee: App.Data.BankFeeData | null,
+readonly filter: {
+id: number,
+name: string,
+url: string | null,
+} | null,
+readonly url: string,
+readonly undo: string | null,
 };
 export type MovementData = {
 readonly kind: string,
@@ -791,7 +945,6 @@ readonly icon: string | null,
 readonly color: string | null,
 readonly ended: boolean,
 readonly fee: number,
-readonly bank_match: string | null,
 };
 export type PolicyRenewalData = {
 readonly policy_id: number,
@@ -915,8 +1068,15 @@ count: number,
 readonly can_delete_many: boolean,
 };
 namespace Banks {
-export type BankRuleSuggestion = {
-readonly pattern: string,
+export type BankFilterSuggestionData = {
+readonly contains: string[],
+readonly excludes: string[],
+readonly title: string | null,
+readonly category: string | null,
+readonly category_id: number | null,
+readonly organization: string | null,
+readonly organization_id: number | null,
+readonly organization_is_new: boolean,
 readonly explanation: string,
 };
 }
@@ -1110,6 +1270,7 @@ vehicle_year: number | null,
 contract_start_date: string | null,
 summary: string | null,
 confidence: string | null,
+supplies: App.Data.Reading.SupplyData[],
 };
 export type FoundLineData = {
 readonly label: string,
@@ -1190,6 +1351,7 @@ readonly warnings: string[],
 readonly createCard: boolean,
 readonly cardType: string | null,
 readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
+readonly supplies: App.Data.Reading.SupplyProposalData[],
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
@@ -1210,6 +1372,32 @@ readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 readonly cardType: string | null,
 readonly replaces: App.Data.ReplaceablePolicyData[],
+readonly hint: string | null,
+};
+export type SupplyData = {
+utility_type: string | null,
+supply_point_code: string | null,
+amount: number | null,
+period_start: string | null,
+period_end: string | null,
+consumption_quantity: number | null,
+consumption_unit: string | null,
+consumption_estimated: boolean | null,
+consumption_adjusted: boolean | null,
+consumption_energy_amount: number | null,
+consumption_f1: number | null,
+consumption_f2: number | null,
+consumption_f3: number | null,
+};
+export type SupplyProposalData = {
+readonly index: number,
+readonly utility_type: string | null,
+readonly supply_point_code: string | null,
+readonly amount: number | null,
+readonly heading: string,
+readonly record: App.Data.Reading.RecordDraftData | null,
+readonly movement: App.Data.Reading.MovementProposalData | null,
+readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
 };
 }
 namespace Search {
@@ -1245,7 +1433,11 @@ namespace Enums {
 export type AgendaReminderState = 'open' | 'late' | 'done';
 export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'school' | 'work' | 'subscriptions' | 'paperwork';
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
-export type BankMatchSource = 'rule' | 'assigned' | 'created' | 'duplicate';
+export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
+export type BankFilterFee = 'auto' | 'words' | 'none';
+export type BankFilterOutcome = 'paid' | 'created' | 'linked' | 'transferred' | 'ignored' | 'none';
+export type BankMatchSource = 'rule' | 'proposed' | 'assigned' | 'created' | 'duplicate' | 'fee';
+export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';
 export type BelongingStatus = 'in_use' | 'disposed';
 export type CallOutcome = 'saved' | 'empty' | 'held' | 'discarded' | 'error' | 'confirmation' | 'rejected' | 'invalid' | 'other' | 'unknown' | 'limited' | 'suspended' | 'mail_off';
@@ -1283,7 +1475,7 @@ export type NoticeTone = 'info' | 'warning' | 'danger';
 export type OrganizationType = 'bank' | 'insurance' | 'utility_provider' | 'employer' | 'public_office' | 'school' | 'healthcare' | 'shop' | 'other';
 export type OwnerActionType = 'family_created' | 'suspended' | 'reactivated' | 'deletion_scheduled' | 'deletion_cancelled' | 'visit_started' | 'visit_ended' | 'reading_limit_changed' | 'bank_feed_on' | 'bank_feed_off';
 export type PersonRole = 'parent' | 'child' | 'other';
-export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule' | 'consumption';
+export type ReadingPurpose = 'document' | 'mail_filter' | 'mail_notice' | 'mail_file' | 'crop' | 'bank_rule' | 'bank_filter' | 'consumption';
 export type ReadingStatus = 'queued' | 'reading' | 'done' | 'failed' | 'skipped' | 'off';
 export type RecordKind = 'organization' | 'vehicle' | 'utility' | 'policy' | 'belonging' | 'maintenance' | 'card';
 export type ReleaseBump = 'major' | 'minor' | 'patch';

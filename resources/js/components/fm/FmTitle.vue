@@ -16,7 +16,7 @@ import { usePage } from '@inertiajs/vue3';
 import { computed, inject, ref } from 'vue';
 import { useLayoutMode } from '@/composables/useLayoutMode';
 import type { PageInfoKey } from '@/lib/pageInfo';
-import { isSectionPage } from '@/lib/pageTrail';
+import { hasTitleTools } from '@/lib/pageTrail';
 import { PAGE_INFO, SECTION_TITLE } from '@/lib/titles';
 import FmPageInfo from './FmPageInfo.vue';
 import FmTitleTools from './FmTitleTools.vue';
@@ -55,12 +55,12 @@ const infoKey = computed((): PageInfoKey | undefined => info ?? pageKey.value);
 const page = usePage();
 const mode = useLayoutMode();
 
-/** Whether the search and the bell go beside the title: section pages on the phone. */
+/** Whether the search and the bell go beside the title: section pages (and the pages under one) on the phone. */
 const tools = computed(
     (): boolean =>
         !section.value &&
         mode.value === 'phone' &&
-        isSectionPage(page.component),
+        hasTitleTools(page.component),
 );
 </script>
 

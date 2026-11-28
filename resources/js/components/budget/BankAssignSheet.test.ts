@@ -1,8 +1,8 @@
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import BankAssignSheet from './BankAssignSheet.vue';
 
 const transaction = bankTransactions[1]!;
@@ -14,9 +14,13 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         title: 'Luce',
         organization: 'Edison Energia',
         due_on: '2026-11-05',
+        occurrence: '2026-11-05',
         late: false,
         amount: 72,
         estimated: true,
+        paid_on: null,
+        ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -24,9 +28,13 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         title: 'Gas',
         organization: 'Enel Energia',
         due_on: '2026-10-30',
+        occurrence: '2026-10-30',
         late: true,
         amount: 84.2,
         estimated: true,
+        paid_on: null,
+        ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -34,9 +42,13 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         title: 'Internet - Fastweb',
         organization: 'Fastweb',
         due_on: '2026-11-03',
+        occurrence: '2026-11-03',
         late: false,
         amount: 29.9,
         estimated: false,
+        paid_on: null,
+        ended: false,
+        ended_on: null,
     },
     {
         kind: 'expense',
@@ -44,11 +56,48 @@ const choices: App.Data.BankPlannedChoiceData[] = [
         title: 'Palestra',
         organization: null,
         due_on: '2026-11-15',
+        occurrence: '2026-11-15',
         late: false,
         amount: 40,
         estimated: false,
+        paid_on: null,
+        ended: false,
+        ended_on: null,
     },
 ];
+
+const recorded: App.Data.BankRecordedChoiceData[] = [
+    {
+        kind: 'expense',
+        id: 31,
+        title: 'Luce settembre',
+        organization: 'Edison Energia',
+        date: '2026-09-05',
+        amount: 70.1,
+    },
+];
+
+/** What the server answers to a search. */
+type Answer = {
+    planned: App.Data.BankPlannedChoiceData[];
+    recorded: App.Data.BankRecordedChoiceData[];
+};
+
+/**
+ * Finds `fetch` with a server that answers every search with `answer`.
+ *
+ * @param answer - the two lists
+ */
+function stubServer(
+    answer: Answer = { planned: choices, recorded },
+): ReturnType<typeof vi.fn> {
+    const fetchMock = vi.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve(answer) }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    return fetchMock;
+}
 
 /** Opens the sheet for the Edison transaction. */
 function open(
@@ -57,119 +106,313 @@ function open(
     return renderPage(BankAssignSheet, {
         open: true,
         transaction,
-        choices,
         ...extra,
     });
 }
 
+afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+});
+
 describe('BankAssignSheet', () => {
-    it('shows the transaction and the planned expenses with their due date and amount', async () => {
+    it('writes the amount of a credit with the plus, in green', async () => {
+        stubServer();
+        open({ transaction: { ...transaction, amount: 407.6 } });
+        await settle();
+
+        expect(screen.getByText('+407,60 €')).toHaveClass('text-paid');
+    });
+
+    it('when wide is a panel beside the list, not a dialog, and Escape closes it', async () => {
+        screenWidth(true);
+        stubServer();
+        const view = open();
+        await settle();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        const panel = screen.getByRole('complementary', {
+            name: 'It belongs to an expense',
+        });
+        expect(
+            await within(panel).findByText('Fixed expenses'),
+        ).toBeInTheDocument();
+
+        await userEvent.keyboard('{Escape}');
+
+        expect(view.emitted('update:open')?.at(-1)).toEqual([false]);
+    });
+
+    it('asks the server while the person types and shows two groups', async () => {
+        const fetchMock = stubServer();
         open();
         await settle();
 
         const dialog = screen.getByRole('dialog', {
-            name: 'It belongs to a planned expense',
+            name: 'It belongs to an expense',
         });
         expect(
-            within(dialog).getByText(
-                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
-            ),
+            await within(dialog).findByText('Fixed expenses'),
         ).toBeInTheDocument();
         expect(
-            within(dialog).getByText('05/11/2026 · Conto BancoPosta ·· 3307'),
+            within(dialog).getByText('Recorded expenses'),
         ).toBeInTheDocument();
-        expect(
-            within(dialog).getByRole('radio', { name: /Luce/ }),
-        ).toBeChecked();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(String(fetchMock.mock.calls[0]![0])).toContain(
+            `/budget/bank/${transaction.id}/candidates`,
+        );
         expect(
             within(dialog).getByText('Edison Energia · due on 05/11/2026'),
         ).toBeInTheDocument();
         expect(
-            within(dialog).getByText('Enel Energia · due on 30/10/2026, late'),
-        ).toBeInTheDocument();
-        expect(
-            within(dialog).getByText('Due on 15/11/2026'),
+            within(dialog).getByText('Edison Energia · 05/09/2026'),
         ).toBeInTheDocument();
         expect(within(dialog).getByText(/^~72,00/)).toBeInTheDocument();
-        expect(within(dialog).getByText(/^29,90/)).toBeInTheDocument();
+
+        await userEvent.type(
+            screen.getByRole('searchbox', { name: 'Search an expense' }),
+            'gas',
+        );
+        await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+        expect(String(fetchMock.mock.calls[1]![0])).toContain('q=gas');
+    });
+
+    it('does not let an older answer overwrite a newer one', async () => {
+        const waiting: Array<(answer: Answer) => void> = [];
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                () =>
+                    new Promise((resolve) => {
+                        waiting.push((answer) =>
+                            resolve({
+                                ok: true,
+                                json: () => Promise.resolve(answer),
+                            }),
+                        );
+                    }),
+            ),
+        );
+        open();
+        await settle();
+        await userEvent.type(
+            screen.getByRole('searchbox', { name: 'Search an expense' }),
+            'g',
+        );
+        await vi.waitFor(() => expect(waiting).toHaveLength(2));
+
+        waiting[1]!({ planned: [choices[1]!], recorded: [] });
+        expect(await screen.findByText('Gas')).toBeInTheDocument();
+        waiting[0]!({ planned: [choices[0]!], recorded: [] });
+        await settle();
+
+        expect(screen.getByText('Gas')).toBeInTheDocument();
+        expect(screen.queryByText('Luce')).not.toBeInTheDocument();
+    });
+
+    it('the first row is chosen', async () => {
+        stubServer();
+        open();
+        await settle();
+
         expect(
-            within(dialog).getByText(
-                'The due date closest to 05/11/2026 is marked as paid. Afterwards you can write the rule, so next time it pays by itself.',
+            await screen.findByRole('radio', { name: /^Luce(?! settembre)/ }),
+        ).toBeChecked();
+        expect(screen.getByRole('radio', { name: /Gas/ })).not.toBeChecked();
+        expect(
+            screen.getByRole('button', { name: 'Mark as paid' }),
+        ).toBeEnabled();
+    });
+
+    it('a planned income already paid says «già segnata il 18/11/2026»', async () => {
+        stubServer({
+            planned: [
+                {
+                    ...choices[0]!,
+                    kind: 'income',
+                    title: 'Assegno Unico',
+                    organization: 'INPS',
+                    paid_on: '2026-11-18',
+                },
+            ],
+            recorded: [],
+        });
+        open({ transaction: { ...transaction, amount: 407.6 } });
+        await settle();
+
+        expect(
+            await screen.findByText('INPS · already marked on 18/11/2026'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Link the transaction' }),
+        ).toBeInTheDocument();
+    });
+
+    it('an ended planned item says when it ended', async () => {
+        stubServer({
+            planned: [
+                {
+                    ...choices[0]!,
+                    ended: true,
+                    ended_on: '2026-02-28',
+                    due_on: '2026-02-18',
+                },
+                {
+                    ...choices[1]!,
+                    kind: 'income',
+                    ended: true,
+                    ended_on: '2026-02-28',
+                    due_on: '2026-02-18',
+                    organization: null,
+                },
+            ],
+            recorded: [],
+        });
+        open();
+        await settle();
+
+        expect(
+            await screen.findByText(
+                'Edison Energia · ended on 28/02/2026 · due on 18/02/2026',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Ended on 28/02/2026 · to mark on 18/02/2026'),
+        ).toBeInTheDocument();
+    });
+
+    it('an income due date says «to mark», not «due»', async () => {
+        stubServer({
+            planned: [{ ...choices[0]!, kind: 'income', late: true }],
+            recorded: [],
+        });
+        open({ transaction: { ...transaction, amount: 35 } });
+        await settle();
+
+        expect(
+            await screen.findByText(
+                'Edison Energia · to mark on 05/11/2026, late',
             ),
         ).toBeInTheDocument();
     });
 
-    it('narrows the list by name or organization while typing', async () => {
+    it('the line under the list says what the choice does', async () => {
+        stubServer({
+            planned: [
+                {
+                    ...choices[0]!,
+                    kind: 'income',
+                    paid_on: '2026-11-18',
+                },
+                { ...choices[1]!, kind: 'income', due_on: '2026-08-01' },
+            ],
+            recorded: [],
+        });
+        open({ transaction: { ...transaction, amount: 35 } });
+        await settle();
+
+        expect(
+            await screen.findByText(
+                'Links the transaction to the income already marked, without creating another one.',
+            ),
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('radio', { name: /Gas/ }));
+
+        expect(
+            screen.getByText(
+                'The due date of 01/08/2026 is marked as received.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Mark as received' }),
+        ).toBeInTheDocument();
+    });
+
+    it("the title is «È di una spesa» for a debit and «È di un'entrata» for a credit", async () => {
+        stubServer({ planned: [], recorded: [] });
+        open({ transaction: { ...transaction, amount: 35 } });
+        await settle();
+
+        expect(
+            screen.getByRole('dialog', { name: 'It belongs to an income' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('searchbox', { name: 'Search an income' }),
+        ).toBeInTheDocument();
+    });
+
+    it('shows the empty text when nothing is found', async () => {
+        stubServer({ planned: [], recorded: [] });
         open();
         await settle();
 
-        await userEvent.type(
-            screen.getByRole('searchbox', { name: 'Search a planned expense' }),
-            'fast',
-        );
-
         expect(
-            screen.getByRole('radio', { name: /Internet - Fastweb/ }),
-        ).toBeInTheDocument();
-        expect(
-            screen.queryByRole('radio', { name: /Luce/ }),
-        ).not.toBeInTheDocument();
-
-        await userEvent.clear(
-            screen.getByRole('searchbox', { name: 'Search a planned expense' }),
-        );
-        await userEvent.type(
-            screen.getByRole('searchbox', { name: 'Search a planned expense' }),
-            'zzz',
-        );
-        expect(
-            screen.getByText('No planned expense found.'),
+            await screen.findByText('No expense found.'),
         ).toBeInTheDocument();
         expect(
             screen.getByRole('button', { name: 'Mark as paid' }),
         ).toBeDisabled();
     });
 
-    it('gives the planned expense chosen when Mark as paid is pressed', async () => {
-        const view = open();
-        await settle();
-
-        await userEvent.click(screen.getByRole('radio', { name: /Gas/ }));
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Mark as paid' }),
+    it('waits for the first answer', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() => new Promise(() => {})),
         );
-
-        expect(view.emitted().assign).toEqual([[choices[1]]]);
-    });
-
-    it('speaks of an income for a credit', async () => {
-        open({
-            transaction: { ...transaction, amount: 35 },
-            choices: [{ ...choices[0]!, kind: 'income' }],
-        });
-        await settle();
-
-        expect(
-            screen.getByRole('dialog', {
-                name: 'It belongs to a planned income',
-            }),
-        ).toBeInTheDocument();
-        expect(
-            screen.getByRole('searchbox', { name: 'Search a planned income' }),
-        ).toBeInTheDocument();
-    });
-
-    it('waits for the list while the page asks for it', async () => {
-        open({ choices: undefined });
+        open();
         await settle();
 
         expect(screen.getByText('Loading…')).toBeInTheDocument();
+    });
+
+    it('gives the planned expense chosen, with the date of the due date as the rules give it', async () => {
+        stubServer({
+            planned: [
+                {
+                    ...choices[1]!,
+                    due_on: '2026-11-02',
+                    occurrence: '2026-10-30',
+                },
+            ],
+            recorded,
+        });
+        const view = open();
+        await settle();
+
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as paid' }),
+        );
+
+        expect(view.emitted().assign).toEqual([
+            [{ kind: 'expense', planned_id: 6, occurrence: '2026-10-30' }],
+        ]);
+    });
+
+    it('sends the movement chosen', async () => {
+        stubServer();
+        const view = open();
+        await settle();
+
+        await userEvent.click(
+            await screen.findByRole('radio', { name: /Luce settembre/ }),
+        );
         expect(
-            screen.getByRole('button', { name: 'Mark as paid' }),
-        ).toBeDisabled();
+            screen.getByText(
+                'Links the transaction to the expense already recorded, without creating another one.',
+            ),
+        ).toBeInTheDocument();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Link the transaction' }),
+        );
+
+        expect(view.emitted().assign).toEqual([
+            [{ kind: 'expense', movement_id: 31 }],
+        ]);
     });
 
     it('shows the message of the server under the list', async () => {
+        stubServer();
         open({ error: 'This planned expense has no due dates to pay.' });
         await settle();
 
@@ -179,6 +422,7 @@ describe('BankAssignSheet', () => {
     });
 
     it('closes with Cancel', async () => {
+        stubServer();
         const view = open();
         await settle();
 
@@ -188,16 +432,19 @@ describe('BankAssignSheet', () => {
     });
 
     it('has the visible label of the board over a box with its own placeholder', async () => {
+        stubServer();
         open();
         await settle();
 
         expect(
-            screen.getByText('Search a planned expense', { selector: 'label' }),
+            screen.getByText('Search an expense', { selector: 'label' }),
         ).toHaveClass('text-row');
-        // The name of a planned item in the list is 16 px semibold, as in the board
-        expect(screen.getByText('Luce')).toHaveClass('text-body-strong');
+        expect(await screen.findByText('Luce')).toHaveClass('text-body-strong');
         expect(
-            screen.getByRole('searchbox', { name: 'Search a planned expense' }),
-        ).toHaveAttribute('placeholder', 'Search by name or organization');
+            screen.getByRole('searchbox', { name: 'Search an expense' }),
+        ).toHaveAttribute(
+            'placeholder',
+            'Search by name, organization or amount',
+        );
     });
 });

@@ -58,6 +58,9 @@ final readonly class ImportChoices
     /** The columns of a card that are the document's: they are written in its form, not in the box. */
     public const array DOCUMENT_COLUMNS = ['date', 'person_id', 'organization_id'];
 
+    /** The most supplies of one bill whose choices are read: the indexes go from 0 to this one less one. */
+    public const int MAX_SUPPLIES = 10;
+
     /** The prefix of the check of a choice, followed by its enum. */
     private const string CHOICE = 'choice:';
 
@@ -89,6 +92,7 @@ final readonly class ImportChoices
      * @param  string|false|null  $cardFor  the card type of the proposal the page showed when the person chose (null: no card); false when the page did not say
      * @param  list<int>  $replacePolicies  the old policies ticked under the box of the new policy, to cancel
      * @param  bool|null  $consumption  the box *Record the consumption* is ticked; null when the page did not say, and the box follows the proposal
+     * @param  array<int, array{movement: bool, record: bool, consumption: ?bool, due: ?bool, targets: array{movement: 'auto'|'new'|int, record: 'auto'|'new'|int}, overrides: array{movement: array<string, mixed>, record: array<string, mixed>, consumption: array<string, mixed>}}>  $supplies  for a bill with more than one supply, the choices of each one by its index: the boxes of its expense, utility and consumption, "to pay", the ones picked by hand and the corrections
      */
     public function __construct(
         public array $document = [],
@@ -104,12 +108,13 @@ final readonly class ImportChoices
         public string|false|null $cardFor = false,
         public array $replacePolicies = [],
         public ?bool $consumption = null,
+        public array $supplies = [],
     ) {}
 
     /**
      * The choices as the page sends them, cleaned.
      *
-     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card, card_type, replace_policies, consumption}`
+     * @param  array<mixed>  $raw  `{document, movement, event, records, overrides, targets, due, policy, create_card, card_type, replace_policies, consumption, supplies}`
      */
     public static function fromArray(array $raw): self
     {
@@ -123,10 +128,10 @@ final readonly class ImportChoices
             event: self::bool($raw['event'] ?? null) ?? false,
             records: self::kinds($raw['records'] ?? null),
             overrides: [
-                'movement' => self::clean(self::arrayOf($overrides['movement'] ?? null), self::MOVEMENT_FIELDS, ['amount', 'date']),
+                'movement' => self::movementEdits($overrides['movement'] ?? null),
                 'event' => self::clean(self::arrayOf($overrides['event'] ?? null), self::EVENT_FIELDS, ['type']),
                 'records' => self::recordEdits(self::arrayOf($overrides['records'] ?? null)),
-                'consumption' => self::clean(self::arrayOf($overrides['consumption'] ?? null), self::CONSUMPTION_FIELDS, ['quantity', 'period_start', 'period_end', 'is_estimated']),
+                'consumption' => self::consumptionEdits($overrides['consumption'] ?? null),
             ],
             targets: [
                 'movement' => self::target($targets['movement'] ?? null),
@@ -140,7 +145,56 @@ final readonly class ImportChoices
             cardFor: array_key_exists('card_type', $raw) ? (is_string($raw['card_type']) ? $raw['card_type'] : null) : false,
             replacePolicies: self::ids($raw['replace_policies'] ?? null),
             consumption: self::bool($raw['consumption'] ?? null),
+            supplies: self::supplyChoices(self::arrayOf($raw['supplies'] ?? null)),
         );
+    }
+
+    /**
+     * The choices of one supply of a bill with more than one, as the choices of a bill alone: the document as it
+     * is, then the boxes of the expense, of the utility and of the consumption, "to pay", the ones picked by hand
+     * and the corrections of that supply; nothing else. A supply without choices follows the proposal.
+     *
+     * @param  int  $index  the place of the supply in the reading
+     */
+    public function forSupply(int $index): self
+    {
+        $supply = $this->supplies[$index] ?? null;
+
+        if ($supply === null) {
+            return new self(
+                document: $this->document,
+                overrides: ['movement' => [], 'event' => [], 'records' => [], 'consumption' => []],
+                targets: ['movement' => 'auto', 'event' => 'auto', 'records' => []],
+            );
+        }
+
+        $utility = RecordKind::Utility->value;
+
+        return new self(
+            document: $this->document,
+            movement: $supply['movement'],
+            records: $supply['record'] ? [RecordKind::Utility] : [],
+            overrides: [
+                'movement' => $supply['overrides']['movement'],
+                'event' => [],
+                'records' => $supply['overrides']['record'] === [] ? [] : [$utility => $supply['overrides']['record']],
+                'consumption' => $supply['overrides']['consumption'],
+            ],
+            targets: ['movement' => $supply['targets']['movement'], 'event' => 'auto', 'records' => [$utility => $supply['targets']['record']]],
+            due: $supply['due'],
+            consumption: $supply['consumption'],
+        );
+    }
+
+    /**
+     * Whether the utility box of a supply is ticked: as the person sent it, otherwise as the proposal suggests it.
+     *
+     * @param  int  $index  the place of the supply in the reading
+     * @param  bool  $suggested  whether the proposal ticks the box
+     */
+    public function supplyRecordTicked(int $index, bool $suggested): bool
+    {
+        return array_key_exists($index, $this->supplies) ? $this->supplies[$index]['record'] : $suggested;
     }
 
     /**
@@ -164,6 +218,7 @@ final readonly class ImportChoices
             cardFor: $this->cardFor,
             replacePolicies: $this->replacePolicies,
             consumption: $this->consumption,
+            supplies: $this->supplies,
         );
     }
 
@@ -193,6 +248,7 @@ final readonly class ImportChoices
             cardFor: $this->cardFor,
             replacePolicies: $this->replacePolicies,
             consumption: $this->consumption,
+            supplies: $this->supplies,
         );
     }
 
@@ -335,6 +391,63 @@ final readonly class ImportChoices
         }
 
         return $out;
+    }
+
+    /**
+     * The choices of the supplies, by index from 0 to `MAX_SUPPLIES` less one, each checked as the choices of a bill;
+     * any other index and any entry that is not a list of choices is dropped.
+     *
+     * @param  array<mixed>  $input  what the page sent, by index of the supply
+     * @return array<int, array{movement: bool, record: bool, consumption: ?bool, due: ?bool, targets: array{movement: 'auto'|'new'|int, record: 'auto'|'new'|int}, overrides: array{movement: array<string, mixed>, record: array<string, mixed>, consumption: array<string, mixed>}}>
+     */
+    private static function supplyChoices(array $input): array
+    {
+        $out = [];
+        foreach ($input as $index => $raw) {
+            if (! is_int($index) || $index < 0 || $index >= self::MAX_SUPPLIES || ! is_array($raw)) {
+                continue;
+            }
+
+            $targets = self::arrayOf($raw['targets'] ?? null);
+            $overrides = self::arrayOf($raw['overrides'] ?? null);
+            $out[$index] = [
+                'movement' => self::bool($raw['movement'] ?? null) ?? false,
+                'record' => self::bool($raw['record'] ?? null) ?? false,
+                'consumption' => self::bool($raw['consumption'] ?? null),
+                'due' => self::bool($raw['due'] ?? null),
+                'targets' => ['movement' => self::target($targets['movement'] ?? null), 'record' => self::target($targets['record'] ?? null)],
+                'overrides' => [
+                    'movement' => self::movementEdits($overrides['movement'] ?? null),
+                    'record' => self::clean(self::arrayOf($overrides['record'] ?? null), self::RECORD_FIELDS[RecordKind::Utility->value]),
+                    'consumption' => self::consumptionEdits($overrides['consumption'] ?? null),
+                ],
+            ];
+        }
+        ksort($out);
+
+        return $out;
+    }
+
+    /**
+     * The corrections of a movement: an amount or a date emptied leave the read ones.
+     *
+     * @param  mixed  $value  what the page sent
+     * @return array<string, mixed>
+     */
+    private static function movementEdits(mixed $value): array
+    {
+        return self::clean(self::arrayOf($value), self::MOVEMENT_FIELDS, ['amount', 'date']);
+    }
+
+    /**
+     * The corrections of a consumption: every field emptied leaves the read one.
+     *
+     * @param  mixed  $value  what the page sent
+     * @return array<string, mixed>
+     */
+    private static function consumptionEdits(mixed $value): array
+    {
+        return self::clean(self::arrayOf($value), self::CONSUMPTION_FIELDS, array_keys(self::CONSUMPTION_FIELDS));
     }
 
     /**

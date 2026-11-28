@@ -14,12 +14,13 @@ import type { DocumentPayload } from '@/lib/documents';
 import {
     enrolmentProposal,
     consumptionProposal,
+    dualFuelProposal,
     ferriProposal,
     homeDraft,
     homeProposal,
 } from '@/test/fixtures';
 import type { ImportChoices } from './useImportChoices';
-import { useImportChoices } from './useImportChoices';
+import { scopeToSupply, useImportChoices } from './useImportChoices';
 
 beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -428,5 +429,128 @@ describe('useImportChoices, the consumption', () => {
         const { choices } = mount({ proposal: consumptionProposal });
 
         expect(choices.targetOf('consumption')).toBe('auto');
+    });
+});
+
+describe('the supplies of a bill', () => {
+    it('sends the choices of each supply, following the proposal', () => {
+        const { choices } = mount({ proposal: dualFuelProposal });
+
+        expect(choices.also.value?.supplies).toEqual({
+            0: {
+                movement: true,
+                record: true,
+                consumption: true,
+                targets: { movement: 'auto', record: 'auto' },
+            },
+            1: {
+                movement: true,
+                record: false,
+                consumption: false,
+                targets: { movement: 'auto', record: 'auto' },
+            },
+        });
+        expect(choices.changed.value).toBe(false);
+    });
+
+    it('sends no supplies for a bill of one supply', () => {
+        const { choices } = mount({ proposal: consumptionProposal });
+
+        expect(choices.also.value).not.toHaveProperty('supplies');
+    });
+
+    it('changes only the supply the box belongs to', () => {
+        const { choices } = mount({ proposal: dualFuelProposal });
+
+        scopeToSupply(choices, 1).setTicked('movement', false);
+
+        expect(choices.also.value?.supplies?.[1]?.movement).toBe(false);
+        expect(choices.also.value?.supplies?.[0]?.movement).toBe(true);
+        expect(choices.picks.movement).toBeNull();
+        expect(choices.changed.value).toBe(true);
+    });
+
+    it('keeps the amount written for the first supply in its own corrections', () => {
+        const { choices } = mount({ proposal: dualFuelProposal });
+        const electricity = scopeToSupply(choices, 0);
+
+        electricity.setOverride('movement', 'amount', 90);
+
+        expect(electricity.overrideOf('movement', 'amount')).toBe(90);
+        expect(choices.overrideOf('movement', 'amount')).toBeUndefined();
+        expect(choices.also.value?.supplies?.[0]?.overrides).toEqual({
+            movement: { amount: 90 },
+            record: {},
+            consumption: {},
+        });
+        expect(choices.also.value?.supplies?.[1]).not.toHaveProperty(
+            'overrides',
+        );
+    });
+
+    it('reads and writes the utility, its card picked and to pay of the supply', () => {
+        const { choices } = mount({ proposal: dualFuelProposal });
+        const gas = scopeToSupply(choices, 1);
+
+        gas.setTicked('utility', true);
+        gas.setTarget('utility', 2);
+        gas.setOverride('utility', 'customer_code', '42');
+        gas.picks.due = true;
+
+        expect(gas.targetOf('utility')).toBe(2);
+        expect(gas.overrideOf('utility', 'customer_code')).toBe('42');
+        expect(gas.picks.due).toBe(true);
+        expect(choices.also.value?.supplies?.[1]).toEqual({
+            movement: true,
+            record: true,
+            consumption: false,
+            due: true,
+            targets: { movement: 'auto', record: 2 },
+            overrides: {
+                movement: {},
+                record: { customer_code: '42' },
+                consumption: {},
+            },
+        });
+    });
+
+    it('gives the boxes of the supply as the ones of a bill alone', () => {
+        const { choices } = mount({ proposal: dualFuelProposal });
+
+        expect(scopeToSupply(choices, 1).also.value).toEqual({
+            movement: true,
+            event: false,
+            consumption: false,
+            records: [],
+            targets: {
+                movement: 'auto',
+                event: 'auto',
+                records: { utility: 'auto' },
+            },
+            policy: 'auto',
+            card_type: null,
+        });
+        expect(scopeToSupply(choices, 0).also.value?.records).toEqual([
+            'utility',
+        ]);
+    });
+
+    it('sends no expense of a supply with the Budget off', () => {
+        const { choices } = mount({
+            proposal: {
+                ...dualFuelProposal,
+                supplies: dualFuelProposal.supplies.map((supply) => ({
+                    ...supply,
+                    movement: null,
+                })),
+            },
+        });
+
+        expect(choices.also.value?.supplies?.[0]).toEqual({
+            movement: false,
+            record: true,
+            consumption: true,
+            targets: { record: 'auto' },
+        });
     });
 });

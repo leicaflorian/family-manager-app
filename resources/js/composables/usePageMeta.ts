@@ -16,6 +16,8 @@ export type PageMetaOptions = {
     title: MaybeRefOrGetter<string>;
     /** The tab of the browser, when it must say something else than the title (Home, whose title is the greeting). */
     head?: MaybeRefOrGetter<string>;
+    /** The last piece of the trail, when it must say something else than the title («Filter Satispay» under «Edit the filter Satispay»). */
+    crumb?: MaybeRefOrGetter<string>;
     /** The levels above the page, from the top; without one the page is a page of a section and writes no trail. */
     parent?: MaybeRefOrGetter<ParentPiece | ParentPiece[]>;
     /** The key of the explanation of the page (`pageInfo.ts`): `FmTitle` and `FmCardHeader` show its «i». */
@@ -37,7 +39,7 @@ export type PageMeta = {
  * pieces above the title, so a page does not write them by hand. It writes the trail into the top bar (as
  * `usePageTrail`) and gives `info` to the `FmTitle` of the page.
  *
- * @param options - the title, the parents and the key of the explanation
+ * @param options - the title, the parents, the last piece of the trail and the key of the explanation
  * @returns the title, the title for the tab and the trail
  */
 export function usePageMeta(options: PageMetaOptions): PageMeta {
@@ -55,7 +57,15 @@ export function usePageMeta(options: PageMetaOptions): PageMeta {
             typeof parent === 'string' ? sectionLink(parent) : parent,
         );
 
-        return [...pieces, { label: title.value }];
+        return [
+            ...pieces,
+            {
+                label:
+                    options.crumb === undefined
+                        ? title.value
+                        : toValue(options.crumb),
+            },
+        ];
     });
 
     provide(

@@ -22,4 +22,27 @@ describe('FmEmpty', () => {
             screen.getByRole('link', { name: 'Upload' }),
         ).toBeInTheDocument();
     });
+
+    it('has the blue icon, or the green one when the empty page is good news', () => {
+        const first = render(FmEmpty, {
+            props: { icon: Shapes, title: 'Nothing yet' },
+        });
+        expect(first.container.querySelector('svg')!.parentElement).toHaveClass(
+            'bg-action-soft',
+            'text-action-dark',
+        );
+        first.unmount();
+
+        const done = render(FmEmpty, {
+            props: {
+                icon: Shapes,
+                title: 'Nothing left to sort',
+                tone: 'paid',
+            },
+        });
+        expect(done.container.querySelector('svg')!.parentElement).toHaveClass(
+            'bg-paid-soft',
+            'text-paid',
+        );
+    });
 });

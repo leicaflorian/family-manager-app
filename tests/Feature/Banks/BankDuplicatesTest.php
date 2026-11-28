@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankMatchSource;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
+use App\Models\FinancialAccount;
 use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -28,15 +30,21 @@ function bankDuplicatesSetup(): array
     return [$planned, $transaction];
 }
 
-test('a payment recorded by hand with the same amount within five days is found', function (): void {
+test('finds the payment recorded seven days before', function (): void {
     insideBianchi(function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
-        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-05']);
+        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-03']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
+    });
+});
 
-        $hand->update(['date' => '2026-11-04']);
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+test('does not find the one of eight days before', function (): void {
+    insideBianchi(function (): void {
+        [$planned, $transaction] = bankDuplicatesSetup();
+        Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-02']);
+
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
     });
 });
 
@@ -47,7 +55,7 @@ test('an income payment by hand is found for a planned income', function (): voi
         $transaction = BankTransaction::factory()->create(['family_id' => $familyId, 'amount' => '1500.00', 'booked_on' => '2026-11-27']);
         $hand = Income::factory()->create(['family_id' => $familyId, 'planned_income_id' => $planned->id, 'amount' => 1500, 'date' => '2026-11-26']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
     });
 });
 
@@ -57,7 +65,7 @@ test('one already linked to another bank transaction is not', function (): void 
         $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
         BankTransaction::factory()->create(['family_id' => $planned->family_id, 'expense_id' => $hand->id]);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
     });
 });
 
@@ -67,7 +75,7 @@ test('one linked to this same bank transaction is still found', function (): voi
         $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
         $transaction->update(['expense_id' => $hand->id]);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned)?->is($hand))->toBeTrue();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue();
     });
 });
 
@@ -76,6 +84,60 @@ test('a different amount is not', function (): void {
         [$planned, $transaction] = bankDuplicatesSetup();
         Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418.01, 'date' => '2026-11-10']);
 
-        expect(resolve(BankDuplicates::class)->find($transaction, $planned))->toBeNull();
+        expect(resolve(BankDuplicates::class)->findAny($transaction, $planned))->toBeNull();
+    });
+});
+
+test('an expense with a fee transaction is not taken', function (): void {
+    insideBianchi(function (): void {
+        [$planned, $transaction] = bankDuplicatesSetup();
+        $hand = Expense::factory()->create(['family_id' => $planned->family_id, 'planned_expense_id' => $planned->id, 'amount' => 418, 'date' => '2026-11-10']);
+        // Only the commission of another debit is in it: the expense is still free for a debit
+        $fee = BankTransaction::factory()->create(['family_id' => $planned->family_id, 'expense_id' => $hand->id, 'matched_by' => BankMatchSource::Fee]);
+
+        expect(resolve(BankDuplicates::class)->isFree($hand, $transaction))->toBeTrue()
+            ->and(resolve(BankDuplicates::class)->findAny($transaction, $planned)?->is($hand))->toBeTrue()
+            ->and($fee->refresh()->expense_id)->toBe($hand->id);
+    });
+});
+
+test('finds the recorded expense of 10,40 for a debit of 10,00 with a commission of 0,40', function (): void {
+    insideBianchi(function (): void {
+        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
+        $account = FinancialAccount::factory()->create(['family_id' => $familyId]);
+        $mandate = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+        $row = static fn (string $text, string $amount, string $day): BankTransaction => BankTransaction::factory()->create([
+            'family_id' => $familyId, 'financial_account_id' => $account->id, 'text' => $text, 'amount' => $amount, 'booked_on' => $day, 'value_on' => $day,
+        ]);
+        $planned = PlannedExpense::factory()->create(['family_id' => $familyId, 'title' => 'Ricarica Satispay', 'amount' => 10, 'fee_amount' => 0.4, 'start_date' => '2026-01-24']);
+        $debit = $row($mandate, '-10.00', '2026-11-24');
+        $row('COMMISSIONI '.$mandate, '-0.40', '2026-11-25');
+        $hand = Expense::factory()->create(['family_id' => $familyId, 'planned_expense_id' => $planned->id, 'amount' => 10.4, 'date' => '2026-11-24']);
+
+        expect(resolve(BankDuplicates::class)->findAny($debit, $planned)?->is($hand))->toBeTrue();
+    });
+});
+
+test('the Gas payment of a dual-fuel debit belongs to that debit: not free nor found for another one', function (): void {
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $debit = enelDualFuelDebit($bill['account']);
+        $luce = Expense::factory()->create(['family_id' => $debit->family_id, 'planned_expense_id' => $bill['luce']->id, 'amount' => 96.25, 'date' => '2026-11-21']);
+        $gas = Expense::factory()->create(['family_id' => $debit->family_id, 'planned_expense_id' => $bill['gas']->id, 'amount' => 69.40, 'date' => '2026-11-21']);
+        $debit->forceFill(['expense_id' => $luce->id])->save();
+        $luce->forceFill(['bank_transaction_id' => $debit->id])->save();
+        $gas->forceFill(['bank_transaction_id' => $debit->id])->save();
+        $other = enelDualFuelDebit($bill['account'], '-69.40');
+        $duplicates = resolve(BankDuplicates::class);
+
+        expect($duplicates->isFree($gas, $other))->toBeFalse()
+            ->and($duplicates->isFree($gas, $debit))->toBeTrue()
+            ->and($duplicates->findAny($other, $bill['gas']))->toBeNull();
+
+        // A split whose first payment is no longer one of its expenses is over: Gas is free again
+        $luce->forceFill(['bank_transaction_id' => null])->save();
+
+        expect($duplicates->isFree($gas->refresh(), $other))->toBeTrue()
+            ->and($duplicates->findAny($other, $bill['gas'])?->is($gas))->toBeTrue();
     });
 });

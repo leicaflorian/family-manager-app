@@ -92,6 +92,21 @@ describe('usePageMeta', () => {
         expect(meta.head.value).toBe('Home');
     });
 
+    it('lets the last piece of the trail differ from the title', () => {
+        const { state, meta } = mountMeta({
+            title: 'Edit the filter Satispay',
+            crumb: 'Filter Satispay',
+            parent: { label: 'From the bank', href: '/budget/bank' },
+        });
+
+        expect(meta.title.value).toBe('Edit the filter Satispay');
+        expect(meta.head.value).toBe('Edit the filter Satispay');
+        expect(state.pieces.value).toEqual([
+            { label: 'From the bank', href: '/budget/bank' },
+            { label: 'Filter Satispay' },
+        ]);
+    });
+
     it('follows a title that changes', async () => {
         const name = ref('Rossi');
         const { state } = mountMeta({ title: name, parent: 'family' });

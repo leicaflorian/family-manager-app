@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Budget\SavePlanned;
-use App\Contracts\DocumentReader;
-use App\Data\BankTransactionData;
+use App\Data\BankFilterData;
 use App\Data\DeadlineData;
 use App\Data\PlannedFiltersData;
 use App\Data\PlannedRowData;
+use App\Enums\BankFilterAction;
 use App\Enums\Feature;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Budget\PlannedIndexRequest;
 use App\Http\Requests\Budget\SavePlannedRequest;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
@@ -23,7 +24,6 @@ use App\Services\BudgetFormOptions;
 use App\Services\Deadlines;
 use App\Services\FamilyFeatures;
 use App\Services\PlannedSummaries;
-use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankTransactionId;
 use App\Support\Deadline;
 use App\Support\LocalPath;
@@ -74,7 +74,7 @@ final class PlannedController extends Controller
         // The card of an income is its employment
         $preset = $kind === 'expense' ? PlannedPreset::fromQuery($request->query('card'), $request->query('deadline')) : PlannedPreset::incomeFromQuery($request->query('card'));
 
-        return $this->form($request, $kind, null, [...PlannedPreset::defaults($kind), ...$preset, ...$this->recurringValues($request->query('bank'), $kind)]);
+        return $this->form($kind, null, [...PlannedPreset::defaults($kind), ...$preset, ...$this->recurringValues($request->query('bank'), $kind)]);
     }
 
     /**
@@ -142,7 +142,7 @@ final class PlannedController extends Controller
         $planned = PlannedKind::find($kind, $id);
         Gate::authorize('update', $planned);
 
-        return $this->form($request, $kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
+        return $this->form($kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned), $planned);
     }
 
     /**
@@ -176,50 +176,45 @@ final class PlannedController extends Controller
     /**
      * The form, new (`$planned` null) or changed.
      *
-     * @param  Request  $request  the request, for `?rule_from=` (the transaction the rule is written from)
      * @param  string  $kind  `expense` or `income`
      * @param  PlannedRowData|null  $planned  the planned item to change, null for a new one
      * @param  array<string, mixed>  $values  the starting values of the fields
+     * @param  PlannedExpense|PlannedIncome|null  $model  the saved planned item to change, null for a new one
      */
-    private function form(Request $request, string $kind, ?PlannedRowData $planned, array $values): Response
+    private function form(string $kind, ?PlannedRowData $planned, array $values, PlannedExpense|PlannedIncome|null $model = null): Response
     {
         $bankOn = resolve(FamilyFeatures::class)->on(Feature::BankFeed);
-        $ai = $bankOn && resolve(DocumentReader::class)->isActive();
-        $example = $bankOn ? $this->ruleExample($request->query('rule_from')) : null;
-
-        // Without the reading the AI cannot write the rule: the field starts from the words of the transaction
-        if ($example instanceof BankTransactionData && ! $ai && blank($values['bank_match'] ?? null)) {
-            $values['bank_match'] = BankMatch::fromText($example->text);
-        }
 
         return Inertia::render('budget/EditPlanned', [
             'kind' => $kind,
             'planned' => $planned,
             'values' => $values,
             'options' => BudgetFormOptions::for($kind),
-            // The field *How it shows in the bank* needs the link on; the AI button, the reading too
-            'bank' => ['on' => $bankOn, 'ai' => $ai],
-            'rule_example' => $example,
+            // The box *The bank filter* shows the filter that pays the saved item and where to make one
+            'bank' => $bankOn && $model !== null
+                ? $this->bankFilter($model)
+                : ['on' => $bankOn, 'filter' => null, 'create_url' => null],
         ]);
     }
 
     /**
-     * The transaction `?rule_from=` points to, for the sheet that writes the rule from it; null when it is missing,
-     * not a number or not of the family (the form opens all the same).
+     * The `bank` prop of a saved planned item: its filter, and the address of the form of a new one for whoever may
+     * make a filter that pays (`create_url`, null when it may not).
      *
-     * @param  mixed  $id  the value of the address
+     * @param  PlannedExpense|PlannedIncome  $planned  the saved planned item
+     * @return array{on: bool, filter: ?BankFilterData, create_url: ?string}
      */
-    private function ruleExample(mixed $id): ?BankTransactionData
+    private function bankFilter(PlannedExpense|PlannedIncome $planned): array
     {
-        $id = BankTransactionId::parse($id);
+        $filter = BankFilter::payingFor($planned);
 
-        if ($id === null) {
-            return null;
-        }
-
-        $transaction = BankTransaction::query()->with('financialAccount')->find($id);
-
-        return $transaction instanceof BankTransaction ? BankTransactionData::fromTransaction($transaction) : null;
+        return [
+            'on' => true,
+            'filter' => $filter instanceof BankFilter ? BankFilterData::fromFilter($filter) : null,
+            'create_url' => Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])
+                ? route('budget.bank.filters.create', ['planned' => ($planned instanceof PlannedExpense ? 'expense:' : 'income:').$planned->id], absolute: false)
+                : null,
+        ];
     }
 
     /**

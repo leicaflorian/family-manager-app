@@ -14,6 +14,24 @@ describe('FmReadingNotice', () => {
         ).toBeInTheDocument();
     });
 
+    it('shows a line of what was found under the invitation, with its label in bold', () => {
+        render(FmReadingNotice, {
+            props: {
+                status: 'done',
+                headline: 'I found an electricity and gas bill',
+                line: {
+                    label: 'How much',
+                    value: '165,65 € · luce 96,25 €, gas 69,40 €',
+                },
+            },
+        });
+
+        expect(screen.getByText('How much').tagName).toBe('STRONG');
+        expect(
+            screen.getByText(/· 165,65 € · luce 96,25 €, gas 69,40 €/),
+        ).toBeInTheDocument();
+    });
+
     it('says why the file was not read, with Read again beside', () => {
         render(FmReadingNotice, {
             props: {

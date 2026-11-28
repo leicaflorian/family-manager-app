@@ -14,17 +14,24 @@
  * starts with), fills the fields still empty from it. On the computer the
  * page has the title, so the form has no heading of its own there; on the
  * phone its heading plays the title, with the «i» of the page beside it. A movement
- * the bank recorded says so under the heading, with the text of the bank and
- * *It was not this one*, as the board *Movimento* draws it.
+ * the bank recorded says so under the heading, as the board *Movimento* draws
+ * it: the text of the bank, the commission of its direct debit, the filter that
+ * took it (with a link to it once the filter has a page; without a filter, how
+ * it was linked), *See the bank movement* and *It was not this one* (which asks
+ * before deleting a payment the bank made, and says it only unlinks when the
+ * expense was already there).
  *
  * @group panels
  */
-import { router } from '@inertiajs/vue3';
-import { Landmark, Undo2 } from '@lucide/vue';
+import { Link, router } from '@inertiajs/vue3';
+import { ArrowUpRight, CornerDownRight, Landmark, Undo2 } from '@lucide/vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { trans } from 'laravel-vue-i18n';
 import { computed, inject, reactive, ref, toRef, watch } from 'vue';
 import { useFormat } from '@/composables/useFormat';
+import { originWords } from '@/lib/bankOrigin';
+import { undoWords as getUndoWords } from '@/lib/bankUndo';
+import { formatDayMonth } from '@/lib/format';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { useCardChoice } from '@/composables/useCardChoice';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
@@ -189,9 +196,25 @@ const showOccurrences = computed(
         values.planned_id === loadedFor.value,
 );
 
-/** Writes a day as `15/10/2026`. */
-const { date: formatDate } = useFormat();
+/** Writes a day as `15/10/2026` and an amount as `0,40 €`. */
+const { date: formatDate, euro } = useFormat();
 
+/** Marks where the name of the filter goes in its words, to draw it strong. */
+const NAME = '\u0000';
+
+/** The words around the name of the filter: «From the filter :name». */
+const filterWords = computed((): [string, string] => {
+    const [before = '', after = ''] = trans('From the filter :name', {
+        name: NAME,
+    }).split(NAME);
+
+    return [before, after];
+});
+
+/** The question and the words of the confirmation of *It was not this one*, for what it does. */
+const undoWords = computed(() =>
+    getUndoWords(movement?.kind, movement?.bank?.undo),
+);
 /** The confirmation of *It was not this one* is open. */
 const undoing = ref(false);
 
@@ -447,6 +470,50 @@ defineExpose({ fileErrors });
                     · {{ movement.bank.account }}</template
                 ></span
             >
+            <span
+                v-if="movement.bank.fee"
+                class="flex items-center gap-1.5 text-meta text-ink-soft"
+            >
+                <CornerDownRight
+                    aria-hidden="true"
+                    :size="14"
+                    class="shrink-0"
+                />{{
+                    $t('+ :fee commission, :day', {
+                        fee: euro(Math.abs(movement.bank.fee.amount)),
+                        day: movement.bank.fee.booked_on
+                            ? formatDayMonth(movement.bank.fee.booked_on)
+                            : '',
+                    })
+                }}
+            </span>
+            <span class="mt-1.5 text-meta text-ink-soft">
+                <template v-if="movement.bank.filter"
+                    >{{ filterWords[0]
+                    }}<strong class="text-label text-ink">{{
+                        movement.bank.filter.name
+                    }}</strong
+                    >{{ filterWords[1]
+                    }}<template v-if="movement.bank.filter.url">
+                        ·
+                        <Link
+                            :href="movement.bank.filter.url"
+                            class="text-label text-action no-underline hover:text-action-dark"
+                            >{{ $t('Open the filter') }}</Link
+                        ></template
+                    ></template
+                ><template v-else>{{
+                    originWords(movement.bank.how, null)
+                }}</template>
+            </span>
+            <Link
+                :href="movement.bank.url"
+                class="-mb-2.5 -ml-0.5 inline-flex h-touch items-center gap-2 self-start text-body text-action no-underline hover:text-action-dark"
+            >
+                <ArrowUpRight aria-hidden="true" :size="20" />{{
+                    $t('See the bank movement')
+                }}
+            </Link>
             <button
                 v-if="movement.bank.undo_url"
                 type="button"
@@ -461,16 +528,8 @@ defineExpose({ fileErrors });
                 v-if="movement.bank.undo_url"
                 v-model:open="undoing"
                 :url="movement.bank.undo_url"
-                :question="$t('Take back this payment?')"
-                :text="
-                    movement.kind === 'income'
-                        ? $t(
-                              'The income is removed and the due date is to be paid again.',
-                          )
-                        : $t(
-                              'The expense is removed and the due date is to be paid again.',
-                          )
-                "
+                :question="undoWords.question"
+                :text="undoWords.text"
                 :confirm-label="$t('It was not this one')"
             />
         </div>

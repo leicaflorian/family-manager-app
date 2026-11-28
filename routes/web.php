@@ -7,7 +7,7 @@ use App\Http\Controllers\Admin\VisitController;
 use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\AreaSettingsController;
-use App\Http\Controllers\Budget\BankMatchController;
+use App\Http\Controllers\Budget\BankFilterController;
 use App\Http\Controllers\Budget\BankTransactionController;
 use App\Http\Controllers\Budget\ComparisonController;
 use App\Http\Controllers\Budget\DeadlineController;
@@ -200,13 +200,23 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::middleware('feature:bank_feed')->group(function (): void {
                 Route::get('budget/bank', [BankTransactionController::class, 'index'])->name('budget.bank.index');
                 Route::post('budget/bank/sync', [BankTransactionController::class, 'sync'])->middleware('throttle:6,1,bank-sync')->name('budget.bank.sync');
-                Route::get('budget/bank/matches', [BankMatchController::class, 'matches'])->middleware('throttle:60,1,bank-matches')->name('budget.bank.matches');
-                Route::get('budget/bank/examples', [BankMatchController::class, 'examples'])->name('budget.bank.examples');
-                Route::post('budget/bank/rule', [BankMatchController::class, 'rule'])->middleware('throttle:20,1,bank-rule')->name('budget.bank.rule');
+                Route::get('budget/bank/filters/create', [BankFilterController::class, 'create'])->name('budget.bank.filters.create');
+                Route::post('budget/bank/filters', [BankFilterController::class, 'store'])->name('budget.bank.filters.store');
+                Route::post('budget/bank/filters/preview', [BankFilterController::class, 'preview'])->middleware('throttle:60,1,bank-filter-preview')->name('budget.bank.filters.preview');
+                Route::post('budget/bank/filters/suggest', [BankFilterController::class, 'suggest'])->middleware('throttle:20,1,bank-filter-ai')->name('budget.bank.filters.suggest');
+                Route::get('budget/bank/filters/{filter}/edit', [BankFilterController::class, 'edit'])->name('budget.bank.filters.edit')->whereNumber('filter');
+                Route::put('budget/bank/filters/{filter}', [BankFilterController::class, 'update'])->name('budget.bank.filters.update')->whereNumber('filter');
+                Route::delete('budget/bank/filters/{filter}', [BankFilterController::class, 'destroy'])->name('budget.bank.filters.destroy')->whereNumber('filter');
+                Route::get('budget/bank/{transaction}/candidates', [BankTransactionController::class, 'candidates'])->middleware('throttle:60,1,bank-candidates')->name('budget.bank.candidates')->whereNumber('transaction');
                 Route::post('budget/bank/{transaction}/assign', [BankTransactionController::class, 'assign'])->name('budget.bank.assign')->whereNumber('transaction');
                 Route::post('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'ignore'])->name('budget.bank.ignore')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/leave', [BankTransactionController::class, 'leave'])->middleware('throttle:60,1,bank-leave')->name('budget.bank.leave')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/fee', [BankTransactionController::class, 'fee'])->name('budget.bank.fee')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/transfer', [BankTransactionController::class, 'transfer'])->name('budget.bank.transfer')->whereNumber('transaction');
                 Route::delete('budget/bank/{transaction}/ignore', [BankTransactionController::class, 'restore'])->name('budget.bank.restore')->whereNumber('transaction');
                 Route::delete('budget/bank/{transaction}/payment', [BankTransactionController::class, 'undo'])->name('budget.bank.undo')->whereNumber('transaction');
+                Route::post('budget/bank/{transaction}/proposal', [BankTransactionController::class, 'accept'])->name('budget.bank.proposal.accept')->whereNumber('transaction');
+                Route::delete('budget/bank/{transaction}/proposal', [BankTransactionController::class, 'reject'])->name('budget.bank.proposal.reject')->whereNumber('transaction');
             });
 
             Route::get('budget/comparison', [ComparisonController::class, 'index'])->name('budget.comparison');

@@ -5,13 +5,18 @@ declare(strict_types=1);
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
 use App\Enums\BankConnectionStatus;
+use App\Enums\BankFilterFee;
+use App\Enums\BankMatchSource;
 use App\Exceptions\Banks\BankConsentEnded;
 use App\Exceptions\Banks\BankFeedFailed;
 use App\Exceptions\Banks\BankLimitReached;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
+use App\Models\PlannedExpense;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
 use Carbon\CarbonImmutable;
@@ -199,5 +204,56 @@ test('another read saving the same transaction at the same moment is no error of
         expect($connection->refresh()->status)->toBe(BankConnectionStatus::Active)
             ->and($connection->last_error)->toBeNull();
         Exceptions::assertNothingReported();
+    });
+});
+
+test('a new commission joins the expense its debit is already linked to', function (): void {
+    insideBianchi(function (): void {
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 10:00', 'Europe/Rome'));
+        [$connection, $account] = bankSyncSetup();
+        $text = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+        $debit = BankTransaction::factory()->create([
+            'family_id' => $account->family_id, 'financial_account_id' => $account->id, 'provider_id' => 'debit-1',
+            'text' => $text, 'amount' => '-10.00', 'booked_on' => '2026-11-24', 'value_on' => '2026-11-24',
+        ]);
+        $expense = Expense::factory()->create(['family_id' => $account->family_id, 'amount' => 10, 'fee_amount' => null, 'date' => '2026-11-24']);
+        $debit->linkTo($expense, BankMatchSource::Created);
+        $this->feed->gives([new BankEntry('fee-1', CarbonImmutable::parse('2026-11-25'), null, -0.40, 'EUR', 'COMMISSIONI '.$text, null, true)]);
+
+        expect(resolve(SyncBankConnection::class)->handle($connection))->toBe(1)
+            ->and((float) $expense->refresh()->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->expense_id)->toBe($expense->id);
+    });
+});
+
+test('a commission that arrives before its debit does not pay the due date', function (): void {
+    insideBianchi(function (): void {
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 10:00', 'Europe/Rome'));
+        [$connection, $account] = bankSyncSetup();
+        $text = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $account->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0,
+            'fee_amount' => null, 'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => $account->id,
+        ]);
+        BankFilter::factory()->pays($satispay)->create(['family_id' => $account->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::Auto]);
+        $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-11-24'), null, -0.40, 'EUR', 'COMMISSIONI '.$text, null, true);
+        $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-11-25'), null, -10.0, 'EUR', $text, null, true);
+
+        $this->feed->gives([$fee]);
+        resolve(SyncBankConnection::class)->handle($connection);
+
+        expect(Expense::query()->count())->toBe(0)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->expense_id)->toBeNull();
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-26 10:00', 'Europe/Rome'));
+        $this->feed->gives([$fee, $debit]);
+        resolve(SyncBankConnection::class)->handle($connection->refresh());
+
+        $expense = Expense::query()->sole();
+        expect((float) $expense->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->matched_by)->toBe(BankMatchSource::Fee)
+            ->and(BankTransaction::query()->where('provider_id', 'debit-1')->sole()->expense_id)->toBe($expense->id);
     });
 });

@@ -23,6 +23,27 @@ final class Money
     }
 
     /**
+     * The value in cents without its sign, for an amount of either direction: `-10.40` is `1040`.
+     *
+     * @param  mixed  $value  A number or a decimal string, or null.
+     */
+    public static function absCents(mixed $value): int
+    {
+        return abs(self::cents($value));
+    }
+
+    /**
+     * Cents as the value of a decimal column: `1040` is `10.40`.
+     *
+     * @param  int  $cents  the cents
+     * @return numeric-string
+     */
+    public static function decimal(int $cents): string
+    {
+        return number_format($cents / 100, 2, '.', '');
+    }
+
+    /**
      * The amount as the person reads it in both languages: `84,20 €`.
      *
      * @param  float  $amount  the amount in euro

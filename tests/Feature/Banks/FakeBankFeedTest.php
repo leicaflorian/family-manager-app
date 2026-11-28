@@ -54,8 +54,8 @@ it('gives the transactions between two dates counted back from today', function 
     $all = $feed->transactions('s', 'u', $today->subDays(90), $today);
     $recent = $feed->transactions('s', 'u', $today->subDays(7), $today);
 
-    expect($all)->toHaveCount(12)
-        ->and(count($recent))->toBeLessThan(12)->toBeGreaterThan(0)
+    expect($all)->toHaveCount(45)
+        ->and(count($recent))->toBeLessThan(45)->toBeGreaterThan(0)
         ->and(collect($all)->contains(fn (BankEntry $e): bool => ! $e->booked))->toBeTrue()
         ->and($feed->calls())->toBe(2);
 });

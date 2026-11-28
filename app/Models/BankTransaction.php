@@ -11,9 +11,11 @@ use Database\Factories\BankTransactionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -36,26 +38,38 @@ use Illuminate\Support\Facades\Config;
  * @property BankMatchSource|null $matched_by
  * @property CarbonImmutable|null $ignored_at
  * @property CarbonImmutable|null $declined_at
+ * @property int|null $bank_filter_id
+ * @property int|null $transfer_account_id The account on the other side, when the transaction is a transfer between the family's own accounts
+ * @property int|null $transfer_pair_id The other half of the transfer, when both accounts are read from the bank
+ * @property array<array-key, mixed>|null $rejected_proposals The proposals the person said no to: list values (`expense:<id>`, `income:<id>` for a link taken off) and keys (`group:<key>` => true for a group); read values with strict `in_array` and keys with `array_key_exists`
+ * @property numeric|null $fee_before Of a commission already in the amount of its expense: the fee the expense had before it joined
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read BankFilter|null $bankFilter
  * @property-read BankConnection|null $connection
  * @property-read Expense|null $expense
  * @property-read Family $family
  * @property-read FinancialAccount $financialAccount
  * @property-read Income|null $income
+ * @property-read Collection<int, Expense> $splitExpenses
+ * @property-read int|null $split_expenses_count
+ * @property-read FinancialAccount|null $transferAccount
+ * @property-read BankTransaction|null $transferPair
  *
  * @method static BankTransactionFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankTransaction ignored()
  * @method static Builder<static>|BankTransaction newModelQuery()
  * @method static Builder<static>|BankTransaction newQuery()
  * @method static Builder<static>|BankTransaction query()
+ * @method static Builder<static>|BankTransaction splitHeads()
  * @method static Builder<static>|BankTransaction unsorted()
+ * @method static Builder<static>|BankTransaction withoutFees()
  *
  * @mixin \Eloquent
  */
-#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at'])]
+#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at', 'bank_filter_id', 'transfer_account_id', 'transfer_pair_id', 'rejected_proposals', 'fee_before'])]
 final class BankTransaction extends FamilyModel
 {
     /** @use HasFactory<BankTransactionFactory> */
@@ -65,7 +79,8 @@ final class BankTransaction extends FamilyModel
 
     /**
      * The transactions not linked to an expense or an income and older than the months the app keeps them, of every
-     * family: pruning runs without a signed-in family, so the scope is off.
+     * family: pruning runs without a signed-in family, so the scope is off. A transfer between the family's own
+     * accounts stays: it has no expense or income to be kept by, and it is what the person decided.
      *
      * @return Builder<BankTransaction>
      */
@@ -76,11 +91,12 @@ final class BankTransaction extends FamilyModel
         return self::query()->withoutGlobalScopes()
             ->whereNull('expense_id')
             ->whereNull('income_id')
+            ->whereNull('transfer_account_id')
             ->whereRaw('coalesce(booked_on, created_at) < ?', [$limit]);
     }
 
     /**
-     * The transactions still to sort: booked, in euros, not linked and not ignored.
+     * The transactions still to sort: booked, in euros, not linked, not ignored and not a transfer between the family's own accounts.
      *
      * @param  Builder<BankTransaction>  $query
      */
@@ -91,6 +107,7 @@ final class BankTransaction extends FamilyModel
             ->whereNull('expense_id')
             ->whereNull('income_id')
             ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
             ->where('currency', 'EUR');
     }
 
@@ -103,6 +120,18 @@ final class BankTransaction extends FamilyModel
     protected function ignored(Builder $query): void
     {
         $query->whereNotNull('ignored_at');
+    }
+
+    /**
+     * All but the commissions joined to the expense of their direct debit (`fee`): what tells which bank transaction
+     * an expense came from, or whether another one has it.
+     *
+     * @param  Builder<BankTransaction>  $query
+     */
+    #[Scope]
+    protected function withoutFees(Builder $query): void
+    {
+        $query->where(static fn (Builder $query): Builder => $query->whereNull('matched_by')->orWhere('matched_by', '!=', BankMatchSource::Fee));
     }
 
     /**
@@ -122,18 +151,34 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
-     * Links the transaction to the expense or income it belongs to and saves it. The caller has the row locked.
+     * Links the transaction to the expense or income it belongs to and saves it. A movement that is not one of the
+     * expenses the debit paid together ends that split (`releaseSplit`). The caller has the row locked.
      *
      * @param  Expense|Income  $movement  The movement.
      * @param  BankMatchSource  $by  How the link came.
      */
     public function linkTo(Expense|Income $movement, BankMatchSource $by): void
     {
+        // A movement outside the split the debit paid ends that split: its other expenses are free again
+        if (! $movement instanceof Expense || $movement->bank_transaction_id !== $this->id) {
+            $this->releaseSplit();
+        }
+
         $this->forceFill([
             'expense_id' => $movement instanceof Expense ? $movement->id : null,
             'income_id' => $movement instanceof Income ? $movement->id : null,
             'matched_by' => $by,
         ])->save();
+    }
+
+    /**
+     * The filter that took the transaction, when one did.
+     *
+     * @return BelongsTo<BankFilter, $this>
+     */
+    public function bankFilter(): BelongsTo
+    {
+        return $this->belongsTo(BankFilter::class);
     }
 
     /**
@@ -177,6 +222,26 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
+     * The account on the other side, when the transaction is a transfer between the family's own accounts.
+     *
+     * @return BelongsTo<FinancialAccount, $this>
+     */
+    public function transferAccount(): BelongsTo
+    {
+        return $this->belongsTo(FinancialAccount::class, 'transfer_account_id');
+    }
+
+    /**
+     * The other half of the transfer, read from the account on the other side.
+     *
+     * @return BelongsTo<BankTransaction, $this>
+     */
+    public function transferPair(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'transfer_pair_id');
+    }
+
+    /**
      * The types of the columns.
      *
      * @return array<string, string>
@@ -187,10 +252,66 @@ final class BankTransaction extends FamilyModel
             'booked_on' => 'immutable_date',
             'value_on' => 'immutable_date',
             'amount' => 'decimal:2',
+            'fee_before' => 'decimal:2',
             'status' => BankTransactionStatus::class,
             'matched_by' => BankMatchSource::class,
             'ignored_at' => 'immutable_datetime',
             'declined_at' => 'immutable_datetime',
+            'rejected_proposals' => 'array',
         ];
+    }
+
+    /**
+     * The expenses it paid together, when one debit pays more planned expenses (a bill of electricity and gas); the
+     * first one is also in `expense_id`. Empty for a transaction that paid one expense.
+     *
+     * @return HasMany<Expense, $this>
+     */
+    public function splitExpenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * The expenses the debit paid together, trusted only while the expense it is linked to is one of them: a split
+     * whose first payment was deleted or replaced is over. Empty for a debit that paid one expense.
+     *
+     * @return list<Expense> in order of their due date, then of id
+     */
+    public function splitPayments(): array
+    {
+        $payments = $this->splitExpenses;
+
+        if ($this->expense_id === null || ! $payments->contains('id', $this->expense_id)) {
+            return [];
+        }
+
+        return array_values($payments->sortBy([
+            static fn (Expense $a, Expense $b): int => ($a->occurrence_date?->toDateString() ?? '') <=> ($b->occurrence_date?->toDateString() ?? ''),
+            static fn (Expense $a, Expense $b): int => $a->id <=> $b->id,
+        ])->all());
+    }
+
+    /**
+     * Ends the split the debit paid: its expenses no longer belong to it. Called when the expense it is linked to
+     * goes or is replaced; the caller has the row locked.
+     */
+    public function releaseSplit(): void
+    {
+        Expense::query()->where('bank_transaction_id', $this->id)->update(['bank_transaction_id' => null]);
+        $this->unsetRelation('splitExpenses');
+    }
+
+    /**
+     * The transactions that still head a split: linked to an expense that is one of the expenses they paid together.
+     *
+     * @param  Builder<BankTransaction>  $query
+     */
+    #[Scope]
+    protected function splitHeads(Builder $query): void
+    {
+        $query->whereExists(static fn ($exists) => $exists->from('expenses')
+            ->whereColumn('expenses.id', 'bank_transactions.expense_id')
+            ->whereColumn('expenses.bank_transaction_id', 'bank_transactions.id'));
     }
 }

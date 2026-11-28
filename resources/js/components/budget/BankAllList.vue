@@ -1,0 +1,166 @@
+<script setup lang="ts">
+/**
+ * The list of the tab *All* of *From the bank*, as the boards *Dalla banca, tutti i movimenti* draw it: every
+ * transaction the bank gave with its day, its text, the amount, the tag of what it is (`BankRowState`) and the one
+ * action it has: *It was not this one* on a linked one (when the server says it can be taken back) and *Put back among
+ * the movements* on one set aside or marked as a transfer. On a computer a row is a grid (day, text, amount, action);
+ * on the phone the day and the account go under the text and the action under the tag. The action column has the same
+ * width on every row, so the amounts stay in line; `compact` (beside the panel of a transaction) has no action column
+ * and puts the action under the text. Money that came in has the «+». The text opens the transaction as the bank gave
+ * it. The last line, with the ⓘ, says how long the movements not linked to an expense are kept. The list only says what the person did
+ * (`open`, `undo`, `restore`): the page asks the server.
+ *
+ * Under a row the slot `under` receives the row, for what goes with it (the commission of a debit).
+ *
+ * @group rows
+ */
+import { Info, RotateCcw, Undo2 } from '@lucide/vue';
+import { useWideLayout } from '@/composables/useWideLayout';
+import BankRowState from '@/components/budget/BankRowState.vue';
+import FmButton from '@/components/fm/FmButton.vue';
+import { bankMoney, dayOf } from '@/lib/banks';
+import { cn } from '@/lib/utils';
+import { vAutoAnimate } from '@formkit/auto-animate/vue';
+
+const {
+    rows,
+    canSort,
+    selected = null,
+    compact = false,
+} = defineProps<{
+    /** The transactions to list, in the order to show them. */
+    rows: App.Data.BankTransactionData[];
+    /** Whether who looks can change them (every account of the family). */
+    canSort: boolean;
+    /** The id of the transaction whose bank panel is open, marked in the list. */
+    selected?: number | null;
+    /** Wide beside the panel of a transaction: no action column, the action goes under the text. */
+    compact?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** The text of a row was tapped: show it as the bank gave it. */
+    open: [row: App.Data.BankTransactionData];
+    /** *It was not this one* was tapped on a linked row. */
+    undo: [row: App.Data.BankTransactionData];
+    /** *Put back among the movements* was tapped on a row set aside. */
+    restore: [row: App.Data.BankTransactionData];
+}>();
+
+defineSlots<{
+    /** What goes under a row: the commission or the transfer it has. */
+    under?: (props: { row: App.Data.BankTransactionData }) => unknown;
+}>();
+
+const wide = useWideLayout();
+
+/**
+ * Whether a row has the button to take the link back.
+ *
+ * @param row - the transaction
+ * @returns true for a linked row that the server lets undo
+ */
+function undoable(row: App.Data.BankTransactionData): boolean {
+    return canSort && row.link?.undo_url != null;
+}
+
+/**
+ * Whether a row has *Put back among the movements*: one set aside or marked as a transfer.
+ *
+ * @param row - the transaction
+ * @returns true for a row that goes back to the movements to sort
+ */
+function putBack(row: App.Data.BankTransactionData): boolean {
+    return row.ignored || row.status === 'transfer';
+}
+</script>
+
+<template>
+    <ul
+        v-auto-animate
+        class="m-0 flex list-none flex-col divide-y divide-divider overflow-hidden rounded-card bg-card p-0 shadow-card"
+    >
+        <li
+            v-for="row in rows"
+            :key="row.id"
+            :aria-current="selected === row.id ? 'true' : undefined"
+            :class="
+                cn(
+                    wide
+                        ? 'grid items-start gap-x-4 px-5 py-3.5'
+                        : 'flex flex-col gap-2 px-4 py-3.5',
+                    wide &&
+                        (compact
+                            ? 'grid-cols-[56px_minmax(0,1fr)_104px] gap-y-2'
+                            : 'grid-cols-[56px_minmax(0,1fr)_104px_210px] gap-y-4'),
+                    selected === row.id && 'bg-action-soft',
+                )
+            "
+        >
+            <span v-if="wide" class="pt-px text-label text-ink">{{
+                dayOf(row)
+            }}</span>
+            <div :class="wide ? 'contents' : 'flex items-start gap-3'">
+                <span class="flex min-w-0 grow flex-col gap-1.5">
+                    <button
+                        type="button"
+                        class="m-0 cursor-pointer border-0 bg-transparent p-0 text-left text-body-sm wrap-anywhere text-ink"
+                        @click="emit('open', row)"
+                    >
+                        {{ row.text }}
+                    </button>
+                    <span v-if="!wide" class="text-meta text-ink-soft">{{
+                        `${dayOf(row)}${row.account ? ` · ${row.account}` : ''}`
+                    }}</span>
+                    <BankRowState :row="row" />
+                    <slot name="under" :row="row" />
+                </span>
+                <span
+                    :class="
+                        cn(
+                            'shrink-0 text-amount whitespace-nowrap',
+                            wide && 'text-right',
+                            row.pending && 'text-ink-soft',
+                            row.amount > 0 && 'text-paid',
+                        )
+                    "
+                    >{{ bankMoney(row.amount, row.currency) }}</span
+                >
+            </div>
+            <div
+                v-if="canSort && (undoable(row) || putBack(row))"
+                :class="
+                    cn(
+                        'flex items-center gap-2',
+                        !wide && 'flex-wrap',
+                        wide && !compact && 'min-h-9 justify-end',
+                        wide && compact && 'col-start-2',
+                    )
+                "
+            >
+                <FmButton
+                    v-if="undoable(row)"
+                    variant="text"
+                    row-action
+                    :icon="Undo2"
+                    class="text-overdue"
+                    @click="emit('undo', row)"
+                    >{{ $t('It was not this one') }}</FmButton
+                >
+                <FmButton
+                    v-else
+                    variant="neutral"
+                    row-action
+                    :icon="RotateCcw"
+                    @click="emit('restore', row)"
+                    >{{ $t('Put back among the movements') }}</FmButton
+                >
+            </div>
+        </li>
+    </ul>
+    <p class="m-0 flex items-center gap-2 px-1 text-meta text-ink-soft">
+        <Info aria-hidden="true" class="size-3.5 shrink-0" />{{
+            $t('Movements not linked to an expense are kept 12 months.')
+        }}
+    </p>
+</template>

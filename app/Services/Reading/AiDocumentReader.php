@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace App\Services\Reading;
 
 use App\Actions\Mail\RecordMailFilterCall;
-use App\Ai\Agents\BankRuleAgent;
+use App\Ai\Agents\BankFilterAgent;
 use App\Ai\Agents\ConsumptionReaderAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\DocumentReaderAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
-use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Support\Corners;
+use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -167,30 +167,32 @@ final readonly class AiDocumentReader implements DocumentReader
     }
 
     /**
-     * Asks the model to write the rule of a bank payment from the texts of some of its transactions. The call is
-     * recorded right after the answer, before the answer is checked, as a `bank_rule` of the account signed in.
-     * Called only when `isActive()` is true.
+     * Asks the model for the words of a bank filter, and for a title, a category and an organization when names are
+     * given. The call is recorded right after the answer, before the answer is checked, as a `bank_filter` of the
+     * account signed in. Called only when `isActive()` is true.
      *
-     * @param  list<string>  $examples  the texts of the transactions, already normalised
-     * @param  string  $locale  the language of the explanation (`it` or `en`)
+     * @param  list<string>  $keep  the texts of the transactions the filter must take, already normalised
+     * @param  list<string>  $drop  the texts of the transactions it must leave, already normalised
+     * @param  array{categories: list<string>, organizations: list<string>, planned: list<string>}  $names  the names of the family the model picks from
+     * @param  string  $locale  the language of the title and the explanation (`it` or `en`)
      *
-     * @throws ReadingFailed when the service does not answer or gives no rule
+     * @throws ReadingFailed when the service does not answer or gives no words
      * @throws LogicException when the reading is off
      */
-    public function bankRule(array $examples, string $locale): BankRuleSuggestion
+    public function bankFilter(array $keep, array $drop, array $names, string $locale): BankFilterSuggestion
     {
         if (! $this->isActive()) {
-            throw new LogicException('The reading is off: call bankRule() only when isActive() is true.');
+            throw new LogicException('The reading is off: call bankFilter() only when isActive() is true.');
         }
 
         $provider = Config::string('document_reader.provider');
         $model = Config::string('document_reader.model');
 
-        $response = $this->ask(new BankRuleAgent($model), BankRuleAgent::request($examples, $locale), [], $provider, $model);
+        $response = $this->ask(new BankFilterAgent($model), BankFilterAgent::request($keep, $drop, $names, $locale), [], $provider, $model);
 
         $user = Auth::guard('web')->id();
 
-        return BankRuleAgent::parse($this->recordedAnswer($response, $provider, $model, ReadingPurpose::BankRule, $user === null ? null : (int) $user))
+        return BankFilterAgent::parse($this->recordedAnswer($response, $provider, $model, ReadingPurpose::BankFilter, $user === null ? null : (int) $user))
             ?? throw ReadingFailed::invalidAnswer();
     }
 
@@ -236,7 +238,7 @@ final readonly class AiDocumentReader implements DocumentReader
     /**
      * Sends the request, with the errors of the service as failures of the reading.
      *
-     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent|ConsumptionReaderAgent  $agent  the model and its options
+     * @param  DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankFilterAgent|ConsumptionReaderAgent  $agent  the model and its options
      * @param  string  $message  the text of the message
      * @param  list<Base64Document|Base64Image>  $attachments  the file, unless it is a text
      * @param  string  $provider  the service
@@ -244,7 +246,7 @@ final readonly class AiDocumentReader implements DocumentReader
      *
      * @throws ReadingFailed when the service does not answer
      */
-    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankRuleAgent|ConsumptionReaderAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
+    private function ask(DocumentReaderAgent|MailScreeningAgent|CornersAgent|BankFilterAgent|ConsumptionReaderAgent $agent, string $message, array $attachments, string $provider, string $model): AgentResponse
     {
         try {
             return $agent->prompt($message, attachments: $attachments, provider: $provider, model: $model);

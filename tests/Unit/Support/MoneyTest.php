@@ -9,6 +9,13 @@ test('an amount is compared in cents, without the float error', function (): voi
         ->and(Money::cents(null))->toBe(0);
 });
 
+test('an amount without its sign is in cents too, whatever the direction', function (): void {
+    expect(Money::absCents('-10.40'))->toBe(1040)
+        ->and(Money::absCents(0.405))->toBe(41)
+        ->and(Money::absCents(-0.405))->toBe(41)
+        ->and(Money::absCents(null))->toBe(0);
+});
+
 test('an amount is written with the comma and the euro after it, in both languages', function (): void {
     expect(Money::euro(84.2))->toBe("84,20\u{a0}€")
         ->and(Money::euro(1234.5))->toBe("1.234,50\u{a0}€");

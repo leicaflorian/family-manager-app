@@ -20,6 +20,7 @@ use App\Services\Reading\DocumentProposal;
 use App\Services\Reading\ReadingContext;
 use App\Support\CurrentFamily;
 use Database\Seeders\BianchiFamilySeeder;
+use Tests\Support\EnelBill;
 
 /**
  * The proposal of a document, from a reading and the lists of a family.
@@ -297,5 +298,59 @@ describe('the family of the links', function (): void {
         CurrentFamily::set($this->rossi->id);
 
         expect(propose(reading(['kind' => 'utility_bill', 'supply_point_code' => 'IT001E12345678']), $context)->links)->toBe([['type' => 'utility', 'id' => $utility->id]]);
+    });
+});
+
+describe('a dual-fuel bill', function (): void {
+    beforeEach(function (): void {
+        $this->seed(BianchiFamilySeeder::class);
+        $this->bianchi = Family::query()->where('name', 'Bianchi')->sole();
+        $this->utilities = EnelBill::bianchi();
+        $this->context = ReadingContext::for(File::factory()->for($this->bianchi)->create(['original_name' => 'scan.pdf']));
+        $this->read = idOf($this->context->documentCategories, 'Casa e utenze › Luce');
+    });
+
+    test('one document for both supplies, linked to both utilities', function (): void {
+        $proposal = propose(EnelBill::extraction(['document_category_id' => $this->read]), $this->context);
+
+        expect($proposal->title)->toBe('Bolletta luce e gas novembre 2026')
+            ->and($proposal->category_id)->toBe(idOf($this->context->documentCategories, 'Casa e utenze'))
+            ->and($proposal->links)->toBe([
+                ['type' => 'utility', 'id' => $this->utilities['electricity']->id],
+                ['type' => 'utility', 'id' => $this->utilities['gas']->id],
+            ])
+            ->and($proposal->organization_id)->toBe(idOf($this->context->organizations, 'Enel Energia'))
+            ->and($proposal->date)->toBe('2026-11-05')
+            ->and($proposal->headline)->toBe('Ho trovato una bolletta della luce e del gas')
+            ->and(array_map(fn (FoundLineData $line): string => $line->label, $proposal->found))->toBe(['Da chi arriva', 'Quanto', 'Entro il'])
+            ->and(preg_replace('/\s/u', ' ', $proposal->found[1]->value))->toBe('165,65 € · luce 96,25 €, gas 69,40 €')
+            ->and($proposal->found[2]->value)->toBe('21/11/2026');
+    });
+
+    test('in English', function (): void {
+        $proposal = propose(EnelBill::extraction(), $this->context, 'en');
+
+        expect($proposal->title)->toBe('Electricity and gas bill November 2026')
+            ->and($proposal->headline)->toBe('I found an electricity and gas bill')
+            ->and(preg_replace('/\s/u', ' ', $proposal->found[1]->value))->toBe('165,65 € · electricity 96,25 €, gas 69,40 €');
+    });
+
+    test('electricity and water: the types in the title, and a bill in the sentence', function (): void {
+        $water = EnelBill::gas(['utility_type' => 'water', 'supply_point_code' => 'ACQ-1', 'consumption_unit' => 'm3']);
+
+        $proposal = propose(EnelBill::extraction(['supplies' => [EnelBill::electricity(), $water]]), $this->context);
+        $english = propose(EnelBill::extraction(['supplies' => [EnelBill::electricity(), $water]]), $this->context, 'en');
+
+        expect($proposal->title)->toBe('Bolletta luce e acqua novembre 2026')
+            ->and($proposal->headline)->toBe('Ho trovato una bolletta')
+            ->and($proposal->links)->toBe([['type' => 'utility', 'id' => $this->utilities['electricity']->id]])
+            ->and($english->title)->toBe('Electricity and water bill November 2026');
+    });
+
+    test('without the gas subcategory the category is the one read', function (): void {
+        insideBianchi(fn () => DocumentCategory::query()->where('name', 'Gas')->sole()->update(['name' => 'Metano']));
+        $context = ReadingContext::for(File::factory()->for($this->bianchi)->create());
+
+        expect(propose(EnelBill::extraction(['document_category_id' => $this->read]), $context)->category_id)->toBe($this->read);
     });
 });

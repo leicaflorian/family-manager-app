@@ -198,6 +198,22 @@ const proposal = computed(() =>
         : undefined,
 );
 
+/**
+ * The amount the reading found on a bill of more supplies, with the amount of each, under what was found (board
+ * *Importa-luce-gas*): the line *How much* of the document the server wrote; nothing for a paper of one supply.
+ */
+const amountLine = computed((): App.Data.Reading.FoundLineData | null => {
+    if (!proposal.value?.supplies.length) {
+        return null;
+    }
+
+    return (
+        current.value?.proposal?.found.find(
+            (line) => line.label === trans('How much'),
+        ) ?? null
+    );
+});
+
 /** The empty fields of the document of the file open that its ticked boxes need: its form says so under them. */
 const needed = computed((): string[] => {
     const also = chosen.value?.also.value;
@@ -785,6 +801,7 @@ const { title, head } = usePageMeta({
                     <FmReadingNotice
                         :status="current.reading_status"
                         :headline="current.proposal?.headline"
+                        :line="amountLine"
                         :error="current.reading_error"
                         again
                         @again="readAgain(current.id)"

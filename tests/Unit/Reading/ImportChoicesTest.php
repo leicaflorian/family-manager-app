@@ -208,3 +208,76 @@ describe('consumption', function (): void {
             ->and($choices->withOrganization(5)->consumptionOverrides())->toBe(['quantity' => 12.0]);
     });
 });
+
+describe('supplies', function (): void {
+    test('the choices of each supply, checked as the ones of a bill; a bad index, target or amount is dropped', function (): void {
+        $choices = ImportChoices::fromArray(['supplies' => [
+            0 => ['movement' => true, 'record' => '1', 'consumption' => false, 'due' => true, 'targets' => ['movement' => 'new', 'record' => '12'],
+                'overrides' => ['movement' => ['amount' => '90', 'title' => ' Luce '], 'record' => ['supply_point_code' => ' IT001 ', 'notes' => 'x'], 'consumption' => ['quantity' => '201']]],
+            1 => ['record' => true, 'targets' => ['record' => 'abc'], 'overrides' => ['movement' => ['amount' => -5]]],
+            'x' => ['movement' => true],
+            12 => ['movement' => true],
+            2 => 'nonsense',
+        ]]);
+
+        expect(array_keys($choices->supplies))->toBe([0, 1])
+            ->and($choices->supplies[0])->toBe([
+                'movement' => true, 'record' => true, 'consumption' => false, 'due' => true,
+                'targets' => ['movement' => 'new', 'record' => 12],
+                'overrides' => ['movement' => ['title' => 'Luce', 'amount' => 90.0], 'record' => ['supply_point_code' => 'IT001'], 'consumption' => ['quantity' => 201.0]],
+            ])
+            ->and($choices->supplies[1])->toBe([
+                'movement' => false, 'record' => true, 'consumption' => null, 'due' => null,
+                'targets' => ['movement' => 'auto', 'record' => 'auto'],
+                'overrides' => ['movement' => [], 'record' => [], 'consumption' => []],
+            ])
+            ->and(ImportChoices::fromArray(['supplies' => 'x'])->supplies)->toBe([])
+            ->and(ImportChoices::fromArray([])->supplies)->toBe([]);
+    });
+
+    test('the choices of one supply: the document as it is, the rest of that supply only', function (): void {
+        $choices = ImportChoices::fromArray([
+            'document' => ['title' => 'Bolletta'], 'movement' => true, 'event' => true, 'records' => ['organization', 'utility'], 'due' => false,
+            'overrides' => ['movement' => ['amount' => 165], 'records' => ['utility' => ['type' => 'gas']]], 'targets' => ['movement' => 4, 'records' => ['utility' => 3]],
+            'consumption' => true, 'policy' => 'none', 'create_card' => true,
+            'supplies' => [1 => ['movement' => true, 'record' => true, 'due' => true, 'consumption' => false, 'targets' => ['movement' => 7, 'record' => 9],
+                'overrides' => ['movement' => ['amount' => 69.4], 'record' => ['customer_code' => '31'], 'consumption' => ['quantity' => 48]]]],
+        ]);
+
+        $one = $choices->forSupply(1);
+
+        expect($one->document)->toBe(['title' => 'Bolletta'])
+            ->and($one->movement)->toBeTrue()
+            ->and($one->event)->toBeFalse()
+            ->and($one->records)->toBe([RecordKind::Utility])
+            ->and($one->due)->toBeTrue()
+            ->and($one->consumption)->toBeFalse()
+            ->and($one->targets)->toBe(['movement' => 7, 'event' => 'auto', 'records' => ['utility' => 9]])
+            ->and($one->overrides)->toBe(['movement' => ['amount' => 69.4], 'event' => [], 'records' => ['utility' => ['customer_code' => '31']], 'consumption' => ['quantity' => 48.0]])
+            ->and($one->policy)->toBe('auto')
+            ->and($one->createCard)->toBeFalse()
+            ->and($one->supplies)->toBe([]);
+    });
+
+    test('a supply without choices follows the proposal, as a bill alone', function (): void {
+        $one = ImportChoices::fromArray(['document' => ['title' => 'Bolletta'], 'movement' => true, 'records' => ['utility']])->forSupply(5);
+        $alone = new ImportChoices(document: ['title' => 'Bolletta']);
+
+        expect($one)->toEqual(new ImportChoices(
+            document: ['title' => 'Bolletta'],
+            overrides: ['movement' => [], 'event' => [], 'records' => [], 'consumption' => []],
+            targets: ['movement' => 'auto', 'event' => 'auto', 'records' => []],
+        ))
+            ->and($one->movement)->toBe($alone->movement)
+            ->and($one->records)->toBe([])
+            ->and($one->due)->toBeNull()
+            ->and($one->consumption)->toBeNull();
+    });
+
+    test('the supplies survive the movement picked and the organization filled', function (): void {
+        $choices = ImportChoices::fromArray(['supplies' => [0 => ['movement' => true]]]);
+
+        expect($choices->withMovementTarget(3)->supplies)->toBe($choices->supplies)
+            ->and($choices->withOrganization(5)->supplies)->toBe($choices->supplies);
+    });
+});

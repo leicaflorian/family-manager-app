@@ -263,3 +263,51 @@ it('does not offer to read the archive while the reading is off', function (): v
             ->where('consumption.archive.can_read', false)
             ->where('consumption.canRead', false));
 });
+
+it('keeps a bill of electricity and gas to read for the gas once the electricity has its row', function (): void {
+    app()->instance(DocumentReader::class, new FakeDocumentReader);
+    $familyId = $this->marco->family_id;
+    [$electricity, $gas] = CurrentFamily::using($familyId, static fn (): array => [
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 87654321']),
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567899']),
+    ]);
+    $bill = consumptionPageBill($electricity, 'Bolletta luce e gas novembre 2026');
+    CurrentFamily::using($familyId, static function () use ($gas, $electricity, $bill, $familyId): void {
+        $gas->documents()->attach($bill->id);
+        UtilityConsumption::factory()->create(['family_id' => $familyId, 'utility_id' => $electricity->id, 'document_id' => $bill->id, 'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'quantity' => 201]);
+    });
+
+    $this->actingAs($this->marco)->get(route('budget.consumption', ['utility' => $gas->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('consumption.archive.count', 1));
+    $this->actingAs($this->marco)->get(route('budget.consumption', ['utility' => $electricity->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('consumption.archive', null));
+});
+
+it('puts a shared bill read for the gas to check for the electricity when the electricity was not saved', function (): void {
+    app()->instance(DocumentReader::class, new FakeDocumentReader);
+    $familyId = $this->marco->family_id;
+    [$electricity, $gas] = CurrentFamily::using($familyId, static fn (): array => [
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 87654321']),
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567899']),
+    ]);
+    $bill = consumptionPageBill($gas, 'Bolletta luce e gas novembre 2026');
+    CurrentFamily::using($familyId, static function () use ($gas, $electricity, $bill, $familyId): void {
+        $electricity->documents()->attach($bill->id);
+        UtilityConsumption::factory()->create(['family_id' => $familyId, 'utility_id' => $gas->id, 'document_id' => $bill->id, 'period_start' => '2026-10-01', 'period_end' => '2026-10-31', 'quantity' => 48, 'unit' => 'smc', 'amount' => 69.40]);
+    });
+    consumptionPageReading($bill, ConsumptionOutcome::Saved);
+
+    $this->actingAs($this->marco)->get(route('budget.consumption', ['utility' => $electricity->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('consumption.archive', null)
+            ->where('consumption.toCheck', [[
+                'document_id' => $bill->id,
+                'title' => 'Bolletta luce e gas novembre 2026',
+                'date' => '2025-03-10',
+                'reason' => 'Nessun consumo trovato',
+            ]]));
+    $this->actingAs($this->marco)->get(route('budget.consumption', ['utility' => $gas->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('consumption.archive', null)
+            ->where('consumption.toCheck', []));
+});

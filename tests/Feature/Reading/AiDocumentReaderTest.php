@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Ai\Agents\BankRuleAgent;
+use App\Ai\Agents\BankFilterAgent;
 use App\Ai\Agents\ConsumptionReaderAgent;
 use App\Ai\Agents\CornersAgent;
 use App\Ai\Agents\MailScreeningAgent;
 use App\Contracts\DocumentReader;
-use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
+use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
@@ -21,9 +21,11 @@ use App\Services\Reading\ReadingContext;
 use App\Services\Reading\ReadingPrompt;
 use App\Services\Reading\ReadingSource;
 use App\Support\CurrentFamily;
+use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -118,6 +120,55 @@ test('gemini reads a pdf', function (): void {
         ->and($reading->outputTokens)->toBe(412 + 620)
         ->and($reading->cacheReadTokens)->toBe(0);
 });
+
+test('a dual-fuel bill is asked for and read with its supplies', function (): void {
+    $answer = aiAnswer('gemini-bill');
+    $answer['steps'][1]['content'][0]['text'] = json_encode(EnelBill::answer(['organization_id' => 7]), JSON_THROW_ON_ERROR);
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response($answer)]);
+
+    $reading = aiReader('gemini', 'gemini-3.8-flash')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it');
+
+    Http::assertSent(function (Request $request): bool {
+        $schema = $request['response_format']['schema'];
+
+        return in_array('supplies', $schema['required'], true)
+            && $schema['properties']['supplies']['type'] === 'array'
+            && $schema['properties']['supplies']['items']['required'] === Extraction::SUPPLY_FIELDS
+            && str_contains((string) $request['system_instruction'], ReadingPrompt::SUPPLIES_RULE);
+    });
+    expect($reading->extraction->supplies)->toHaveCount(2)
+        ->and($reading->extraction->supplies[1]->supply_point_code)->toBe(EnelBill::PDR)
+        ->and($reading->extraction->supplies[1]->amount)->toBe(69.40)
+        ->and($reading->extraction->total_amount)->toBe(165.65)
+        ->and($reading->extraction->organization_id)->toBe(7);
+});
+
+test('every reader gets the supplies with the same rules as the fields of the document', function (string $provider, string $host, string $fixture, string $model): void {
+    Http::fake([$host.'/*' => Http::response(aiAnswer($fixture))]);
+
+    aiReader($provider, $model)->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it');
+
+    Http::assertSent(function (Request $request) use ($provider): bool {
+        $schema = $provider === 'anthropic' ? $request['output_config']['format']['schema'] : $request['response_format']['schema'];
+        $supplies = $schema['properties']['supplies'];
+        $item = $supplies['items'];
+
+        // A field of a supply is sent exactly as the field of the document with the same name and type
+        $same = collect(['utility_type', 'supply_point_code', 'period_start', 'consumption_quantity', 'consumption_unit', 'consumption_estimated'])
+            ->every(fn (string $field): bool => $item['properties'][$field] === $schema['properties'][$field]);
+
+        return $supplies['type'] === 'array'
+            && $item['type'] === 'object'
+            && $item['additionalProperties'] === false
+            && $item['required'] === Extraction::SUPPLY_FIELDS
+            && array_keys($item['properties']) === Extraction::SUPPLY_FIELDS
+            && $item['properties']['amount'] === $schema['properties']['total_amount']
+            && $same;
+    });
+})->with([
+    'gemini' => ['gemini', 'generativelanguage.googleapis.com', 'gemini-bill', 'gemini-3.8-flash'],
+    'anthropic' => ['anthropic', 'api.anthropic.com', 'anthropic-bill', 'claude-opus-5-5'],
+]);
 
 test('anthropic asks low effort and the fallback', function (): void {
     Http::fake(['api.anthropic.com/*' => Http::response(aiAnswer('anthropic-bill'))]);
@@ -370,37 +421,40 @@ test('a corners call that the service cuts is a failure and is still recorded', 
         ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::Crop);
 });
 
-test('gemini writes the rule of a bank payment and the call is recorded as a bank_rule of the account', function (): void {
-    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-bank-rule'))]);
+test('gemini proposes a bank filter and the call is recorded as a bank_filter of the account', function (): void {
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-bank-filter'))]);
     $family = Family::factory()->create();
     $user = User::factory()->for($family)->create();
     $this->actingAs($user);
+    $names = ['categories' => ['Rimborsi'], 'organizations' => ['Poste Italiane'], 'planned' => []];
 
-    $suggestion = CurrentFamily::using($family->id, fn (): BankRuleSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankRule(['ADDEBITO ENEL ENERGIA'], 'it'));
+    $suggestion = CurrentFamily::using($family->id, fn (): BankFilterSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankFilter(['ACCREDITO CASHBACK SCONTIPOSTE'], [], $names, 'it'));
 
-    Http::assertSent(function (Request $request): bool {
+    Http::assertSent(function (Request $request) use ($names): bool {
         $content = $request['input'][0]['content'];
 
-        return $request['system_instruction'] === BankRuleAgent::SYSTEM
-            && $request['response_format']['schema']['required'] === ['pattern', 'explanation']
-            && $content === [['type' => 'text', 'text' => BankRuleAgent::request(['ADDEBITO ENEL ENERGIA'], 'it')]];
+        return $request['system_instruction'] === BankFilterAgent::SYSTEM
+            && $request['response_format']['schema']['required'] === ['contains', 'excludes', 'title', 'category', 'organization', 'explanation']
+            && $content === [['type' => 'text', 'text' => BankFilterAgent::request(['ACCREDITO CASHBACK SCONTIPOSTE'], [], $names, 'it')]];
     });
     $row = AiReading::query()->withoutGlobalScopes()->sole();
-    expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL ENERGIA')
-        ->and($row->purpose)->toBe(ReadingPurpose::BankRule)
+    expect($suggestion->contains)->toBe(['CASHBACK', 'SCONTIPOSTE'])
+        ->and($suggestion->organization)->toBe('Poste Italiane')
+        ->and($row->purpose)->toBe(ReadingPurpose::BankFilter)
         ->and($row->user_id)->toBe($user->id)
         ->and($row->file_id)->toBeNull()
-        ->and($row->input_tokens)->toBe(180);
+        ->and($row->input_tokens)->toBe(420);
 });
 
-test('a bank rule that the service cuts is a failure and is still recorded', function (): void {
+test('a bank filter that the service cuts is a failure and is still recorded', function (): void {
     Http::fake(['generativelanguage.googleapis.com/*' => Http::response(aiAnswer('gemini-truncated'))]);
     $family = Family::factory()->create();
+    $names = ['categories' => [], 'organizations' => [], 'planned' => []];
 
-    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): BankRuleSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankRule(['X'], 'it')));
+    $failed = CurrentFamily::using($family->id, fn (): ?ReadingFailed => aiFailure(fn (): BankFilterSuggestion => aiReader('gemini', 'gemini-3.8-flash')->bankFilter(['X'], [], $names, 'it')));
 
     expect($failed?->getMessage())->toBe('The answer of the model was cut short.')
-        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankRule);
+        ->and(AiReading::query()->withoutGlobalScopes()->sole()->purpose)->toBe(ReadingPurpose::BankFilter);
 });
 
 test('gemini reads the consumption of a bill and the call is recorded with the file and the account', function (): void {

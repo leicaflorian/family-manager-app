@@ -634,4 +634,93 @@ describe('FmSidebar', () => {
         expect(sidebar).toHaveClass('w-full');
         expect(sidebar).not.toHaveClass('w-[260px]');
     });
+
+    it('lists From the bank under Budget with the blue badge', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/bank',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                bankToSort: 268,
+            },
+        });
+
+        const list = screen.getByRole('list', { name: 'Budget' });
+        expect(
+            within(list)
+                .getAllByRole('link')
+                .map((link) => link.getAttribute('href')),
+        ).toEqual(['/budget/bank', '/budget/comparison']);
+        const bank = within(list).getByRole('link', {
+            name: 'From the bank, 268 to sort',
+        });
+        expect(bank).toHaveAttribute('aria-current', 'page');
+        expect(within(bank).getByText('268')).toHaveClass('bg-action');
+        // A page under Budget is the page: Budget is drawn plain
+        expect(
+            screen.getByRole('link', { name: 'Budget' }),
+        ).not.toHaveAttribute('aria-current');
+    });
+
+    it('marks From the bank on the form of a bank filter too', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/bank/filters/1/edit',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                bankToSort: 0,
+            },
+        });
+
+        expect(
+            within(screen.getByRole('list', { name: 'Budget' })).getByRole(
+                'link',
+                { name: 'From the bank' },
+            ),
+        ).toHaveAttribute('aria-current', 'page');
+    });
+
+    it('shows no number on From the bank when nothing is to sort', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/movements',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                bankToSort: 0,
+            },
+        });
+
+        const bank = within(
+            screen.getByRole('list', { name: 'Budget' }),
+        ).getByRole('link', { name: 'From the bank' });
+        expect(bank).not.toHaveAttribute('aria-current');
+        expect(bank.querySelector('.bg-action')).toBeNull();
+    });
+
+    it('not while the link is off', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/movements',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                bankToSort: null,
+            },
+        });
+
+        expect(
+            screen.queryByRole('link', { name: /From the bank/ }),
+        ).not.toBeInTheDocument();
+    });
 });

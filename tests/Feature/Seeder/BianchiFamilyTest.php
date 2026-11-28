@@ -321,9 +321,9 @@ test('the Bianchis have files to sort, already read, and the POD of the electric
         $pending = collect(ToSortPageData::for(null)->files)->keyBy('name');
 
         expect(Utility::query()->where('supply_point_code', 'IT 001 E 12345678')->count())->toBe(1)
-            ->and($pending->keys()->sort()->values()->all())->toBe(['Avviso - La tua fattura è disponibile.txt', 'Avviso TARI 2026.pdf', 'Bolletta Edison settembre.pdf', 'Bolletta Enel ottobre.pdf', 'Fattura Fastweb ottobre.pdf', 'Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])
-            ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(6)
-            ->and(File::query()->toSort()->notCopies()->count())->toBe(11)
+            ->and($pending->keys()->sort()->values()->all())->toBe(['Avviso - La tua fattura è disponibile.txt', 'Avviso TARI 2026.pdf', 'Bolletta Edison settembre.pdf', 'Bolletta Enel ottobre.pdf', 'Fattura Fastweb ottobre.pdf', 'Garanzia lavatrice.jpg', 'bolletta-edison-novembre.pdf', 'bolletta-enel-luce-gas-novembre.pdf', 'bolletta-luce-ottobre.pdf', 'contratto-unipolsai.pdf', 'fattura-studio-ferri.pdf', 'ricevuta-pagamento-scuola.pdf', 'set-informativo-unipolsai.pdf'])
+            ->and(File::query()->toSort()->where('reading_status', ReadingStatus::Done)->count())->toBe(7)
+            ->and(File::query()->toSort()->notCopies()->count())->toBe(12)
             ->and($pending['bolletta-luce-ottobre.pdf']->copy_of)->toBe('bolletta-luce-ottobre.pdf')
             ->and($pending['bolletta-luce-ottobre.pdf']->reading_status)->toBeNull();
 
@@ -427,7 +427,28 @@ test('the seeded files to sort can be imported', function (): void {
 
         expect($result['failures'])->toBe([])
             ->and(File::query()->whereIn('id', $files->modelKeys())->where('to_sort', true)->count())->toBe(0)
-            ->and(Document::query()->whereIn('file_id', $files->modelKeys())->count())->toBe(6);
+            ->and(Document::query()->whereIn('file_id', $files->modelKeys())->count())->toBe(7);
+    });
+});
+
+test('the Bianchis have a dual-fuel bill of Enel to sort: the gas goes to its utility, the electricity is a new supply', function (): void {
+    $this->seed(BianchiFamilySeeder::class);
+
+    insideBianchi(function (): void {
+        $file = File::query()->where('original_name', 'bolletta-enel-luce-gas-novembre.pdf')->sole();
+        $gas = Utility::query()->where('type', UtilityType::Gas)->sole();
+        [$electricity, $gasSupply] = resolve(Proposal::class)->for($file, ImportChoices::fromArray([]), [], 'it')->supplies;
+
+        expect($gas->supply_point_code)->toBe('00881234567890')
+            ->and($file->to_sort)->toBeTrue()
+            ->and($file->created_by)->toBe(User::query()->where('email', 'laura.bianchi@example.com')->value('id'))
+            ->and($file->reading['extraction']['supplies'])->toHaveCount(2)
+            ->and($gasSupply->record?->existing['id'])->toBe($gas->id)
+            ->and($gasSupply->record?->suggested)->toBeTrue()
+            ->and($electricity->record?->existing)->toBeNull()
+            ->and($electricity->record?->title)->toBe("l'utenza Luce · Enel Energia")
+            ->and($electricity->record?->values['supply_point_code'])->toBe('IT 001 E 87654321')
+            ->and($electricity->record?->suggested)->toBeFalse();
     });
 });
 
@@ -546,8 +567,8 @@ test('the Bianchis have the link to the bank on, with a trial bank and its trans
             ->and($connection->sessionId())->not->toBeNull()
             ->and($account->bank_connection_id)->toBe($connection->id)
             ->and($account->bank_account_uid)->toBe('fake-account')
-            ->and(BankTransaction::query()->count())->toBe(12)
-            ->and(BankTransaction::query()->unsorted()->count())->toBe(11)
+            ->and(BankTransaction::query()->count())->toBe(45)
+            ->and(BankTransaction::query()->unsorted()->count())->toBe(44)
             ->and(BankTransaction::query()->where('status', BankTransactionStatus::Pending)->count())->toBe(1);
     });
 });

@@ -192,6 +192,7 @@ return [
         'mail_file' => 'Mail attachment',
         'crop' => 'Crop',
         'bank_rule' => 'Bank rule',
+        'bank_filter' => 'Bank filter',
         'consumption' => 'Consumption',
     ],
     'reading_status' => [
@@ -351,8 +352,37 @@ return [
     ],
     'bank_match_source' => [
         'rule' => 'By a rule',
+        'proposed' => 'Proposal accepted',
         'assigned' => 'Assigned by you',
         'created' => 'Created from it',
         'duplicate' => 'Linked to an existing one',
+        'fee' => 'Commission of its direct debit',
+    ],
+    'bank_row_status' => [
+        'unsorted' => 'To sort',
+        'linked' => 'Linked',
+        'fee' => 'Fee',
+        'transfer' => 'Transfer',
+        'ignored' => 'Ignored',
+        'pending' => 'Pending',
+    ],
+    'bank_filter_action' => [
+        'pay' => 'Pay the due date',
+        'create' => 'Create the expense',
+        'transfer' => 'It is a transfer',
+        'ignore' => 'Ignore',
+    ],
+    'bank_filter_fee' => [
+        'auto' => 'Find it by itself',
+        'words' => 'Recognise it with these words',
+        'none' => 'No commission',
+    ],
+    'bank_filter_outcome' => [
+        'paid' => 'Paid the due date',
+        'created' => 'Created the expense',
+        'linked' => 'Linked to an expense already recorded',
+        'transferred' => 'Marked as a transfer',
+        'ignored' => 'Ignored',
+        'none' => 'Nothing done',
     ],
 ];

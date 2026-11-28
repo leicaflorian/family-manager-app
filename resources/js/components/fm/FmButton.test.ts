@@ -38,6 +38,26 @@ describe('FmButton', () => {
         expect(button).not.toHaveClass('h-control-md', 'rounded-md');
     });
 
+    it('with wrap goes on more lines in a narrow box instead of overflowing it, at least as tall as a control', () => {
+        render(FmButton, {
+            props: { variant: 'text', wrap: true },
+            slots: { default: 'Link to an expense already registered…' },
+        });
+
+        const button = screen.getByRole('button');
+        expect(button).toHaveClass(
+            'whitespace-normal',
+            'max-w-full',
+            'min-h-control',
+            'text-left',
+        );
+        expect(button).not.toHaveClass(
+            'whitespace-nowrap',
+            'h-control',
+            'shrink-0',
+        );
+    });
+
     it('with label keeps its own size inside a panel', () => {
         render(FmButton, { props: { icon: Pencil, label: 'Edit' } });
 
@@ -230,6 +250,21 @@ describe('FmButton', () => {
             'w-full',
             'rounded-control',
         );
+    });
+
+    it('shrink lets it get narrower than its text in a short row, as the buttons of a lone movement beside the menu', () => {
+        render(FmButton, {
+            props: { variant: 'neutral', rowAction: true, shrink: true },
+            slots: { default: 'Create the expense' },
+        });
+
+        const button = screen.getByRole('button', {
+            name: 'Create the expense',
+        });
+        expect(button).toHaveClass('min-w-0', 'shrink');
+        expect(button).not.toHaveClass('shrink-0');
+        // The words end with an ellipsis, not cut in the middle of a letter
+        expect(screen.getByText('Create the expense')).toHaveClass('truncate');
     });
 
     it('rowAction has the 18 px icon of the boards', () => {

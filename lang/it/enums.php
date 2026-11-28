@@ -192,6 +192,7 @@ return [
         'mail_file' => 'Allegato della posta',
         'crop' => 'Ritaglio',
         'bank_rule' => 'Regola della banca',
+        'bank_filter' => 'Filtro della banca',
         'consumption' => 'Consumo',
     ],
     'reading_status' => [
@@ -351,8 +352,37 @@ return [
     ],
     'bank_match_source' => [
         'rule' => 'Da una regola',
+        'proposed' => 'Proposta accettata',
         'assigned' => 'Assegnato da te',
         'created' => 'Creato da qui',
         'duplicate' => 'Collegato a uno che c\'era',
+        'fee' => 'Commissione del suo addebito',
+    ],
+    'bank_row_status' => [
+        'unsorted' => 'Da sistemare',
+        'linked' => 'Collegato',
+        'fee' => 'Commissione',
+        'transfer' => 'Trasferimento',
+        'ignored' => 'Ignorato',
+        'pending' => 'In attesa',
+    ],
+    'bank_filter_action' => [
+        'pay' => 'Paga la scadenza',
+        'create' => 'Crea la spesa',
+        'transfer' => 'È un trasferimento',
+        'ignore' => 'Ignora',
+    ],
+    'bank_filter_fee' => [
+        'auto' => 'Trovala da sola',
+        'words' => 'Riconoscila con queste parole',
+        'none' => 'Nessuna commissione',
+    ],
+    'bank_filter_outcome' => [
+        'paid' => 'Pagata la scadenza',
+        'created' => 'Creata la spesa',
+        'linked' => 'Collegato a una spesa già registrata',
+        'transferred' => 'Segnato come trasferimento',
+        'ignored' => 'Ignorato',
+        'none' => 'Niente da fare',
     ],
 ];

@@ -155,3 +155,11 @@ it('reads the family with one query', function (): void {
 
     expect(DB::getQueryLog())->toHaveCount(1);
 });
+
+it('a commission never makes a recurring text', function (): void {
+    foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
+        bankRecurringBankTextsRow($day, '-0.40', ['text' => 'COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. MAN.SAT0023101207360112900']);
+    }
+
+    expect(bankRecurringBankTextsRecurs())->toBeFalse();
+});

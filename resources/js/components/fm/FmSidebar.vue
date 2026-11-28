@@ -5,8 +5,8 @@
  * sections in three groups: *Incoming* (*To sort*, with the files waiting in a blue pill, nothing at zero, and
  * *Received mail*), *Every day* (Agenda, Budget) and *Archive* (Areas, Documents, Family). Areas, Budget and, with a
  * drawings gallery, Documents (*Drawings and crafts*) are accordions: a
- * button with a chevron next to the link opens the list under it (the areas; *Planned and spent* and *Usage*, the
- * latter when the family has a utility with consumption), and the list opens by itself while the page is one of
+ * button with a chevron next to the link opens the list under it (the areas; *From the bank* with the link on, with the number to sort in a blue
+ * pill, *Planned and spent* and *Usage*, the latter when the family has a utility with consumption), and the list opens by itself while the page is one of
  * theirs; while a page under Budget is the open one, Budget is drawn plain),
  * and at the bottom *My account*, which opens Settings, *Report a problem or an idea* (it emits `report`: the layout
  * opens the panel) and Log out. When the sections do not fit the window, only they scroll: the head, Upload and
@@ -37,6 +37,7 @@ import { initialsOfName } from '@/lib/names';
 import { areaFill, areaOf } from '@/lib/areas';
 import { show as areaPage } from '@/routes/areas';
 import { comparison, consumption } from '@/routes/budget';
+import { index as bankIndex } from '@/routes/budget/bank';
 import { gallery } from '@/routes/documents';
 import FmIcon from './FmIcon.vue';
 import { trans } from 'laravel-vue-i18n';
@@ -66,6 +67,7 @@ const {
     uploadCount = 0,
     collapsed = false,
     features = {},
+    bankToSort = null,
 } = defineProps<{
     /** The section of the page that is open. */
     active: Section;
@@ -88,6 +90,11 @@ const {
      * *Documents* with `gallery` (which then opens like *Budget*). `null` (no family) has them all; the default none.
      */
     features?: Features | null;
+    /**
+     * The movements from the bank still to sort: *From the bank* shows under *Budget* with the number in a blue
+     * pill (nothing at zero). `null` (the default) is the link to the bank off: no such page.
+     */
+    bankToSort?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -272,14 +279,35 @@ const consumptionUrl = consumption().url;
 /** The address of *Planned and spent*, under *Budget*. */
 const comparisonUrl = comparison().url;
 
+/** The address of *From the bank*, under *Budget*. */
+const bankUrl = bankIndex().url;
+
 /** Whether the page is *Usage*. */
 const onConsumption = computed((): boolean => path === consumptionUrl);
 
 /** Whether the page is *Planned and spent*. */
 const onComparison = computed((): boolean => path === comparisonUrl);
 
-/** The pages under *Budget*: *Planned and spent*, and *Usage* when the family has a utility with consumption. */
+/** The pages under *Budget*: *From the bank* with the link on, *Planned and spent*, and *Usage* with a utility with consumption. */
 const budgetChildren = computed((): SubPage[] => [
+    ...(bankToSort === null
+        ? []
+        : [
+              {
+                  label: trans('From the bank'),
+                  href: bankUrl,
+                  // The form of a filter is a page of *From the bank* too
+                  current: path === bankUrl || path.startsWith(`${bankUrl}/`),
+                  ...(bankToSort > 0
+                      ? {
+                            count: bankToSort,
+                            countLabel: trans('From the bank, :count to sort', {
+                                count: String(bankToSort),
+                            }),
+                        }
+                      : {}),
+              },
+          ]),
     {
         label: trans('Planned and spent'),
         href: comparisonUrl,
@@ -303,7 +331,15 @@ const documentsOpen = useAccordion((): boolean => active === 'documents');
 const galleryUrl = gallery().url;
 
 /** A page in the list under a section. */
-type SubPage = { label: string; href: string; current: boolean };
+type SubPage = {
+    label: string;
+    href: string;
+    current: boolean;
+    /** A number to look at, shown in a blue pill after the name. */
+    count?: number;
+    /** The words that name the page with its number for screen readers. */
+    countLabel?: string;
+};
 
 /** The pages under *Documents*: *Drawings and crafts*, the gallery, when the family has one. */
 const documentChildren = computed((): SubPage[] =>
@@ -571,6 +607,7 @@ function isPage(section: Section): boolean {
                                     :aria-current="
                                         child.current ? 'page' : undefined
                                     "
+                                    :aria-label="child.countLabel"
                                     class="flex min-h-[34px] items-center rounded-md px-2.5 text-body-sm no-underline"
                                     :class="
                                         child.current
@@ -581,6 +618,12 @@ function isPage(section: Section): boolean {
                                     <span class="min-w-0 grow truncate">{{
                                         child.label
                                     }}</span>
+                                    <span
+                                        v-if="child.count"
+                                        aria-hidden="true"
+                                        class="inline-flex h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-action px-[7px] text-badge text-on-action"
+                                        >{{ child.count }}</span
+                                    >
                                 </Link>
                             </li>
                         </ul>

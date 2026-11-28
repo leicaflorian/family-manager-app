@@ -15,7 +15,8 @@
  *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
  *   `rowAction` is a button of a row of *From the bank*, under it on the phone and
  *   in its column on the computer: its own width, 44 px, the body-sm text, an
- *   18 px icon and 10 px corners.
+ *   18 px icon and 10 px corners. `shrink` lets it get narrower than its text
+ *   in a short row.
  *
  * @group basics
  */
@@ -52,6 +53,8 @@ const {
     muted = false,
     compact = false,
     rowAction = false,
+    shrink = false,
+    wrap = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
@@ -103,6 +106,18 @@ const {
      * text, an 18 px icon, 10 px at the sides and 10 px corners.
      */
     rowAction?: boolean;
+    /**
+     * It may get narrower than its text when the row is short, as the two
+     * buttons of a lone movement of *From the bank* that share the line with
+     * the menu on the phone: the words end with an ellipsis.
+     */
+    shrink?: boolean;
+    /**
+     * With a text: a long text goes on more lines inside a narrow box instead
+     * of overflowing it (the actions of a box of *Import* on the phone),
+     * aligned to the left and at least as tall as a control.
+     */
+    wrap?: boolean;
 }>();
 
 defineEmits<{
@@ -131,15 +146,22 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex shrink-0 items-center justify-center gap-2 text-body whitespace-nowrap transition-colors',
+        'inline-flex items-center justify-center gap-2 text-body transition-colors',
+        wrap
+            ? 'max-w-full justify-start text-left whitespace-normal'
+            : 'shrink-0 whitespace-nowrap',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         // With a text the height follows the panel; the icon squares do not
-        !label && 'h-control rounded-control',
+        !label &&
+            (wrap
+                ? 'min-h-control rounded-control py-2'
+                : 'h-control rounded-control'),
         styles[variant],
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label wide:h-10 wide:flex-none wide:px-3.5',
         rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
+        shrink && 'min-w-0 shrink',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&
@@ -181,7 +203,8 @@ const iconSize = computed((): number => {
         :class="classes"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </a>
     <Link
         v-else-if="href"
@@ -191,7 +214,8 @@ const iconSize = computed((): number => {
         :class="classes"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </Link>
     <button
         v-else
@@ -203,6 +227,7 @@ const iconSize = computed((): number => {
         @click="$emit('click', $event)"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </button>
 </template>

@@ -1,0 +1,763 @@
+/**
+ * The words of the filters of the bank (*From the bank → Filters*, boards *Dalla-banca-filtri* and
+ * *Dalla-banca-filtro*): the line *Matches* and the line *Action* of a filter, the sentence that says what saving it
+ * does, what each movement of the preview will become, and the request of the preview the form asks while the
+ * person writes. The list of the tab, the form and the box of a planned expense read them from here.
+ */
+import { http } from '@inertiajs/vue3';
+import { trans, transChoice } from 'laravel-vue-i18n';
+import { formatDayMonth, formatEuro } from '@/lib/format';
+import { formatAmount, parseAmount } from '@/lib/forms';
+import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
+import { splitAround } from '@/lib/text';
+import type { MovementFormOptions } from '@/lib/budget';
+import { leave } from '@/routes/budget/bank';
+import { preview, suggest } from '@/routes/budget/bank/filters';
+
+/** One piece of the line *Matches*: words (drawn as tags), an expression, or a plain text. */
+export type CriteriaPart =
+    | {
+          kind: 'words';
+          label: string;
+          words: string[];
+          /** The words left out, drawn struck through. */
+          excluded: boolean;
+      }
+    | { kind: 'pattern'; label: string; pattern: string }
+    | { kind: 'text'; text: string };
+
+/** What saving a filter would do to the movements to sort, as the preview counts it. */
+export type BankFilterSummary = App.Data.BankFilterPreviewData['summary'];
+
+/** The line *Action* cut around the name it speaks of, to draw the name strong. */
+export type ActionPieces = {
+    before: string;
+    name: string | null;
+    after: string;
+};
+
+/** The fields of the form of a filter, as FormKit holds them: ids as text, amounts as written. */
+export interface BankFilterFormValues {
+    name: string;
+    contains: string[];
+    excludes: string[];
+    direction: string;
+    financial_account_id: string;
+    amount_min: string;
+    amount_max: string;
+    /** The expression of an advanced filter, null for a filter of words. */
+    pattern: string | null;
+    fee_mode: string;
+    fee_contains: string[];
+    fee_excludes: string[];
+    action: string;
+    planned_id: string;
+    title: string;
+    title_with_month: boolean;
+    category_id: string;
+    organization_id: string;
+    person_id: string;
+    card: string | null;
+    notes: string;
+    transfer_account_id: string;
+}
+
+/** The body of the save and of the preview of a filter: the fields as the server reads them. */
+export type BankFilterPayload = Record<
+    string,
+    string | number | boolean | null | string[]
+>;
+
+/** The choices of the form of a filter, as `BankFilterController` sends them. */
+export interface BankFilterFormOptions extends Omit<
+    MovementFormOptions,
+    'accounts'
+> {
+    /** The accounts the bank reads, for the account the filter reads. */
+    accounts: { id: number; name: string }[];
+    /** The open accounts of the family, for the other side of a transfer. */
+    transfer_accounts: { id: number; name: string; connected: boolean }[];
+}
+
+/**
+ * An id as the text FormKit compares.
+ *
+ * @param id - the id, or null
+ * @returns the text, empty without an id
+ */
+function idText(id: number | null | undefined): string {
+    return id === null || id === undefined ? '' : String(id);
+}
+
+/**
+ * A text of the form as an id for the server.
+ *
+ * @param text - the id as text, empty for none
+ * @returns the id, or null
+ */
+function idOf(text: string): number | null {
+    return text === '' ? null : Number(text);
+}
+
+/**
+ * The fields of the form, from the filter being changed or the proposal of a new one; empty without either.
+ *
+ * @param filter - the filter or the proposal, null for an empty form
+ * @returns the fields
+ */
+export function formValues(
+    filter: App.Data.BankFilterData | null,
+): BankFilterFormValues {
+    return {
+        name: filter?.name ?? '',
+        contains: [...(filter?.contains ?? [])],
+        excludes: [...(filter?.excludes ?? [])],
+        direction: filter?.direction ?? 'expense',
+        financial_account_id: idText(filter?.financial_account_id),
+        amount_min: formatAmount(filter?.amount_min),
+        amount_max: formatAmount(filter?.amount_max),
+        pattern: filter?.pattern ?? null,
+        fee_mode: filter?.fee_mode ?? 'auto',
+        fee_contains: [...(filter?.fee_contains ?? [])],
+        fee_excludes: [...(filter?.fee_excludes ?? [])],
+        action: filter?.action ?? 'create',
+        planned_id: idText(
+            filter?.planned_expense_id ?? filter?.planned_income_id,
+        ),
+        title: filter?.title ?? '',
+        title_with_month: filter?.title_with_month ?? false,
+        category_id: idText(filter?.category_id),
+        organization_id: idText(filter?.organization_id),
+        person_id: idText(filter?.person_id),
+        card: filter?.card ?? null,
+        notes: filter?.notes ?? '',
+        transfer_account_id: idText(filter?.transfer_account_id),
+    };
+}
+
+/**
+ * The fields of the form as the server reads them, for the save and for the preview: ids as numbers, amounts as
+ * numbers, empty fields as null.
+ *
+ * @param values - the fields of the form
+ * @returns the body of the request
+ */
+export function formPayload(values: BankFilterFormValues): BankFilterPayload {
+    const income = values.direction === 'income';
+
+    return {
+        name: values.name,
+        contains: values.contains,
+        excludes: values.excludes,
+        direction: values.direction,
+        financial_account_id: idOf(values.financial_account_id),
+        amount_min: parseAmount(values.amount_min),
+        amount_max: parseAmount(values.amount_max),
+        pattern: values.pattern,
+        // Commissions belong to the money going out: an income filter has none
+        fee_mode: income ? 'none' : values.fee_mode,
+        fee_contains: income ? [] : values.fee_contains,
+        fee_excludes: income ? [] : values.fee_excludes,
+        action: values.action,
+        planned_id: idOf(values.planned_id),
+        title: values.title === '' ? null : values.title,
+        title_with_month: values.title_with_month,
+        category_id: idOf(values.category_id),
+        organization_id: idOf(values.organization_id),
+        person_id: idOf(values.person_id),
+        card: values.card || null,
+        notes: values.notes === '' ? null : values.notes,
+        transfer_account_id: idOf(values.transfer_account_id),
+    };
+}
+
+/**
+ * The props every field of words of the form shares (*Contains the words*, *Does not contain*, in the matches and in
+ * the commission): a taglist where Enter adds what is written.
+ *
+ * @returns the props, to bind on the `FormKit` of type `taglist`
+ */
+export function wordsFieldProps(): Record<string, unknown> {
+    return {
+        type: 'taglist',
+        options: [],
+        allowNewValues: true,
+        showEmptyMessage: true,
+        emptyMessage: trans('Press Enter to add the word'),
+        placeholder: trans('Add a word'),
+    };
+}
+
+/** The sentences of the line *Action* without a name, for a filter whose name is missing. */
+const WITHOUT_NAME: Record<string, string> = {
+    'creates the expense :name': 'creates the expense',
+    'creates the income :name': 'creates the income',
+    'pays the due date of :name': 'pays a due date',
+    'marks the planned income :name received':
+        'marks a planned income received',
+    'is a transfer from :name': 'is a transfer',
+    'is a transfer to :name': 'is a transfer',
+};
+
+/**
+ * Cuts a translated sentence around its `:name`; without a name, the same sentence without it.
+ *
+ * @param key - the sentence, with `:name`
+ * @param name - the name, already in «»
+ * @returns the text before, the name and the text after
+ */
+function around(key: string, name: string | null): ActionPieces {
+    if (name === null) {
+        return {
+            before: trans(WITHOUT_NAME[key] ?? key),
+            name: null,
+            after: '',
+        };
+    }
+
+    const [before, after] = splitAround(key, 'name');
+
+    return { before, name, after };
+}
+
+/**
+ * A name between the Italian quotes, null without a name.
+ *
+ * @param name - the name, or null
+ * @returns «name», or null
+ */
+function quoted(name: string | null | undefined): string | null {
+    return name ? `«${name}»` : null;
+}
+
+/**
+ * The amounts the filter takes, as «from 10,00 € to 50,00 €», null without amounts.
+ *
+ * @param min - the smallest amount, or null
+ * @param max - the largest amount, or null
+ * @returns the text, or null
+ */
+export function amountText(
+    min: number | null,
+    max: number | null,
+): string | null {
+    if (min !== null && max !== null) {
+        return trans('from :min to :max', {
+            min: formatEuro(min),
+            max: formatEuro(max),
+        });
+    }
+
+    if (min !== null) {
+        return trans('from :min', { min: formatEuro(min) });
+    }
+
+    return max === null ? null : trans('up to :max', { max: formatEuro(max) });
+}
+
+/**
+ * The pieces of the line *Matches*: the words it needs, the ones it leaves out, the direction, the account and the
+ * amounts; an advanced filter shows its expression instead of the words.
+ *
+ * @param filter - the filter
+ * @returns the pieces, in order
+ */
+export function criteriaParts(filter: App.Data.BankFilterData): CriteriaPart[] {
+    const parts: CriteriaPart[] = [];
+
+    if (filter.pattern !== null) {
+        parts.push({
+            kind: 'pattern',
+            label: trans('expression'),
+            pattern: filter.pattern,
+        });
+    } else {
+        parts.push({
+            kind: 'words',
+            label: trans('contains'),
+            words: filter.contains,
+            excluded: false,
+        });
+    }
+
+    if (filter.pattern === null && filter.excludes.length > 0) {
+        parts.push({
+            kind: 'words',
+            label: trans('does not contain'),
+            words: filter.excludes,
+            excluded: true,
+        });
+    }
+
+    parts.push({
+        kind: 'text',
+        text:
+            filter.direction === 'income'
+                ? trans('coming in')
+                : trans('going out'),
+    });
+
+    // An advanced filter reads every account unless it says one: the board leaves «all the accounts» out
+    if (filter.account !== null || filter.pattern === null) {
+        parts.push({
+            kind: 'text',
+            text: filter.account ?? trans('all the accounts'),
+        });
+    }
+
+    const amounts = amountText(filter.amount_min, filter.amount_max);
+
+    if (amounts !== null) {
+        parts.push({ kind: 'text', text: amounts });
+    }
+
+    return parts;
+}
+
+/**
+ * The line *Matches* as one text, the words in quotes.
+ *
+ * @param filter - the filter
+ * @returns «contains "SATISPAY" "DOMICILIAZIONE" · does not contain "COMMISSIONI" · going out · Conto ·· 3307»
+ */
+export function criteriaLine(filter: App.Data.BankFilterData): string {
+    return criteriaParts(filter)
+        .map((part) => {
+            switch (part.kind) {
+                case 'words':
+                    return [
+                        part.label,
+                        ...part.words.map((word) => `"${word}"`),
+                    ].join(' ');
+                case 'pattern':
+                    return `${part.label} ${part.pattern}`;
+                default:
+                    return part.text;
+            }
+        })
+        .join(' · ');
+}
+
+/**
+ * The line *Action* cut around the name it speaks of (the expense created, the planned item paid, the account of
+ * the transfer).
+ *
+ * @param filter - the filter
+ * @returns the text before the name, the name in «» (or null) and the text after
+ */
+export function actionPieces(filter: App.Data.BankFilterData): ActionPieces {
+    const income = filter.direction === 'income';
+
+    switch (filter.action) {
+        case 'create': {
+            const details = [
+                ...(income ? [] : [filter.category]),
+                filter.organization,
+                ...(!income && filter.fee_mode !== 'none'
+                    ? [trans('with the commission')]
+                    : []),
+            ].filter((detail): detail is string => !!detail);
+            const pieces = around(
+                income
+                    ? 'creates the income :name'
+                    : 'creates the expense :name',
+                quoted(filter.title),
+            );
+
+            return {
+                ...pieces,
+                after: [pieces.after, ...details].join(' · '),
+            };
+        }
+        case 'pay':
+            return around(
+                income
+                    ? 'marks the planned income :name received'
+                    : 'pays the due date of :name',
+                quoted(filter.planned?.title),
+            );
+        case 'transfer':
+            return around(
+                income ? 'is a transfer from :name' : 'is a transfer to :name',
+                quoted(filter.transfer_account),
+            );
+        case 'ignore':
+            return { before: trans('ignores'), name: null, after: '' };
+        default:
+            return { before: trans('no action yet'), name: null, after: '' };
+    }
+}
+
+/**
+ * The line *Action* as one text.
+ *
+ * @param filter - the filter
+ * @returns «creates the expense «Ricarica Satispay» · Varie · Satispay · with the commission»
+ */
+export function actionLine(filter: App.Data.BankFilterData): string {
+    const { before, name, after } = actionPieces(filter);
+
+    return `${before}${name ?? ''}${after}`;
+}
+
+/**
+ * What saving the filter does to the movements to sort: «Saving, creates 10 expenses and links 1 already recorded».
+ *
+ * @param summary - how many movements each outcome takes
+ * @param direction - `expense` or `income`, the movements the filter takes
+ * @returns the sentence
+ */
+export function summaryLine(
+    summary: BankFilterSummary,
+    direction: string,
+): string {
+    const income = direction === 'income';
+    const clauses: string[] = [];
+
+    if (summary.pay > 0) {
+        clauses.push(
+            income
+                ? transChoice(
+                      '{1} marks 1 income received|[2,*] marks :count incomes received',
+                      summary.pay,
+                  )
+                : transChoice(
+                      '{1} pays 1 due date|[2,*] pays :count due dates',
+                      summary.pay,
+                  ),
+        );
+    }
+
+    if (summary.create > 0) {
+        clauses.push(
+            income
+                ? transChoice(
+                      '{1} creates 1 income|[2,*] creates :count incomes',
+                      summary.create,
+                  )
+                : transChoice(
+                      '{1} creates 1 expense|[2,*] creates :count expenses',
+                      summary.create,
+                  ),
+        );
+    }
+
+    if (summary.link > 0) {
+        // After «creates 10 expenses» the kind is already said: «and links 1 already recorded»
+        const key =
+            summary.create > 0
+                ? '{1} links 1 already recorded|[2,*] links :count already recorded'
+                : income
+                  ? '{1} links 1 income already recorded|[2,*] links :count incomes already recorded'
+                  : '{1} links 1 expense already recorded|[2,*] links :count expenses already recorded';
+        clauses.push(transChoice(key, summary.link));
+    }
+
+    if (summary.transfer > 0) {
+        clauses.push(
+            transChoice(
+                '{1} marks 1 transfer|[2,*] marks :count transfers',
+                summary.transfer,
+            ),
+        );
+    }
+
+    if (summary.ignore > 0) {
+        clauses.push(
+            transChoice(
+                '{1} ignores 1 movement|[2,*] ignores :count movements',
+                summary.ignore,
+            ),
+        );
+    }
+
+    if (clauses.length === 0) {
+        return trans('Saving changes nothing among the movements to sort.');
+    }
+
+    const last = clauses.pop() ?? '';
+    const what =
+        clauses.length === 0
+            ? last
+            : trans(':first and :last', { first: clauses.join(', '), last });
+
+    return trans('Saving, :what', { what });
+}
+
+/**
+ * What a movement of the preview will become, for its tag: «Create the expense», «Link «Ricarica Satispay» of
+ * 24/11», «Pay the due date of 05/12»…
+ *
+ * In the panel of a group of *To sort* (`look` `group`, boards *Dalla banca, il gruppo*) a link says the expense is
+ * already recorded («Already recorded: link «Ricarica Satispay» of 24/11») and the expense to create stays grey.
+ *
+ * @param row - the movement of the preview, or of a group of *To sort* (`BankGroupRowData`)
+ * @param look - `preview` for the form of a filter, `group` for the panel of a group
+ * @returns the text and its tone: `paid` (green), `action` (blue) or `muted` (grey)
+ */
+export function willTag(
+    row: Pick<
+        App.Data.BankFilterPreviewRowData,
+        'transaction' | 'will' | 'will_title' | 'will_on'
+    >,
+    look: 'preview' | 'group' = 'preview',
+): {
+    text: string;
+    tone: 'paid' | 'action' | 'muted';
+} {
+    const income = row.transaction.amount > 0;
+    const day = row.will_on ? formatDayMonth(row.will_on) : null;
+
+    switch (row.will) {
+        case 'create':
+            return {
+                text: income
+                    ? trans('Create the income')
+                    : trans('Create the expense'),
+                tone: look === 'group' ? 'muted' : 'action',
+            };
+        case 'link':
+            if (look === 'group') {
+                return {
+                    text:
+                        day === null
+                            ? trans('Already recorded: link «:title»', {
+                                  title: row.will_title ?? '',
+                              })
+                            : trans('Already recorded: link «:title» of :day', {
+                                  title: row.will_title ?? '',
+                                  day,
+                              }),
+                    tone: 'paid',
+                };
+            }
+
+            return {
+                text:
+                    day === null
+                        ? trans('Link «:title»', {
+                              title: row.will_title ?? '',
+                          })
+                        : trans('Link «:title» of :day', {
+                              title: row.will_title ?? '',
+                              day,
+                          }),
+                tone: 'paid',
+            };
+        case 'pay':
+            if (income) {
+                return {
+                    text:
+                        day === null
+                            ? trans('Mark the income received')
+                            : trans('Mark the income of :day received', {
+                                  day,
+                              }),
+                    tone: 'action',
+                };
+            }
+
+            return {
+                text:
+                    day === null
+                        ? trans('Pay the due date')
+                        : trans('Pay the due date of :day', { day }),
+                tone: 'action',
+            };
+        case 'transfer':
+            return { text: trans('Transfer'), tone: 'action' };
+        case 'ignore':
+            return { text: trans('Ignore'), tone: 'muted' };
+        case 'linked':
+            return { text: trans('Already sorted'), tone: 'paid' };
+        default:
+            return { text: trans('Stays to sort'), tone: 'muted' };
+    }
+}
+
+/** The preview could not be asked: what to tell the person. */
+export class BankFilterPreviewError extends Error {
+    /**
+     * @param message - the reason, for the person
+     */
+    constructor(message: string) {
+        super(message);
+        this.name = 'BankFilterPreviewError';
+    }
+}
+
+/**
+ * Asks the server which movements of the last 90 days the filter written so far takes, and what saving it would do.
+ *
+ * @param values - the fields of the form, as the save sends them
+ * @param changing - the id of the filter being changed (it never conflicts with itself), null for a new one
+ * @param signal - stops the request when its answer is not wanted any more
+ * @param drop - the movement *It is not of this group* takes out: the server first changes the words or the amounts
+ *   to leave it out (`refined`), or says the AI can be asked (`ai`)
+ * @returns the rows, the summary and how many rows another filter takes
+ * @throws BankFilterPreviewError when the server says no or does not answer
+ */
+export async function previewFilter(
+    values: BankFilterPayload,
+    changing: number | null,
+    signal?: AbortSignal,
+    drop: number | null = null,
+): Promise<App.Data.BankFilterPreviewData> {
+    try {
+        const response = await http.getClient().request({
+            method: 'post',
+            url: preview.url(),
+            data: {
+                ...values,
+                filter: changing,
+                ...(drop === null ? {} : { drop }),
+            },
+            headers: { Accept: 'application/json' },
+            signal,
+        });
+        const body = jsonBody(response.data) ?? {};
+
+        return {
+            rows: Array.isArray(body.rows)
+                ? (body.rows as App.Data.BankFilterPreviewRowData[])
+                : [],
+            summary: {
+                pay: 0,
+                create: 0,
+                link: 0,
+                transfer: 0,
+                ignore: 0,
+                ...(body.summary as Partial<BankFilterSummary> | undefined),
+            },
+            conflicts: typeof body.conflicts === 'number' ? body.conflicts : 0,
+            refined:
+                body.refined !== null && typeof body.refined === 'object'
+                    ? (body.refined as App.Data.BankFilterRefinementData)
+                    : null,
+            ai: body.ai === true,
+        };
+    } catch (error) {
+        const { status, body } = failedAnswer(error);
+
+        throw new BankFilterPreviewError(
+            serverMessage(body) ??
+                (status === 0
+                    ? trans('There is no network: try again in a while.')
+                    : trans('This did not work. Try again in a while.')),
+        );
+    }
+}
+
+/** The AI could not write the filter: the message to show where the buttons are. */
+export class BankFilterSuggestError extends Error {}
+
+/**
+ * Asks the server what the AI proposes for a filter: the words, and in the fill mode a title, a category and an
+ * organization. Only the movements named are read by the AI, and only their text; nothing is saved.
+ *
+ * @param keep - the ids of the movements the filter must take
+ * @param drop - the ids of the movements it must leave
+ * @param mode - `words` for the words only, `fill` for the fields too
+ * @returns what the AI proposes
+ * @throws BankFilterSuggestError when the reading is off or used up, the AI does not answer, or there is no network
+ */
+export async function suggestFilter(
+    keep: number[],
+    drop: number[],
+    mode: 'words' | 'fill',
+): Promise<App.Data.Banks.BankFilterSuggestionData> {
+    try {
+        const response = await http.getClient().request({
+            method: 'post',
+            url: suggest.url(),
+            data: { keep, drop, mode },
+            headers: { Accept: 'application/json' },
+        });
+        const body = jsonBody(response.data);
+
+        if (body === null || !Array.isArray(body.contains)) {
+            throw new BankFilterSuggestError(
+                trans('This did not work. Try again in a while.'),
+            );
+        }
+
+        return body as unknown as App.Data.Banks.BankFilterSuggestionData;
+    } catch (error) {
+        if (error instanceof BankFilterSuggestError) {
+            throw error;
+        }
+
+        const { status, body } = failedAnswer(error);
+        const keepErrors = (body?.errors as { keep?: unknown } | undefined)
+            ?.keep;
+        const first = Array.isArray(keepErrors) ? keepErrors[0] : null;
+
+        throw new BankFilterSuggestError(
+            typeof first === 'string' && first !== ''
+                ? first
+                : (serverMessage(body) ??
+                      (status === 0
+                          ? trans('There is no network: try again in a while.')
+                          : trans('This did not work. Try again in a while.'))),
+        );
+    }
+}
+
+/** A movement could not be sorted, or could not leave its group: the message to show. */
+export class BankSortError extends Error {}
+
+/**
+ * Sends an action on a movement of the bank from the form of a filter, without leaving the form: *It is not of this
+ * group*, *It belongs to an expense*, *It is a transfer*, *Ignore*. The server answers as it does for the page of the
+ * movements; only whether it worked counts here.
+ *
+ * @param url - the address of the action
+ * @param data - the body
+ * @throws BankSortError with the first message of the server, or a general one
+ */
+export async function sendBankAction(
+    url: string,
+    data: Record<string, unknown> = {},
+): Promise<void> {
+    try {
+        await http.getClient().request({
+            method: 'post',
+            url,
+            data,
+            headers: { Accept: 'application/json' },
+        });
+    } catch (error) {
+        const { status, body } = failedAnswer(error);
+        const fields = body?.errors;
+        const first =
+            fields !== null && typeof fields === 'object'
+                ? (Object.values(fields as Record<string, unknown>)
+                      .flat()
+                      .find((message) => typeof message === 'string') as
+                      | string
+                      | undefined)
+                : undefined;
+
+        throw new BankSortError(
+            first ??
+                serverMessage(body) ??
+                (status === 0
+                    ? trans('There is no network: try again in a while.')
+                    : trans('This did not work. Try again in a while.')),
+        );
+    }
+}
+
+/**
+ * *It is not of this group* from the form of the filter of a group: the movement leaves the group for good.
+ *
+ * @param transactionId - the movement
+ * @param group - the key of the group
+ * @throws BankSortError when the server says no or does not answer
+ */
+export function leaveGroup(
+    transactionId: number,
+    group: string,
+): Promise<void> {
+    return sendBankAction(leave.url(transactionId), { group });
+}

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\AttachBankFee;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Budget\RecordPayment;
 use App\Enums\BankMatchSource;
@@ -16,7 +17,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\ReminderNotice;
 use App\Models\User;
-use App\Services\Banks\BankMatcher;
+use App\Services\Banks\BankSplit;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -71,12 +72,9 @@ function bankSettleTransaction(string $text, string $amount, string $day, array 
     ]);
 }
 
-/** Settles a transaction with the planned item the matcher finds, as the rule does. */
-function bankSettleRun(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null): Expense|Income|null
+/** Settles a transaction with the planned item, as a filter that pays it does. */
+function bankSettleRun(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): Expense|Income|null
 {
-    $planned ??= resolve(BankMatcher::class)->planned($transaction);
-    expect($planned)->not->toBeNull();
-
     return resolve(SettleFromBank::class)->handle($transaction, $planned, BankMatchSource::Rule);
 }
 
@@ -106,9 +104,9 @@ test('the Edison debit of 72,40 € pays Luce of 05/11/2026 with the title Luce 
 
 test('the rent of 651,00 € becomes 651,00 € of which 1,00 € of fee', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Affitto', 'BONIFICO.*ROSSI MARIO.*AFFITTO', 650.0, '2026-01-01', ['fee_amount' => 1.0]);
+        $rent = bankSettlePlanned('Affitto', 'BONIFICO.*ROSSI MARIO.*AFFITTO', 650.0, '2026-01-01', ['fee_amount' => 1.0]);
 
-        $expense = bankSettleRun(bankSettleTransaction('BONIFICO A ROSSI MARIO CAUSALE AFFITTO NOVEMBRE', '-651.00', '2026-11-02'));
+        $expense = bankSettleRun(bankSettleTransaction('BONIFICO A ROSSI MARIO CAUSALE AFFITTO NOVEMBRE', '-651.00', '2026-11-02'), $rent);
 
         expect($expense)->toBeInstanceOf(Expense::class)
             ->and($expense->title)->toBe('Affitto novembre 2026')
@@ -119,9 +117,9 @@ test('the rent of 651,00 € becomes 651,00 € of which 1,00 € of fee', funct
 
 test('a fee as big as the amount is left out', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Commissioni', 'CANONE CONTO', 0.0, '2026-01-01', ['fee_amount' => 3.0]);
+        $canone = bankSettlePlanned('Commissioni', 'CANONE CONTO', 0.0, '2026-01-01', ['fee_amount' => 3.0]);
 
-        $expense = bankSettleRun(bankSettleTransaction('CANONE CONTO NOVEMBRE', '-3.00', '2026-11-01'));
+        $expense = bankSettleRun(bankSettleTransaction('CANONE CONTO NOVEMBRE', '-3.00', '2026-11-01'), $canone);
 
         expect((float) $expense?->amount)->toBe(3.0)
             ->and($expense?->fee_amount)->toBeNull();
@@ -158,7 +156,7 @@ test('the documents waiting on the planned expense move to the payment', functio
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
         $bill = Document::factory()->create(['family_id' => $luce->family_id, 'planned_expense_id' => $luce->id, 'date' => '2026-10-28']);
 
-        $expense = bankSettleRun(bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05'));
+        $expense = bankSettleRun(bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05'), $luce);
 
         expect($expense?->documents()->pluck('documents.id')->all())->toBe([$bill->id]);
     });
@@ -187,10 +185,9 @@ test('a due date paid in the meantime is linked, with no second expense and no e
     insideBianchi(function (): void {
         $luce = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-11-05');
         $transaction = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
-        $planned = resolve(BankMatcher::class)->planned($transaction);
-        expect($planned?->is($luce))->toBeTrue();
+        $planned = $luce;
 
-        // Somebody records the payment by hand, with another amount, after the rule chose Luce
+        // Somebody records the payment by hand, with another amount, after the filter chose Luce
         $byHand = resolve(RecordPayment::class)->handle(resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-11-05')), CarbonImmutable::parse('2026-11-04'), 70.0, null, null);
 
         expect(bankSettleRun($transaction, $planned)?->is($byHand))->toBeTrue()
@@ -291,14 +288,14 @@ test('a declined transaction or one put aside pays nothing', function (array $st
 
 test('everyone in the family gets a bell notice, with the second line only when the amount is far from the planned one', function (): void {
     insideBianchi(function (): void {
-        bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
-        bankSettlePlanned('Gas', 'ENI PLENITUDE', 45.0, '2026-01-10');
-        bankSettlePlanned('Acqua', 'ACQUEDOTTO', 30.0, '2026-01-15', ['is_estimated' => true]);
+        $light = bankSettlePlanned('Luce', 'EDISON', 72.0, '2026-01-05');
+        $gas = bankSettlePlanned('Gas', 'ENI PLENITUDE', 45.0, '2026-01-10');
+        $water = bankSettlePlanned('Acqua', 'ACQUEDOTTO', 30.0, '2026-01-15', ['is_estimated' => true]);
 
         $luce = bankSettleTransaction('SDD EDISON ENERGIA', '-72.40', '2026-11-05');
-        bankSettleRun($luce);
-        bankSettleRun(bankSettleTransaction('SDD ENI PLENITUDE', '-72.40', '2026-11-10'));
-        bankSettleRun(bankSettleTransaction('SDD ACQUEDOTTO', '-72.40', '2026-11-15'));
+        bankSettleRun($luce, $light);
+        bankSettleRun(bankSettleTransaction('SDD ENI PLENITUDE', '-72.40', '2026-11-10'), $gas);
+        bankSettleRun(bankSettleTransaction('SDD ACQUEDOTTO', '-72.40', '2026-11-15'), $water);
 
         $marco = ReminderNotice::query()->where('user_id', $this->marco->id)->orderBy('id')->get();
         $laura = ReminderNotice::query()->where('user_id', $this->laura->id)->orderBy('id')->get();
@@ -361,5 +358,120 @@ test('who assigns the transaction gets no bell notice, the others do', function 
 
         expect(ReminderNotice::query()->where('user_id', $this->marco->id)->count())->toBe(0)
             ->and(ReminderNotice::query()->where('user_id', $this->laura->id)->count())->toBe(1);
+    });
+});
+
+/** The text of the Satispay direct debit of BancoPosta, with the commission word in front when asked. */
+function bankSettleSatispay(bool $fee = false): string
+{
+    return ($fee ? 'COMMISSIONI ' : '').'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+}
+
+test('a direct debit with a detached commission pays the planned expense of 10,40 that has a fee of 0,40', function (): void {
+    insideBianchi(function (): void {
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+        $debit = bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04');
+        $fee = bankSettleTransaction(bankSettleSatispay(true), '-0.40', '2026-11-05');
+
+        $expense = bankSettleRun($debit, $satispay);
+
+        $fee->refresh();
+        expect($expense)->toBeInstanceOf(Expense::class)
+            ->and((float) $expense->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and($fee->expense_id)->toBe($expense->id)
+            ->and($fee->matched_by)->toBe(BankMatchSource::Fee)
+            ->and($debit->refresh()->matched_by)->toBe(BankMatchSource::Rule);
+    });
+});
+
+test('it is recorded as 10,00 and becomes 10,40 when the commission is attached', function (): void {
+    insideBianchi(function (): void {
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04', ['fee_amount' => 0.4]);
+
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'), $satispay);
+
+        expect((float) $expense?->amount)->toBe(10.0)
+            ->and($expense?->fee_amount)->toBeNull();
+
+        resolve(AttachBankFee::class)->forNew([bankSettleTransaction(bankSettleSatispay(true), '-0.40', '2026-11-05')]);
+
+        expect((float) $expense?->refresh()->amount)->toBe(10.4)
+            ->and((float) $expense?->fee_amount)->toBe(0.4);
+    });
+});
+
+test('a planned expense without a fee is paid as today', function (): void {
+    insideBianchi(function (): void {
+        $satispay = bankSettlePlanned('Ricarica Satispay', 'MAN.SAT0023101207360112900', 10.0, '2026-01-04');
+
+        $expense = bankSettleRun(bankSettleTransaction(bankSettleSatispay(), '-10.00', '2026-11-04'), $satispay);
+
+        expect((float) $expense?->amount)->toBe(10.0)
+            ->and($expense?->fee_amount)->toBeNull()
+            ->and($expense?->title)->toBe('Ricarica Satispay novembre 2026');
+    });
+});
+
+test('the preview picks the next open due date as the save does', function (): void {
+    insideBianchi(function (): void {
+        // Every six months: 10/12/2025, 10/06/2026, 10/12/2026. Both movements are more than 45 days from all of them
+        $rent = bankSettlePlanned('Assicurazione', 'ZURICH', 300.0, '2025-12-10', ['interval' => 6]);
+        $first = bankSettleTransaction('SDD ZURICH', '-300.00', '2026-09-10');
+        $second = bankSettleTransaction('SDD ZURICH', '-300.00', '2026-09-11');
+        $settle = resolve(SettleFromBank::class);
+
+        $one = $settle->foresee($first, $rent);
+        $two = $settle->foresee($second, $rent, null, ['due:'.$one?->occurrence->originalDate->toDateString()]);
+
+        expect($one?->occurrence->originalDate->toDateString())->toBe('2025-12-10')
+            ->and($two?->occurrence->originalDate->toDateString())->toBe('2026-06-10');
+
+        $paidOne = bankSettleRun($first, $rent);
+        $paidTwo = bankSettleRun($second->refresh(), $rent);
+
+        expect($paidOne?->occurrence_date?->toDateString())->toBe('2025-12-10')
+            ->and($paidTwo?->occurrence_date?->toDateString())->toBe('2026-06-10');
+    });
+});
+
+test('a split found before the locks and no longer true under them pays nothing', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        $match = resolve(BankSplit::class)->find($transaction);
+        expect($match?->mode)->toBe('pay');
+
+        // Gas is paid by hand between the read and the locks
+        Expense::factory()->create(['family_id' => $transaction->family_id, 'planned_expense_id' => $bill['gas']->id, 'occurrence_date' => '2026-11-30', 'date' => '2026-11-26', 'amount' => 69.40]);
+
+        expect(resolve(SettleFromBank::class)->split($transaction, $match, BankMatchSource::Rule))->toBe([])
+            ->and(Expense::query()->count())->toBe(1)
+            ->and($transaction->refresh()->expense_id)->toBeNull()
+            ->and(ReminderNotice::query()->count())->toBe(0);
+    });
+});
+
+test('the split locks the bank row, then the planned expenses in order of id, before any plain read', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        $match = resolve(BankSplit::class)->find($transaction);
+
+        DB::enableQueryLog();
+        expect(resolve(SettleFromBank::class)->split($transaction, $match, BankMatchSource::Rule))->toHaveCount(2);
+        $log = DB::getQueryLog();
+        $locks = array_values(array_filter($log, static fn (array $query): bool => str_contains($query['query'], 'for update')));
+
+        // The filter of the match is read with a shared lock right after the bank row, as `ApplyBankFilter` does
+        expect(str_contains($log[0]['query'], 'from `bank_transactions`') && str_contains($log[0]['query'], 'for update'))->toBeTrue()
+            ->and(str_contains($log[1]['query'], 'from `bank_filters`') && str_contains($log[1]['query'], 'lock in share mode'))->toBeTrue()
+            ->and($log[1]['bindings'][0])->toBe($bill['filters']['luce']->id)
+            ->and(str_contains($log[2]['query'], 'from `planned_expenses`') && str_contains($log[2]['query'], 'for update'))->toBeTrue()
+            ->and(str_contains($log[3]['query'], 'from `planned_expenses`') && str_contains($log[3]['query'], 'for update'))->toBeTrue()
+            ->and([$log[2]['bindings'][0], $log[3]['bindings'][0]])->toBe([$bill['luce']->id, $bill['gas']->id])
+            ->and(count($locks))->toBeGreaterThanOrEqual(3);
     });
 });

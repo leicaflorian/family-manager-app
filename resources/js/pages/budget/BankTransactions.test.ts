@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
+import { nextTick } from 'vue';
+import { toast } from 'vue-sonner';
 import {
     afterEach,
     beforeEach,
@@ -9,12 +11,22 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { bankTransactions } from '@/test/fixtures';
-import { renderPage, screenWidth } from '@/test/page';
+import {
+    bankFilters,
+    bankGroupRows,
+    bankGroups,
+    bankProposals,
+    bankTransactions,
+} from '@/test/fixtures';
+import { renderPage, screenWidth, settle, withTrail } from '@/test/page';
+import type { FlashSimilar } from '@/types/ui';
 import BankTransactions from './BankTransactions.vue';
+
+vi.mock('vue-sonner', () => ({ toast: { error: vi.fn() } }));
 
 const shared = vi.hoisted(() => ({
     bank_feed: { unsorted: 6 } as { unsorted: number } | null,
+    flash: {} as Record<string, unknown>,
 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -22,7 +34,8 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     Head: { render: () => null },
     usePage: () => ({
         url: '/budget/bank',
-        props: { name: 'Fameja.app', ...shared },
+        props: { name: 'Fameja.app', bank_feed: shared.bank_feed },
+        flash: shared.flash,
     }),
 }));
 
@@ -36,7 +49,25 @@ afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     shared.bank_feed = { unsorted: 6 };
+    shared.flash = {};
 });
+
+/**
+ * Finds `fetch` with a server that answers the search of the sheet.
+ *
+ * @param answer - the two lists of the answer
+ */
+function stubSearch(answer: {
+    planned: App.Data.BankPlannedChoiceData[];
+    recorded: App.Data.BankRecordedChoiceData[];
+}): void {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(() =>
+            Promise.resolve({ ok: true, json: () => Promise.resolve(answer) }),
+        ),
+    );
+}
 
 /** The props of the page as the controller sends them. */
 function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
@@ -50,11 +81,52 @@ function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
         can_change_banks: true,
         last_synced_at: '2026-11-20T13:00',
         sync_hours: [7, 13, 19],
+        groups: [],
+        counts: { unsorted: 3, groups: 0, lone: 3 },
         ...extra,
     };
 }
 
+/** The props of the tab *All* as the controller sends them, with the rows and the filters given. */
+function allProps(
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return props({
+        show: 'all',
+        filters: {
+            q: null,
+            account: null,
+            status: null,
+            month: null,
+            direction: null,
+        },
+        total: { count: 94, sum: -1842.3 },
+        accounts: [{ id: 4, name: 'Conto BancoPosta ·· 3307' }],
+        ...extra,
+    });
+}
+
 describe('Budget, From the bank', () => {
+    it('a direct debit shows its commission under it and both amounts', () => {
+        const debit = {
+            ...bankTransactions[1],
+            id: 40,
+            text: 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. MAN.SAT0023101207360112900',
+            amount: -10,
+            booked_on: '2026-11-24',
+            value_on: '2026-11-24',
+            fee: { id: 41, amount: -0.4, booked_on: '2026-11-25' },
+        };
+        renderPage(BankTransactions, props({ rows: [debit] }));
+
+        const row = screen.getByText(/Satispay Europe/).closest('li')!;
+        expect(
+            within(row).getByText('+ 0,40 € commission, 25/11'),
+        ).toBeInTheDocument();
+        expect(within(row).getByText('-10,00 €')).toBeInTheDocument();
+        expect(within(row).getByText('+ 0,40 €')).toBeInTheDocument();
+    });
+
     it('lists the transactions with the day, the account and the amount', () => {
         renderPage(BankTransactions, props());
 
@@ -116,67 +188,311 @@ describe('Budget, From the bank', () => {
         ).toBeInTheDocument();
     });
 
-    it('shows the number to sort on the first filter and links the other', () => {
-        renderPage(BankTransactions, props());
+    it('the title is From the bank and the back link leads to the budget', () => {
+        const { state, provide } = withTrail();
+        renderPage(BankTransactions, props(), provide);
 
-        const filters = screen.getByRole('navigation', {
-            name: 'Movements from the bank',
-        });
+        expect(state.pieces.value).toEqual([
+            { label: 'Budget', href: '/budget' },
+            { label: 'From the bank' },
+        ]);
         expect(
-            within(filters).getByRole('link', { name: 'To sort · 6' }),
-        ).toHaveAttribute('href', '/budget/bank');
+            screen.getByRole('heading', { level: 1, name: 'From the bank' }),
+        ).toBeInTheDocument();
+        // It is a page of its own: the tabs of the budget are not here
         expect(
-            within(filters).getByRole('link', { name: 'Ignored' }),
-        ).toHaveAttribute('href', '/budget/bank?show=ignored');
+            screen.queryByRole('navigation', { name: 'Budget' }),
+        ).not.toBeInTheDocument();
     });
 
-    it('draws the filters as the grey bar of the boards, the open one marked', () => {
+    it('has the tabs To sort, All and Filters, the number on the first and the open one marked', () => {
         renderPage(BankTransactions, props());
 
-        const filters = screen.getByRole('navigation', {
+        const tabs = screen.getByRole('navigation', {
             name: 'Movements from the bank',
         });
-        expect(filters).toHaveClass('bg-segment');
+        expect(tabs).toHaveClass('bg-segment');
         expect(
-            within(filters).getByRole('link', { name: 'To sort · 6' }),
+            within(tabs)
+                .getAllByRole('link')
+                .map((link) => link.textContent?.trim()),
+        ).toEqual(['To sort · 6', 'All', 'Filters']);
+        expect(
+            within(tabs).getByRole('link', { name: 'To sort · 6' }),
+        ).toHaveAttribute('href', '/budget/bank');
+        expect(
+            within(tabs).getByRole('link', { name: 'To sort · 6' }),
         ).toHaveAttribute('aria-current', 'page');
+        expect(within(tabs).getByRole('link', { name: 'All' })).toHaveAttribute(
+            'href',
+            '/budget/bank?show=all',
+        );
         expect(
-            within(filters).getByRole('link', { name: 'Ignored' }),
+            within(tabs).getByRole('link', { name: 'Filters' }),
+        ).toHaveAttribute('href', '/budget/bank?show=filters');
+        expect(
+            within(tabs).getByRole('link', { name: 'All' }),
         ).not.toHaveAttribute('aria-current');
     });
 
-    it('says there is nothing to sort', () => {
-        renderPage(BankTransactions, props({ rows: [] }));
+    it('marks the tab that is open and shows no number when nothing is to sort', () => {
+        shared.bank_feed = { unsorted: 0 };
+        renderPage(BankTransactions, props({ show: 'filters', rows: [] }));
 
-        expect(screen.getByText('No movement to sort')).toBeInTheDocument();
+        const tabs = screen.getByRole('navigation', {
+            name: 'Movements from the bank',
+        });
         expect(
-            screen.getByText(
-                'The movements that pay a fixed expense are recorded by themselves. The others arrive here, to create or to ignore.',
-            ),
-        ).toBeInTheDocument();
+            within(tabs).getByRole('link', { name: 'Left to sort' }),
+        ).not.toHaveAttribute('aria-current');
+        expect(
+            within(tabs).getByRole('link', { name: 'Filters' }),
+        ).toHaveAttribute('aria-current', 'page');
     });
 
-    it('says what stays under Ignored, and for how long', () => {
+    it('the empty page says the filters sort by themselves', () => {
+        renderPage(BankTransactions, props({ rows: [] }));
+
+        expect(screen.getByText('Nothing left to sort')).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'All the movements' }),
+        ).toHaveAttribute('href', '/budget/bank?show=all');
+        expect(
+            screen.getByRole('link', { name: 'Your filters' }),
+        ).toHaveAttribute('href', '/budget/bank?show=filters');
+    });
+
+    it('under Filters says there is no filter yet, with New filter', () => {
+        renderPage(BankTransactions, props({ show: 'filters', rows: [] }));
+
+        expect(screen.getByText('No filter yet')).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'New filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create');
+    });
+
+    it('under Filters lists the filters, with what they do and New filter', () => {
         renderPage(
             BankTransactions,
-            props({
-                show: 'ignored',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            props({ show: 'filters', rows: [], bank_filters: bankFilters }),
+        );
+
+        expect(screen.queryByText('No filter yet')).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Filters recognise the movements of the bank and sort them by themselves, at every read. A movement is taken by one filter only.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'New filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create');
+        expect(
+            screen.getByText('Satispay', { selector: '[data-filter-name]' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Luce', { selector: '[data-filter-name]' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('It was not this one').tagName).toBe('EM');
+    });
+
+    it('under All lists every transaction with its tag, the filters and the last line', () => {
+        renderPage(
+            BankTransactions,
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                    bankTransactions[0],
+                ],
             }),
         );
 
+        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
+        expect(screen.getByText('Set aside')).toBeInTheDocument();
+        expect(
+            within(
+                screen.getByText(bankTransactions[0]!.text).closest('li')!,
+            ).getByText('Pending at the bank'),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('94 movements');
         expect(
             screen.getByText(
-                'Ignored movements stay here for 12 months, then they are removed.',
+                'Movements not linked to an expense are kept 12 months.',
             ),
         ).toBeInTheDocument();
-        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
     });
 
-    it('says there is nothing ignored', () => {
-        renderPage(BankTransactions, props({ show: 'ignored', rows: [] }));
+    it('under All says nothing is there yet, or that no movement matches the filters', () => {
+        const view = renderPage(BankTransactions, allProps({ rows: [] }));
+        expect(screen.getByText('No movement yet')).toBeInTheDocument();
+        view.unmount();
 
-        expect(screen.getByText('No ignored movement')).toBeInTheDocument();
+        renderPage(
+            BankTransactions,
+            allProps({
+                rows: [],
+                filters: {
+                    q: 'zzz',
+                    account: null,
+                    status: null,
+                    month: null,
+                    direction: null,
+                },
+            }),
+        );
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
+    });
+
+    it('opens the transaction as the bank gave it from its text and closes it', async () => {
+        renderPage(
+            BankTransactions,
+            allProps({ rows: [bankTransactions[1]!] }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', {
+                name: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Bank transaction',
+        });
+        expect(within(panel).getByText('tx-2')).toBeInTheDocument();
+
+        await userEvent.click(
+            within(panel).getByRole('button', { name: 'Close' }),
+        );
+        expect(
+            screen.queryByRole('dialog', { name: 'Bank transaction' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts the panel beside the list when wide', async () => {
+        screenWidth(1280);
+        renderPage(
+            BankTransactions,
+            allProps({ rows: [bankTransactions[1]!] }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /ADDEBITO DIRETTO SDD EDISON/ }),
+        );
+
+        const panel = screen.getByRole('complementary', {
+            name: 'Bank transaction',
+        });
+        expect(panel.closest('li')).toBeNull();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByText('tx-2')).toBeInTheDocument();
+        // The row of the panel is marked, and its action goes under the text so the amounts stay in line
+        expect(
+            screen
+                .getByRole('button', { name: /ADDEBITO DIRETTO SDD EDISON/ })
+                .closest('li'),
+        ).toHaveAttribute('aria-current', 'true');
+
+        await userEvent.keyboard('{Escape}');
+        expect(
+            screen.queryByRole('complementary', { name: 'Bank transaction' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('takes a link back after asking, and the row goes under a status filter', async () => {
+        const del = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+                options?.onFinish?.({} as never);
+            });
+        const linked = {
+            ...bankTransactions[1]!,
+            status: 'linked',
+            link: {
+                kind: 'expense',
+                id: 7,
+                title: 'Luce',
+                url: '/budget/movements/expense/7',
+                how: 'rule',
+                filter_id: null,
+                filter_name: null,
+                undo: 'delete',
+                undo_url: '/budget/bank/2/payment',
+            },
+        };
+        renderPage(
+            BankTransactions,
+            allProps({
+                rows: [linked],
+                filters: {
+                    q: null,
+                    account: null,
+                    status: 'linked',
+                    month: null,
+                    direction: null,
+                },
+            }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'It was not this one' }),
+        );
+        expect(del).not.toHaveBeenCalled();
+        await userEvent.click(
+            within(await screen.findByRole('dialog')).getByRole('button', {
+                name: 'It was not this one',
+            }),
+        );
+
+        expect(del).toHaveBeenCalledWith(
+            '/budget/bank/2/payment',
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
+    });
+
+    it('says in the question that a link to an expense already there only comes off', async () => {
+        const linked = {
+            ...bankTransactions[1]!,
+            status: 'linked',
+            link: {
+                kind: 'expense',
+                id: 7,
+                title: 'Luce',
+                url: '/budget/movements/expense/7',
+                how: 'duplicate',
+                filter_id: null,
+                filter_name: null,
+                undo: 'detach',
+                undo_url: '/budget/bank/2/payment',
+            },
+        };
+        renderPage(BankTransactions, allProps({ rows: [linked] }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'It was not this one' }),
+        );
+        const dialog = await screen.findByRole('dialog');
+
+        expect(
+            within(dialog).getByText('Take off this link?'),
+        ).toBeInTheDocument();
+        expect(
+            within(dialog).getByText(
+                'The expense stays as it is. The movement goes back to be sorted.',
+            ),
+        ).toBeInTheDocument();
     });
 
     it('tells a bank to connect again and leads the one who can to the banks', () => {
@@ -214,17 +530,6 @@ describe('Budget, From the bank', () => {
                 'Only who manages the family connects and disconnects the banks.',
             ),
         ).toBeInTheDocument();
-    });
-
-    it('adds the tab From the bank with its number to the tabs of the budget', () => {
-        renderPage(BankTransactions, props());
-
-        const tabs = screen.getByRole('navigation', { name: 'Budget' });
-        expect(
-            within(tabs).getByRole('link', {
-                name: 'From the bank, 6 to sort',
-            }),
-        ).toHaveAttribute('aria-current', 'page');
     });
 
     it('updates the banks, once while the update runs', async () => {
@@ -279,6 +584,74 @@ describe('Budget, From the bank', () => {
     });
 });
 
+describe('Budget, From the bank, the menu of a row', () => {
+    it('the menu of a row has It is a transfer next to Ignore', async () => {
+        renderPage(BankTransactions, props());
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+
+        const items = screen.getAllByRole('menuitem');
+        expect(items.map((item) => item.textContent?.trim())).toEqual([
+            'It is a transfer',
+            'Ignore',
+        ]);
+    });
+
+    it('opens the sheet for the row and posts the account chosen', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(
+            BankTransactions,
+            props({
+                accounts_all: [
+                    {
+                        id: 4,
+                        name: 'Conto BancoPosta ·· 3307',
+                        connected: true,
+                    },
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as a transfer' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/transfer',
+            { account_id: 6 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.queryByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            ),
+        ).not.toBeInTheDocument();
+    });
+});
+
 describe('Budget, From the bank, ignoring', () => {
     it('ignores a transaction and the row goes', async () => {
         const post = vi
@@ -294,8 +667,9 @@ describe('Budget, From the bank, ignoring', () => {
             .closest('li')!;
 
         await userEvent.click(
-            within(row).getByRole('button', { name: 'Ignore' }),
+            within(row).getByRole('button', { name: 'More actions' }),
         );
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Ignore' }));
 
         expect(post).toHaveBeenCalledWith(
             '/budget/bank/2/ignore',
@@ -317,9 +691,21 @@ describe('Budget, From the bank, ignoring', () => {
             });
         renderPage(
             BankTransactions,
-            props({
-                show: 'ignored',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                ],
+                filters: {
+                    q: null,
+                    account: null,
+                    status: 'ignored',
+                    month: null,
+                    direction: null,
+                },
             }),
         );
 
@@ -336,14 +722,16 @@ describe('Budget, From the bank, ignoring', () => {
             '/budget/bank/2/ignore',
             expect.objectContaining({ preserveScroll: true }),
         );
-        expect(screen.getByText('No ignored movement')).toBeInTheDocument();
+        expect(
+            screen.getByText('No movement matches the filters'),
+        ).toBeInTheDocument();
     });
 
     it('offers no action to who cannot sort', () => {
         renderPage(BankTransactions, props({ can_sort: false }));
 
         expect(
-            screen.queryByRole('button', { name: 'Ignore' }),
+            screen.queryByRole('button', { name: 'More actions' }),
         ).not.toBeInTheDocument();
     });
 });
@@ -365,7 +753,7 @@ describe('Budget, From the bank, sorting', () => {
         ).toHaveAttribute('href', '/budget/movements/create?bank=2');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ).toBeInTheDocument();
     });
@@ -377,7 +765,7 @@ describe('Budget, From the bank, sorting', () => {
         for (const action of [
             within(row).getByRole('link', { name: 'Create the expense' }),
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ]) {
             expect(action).toHaveClass('text-body-sm', 'px-2.5', 'rounded-md');
@@ -394,7 +782,7 @@ describe('Budget, From the bank, sorting', () => {
         ).toHaveAttribute('href', '/budget/movements/create?bank=9');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned income',
+                name: 'It belongs to an income',
             }),
         ).toBeInTheDocument();
     });
@@ -417,7 +805,7 @@ describe('Budget, From the bank, sorting', () => {
         const pending = screen.getByText(/Q8 STAZIONE/).closest('li')!;
 
         expect(
-            within(pending).queryByRole('button', { name: 'Ignore' }),
+            within(pending).queryByRole('button', { name: 'More actions' }),
         ).not.toBeInTheDocument();
     });
 
@@ -437,9 +825,14 @@ describe('Budget, From the bank, sorting', () => {
     it('offers nothing under Ignored or to who cannot sort', () => {
         const view = renderPage(
             BankTransactions,
-            props({
-                show: 'ignored',
-                rows: [{ ...bankTransactions[1]!, ignored: true }],
+            allProps({
+                rows: [
+                    {
+                        ...bankTransactions[1]!,
+                        ignored: true,
+                        status: 'ignored',
+                    },
+                ],
             }),
         );
         expect(
@@ -461,112 +854,128 @@ describe('Budget, From the bank, sorting', () => {
         renderPage(BankTransactions, props());
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
-        // As the board *Dalla banca-pc*: the buttons of a row, and Ignore grey without an edge
+        // As the board *Dalla banca-pc*: the buttons of a row, and the ⋯ menu (It is a transfer, Ignore) grey without an edge
         expect(
             within(row).getByRole('link', { name: 'Create the expense' }),
         ).toHaveClass('text-body-sm', 'border-edge-soft');
         expect(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         ).toHaveClass('text-body-sm', 'border-edge-soft');
-        const ignoreButton = within(row).getByRole('button', {
-            name: 'Ignore',
+        const menuButton = within(row).getByRole('button', {
+            name: 'More actions',
         });
-        expect(ignoreButton).toHaveClass('text-body-sm', 'text-ink-soft');
-        expect(ignoreButton).not.toHaveClass('border');
+        // As the board: transparent, 44 px, ink-soft
+        expect(menuButton.parentElement).toHaveClass('text-ink-soft');
+        expect(menuButton).toHaveClass('size-control-md', 'bg-transparent');
+        expect(menuButton).not.toHaveClass('border');
     });
 
-    it('asks for the planned expenses when the sheet opens and pays the one chosen', async () => {
-        const reload = vi
-            .spyOn(router, 'reload')
-            .mockImplementation((options) => {
-                options?.onSuccess?.({} as never);
-            });
-        const post = vi
-            .spyOn(router, 'post')
-            .mockImplementation((_url, _data, options) => {
-                options?.onSuccess?.({} as never);
-            });
-        const choices: App.Data.BankPlannedChoiceData[] = [
-            {
-                kind: 'expense',
-                id: 5,
-                title: 'Luce',
-                organization: 'Edison Energia',
-                due_on: '2026-11-05',
-                late: false,
-                amount: 72,
-                estimated: true,
-            },
-            {
-                kind: 'expense',
-                id: 6,
-                title: 'Gas',
-                organization: null,
-                due_on: '2026-10-30',
-                late: true,
-                amount: 84.2,
-                estimated: true,
-            },
-        ];
-        renderPage(BankTransactions, props({ planned_options: choices }));
+    it('when wide, It belongs to an expense opens beside the list with the row marked, and closes the sheet of the similar ones', async () => {
+        screenWidth(true);
+        stubSearch({ planned: [], recorded: [] });
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, props());
+        await settle();
+        expect(
+            screen.getByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
 
         await userEvent.click(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
             }),
         );
 
-        expect(reload).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: { assign: 2 },
-                only: ['planned_options'],
-                preserveUrl: true,
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', {
+                name: 'It belongs to an expense',
             }),
-        );
-        const dialog = await screen.findByRole('dialog', {
-            name: 'It belongs to a planned expense',
-        });
-        await userEvent.click(
-            within(dialog).getByRole('radio', { name: /Gas/ }),
-        );
-        await userEvent.click(
-            within(dialog).getByRole('button', { name: 'Mark as paid' }),
-        );
-
-        expect(post).toHaveBeenCalledWith(
-            '/budget/bank/2/assign',
-            { kind: 'expense', planned_id: 6 },
-            expect.objectContaining({ preserveScroll: true }),
-        );
-        expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(row).toHaveAttribute('aria-current', 'true');
     });
 
-    it('keeps the sheet and shows the message when the server refuses', async () => {
-        vi.spyOn(router, 'reload').mockImplementation((options) => {
-            options?.onSuccess?.({} as never);
-        });
-        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
-            options?.onError?.({
-                planned_id: 'This planned expense has no due dates to pay.',
+    it.each([
+        ['It belongs to an expense', 'Mark as paid'],
+        ['It is a transfer', 'Mark as a transfer'],
+    ])(
+        'when wide, after %s is sent the focus comes back to the tab',
+        async (open, confirm) => {
+            screenWidth(true);
+            stubSearch({
+                planned: [
+                    {
+                        kind: 'expense',
+                        id: 6,
+                        title: 'Gas',
+                        organization: null,
+                        due_on: '2026-11-02',
+                        occurrence: '2026-10-30',
+                        late: true,
+                        amount: 84.2,
+                        estimated: true,
+                        paid_on: null,
+                        ended: false,
+                        ended_on: null,
+                    },
+                ],
+                recorded: [],
             });
-        });
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options) => {
+                    options?.onSuccess?.({} as never);
+                },
+            );
+            renderPage(
+                BankTransactions,
+                props({
+                    accounts_all: [
+                        { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                    ],
+                }),
+            );
+            const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+            if (open === 'It is a transfer') {
+                await userEvent.click(
+                    within(row).getByRole('button', { name: 'More actions' }),
+                );
+                await userEvent.click(
+                    screen.getByRole('menuitem', { name: open }),
+                );
+            } else {
+                await userEvent.click(
+                    within(row).getByRole('button', { name: open }),
+                );
+            }
+            await userEvent.click(
+                await screen.findByRole('button', { name: confirm }),
+            );
+            await settle();
+
+            expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /To sort/ })).toHaveFocus();
+        },
+    );
+
+    it('when wide, It is a transfer opens beside the list, one panel at a time', async () => {
+        screenWidth(true);
+        stubSearch({ planned: [], recorded: [] });
         renderPage(
             BankTransactions,
             props({
-                planned_options: [
-                    {
-                        kind: 'expense',
-                        id: 5,
-                        title: 'Luce',
-                        organization: null,
-                        due_on: '2026-11-05',
-                        late: false,
-                        amount: 72,
-                        estimated: false,
-                    },
+                accounts_all: [
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
                 ],
             }),
         );
@@ -574,7 +983,143 @@ describe('Budget, From the bank, sorting', () => {
 
         await userEvent.click(
             within(row).getByRole('button', {
-                name: 'It belongs to a planned expense',
+                name: 'It belongs to an expense',
+            }),
+        );
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+
+        expect(
+            screen.getByRole('complementary', { name: 'It is a transfer' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'It belongs to an expense',
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('posts the planned due date chosen in the sheet, with its original date', async () => {
+        stubSearch({
+            planned: [
+                {
+                    kind: 'expense',
+                    id: 6,
+                    title: 'Gas',
+                    organization: null,
+                    due_on: '2026-11-02',
+                    occurrence: '2026-10-30',
+                    late: true,
+                    amount: 84.2,
+                    estimated: true,
+                    paid_on: null,
+                    ended: false,
+                    ended_on: null,
+                },
+            ],
+            recorded: [],
+        });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        );
+        const dialog = await screen.findByRole('dialog', {
+            name: 'It belongs to an expense',
+        });
+        await userEvent.click(
+            await within(dialog).findByRole('button', { name: 'Mark as paid' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/assign',
+            { kind: 'expense', planned_id: 6, occurrence: '2026-10-30' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
+    });
+
+    it('posts the recorded movement chosen in the sheet', async () => {
+        stubSearch({
+            planned: [],
+            recorded: [
+                {
+                    kind: 'expense',
+                    id: 31,
+                    title: 'Luce settembre',
+                    organization: 'Edison Energia',
+                    date: '2026-09-05',
+                    amount: 70.1,
+                },
+            ],
+        });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Link the transaction' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/assign',
+            { kind: 'expense', movement_id: 31 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+    });
+
+    it('keeps the sheet and shows the message when the server refuses', async () => {
+        stubSearch({
+            planned: [
+                {
+                    kind: 'expense',
+                    id: 5,
+                    title: 'Luce',
+                    organization: null,
+                    due_on: '2026-11-05',
+                    occurrence: '2026-11-05',
+                    late: false,
+                    amount: 72,
+                    estimated: false,
+                    paid_on: null,
+                    ended: false,
+                    ended_on: null,
+                },
+            ],
+            recorded: [],
+        });
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({
+                planned_id: 'This planned expense has no due dates to pay.',
+            });
+        });
+        renderPage(BankTransactions, props());
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
             }),
         );
         await userEvent.click(
@@ -633,7 +1178,11 @@ describe('Budget, From the bank, a text that comes back every month', () => {
         for (const extra of [
             { can_plan: false },
             { rows: [{ ...netflix, pending: true, booked_on: null }] },
-            { rows: [{ ...netflix, ignored: true }], show: 'ignored' },
+            {
+                rows: [{ ...netflix, ignored: true }],
+                show: 'all',
+                ...allProps(),
+            },
             { rows: [{ ...netflix, currency: 'USD' }] },
             { rows: [{ ...netflix, recurring: false }] },
             { can_sort: false },
@@ -649,5 +1198,795 @@ describe('Budget, From the bank, a text that comes back every month', () => {
             ).not.toBeInTheDocument();
             rendered.unmount();
         }
+    });
+});
+
+describe('Budget, From the bank, a commission left alone', () => {
+    const fee: App.Data.BankTransactionData = {
+        ...bankTransactions[1]!,
+        id: 14,
+        text: 'COMMISSIONI DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A.',
+        counterparty: null,
+        amount: -0.4,
+        orphan_fee: true,
+    };
+
+    const satispay: App.Data.BankRecordedChoiceData[] = [
+        {
+            kind: 'expense',
+            id: 41,
+            title: 'Ricarica Satispay',
+            organization: 'Satispay',
+            date: '2026-08-25',
+            amount: 10,
+        },
+    ];
+
+    it('an orphan commission has only It is the commission of… and the menu', () => {
+        renderPage(BankTransactions, props({ rows: [fee] }));
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        expect(
+            within(row).getByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        ).toBeInTheDocument();
+        expect(within(row).getByText('Commission')).toBeInTheDocument();
+        expect(
+            within(row).getByText('Left without its direct debit'),
+        ).toBeInTheDocument();
+        expect(
+            within(row).queryByRole('link', { name: 'Create the expense' }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(row).queryByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            within(row).getByRole('button', { name: 'More actions' }),
+        ).toBeInTheDocument();
+    });
+
+    it('a commission with its debit has no such button', () => {
+        renderPage(
+            BankTransactions,
+            props({ rows: [{ ...fee, orphan_fee: false }] }),
+        );
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        expect(
+            within(row).queryByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('posts the expense chosen', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            planned: [],
+                            recorded: satispay,
+                            organization: 'Satispay',
+                        }),
+                }),
+            ),
+        );
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(BankTransactions, props({ rows: [fee] }));
+        const row = screen
+            .getByText(/COMMISSIONI DOMICILIAZIONE/)
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It is the commission of…',
+            }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Link the commission' }),
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/14/fee',
+            { expense_id: 41 },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            screen.queryByText(/COMMISSIONI DOMICILIAZIONE/),
+        ).not.toBeInTheDocument();
+    });
+});
+
+/**
+ * The 31 groups of the boards: the five of the fixtures and 26 more, biggest first as the server sorts them.
+ *
+ * @returns the groups
+ */
+function thirtyOneGroups(): App.Data.BankGroupData[] {
+    return [
+        ...bankGroups,
+        ...Array.from({ length: 26 }, (_, index) => ({
+            ...bankGroups[3],
+            key: `group${index}`,
+            name: `Shop ${index + 1}`,
+            count: 2,
+        })),
+    ];
+}
+
+/** The props of the tab *To sort* of the boards: 268 to sort, 31 groups and 42 lone movements. */
+function groupProps(
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return props({
+        groups: thirtyOneGroups(),
+        counts: { unsorted: 268, groups: 31, lone: 42 },
+        ...extra,
+    });
+}
+
+describe('Budget, From the bank, the groups', () => {
+    it('the head says «268 da sistemare · 31 gruppi»', () => {
+        renderPage(BankTransactions, groupProps());
+
+        expect(
+            screen.getByRole('heading', { name: '268 to sort · 31 groups' }),
+        ).toBeInTheDocument();
+    });
+
+    it('shows five groups and Show the other 26', async () => {
+        renderPage(BankTransactions, groupProps());
+
+        const section = screen.getByRole('region', { name: 'Groups' });
+        expect(within(section).getAllByRole('article')).toHaveLength(5);
+
+        await userEvent.click(
+            within(section).getByRole('button', {
+                name: 'Show the other 26 groups',
+            }),
+        );
+        expect(within(section).getAllByRole('article')).toHaveLength(31);
+        expect(
+            within(section).queryByRole('button', { name: /Show the other/ }),
+        ).toBeNull();
+    });
+
+    it('the lone movements come under their title with their number', () => {
+        renderPage(BankTransactions, groupProps());
+
+        const section = screen.getByRole('region', { name: 'Lone movements' });
+        expect(
+            within(section).getByRole('heading', {
+                name: 'Lone movements · 42',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            within(section).getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('loads the next lone movements with Show more', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(BankTransactions, groupProps({ next: 2 }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show 39 more movements' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['rows', 'next'],
+                data: { page: 2 },
+                preserveUrl: true,
+            }),
+        );
+    });
+
+    it('without groups shows only the lone movements', () => {
+        renderPage(BankTransactions, props());
+
+        expect(screen.queryByRole('region', { name: 'Groups' })).toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'Lone movements · 3' }),
+        ).toBeInTheDocument();
+    });
+
+    it('opening a group asks its rows', async () => {
+        screenWidth(true);
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation((options) => {
+                options?.onSuccess?.({
+                    props: { group_rows: structuredClone(bankGroupRows) },
+                } as never);
+            });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['group_rows'],
+                data: { group: '3f9a1c2b7d4e' },
+                preserveUrl: true,
+            }),
+        );
+        const panel = await screen.findByRole('complementary', {
+            name: 'Satispay Europe',
+        });
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(6);
+    });
+
+    it('when wide, closing the group with Escape gives the focus back to its card', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        await settle();
+        expect(
+            screen.getByRole('heading', { name: 'Satispay Europe' }),
+        ).toHaveFocus();
+
+        await userEvent.keyboard('{Escape}');
+        await settle();
+
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+        const section = screen.getByRole('region', { name: 'Groups' });
+        expect(
+            within(section).getByRole('button', { name: /Satispay Europe/ }),
+        ).toHaveFocus();
+    });
+
+    it('It is not of this group takes the movement out of the open group, and the panel drops it', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({ props: {} } as never);
+            });
+        renderPage(BankTransactions, groupProps());
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        const panel = await screen.findByRole('complementary', {
+            name: 'Satispay Europe',
+        });
+        const first = bankGroupRows[0]!.transaction;
+
+        await userEvent.click(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            })[0]!,
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            `/budget/bank/${first.id}/leave`,
+            { group: '3f9a1c2b7d4e' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(6);
+        await userEvent.click(
+            within(panel).getByRole('button', { name: /Show/ }),
+        );
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(bankGroupRows.length - 1);
+    });
+
+    it('two groups opened quickly show the rows of the last one, whatever order the answers come in', async () => {
+        screenWidth(true);
+        const answers: Array<() => void> = [];
+        const inpsRows = bankGroupRows.slice(0, 2).map((row) => ({
+            ...row,
+            transaction: {
+                ...row.transaction,
+                text: 'BONIFICO SEPA DA INPS ASSEGNO UNICO',
+            },
+        }));
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            const key = (options?.data as { group?: string } | undefined)
+                ?.group;
+            answers.push(() =>
+                options?.onSuccess?.({
+                    props: {
+                        group_rows:
+                            key === '3f9a1c2b7d4e' ? bankGroupRows : inpsRows,
+                    },
+                } as never),
+            );
+        });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        await userEvent.click(
+            screen.getByRole('button', { name: /INPS · Assegno Unico/ }),
+        );
+        // The answer for INPS comes first, the one for Satispay after it
+        answers[1]();
+        answers[0]();
+        await nextTick();
+
+        const panel = screen.getByRole('complementary', {
+            name: 'INPS · Assegno Unico',
+        });
+        expect(
+            within(panel).getAllByText('BONIFICO SEPA DA INPS ASSEGNO UNICO'),
+        ).toHaveLength(2);
+        expect(within(panel).queryByText(/Satispay Europe S\.A\./)).toBeNull();
+    });
+
+    it('when wide, the open group puts the groups in a list beside it, and the lone movements bring the page back', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({ props: { group_rows: [] } } as never);
+        });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /INPS · Assegno Unico/ }),
+        );
+
+        const nav = screen.getByRole('navigation', { name: 'Groups' });
+        expect(
+            within(nav).getByRole('button', { name: /INPS · Assegno Unico/ }),
+        ).toHaveAttribute('aria-current', 'true');
+        expect(
+            screen.queryByRole('region', { name: 'Lone movements' }),
+        ).toBeNull();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Lone movements · 42/ }),
+        );
+        expect(screen.queryByRole('complementary')).toBeNull();
+        expect(
+            screen.getByRole('region', { name: 'Lone movements' }),
+        ).toBeInTheDocument();
+    });
+
+    it('the number of the lone movements follows the server after a sort, without taking the row off twice', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onSuccess?.({} as never);
+        });
+        const view = renderPage(BankTransactions, groupProps({ next: 2 }));
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Ignore' }));
+        // The redirect after the sort brings the counts already lowered
+        await view.rerender(
+            groupProps({
+                next: 2,
+                counts: { unsorted: 267, groups: 31, lone: 41 },
+            }),
+        );
+
+        expect(
+            screen.getByRole('heading', { name: 'Lone movements · 41' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Show 39 more movements' }),
+        ).toBeInTheDocument();
+    });
+
+    it('on the phone the open group is a sheet over the page', async () => {
+        screenWidth(false);
+        vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('region', {
+                name: 'Lone movements',
+                // The sheet hides the page under it from screen readers
+                hidden: true,
+            }),
+        ).toBeInTheDocument();
+    });
+});
+
+describe('Budget, From the bank, Maybe it is…', () => {
+    /** The rows of the page with the proposal on the direct debit of Edison. */
+    function withProposal(
+        proposal: App.Data.BankProposalData | null,
+    ): App.Data.BankTransactionData[] {
+        return bankTransactions.map((row) =>
+            row.id === 2 ? { ...row, proposal } : row,
+        );
+    }
+
+    it('shows the line under the text of a movement that has a proposal, and under no other', () => {
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        expect(screen.getAllByRole('button', { name: /^Yes/ })).toHaveLength(1);
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+        expect(within(row).getByText('Spesa Famila')).toBeInTheDocument();
+    });
+
+    it('shows none to who cannot sort', () => {
+        renderPage(
+            BankTransactions,
+            props({
+                rows: withProposal(bankProposals.recorded),
+                can_sort: false,
+            }),
+        );
+
+        expect(screen.queryByRole('button', { name: /^Yes/ })).toBeNull();
+    });
+
+    it('Yes sends the key, keeps the scroll and the row goes', async () => {
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
+
+        expect(post).toHaveBeenCalledWith(
+            '/budget/bank/2/proposal',
+            { key: 'expense:812' },
+            expect.objectContaining({
+                preserveScroll: true,
+                only: ['rows', 'counts', 'next', 'bank_feed'],
+            }),
+        );
+        expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
+    });
+
+    it('says something when the server refuses without a message', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({});
+        });
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
+
+        expect(toast.error).toHaveBeenCalledWith(
+            'Something went wrong, try again.',
+        );
+    });
+
+    it('Yes keeps the row and the line when the server refuses', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({ key: 'This proposal is not valid any more.' });
+            options?.onFinish?.({} as never);
+        });
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
+
+        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^Yes/ })).toBeEnabled();
+    });
+
+    it('No sends the key, keeps the scroll and takes the line away but not the row', async () => {
+        const del = vi
+            .spyOn(router, 'delete')
+            .mockImplementation((_url, options) => {
+                options?.onSuccess?.({} as never);
+            });
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^No/ }));
+
+        expect(del).toHaveBeenCalledWith(
+            '/budget/bank/2/proposal',
+            expect.objectContaining({
+                data: { key: 'expense:812' },
+                preserveScroll: true,
+                only: ['rows', 'counts', 'next', 'bank_feed'],
+            }),
+        );
+        expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /^Yes/ })).toBeNull();
+    });
+
+    it('shows the next candidate the server sends after No', async () => {
+        vi.spyOn(router, 'delete').mockImplementation((_url, options) => {
+            options?.onSuccess?.({} as never);
+        });
+        const view = renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^No/ }));
+        await view.rerender(
+            props({ rows: withProposal(bankProposals.deadline) }),
+        );
+
+        expect(
+            screen.getByText('Assegno Unico novembre 2026'),
+        ).toBeInTheDocument();
+    });
+});
+
+/** What the server flashes after a movement of a group is sorted: 3 others, the carried rows, and the filter form. */
+function similarFlash(): FlashSimilar {
+    return {
+        count: 3,
+        kind: 'expense',
+        filter: bankFilters.find((filter) => filter.action === 'create')!,
+        reason: { kind: 'mandate', name: 'Satispay' },
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-17',
+        rows: [4, 5, 6].map((id) => ({
+            ...bankTransactions[1]!,
+            id,
+            text: 'SATISPAY EUROPE',
+        })),
+        action: 'create',
+        url: '/budget/bank/filters/create?from=2',
+    };
+}
+
+describe('Budget, From the bank, the filter for the others', () => {
+    it('offers the filter for the others after the movement is marked as a transfer', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onFlash?.({ similar: similarFlash() } as never);
+            options?.onSuccess?.({} as never);
+        });
+        renderPage(
+            BankTransactions,
+            props({
+                accounts_all: [
+                    {
+                        id: 4,
+                        name: 'Conto BancoPosta ·· 3307',
+                        connected: true,
+                    },
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as a transfer' }),
+        );
+
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create?from=2');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'No, leave it so' }),
+        );
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('offers it when the page opens with the flash (the expense created from the form of a movement)', async () => {
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, props());
+
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create?from=2');
+    });
+
+    it('does not open again after it was dismissed, when the page gets new props', async () => {
+        shared.flash = { similar: similarFlash() };
+        const view = renderPage(BankTransactions, props());
+
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'No, leave it so' }),
+        );
+        shared.flash = {};
+        await view.rerender(structuredClone(props()));
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('when wide, it is a column beside the list, and opening a group closes it', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, groupProps());
+        await settle();
+
+        expect(
+            screen.getByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        // As with a group open: the groups become the list of one column, the lone movements a row that brings them back
+        expect(
+            screen.getByRole('navigation', { name: 'Groups' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('region', { name: 'Lone movements' }),
+        ).not.toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+    });
+
+    it('when wide, the row of the lone movements closes the sheet and brings them back', async () => {
+        screenWidth(true);
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, groupProps());
+        await settle();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Lone movements · 42/ }),
+        );
+
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('region', { name: 'Lone movements' }),
+        ).toBeInTheDocument();
+    });
+
+    it('the same flash brought again after it was dismissed does not open it again, a new one does', async () => {
+        const flash = { similar: similarFlash() };
+        let answer: { similar: FlashSimilar } = flash;
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onFlash?.(answer as never);
+            options?.onSuccess?.({} as never);
+        });
+        shared.flash = flash;
+        renderPage(
+            BankTransactions,
+            props({
+                rows: [
+                    ...bankTransactions,
+                    {
+                        ...bankTransactions[1]!,
+                        id: 901,
+                        text: 'ADDEBITO DIRETTO SDD ENEL ENERGIA',
+                    },
+                ],
+                accounts_all: [
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'No, leave it so' }),
+        );
+        await settle();
+
+        /** Marks a row as a transfer, the visit that brings `answer` as its flash. */
+        async function transfer(text: RegExp): Promise<void> {
+            const row = screen.getByText(text).closest('li')!;
+
+            await userEvent.click(
+                within(row).getByRole('button', { name: 'More actions' }),
+            );
+            await userEvent.click(
+                screen.getByRole('menuitem', { name: 'It is a transfer' }),
+            );
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'Mark as a transfer',
+                }),
+            );
+            await settle();
+        }
+
+        await transfer(/EDISON ENERGIA/);
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
+
+        answer = { similar: similarFlash() };
+        await transfer(/ENEL/);
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toBeInTheDocument();
+    });
+
+    it('offers nothing without the flash', async () => {
+        renderPage(BankTransactions, props());
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
     });
 });

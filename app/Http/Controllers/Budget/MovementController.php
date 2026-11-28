@@ -24,6 +24,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankSimilar;
 use App\Services\BudgetFormOptions;
 use App\Services\FamilyFeatures;
 use App\Services\FileStore;
@@ -125,13 +126,14 @@ final class MovementController extends Controller
      * opens with the movement as the link of each; otherwise it goes back to the card of *Add expense* (`back_to_card`),
      * to the page the form came from (`from`) or to the month of the movement.
      */
-    public function store(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store, LinkBankMovement $linkBank): RedirectResponse
+    public function store(SaveMovementRequest $request, SaveMovement $save, LinkDocuments $links, FileStore $store, LinkBankMovement $linkBank, BankSimilar $similar): RedirectResponse
     {
         // Looked up first: a document of another family answers 404 before anything is saved
         $link = $request->documentsToLink();
         $bankId = $request->bankTransactionId();
 
-        $movement = DB::transaction(function () use ($request, $save, $links, $link, $linkBank, $bankId): Expense|Income {
+        $bank = null;
+        $movement = DB::transaction(function () use ($request, $save, $links, $link, $linkBank, $bankId, &$bank): Expense|Income {
             // The bank row is the first thing the transaction locks, before the planned item the movement may settle
             $bank = $bankId === null ? null : $linkBank->lock($bankId);
             $movement = $save->handle($request->kind(), $request->columns());
@@ -143,6 +145,11 @@ final class MovementController extends Controller
 
             return $movement;
         });
+
+        // After *Create the expense* from a movement of a group, the page learns about the others like it
+        if ($bank instanceof BankTransaction) {
+            $similar->offer($bank);
+        }
 
         return $this->saved($movement, $request, $store);
     }
@@ -156,7 +163,7 @@ final class MovementController extends Controller
     public function show(Request $request, string $kind, string $id, #[CurrentUser] User $user): Response
     {
         $movement = Movements::find($kind, $id);
-        $data = MovementData::fromMovement($movement, $user, bank: $this->movements->bank($movement, $user));
+        $data = MovementData::fromMovement($movement, $user, bank: $this->movements->bank($movement));
 
         return Inertia::render('budget/Movement', [
             'movement' => $data,

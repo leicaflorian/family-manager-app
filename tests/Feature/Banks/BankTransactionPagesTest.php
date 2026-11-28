@@ -118,7 +118,7 @@ it('lists the unsorted transactions, newest first, with the pending ones marked'
 
 it('gives 50 rows at a time and the number of the next block', function (): void {
     $connection = bankTransactionPagesConnection($this->marco);
-    insideFamilyOf($this->marco, fn () => BankTransaction::factory()->count(52)->create([
+    insideFamilyOf($this->marco, fn () => BankTransaction::factory()->count(52)->sequence(fn ($sequence): array => ['counterparty' => 'Shop '.$sequence->index])->create([
         'family_id' => $connection->family_id,
         'bank_connection_id' => $connection->id,
         'financial_account_id' => $connection->accounts()->firstOrFail()->id,
@@ -132,20 +132,36 @@ it('gives 50 rows at a time and the number of the next block', function (): void
         ->where('next', null));
 });
 
-it('keeps the ignored ones under their own filter', function (): void {
+it('show=filters and show=all are accepted', function (): void {
     $connection = bankTransactionPagesConnection($this->marco);
     bankTransactionPagesRow($connection, ['text' => 'TO SORT']);
     bankTransactionPagesRow($connection, ['text' => 'SET ASIDE', 'ignored_at' => now()]);
 
-    $this->get(route('budget.bank.index', ['show' => 'ignored']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('show', 'ignored')
-        ->has('rows', 1)
-        ->where('rows.0.text', 'SET ASIDE')
-        ->where('rows.0.ignored', true));
+    // All lists every transaction (see BankAllTransactionsTest) and Filters lists no movement until its task
+    $this->get(route('budget.bank.index', ['show' => 'all']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'all')
+        ->has('rows', 2));
+
+    $this->get(route('budget.bank.index', ['show' => 'filters']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'filters')
+        ->has('rows', 0)
+        ->where('next', null));
 
     $this->get(route('budget.bank.index', ['show' => 'nonsense']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('show', 'unsorted')
         ->where('rows.0.text', 'TO SORT'));
+});
+
+it('show=ignored still answers', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    bankTransactionPagesRow($connection, ['text' => 'TO SORT']);
+    bankTransactionPagesRow($connection, ['text' => 'SET ASIDE', 'ignored_at' => now()]);
+
+    $this->get(route('budget.bank.index', ['show' => 'ignored']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('show', 'all')
+        ->has('rows', 1)
+        ->where('rows.0.text', 'SET ASIDE')
+        ->where('rows.0.ignored', true));
 });
 
 it('says when the banks were read last and at which hours they are read', function (): void {
@@ -287,20 +303,22 @@ it('marks the rows whose text comes back every month and lets only who can plan 
     $connection = bankTransactionPagesConnection($this->marco);
 
     foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
-        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => $day, 'amount' => '-13.99']);
+        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'counterparty' => 'Netflix', 'booked_on' => $day, 'amount' => '-13.99']);
     }
     bankTransactionPagesRow($connection, ['text' => 'BAR CENTRALE', 'booked_on' => '2026-11-13']);
-    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => null, 'value_on' => '2026-11-14', 'status' => BankTransactionStatus::Pending, 'amount' => '-13.99']);
+    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'counterparty' => 'Netflix', 'booked_on' => null, 'value_on' => '2026-11-14', 'status' => BankTransactionStatus::Pending, 'amount' => '-13.99']);
 
     $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('can_plan', true)
+        // The three booked debits are a group (its `recurring_url` says it comes back every month); the pending one and the bar are lone rows
+        ->has('rows', 2)
         ->where('rows.0.text', 'ADDEBITO SDD NETFLIX')
         ->where('rows.0.recurring', false)
         ->where('rows.1.text', 'BAR CENTRALE')
         ->where('rows.1.recurring', false)
-        ->where('rows.2.recurring', true)
-        ->where('rows.3.recurring', true)
-        ->where('rows.4.recurring', true));
+        ->has('groups', 1)
+        ->where('groups.0.count', 3)
+        ->where('groups.0.recurring_url', fn ($url): bool => is_string($url) && str_contains($url, 'budget/planned/expense/create?bank=')));
 
     bankTransactionPagesMember($this->marco);
     $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
@@ -326,4 +344,117 @@ it('marks a row recurring only where the planned form can start from it', functi
         ->where('rows.2.recurring', true)
         ->where('rows.3.recurring', true)
         ->where('rows.4.recurring', true));
+});
+
+/**
+ * A Satispay direct debit or its commission on the account of a connection.
+ *
+ * @param  array<string, mixed>  $state  what to change in the transaction
+ */
+function bankTransactionPagesSatispay(BankConnection $connection, string $day, string $amount, bool $fee = false, array $state = []): BankTransaction
+{
+    return bankTransactionPagesRow($connection, [
+        'text' => ($fee ? 'COMMISSIONI ' : '').'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900',
+        'booked_on' => $day,
+        'value_on' => $day,
+        'amount' => $amount,
+        ...$state,
+    ]);
+}
+
+it('a paired commission is not a row', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    $debit = bankTransactionPagesSatispay($connection, '2026-11-24', '-10.00');
+    bankTransactionPagesSatispay($connection, '2026-11-25', '-0.40', true);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('rows', 1)
+        ->where('rows.0.id', $debit->id));
+});
+
+it('the debit carries its fee', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    $debit = bankTransactionPagesSatispay($connection, '2026-11-24', '-10.00');
+    $fee = bankTransactionPagesSatispay($connection, '2026-11-25', '-0.40', true);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('rows.0.id', $debit->id)
+        ->where('rows.0.orphan_fee', false)
+        ->where('rows.0.fee.id', $fee->id)
+        ->where('rows.0.fee.amount', -0.4)
+        ->where('rows.0.fee.booked_on', '2026-11-25'));
+});
+
+it('a commission never offers It comes back every month', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+
+    foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
+        bankTransactionPagesSatispay($connection, $day, '-0.40', true);
+    }
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('rows', 3)
+        ->where('rows.0.orphan_fee', true)
+        ->where('rows.0.recurring', false)
+        ->where('rows.1.recurring', false)
+        ->where('rows.2.recurring', false));
+});
+
+it('a commission whose debit is already sorted is an orphan row', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    bankTransactionPagesSatispay($connection, '2026-11-24', '-10.00', false, ['ignored_at' => now()]);
+    $fee = bankTransactionPagesSatispay($connection, '2026-11-25', '-0.40', true);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->has('rows', 1)
+        ->where('rows.0.id', $fee->id)
+        ->where('rows.0.orphan_fee', true)
+        ->where('rows.0.fee', null));
+});
+
+it('a commission is not an orphan when its debit is on the next block', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    // Fifty newer shops and the commission fill the first block; the debit, three days older, starts the second
+    $fee = bankTransactionPagesSatispay($connection, '2026-11-11', '-0.40', true);
+    $debit = bankTransactionPagesSatispay($connection, '2026-11-08', '-10.00');
+
+    foreach (range(1, 50) as $index) {
+        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'counterparty' => 'Shop '.$index, 'booked_on' => '2026-11-10', 'value_on' => '2026-11-10']);
+    }
+    bankTransactionPagesRow($connection, ['text' => 'SHOP LAST', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
+
+    $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('next', 2)
+        ->where('rows', fn ($rows): bool => collect($rows)->doesntContain('id', $fee->id)));
+
+    $this->get(route('budget.bank.index', ['page' => 2]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('rows', fn ($rows): bool => collect($rows)->firstWhere('id', $debit->id)['fee']['id'] === $fee->id));
+});
+
+it('a commission between two debits of one mandate on two blocks shows exactly once, under its own debit', function (): void {
+    $connection = bankTransactionPagesConnection($this->marco);
+    // Two debits of the mandate would be a group, so one is lone: its commission, 2 days later, is on the first block
+    $fee = bankTransactionPagesSatispay($connection, '2026-11-05', '-0.40', true);
+    $older = bankTransactionPagesSatispay($connection, '2026-11-03', '-10.00');
+
+    foreach (range(1, 50) as $index) {
+        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'counterparty' => 'Shop '.$index, 'booked_on' => '2026-11-07', 'value_on' => '2026-11-07']);
+    }
+
+    $seen = [];
+    foreach ([1, 2] as $block) {
+        $this->get(route('budget.bank.index', ['page' => $block]))->assertInertia(function (AssertableInertia $page) use (&$seen, $fee): void {
+            $rows = collect($page->toArray()['props']['rows']);
+            foreach ($rows as $row) {
+                if ($row['id'] === $fee->id) {
+                    $seen[] = 'row';
+                }
+                if (($row['fee']['id'] ?? null) === $fee->id) {
+                    $seen[] = $row['id'];
+                }
+            }
+        });
+    }
+
+    expect($seen)->toBe([$older->id]);
 });

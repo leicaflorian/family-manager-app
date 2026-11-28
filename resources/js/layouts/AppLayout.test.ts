@@ -399,6 +399,46 @@ describe('AppLayout', () => {
         },
     );
 
+    it.each([
+        ['phone', 390],
+        ['tablet', 820],
+        ['computer', 1280],
+    ] as const)(
+        'on the %s shows the trail of From the bank under Budget',
+        async (name, width) => {
+            screenWidth(width);
+            page.component = 'budget/BankTransactions';
+            page.url = '/budget/bank';
+            const BankPage = defineComponent({
+                setup() {
+                    usePageTrail(() => [
+                        { label: 'Budget', href: '/budget' },
+                        { label: 'From the bank' },
+                    ]);
+
+                    return () => h('h1', 'From the bank');
+                },
+            });
+            render(AppLayout, { slots: { default: BankPage } });
+
+            if (name === 'phone') {
+                expect(
+                    await within(screen.getByRole('main')).findByRole('link', {
+                        name: 'Budget',
+                    }),
+                ).toHaveAttribute('href', '/budget');
+
+                return;
+            }
+
+            const trail = await screen.findByRole('navigation', {
+                name: 'Where you are',
+            });
+            expect(trail).toHaveTextContent('Budget');
+            expect(trail).toHaveTextContent('From the bank');
+        },
+    );
+
     it('on the computer has no row above the page', async () => {
         page.component = 'documents/Document';
         page.url = '/documents/7';

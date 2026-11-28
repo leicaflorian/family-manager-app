@@ -71,6 +71,11 @@ export type SectionEntry = {
     group: SectionGroupKey;
     /** The Inertia pages of the section and its top tabs: they show no trail. */
     pages: string[];
+    /**
+     * The Inertia pages under the section in the sidebar (*Budget › From the bank*): they show their trail, and on the
+     * phone they keep the search and the bell beside the title as the section pages.
+     */
+    subpages?: string[];
 };
 
 /** Settings: always in the menus, with the account. */
@@ -94,11 +99,8 @@ export const SECTIONS: readonly SectionEntry[] = [
         feature: 'budget',
         bar: 1,
         group: 'every-day',
-        pages: [
-            'budget/Movements',
-            'budget/Planned',
-            'budget/BankTransactions',
-        ],
+        pages: ['budget/Movements', 'budget/Planned'],
+        subpages: ['budget/BankTransactions'],
     },
     {
         key: 'family',
