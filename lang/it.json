@@ -3013,5 +3013,13 @@
     "It does not come back": "Non ci torna più",
     "What is this movement?": "Cosa rappresenta questo movimento?",
     "Done: the movement is sorted.": "Fatto: il movimento è sistemato.",
-    "Leave it out": "Lascialo fuori"
+    "Leave it out": "Lascialo fuori",
+    "Maybe it is: :title · already recorded on :date · :amount": "Forse è: :title · già segnata il :date · :amount",
+    "Maybe it is: :title · due on :date · :amount": "Forse è: :title · scadenza del :date · :amount",
+    "Maybe it is: :title · :date · :amount": "Forse è: :title · :date · :amount",
+    "Maybe it is a transfer from :title": "Forse è un trasferimento da :title",
+    "Maybe it is a transfer to :title": "Forse è un trasferimento a :title",
+    "Yes: :title": "Sì: :title",
+    "No: :title": "No: :title",
+    "Something went wrong, try again.": "Qualcosa è andato storto, riprova."
 }

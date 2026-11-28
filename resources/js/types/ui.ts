@@ -1,6 +1,8 @@
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;
+    /** A bank filter the server saved with the message: the toast offers *Edit the filter*. */
+    filter_id?: number;
 };
 
 /**
