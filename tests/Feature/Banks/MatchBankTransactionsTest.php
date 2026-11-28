@@ -142,6 +142,65 @@ test('one taken by two filters stays to sort and names them', function (): void 
         ->where('rows.0.two_filters', ['Luce di casa', 'Edison ufficio']));
 });
 
+/**
+ * Two monthly Findomestic loans of the Bianchi, on the 10th from January 2026, each paid by a filter on the same words
+ * (as two old rules on the same lender become two filters).
+ *
+ * @return array{PlannedExpense, PlannedExpense, BankFilter, BankFilter}
+ */
+function bankMatchingTwoLoans(string $first = '150', string $second = '200'): array
+{
+    $car = bankMatchingLuce(['title' => 'Prestito auto', 'amount' => $first, 'start_date' => '2026-01-10']);
+    $kitchen = bankMatchingLuce(['title' => 'Prestito cucina', 'amount' => $second, 'start_date' => '2026-01-10']);
+
+    return [$car, $kitchen, bankMatchingPays($car, ['FINDOMESTIC']), bankMatchingPays($kitchen, ['FINDOMESTIC'])];
+}
+
+test('two filters that pay take one movement: the planned item closest in amount is paid', function (): void {
+    $transaction = insideBianchi(function (): BankTransaction {
+        [$car, $kitchen, , $kitchenFilter] = bankMatchingTwoLoans();
+        $transaction = bankMatchingTransaction('ADDEBITO SDD FINDOMESTIC BANCA', '-199.00', '2026-11-10');
+
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(1)
+            ->and($transaction->refresh()->expense?->planned_expense_id)->toBe($kitchen->id)
+            ->and($transaction->bank_filter_id)->toBe($kitchenFilter->id)
+            ->and(Expense::query()->where('planned_expense_id', $car->id)->exists())->toBeFalse();
+
+        return $transaction;
+    });
+
+    expect($transaction->expense_id)->not->toBeNull();
+});
+
+test('saving one of two filters that pay settles what is closest to its planned item', function (): void {
+    insideBianchi(function (): void {
+        $near = bankMatchingTransaction('ADDEBITO SDD FINDOMESTIC BANCA', '-150.00', '2026-11-10');
+        $far = bankMatchingTransaction('ADDEBITO SDD FINDOMESTIC BANCA', '-200.00', '2026-11-10');
+        [$car, , $carFilter] = bankMatchingTwoLoans();
+
+        expect(resolve(MatchBankTransactions::class)->forFilter($carFilter))->toBe(1)
+            ->and($near->refresh()->expense?->planned_expense_id)->toBe($car->id)
+            ->and($far->refresh()->expense_id)->toBeNull();
+    });
+});
+
+test('two filters that pay at the same distance leave the movement to sort and name them', function (): void {
+    $transaction = insideBianchi(function (): BankTransaction {
+        bankMatchingTwoLoans('150', '200');
+        $transaction = bankMatchingTransaction('ADDEBITO SDD FINDOMESTIC BANCA', '-175.00', '2026-11-10');
+
+        expect(resolve(MatchBankTransactions::class)->handle([$transaction]))->toBe(0)
+            ->and($transaction->refresh()->expense_id)->toBeNull()
+            ->and(Expense::query()->count())->toBe(0);
+
+        return $transaction;
+    });
+
+    $this->actingAs($this->marco)->get('/budget/bank')->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+        ->where('rows.0.id', $transaction->id)
+        ->where('rows.0.two_filters', ['Prestito auto', 'Prestito cucina']));
+});
+
 test('a transaction taken by one filter names no filters on its row', function (): void {
     insideBianchi(fn (): BankTransaction => bankMatchingTransaction('ADDEBITO SDD EDISON ENERGIA', '-72.40', '2026-11-05'));
 

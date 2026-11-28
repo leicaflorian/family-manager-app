@@ -13,15 +13,16 @@ use Throwable;
 /**
  * Lets the bank filters work by themselves: on the new transactions of a read of the bank, and on the transactions
  * still to sort that a filter just saved takes. A transaction that two filters or more take is left to the person,
- * who sees their names on its row. Runs in a request and in the queued read of a bank.
+ * who sees their names on its row, unless they all pay and one planned item is the closest in amount
+ * (`BankFilters::settling()`). Runs in a request and in the queued read of a bank.
  */
 final readonly class MatchBankTransactions
 {
     public function __construct(private BankFilters $filters, private ApplyBankFilter $apply) {}
 
     /**
-     * Applies to every transaction the filter that takes it, when exactly one does (`BankFilters::matching()`); with
-     * two or more nothing happens. A transaction that fails (also while its filters are read) is reported and left to
+     * Applies to every transaction the filter that settles it (`BankFilters::settling()`): the only one that takes
+     * it, or among filters that all pay the one closest in amount; otherwise nothing happens. A transaction that fails (also while its filters are read) is reported and left to
      * sort, and the others go on.
      *
      * @param  iterable<BankTransaction>  $transactions  The transactions, in the order to settle them.
@@ -33,8 +34,7 @@ final readonly class MatchBankTransactions
 
         foreach ($transactions as $transaction) {
             $done = $this->safely(function () use ($transaction): bool {
-                $filters = $this->filters->matching($transaction);
-                $filter = $filters->count() === 1 ? $filters->first() : null;
+                $filter = $this->filters->settling($transaction);
 
                 return $filter instanceof BankFilter && $this->apply->handle($transaction, $filter) !== BankFilterOutcome::None;
             });
@@ -50,8 +50,8 @@ final readonly class MatchBankTransactions
     /**
      * Applies a filter just saved to the transactions still to sort and not declined of the last days of a first read
      * (90) that it takes, the oldest first, so the due dates are paid in order. One that another filter takes too is
-     * left to the person, and the linked ones are never touched. A failure is reported and never leaves: the filter is
-     * already saved. Not to be called inside an open transaction: it reads the transactions with plain reads before
+     * left to the person (unless this filter wins it, `BankFilters::settling()`), and the linked ones are never
+     * touched. A failure is reported and never leaves: the filter is already saved. Not to be called inside an open transaction: it reads the transactions with plain reads before
      * each one is locked, and inside a transaction those reads would fix the snapshot before the locks; the caller
      * commits the save of the filter first.
      *
@@ -72,7 +72,7 @@ final readonly class MatchBankTransactions
         $settled = 0;
 
         foreach ($transactions as $transaction) {
-            $done = $this->safely(fn (): bool => $this->filters->matching($transaction)->every(static fn (BankFilter $other): bool => $other->is($filter))
+            $done = $this->safely(fn (): bool => $this->filters->settling($transaction)?->is($filter) === true
                 && $this->apply->handle($transaction, $filter) !== BankFilterOutcome::None);
 
             if ($done) {

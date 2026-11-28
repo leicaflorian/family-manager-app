@@ -17,6 +17,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankDuplicates;
+use App\Services\Banks\BankFilters;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
 use App\Support\Deadline;
@@ -128,7 +129,7 @@ final readonly class ApplyBankFilter
     private function foreseePay(BankTransaction $transaction, BankFilter $filter, array $used): array
     {
         $planned = $filter->plannedExpense ?? $filter->plannedIncome;
-        $found = $planned !== null && $this->payable($planned, $transaction) ? $this->settle->foresee($transaction, $planned, $filter, $used) : null;
+        $found = $planned !== null && BankFilters::payable($planned, $transaction) ? $this->settle->foresee($transaction, $planned, $filter, $used) : null;
 
         return match (true) {
             $found instanceof Deadline => [
@@ -196,7 +197,7 @@ final readonly class ApplyBankFilter
     {
         $planned = $this->lockPlanned($filter);
 
-        if ($planned === null || ! $this->payable($planned, $transaction)) {
+        if ($planned === null || ! BankFilters::payable($planned, $transaction)) {
             return BankFilterOutcome::None;
         }
 
@@ -303,21 +304,6 @@ final readonly class ApplyBankFilter
         $transaction->forceFill(['ignored_at' => now()])->save();
 
         return BankFilterOutcome::Ignored;
-    }
-
-    /**
-     * Whether the planned item of a filter that pays can be paid with the transaction: it is of the same direction,
-     * and did not end before the day of the transaction.
-     *
-     * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
-     * @param  BankTransaction  $transaction  The transaction.
-     */
-    private function payable(PlannedExpense|PlannedIncome $planned, BankTransaction $transaction): bool
-    {
-        $day = (string) $transaction->booked_on?->toDateString();
-
-        return ($planned instanceof PlannedExpense) === ($transaction->kind() === 'expense')
-            && ($planned->end_date === null || $planned->end_date->toDateString() >= $day);
     }
 
     /**

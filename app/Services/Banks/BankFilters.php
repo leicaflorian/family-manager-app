@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Banks;
 
+use App\Enums\BankFilterAction;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
 use App\Support\Banks\RuleAccount;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -53,9 +57,67 @@ final class BankFilters
     }
 
     /**
-     * The names of the filters that take a transaction, when two or more do: none of them settles it, and its row
-     * says which ones. Null for one filter or none, and for a transaction no filter can settle: not booked, not in
-     * euros, or a commission (it joins the expense of its debit by itself).
+     * The filter that settles a transaction: the only one that takes it. When two or more take it and all of them pay
+     * a planned item (two old rules on the same lender became two filters), the one whose planned item, still payable
+     * on the day, is closest in amount wins, as the old rules did; two at the same distance cannot be told apart. Any
+     * other pair of filters settles nothing, and the row names them. The planned items are plain reads: this runs
+     * before `ApplyBankFilter` takes its locks, never inside them.
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     */
+    public function settling(BankTransaction $transaction): ?BankFilter
+    {
+        $taking = $this->matching($transaction);
+
+        if ($taking->count() <= 1) {
+            return $taking->first();
+        }
+
+        if ($taking->contains(static fn (BankFilter $filter): bool => $filter->action !== BankFilterAction::Pay)) {
+            return null;
+        }
+
+        $cents = abs(Money::cents($transaction->amount));
+        $ranked = [];
+
+        foreach ($taking as $filter) {
+            $planned = $filter->loadMissing(['plannedExpense', 'plannedIncome'])->plannedExpense ?? $filter->plannedIncome;
+
+            if ($planned !== null && self::payable($planned, $transaction)) {
+                $ranked[] = ['distance' => abs($this->plannedCents($planned) - $cents), 'filter' => $filter];
+            }
+        }
+
+        // A stable sort: at the same distance the oldest filter comes first, and the tie below leaves both
+        usort($ranked, static fn (array $a, array $b): int => $a['distance'] <=> $b['distance']);
+
+        if ($ranked === [] || (isset($ranked[1]) && $ranked[1]['distance'] === $ranked[0]['distance'])) {
+            return null;
+        }
+
+        return $ranked[0]['filter'];
+    }
+
+    /**
+     * Whether the planned item of a filter that pays can be paid with the transaction: it is of the same direction,
+     * and did not end before the day of the transaction.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     * @param  BankTransaction  $transaction  the transaction
+     */
+    public static function payable(PlannedExpense|PlannedIncome $planned, BankTransaction $transaction): bool
+    {
+        $day = (string) $transaction->booked_on?->toDateString();
+
+        return ($planned instanceof PlannedExpense) === ($transaction->kind() === 'expense')
+            && ($planned->end_date === null || $planned->end_date->toDateString() >= $day);
+    }
+
+    /**
+     * The names of the filters that take a transaction, when two or more do and none of them settles it
+     * (`settling()`): its row says which ones. Null for one filter or none, for two that pay told apart by the amount,
+     * and for a transaction no filter can settle: not booked, not in euros, or a commission (it joins the expense of
+     * its debit by itself).
      *
      * @param  BankTransaction  $transaction  the transaction
      * @return list<string>|null
@@ -68,7 +130,9 @@ final class BankFilters
 
         $taking = $this->matching($transaction);
 
-        return $taking->count() >= 2 ? array_values($taking->map(static fn (BankFilter $filter): string => $filter->name)->all()) : null;
+        return $taking->count() >= 2 && ! $this->settling($transaction) instanceof BankFilter
+            ? array_values($taking->map(static fn (BankFilter $filter): string => $filter->name)->all())
+            : null;
     }
 
     /**
@@ -154,6 +218,16 @@ final class BankFilters
     {
         return $transaction->expense_id === null && $transaction->income_id === null && $transaction->ignored_at === null
             && $transaction->transfer_account_id === null && $transaction->declined_at === null && ! BankText::isFee($transaction->text);
+    }
+
+    /**
+     * The amount of a planned item in cents, its fee included, as the old rules compared it with the bank.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     */
+    private function plannedCents(PlannedExpense|PlannedIncome $planned): int
+    {
+        return Money::cents($planned->amount) + ($planned instanceof PlannedExpense ? Money::cents($planned->fee_amount) : 0);
     }
 
     /**
