@@ -11,6 +11,7 @@ use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use Illuminate\Support\Collection;
 
 /**
  * A bank filter that is not saved yet: what the system proposes for a group of transactions, ready to fill the form
@@ -76,7 +77,7 @@ final readonly class BankFilterDraft
     public static function fromGroup(BankGroup $group, ?self $proposal): self
     {
         return new self(
-            ...self::start($group->name, self::words($group), $group->kind, $group->accountId),
+            ...self::start($group->name, self::words($group->transactions), $group->kind, $group->accountId),
             action: $proposal?->action,
             plannedExpenseId: $proposal?->plannedExpenseId,
             plannedIncomeId: $proposal?->plannedIncomeId,
@@ -91,16 +92,18 @@ final readonly class BankFilterDraft
     }
 
     /**
-     * The filter for the movements like one the person has just sorted by hand: its words (`BankText::words()`),
-     * direction and account, with `COMMISSIONI` among the words it must not have, and the action read from what
+     * The filter for the movements like one the person has just sorted by hand: the words it shares with the others
+     * of its group (as `fromGroup()` takes them; its own words, `BankText::words()`, when it has no others),
+     * its direction and account, with `COMMISSIONI` among the words it must not have, and the action read from what
      * happened to it: a due date paid pays that planned item, an expense or income recorded creates one with its title
      * (the title as it is, without the month), category, organization and person, a transfer is a transfer to its
      * account. A movement still to sort has no action. The expense, income and transfer account must be loaded or are read here.
      *
      * @param  BankTransaction  $transaction  the transaction, sorted
      * @param  bool  $mayPay  whether the person may create a filter that pays; without it a due date paid leaves no action
+     * @param  Collection<int, BankTransaction>|null  $siblings  the other movements of its group still to sort (`BankGroups::siblings()`)
      */
-    public static function fromLink(BankTransaction $transaction, bool $mayPay = true): self
+    public static function fromLink(BankTransaction $transaction, bool $mayPay = true, ?Collection $siblings = null): self
     {
         $expense = $transaction->expense;
         $income = $transaction->income;
@@ -119,9 +122,12 @@ final readonly class BankFilterDraft
         };
         $creates = $action === BankFilterAction::Create;
         $movement = $expense ?? $income;
+        $words = ! $siblings instanceof Collection || $siblings->isEmpty()
+            ? BankText::words($transaction->text)
+            : self::words(new Collection([$transaction])->concat($siblings));
 
         return new self(
-            ...self::start($planned?->displayTitle() ?? $counterparty, BankText::words($transaction->text), $transaction->kind(), $transaction->financial_account_id),
+            ...self::start($planned?->displayTitle() ?? $counterparty, $words, $transaction->kind(), $transaction->financial_account_id),
             action: $action,
             plannedExpenseId: $action === BankFilterAction::Pay && $planned instanceof PlannedExpense ? $planned->id : null,
             plannedIncomeId: $action === BankFilterAction::Pay && $planned instanceof PlannedIncome ? $planned->id : null,
@@ -219,15 +225,15 @@ final readonly class BankFilterDraft
     }
 
     /**
-     * The words that every transaction of the group has, as `BankText::words()` proposes them for each (so the
-     * mandate, when there is one, stands alone); when they share none, the counterparty the bank gives, else the words of the newest movement.
+     * The words that every transaction of a group has, as `BankText::words()` proposes them for each (so the
+     * mandate, when there is one, stands alone); when they share none, the counterparty the bank gives to the first, else the words of the first.
      *
-     * @param  BankGroup  $group  the group
+     * @param  Collection<int, BankTransaction>  $transactions  the transactions of the group, the newest (or the one just sorted) first
      * @return list<string>
      */
-    private static function words(BankGroup $group): array
+    private static function words(Collection $transactions): array
     {
-        $lists = $group->transactions->map(static fn ($transaction): array => BankText::words($transaction->text))->values()->all();
+        $lists = $transactions->map(static fn (BankTransaction $transaction): array => BankText::words($transaction->text))->values()->all();
         $first = $lists[0] ?? [];
         $shared = array_values(array_filter($first, static fn (string $word): bool => array_all($lists, static fn (array $words): bool => in_array($word, $words, true))));
 
@@ -235,7 +241,7 @@ final readonly class BankFilterDraft
             return $shared;
         }
 
-        $newest = $group->transactions->first();
+        $newest = $transactions->first();
         $counterparty = BankMatch::normalize((string) $newest?->counterparty);
 
         if (mb_strlen($counterparty) >= BankFilterCriteria::MIN_WORD) {
