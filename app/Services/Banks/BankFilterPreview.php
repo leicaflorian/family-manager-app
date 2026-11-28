@@ -165,6 +165,8 @@ final readonly class BankFilterPreview
     /**
      * Whether the movement is still among the ones to sort by hand (*To sort*): not linked, not put aside, not a
      * transfer and not a commission. One declined by *It was not this one* is: no filter takes it, the person does.
+     * It mirrors the scope `BankTransaction::unsorted()` (the list *To sort*) without the commissions; it is not
+     * `BankFilters::toSort()`, which also leaves out the declined ones because a filter must not take them again.
      *
      * @param  BankTransaction  $row  the movement
      */

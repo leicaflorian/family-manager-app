@@ -3,8 +3,10 @@
  * The frame of the panels of *From the bank* that open beside the list: the group (*Dalla banca, il gruppo*) and the
  * movements like the one just sorted (*Dalla banca, altri movimenti come questo*). On the phone a bottom sheet; when
  * wide a panel in the flow of the page, in the column the page gives it, with the title and the × at the top. It is not
- * modal: it is a region named by its title, Esc closes it, at the opening the focus goes to the title and at the
- * closing it goes back to what opened it (or to `returnFocus` when that is gone). The content goes in the slot.
+ * modal: it is a region named by its title, Esc closes it (a click on its text keeps the focus in it), at the opening
+ * the focus goes to the title and at the closing it goes back to what opened it (or to `returnFocus` when that is
+ * gone). It is never taller than the screen under the top bar (`--app-header`, with the 16 px the sticky column of
+ * the page keeps above and below): the rest scrolls inside. The content goes in the slot.
  *
  * @group panels
  */
@@ -125,8 +127,12 @@ onBeforeUnmount(() => {
     <aside
         v-else-if="open"
         :aria-labelledby="titleId"
+        tabindex="-1"
         :class="
-            cn('flex w-full min-w-0 flex-col gap-3.5 bg-card', panelClass[look])
+            cn(
+                'flex max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(8)))] w-full min-w-0 flex-col gap-3.5 overflow-y-auto bg-card outline-none *:shrink-0',
+                panelClass[look],
+            )
         "
         @keydown.esc.stop="open = false"
     >

@@ -120,6 +120,39 @@ describe('BankPanelFrame', () => {
         expect(opener).toHaveFocus();
     });
 
+    it('closes with Escape after a click on its text: the panel keeps the focus', async () => {
+        screenWidth(true);
+        renderPage(Harness);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Open the group' }),
+        );
+        await settle();
+        await userEvent.click(screen.getByText('The movements of the group'));
+
+        expect(screen.getByRole('complementary')).toHaveFocus();
+        await userEvent.keyboard('{Escape}');
+        await settle();
+
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    });
+
+    it('is never taller than the screen under the top bar, and scrolls inside', async () => {
+        screenWidth(true);
+        renderPage(Harness);
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Open the group' }),
+        );
+        await settle();
+
+        // jsdom has no layout: only the classes can be checked, the height is seen in the browser
+        expect(screen.getByRole('complementary')).toHaveClass(
+            'max-h-[calc(100dvh-var(--app-header,0px)-(--spacing(8)))]',
+            'overflow-y-auto',
+        );
+    });
+
     it('gives the focus to the page when the button that opened it is gone', async () => {
         screenWidth(true);
         renderPage(Harness, { vanishing: true });
