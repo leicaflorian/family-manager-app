@@ -22,7 +22,7 @@ use Illuminate\Support\Collection;
  */
 final class BankFilters
 {
-    /** The most transactions read from the database for one question, as `BankMatchPreview` does. */
+    /** The most transactions read from the database for one question. */
     private const int LIMIT = 2000;
 
     /**

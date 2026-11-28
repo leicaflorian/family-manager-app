@@ -142,7 +142,7 @@ final class PlannedController extends Controller
         $planned = PlannedKind::find($kind, $id);
         Gate::authorize('update', $planned);
 
-        return $this->form($kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned));
+        return $this->form($kind, $this->summaries->row($planned, CarbonImmutable::today('Europe/Rome')), PlannedPreset::of($planned), $planned);
     }
 
     /**
@@ -179,8 +179,9 @@ final class PlannedController extends Controller
      * @param  string  $kind  `expense` or `income`
      * @param  PlannedRowData|null  $planned  the planned item to change, null for a new one
      * @param  array<string, mixed>  $values  the starting values of the fields
+     * @param  PlannedExpense|PlannedIncome|null  $model  the saved planned item to change, null for a new one
      */
-    private function form(string $kind, ?PlannedRowData $planned, array $values): Response
+    private function form(string $kind, ?PlannedRowData $planned, array $values, PlannedExpense|PlannedIncome|null $model = null): Response
     {
         $bankOn = resolve(FamilyFeatures::class)->on(Feature::BankFeed);
 
@@ -190,8 +191,8 @@ final class PlannedController extends Controller
             'values' => $values,
             'options' => BudgetFormOptions::for($kind),
             // The box *The bank filter* shows the filter that pays the saved item and where to make one
-            'bank' => $bankOn && $planned instanceof PlannedRowData
-                ? $this->bankFilter(PlannedKind::find($kind, (string) $planned->id))
+            'bank' => $bankOn && $model !== null
+                ? $this->bankFilter($model)
                 : ['on' => $bankOn, 'filter' => null, 'create_url' => null],
         ]);
     }

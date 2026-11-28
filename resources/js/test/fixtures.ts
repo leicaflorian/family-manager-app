@@ -1176,7 +1176,6 @@ export const newPlannedValues = {
     organization_id: null,
     financial_account_id: null,
     person_id: null,
-    bank_match: null,
     category_id: null,
     card: null,
     deadline_field: null,

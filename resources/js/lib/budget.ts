@@ -335,8 +335,6 @@ export interface PlannedFormValues {
     organization_id: string | null;
     financial_account_id: string | null;
     person_id: string | null;
-    /** The rule that recognises its payment among the bank transactions. */
-    bank_match: string | null;
     /** An expense: the category. */
     category_id?: string | null;
     /** An expense: the card it refers to, `type:id`. */
