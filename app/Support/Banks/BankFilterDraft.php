@@ -7,6 +7,8 @@ namespace App\Support\Banks;
 use App\Data\BankFilterData;
 use App\Enums\BankFilterAction;
 use App\Enums\BankFilterFee;
+use App\Models\BankTransaction;
+use App\Models\Expense;
 
 /**
  * A bank filter that is not saved yet: what the system proposes for a group of transactions, ready to fill the form
@@ -88,6 +90,53 @@ final readonly class BankFilterDraft
             personId: $proposal?->personId,
             transferAccountId: $proposal?->transferAccountId,
             detail: $proposal?->detail,
+        );
+    }
+
+    /**
+     * The filter for the movements like one the person has just sorted by hand: its words (`BankText::words()`),
+     * direction and account, with `COMMISSIONI` among the words it must not have, and the action read from what
+     * happened to it: a due date paid pays that planned item, an expense or income recorded creates one with its title
+     * (the title as it is, without the month), category, organization and person, a transfer is a transfer to its
+     * account. A movement still to sort has no action. The expense, income and transfer account must be loaded or are read here.
+     *
+     * @param  BankTransaction  $transaction  the transaction, sorted
+     * @param  bool  $mayPay  whether the person may create a filter that pays; without it a due date paid leaves no action
+     */
+    public static function fromLink(BankTransaction $transaction, bool $mayPay = true): self
+    {
+        $expense = $transaction->expense;
+        $income = $transaction->income;
+        $planned = match (true) {
+            $expense !== null => $expense->plannedExpense,
+            $income !== null => $income->plannedIncome,
+            default => null,
+        };
+        $counterparty = mb_substr(trim((string) $transaction->counterparty), 0, 100);
+
+        $action = match (true) {
+            $transaction->transfer_account_id !== null => BankFilterAction::Transfer,
+            $planned !== null => $mayPay ? BankFilterAction::Pay : null,
+            $expense !== null || $income !== null => BankFilterAction::Create,
+            default => null,
+        };
+        $creates = $action === BankFilterAction::Create;
+        $movement = $expense ?? $income;
+
+        return new self(
+            name: $planned?->displayTitle() ?? $counterparty,
+            contains: BankText::words($transaction->text),
+            excludes: ['COMMISSIONI'],
+            direction: $transaction->kind(),
+            accountId: $transaction->financial_account_id,
+            action: $action,
+            plannedExpenseId: $action === BankFilterAction::Pay ? $expense?->planned_expense_id : null,
+            plannedIncomeId: $action === BankFilterAction::Pay ? $income?->planned_income_id : null,
+            title: $creates && $movement !== null ? ($movement instanceof Expense ? $movement->title : $movement->label()) : null,
+            categoryId: $creates ? $expense?->category_id : null,
+            organizationId: $creates ? $movement?->organization_id : null,
+            personId: $creates ? $movement?->person_id : null,
+            transferAccountId: $action === BankFilterAction::Transfer ? $transaction->transfer_account_id : null,
         );
     }
 
