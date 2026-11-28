@@ -377,6 +377,18 @@ test('a movement of another family answers 404, in keep or in drop, and nothing 
     expect($reader->filters())->toBe(0);
 });
 
+test('a movement of another family sent as a JSON float answers 404 too', function (): void {
+    [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $foreign = BankTransaction::factory()->for(Family::factory()->create())->create(['text' => 'Altrui']);
+
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id, (float) $foreign->id], 'mode' => 'words'], [], JSON_PRESERVE_ZERO_FRACTION)->assertNotFound();
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id], 'drop' => [(float) $foreign->id], 'mode' => 'words'], [], JSON_PRESERVE_ZERO_FRACTION)->assertNotFound();
+
+    expect($reader->filters())->toBe(0);
+});
+
 test('an empty keep, a wrong mode or too many ids answer 422', function (): void {
     [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
     suggestBankFilterFeedOn($family);

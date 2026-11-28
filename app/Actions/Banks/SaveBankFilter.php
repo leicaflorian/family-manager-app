@@ -8,6 +8,7 @@ use App\Enums\BankFilterAction;
 use App\Enums\BankFilterFee;
 use App\Models\BankFilter;
 use App\Support\Banks\BankFilterCriteria;
+use App\Support\ModelId;
 use App\Support\PresetLink;
 
 /**
@@ -75,28 +76,18 @@ final readonly class SaveBankFilter
             'fee_contains' => $fee === BankFilterFee::Words ? $feeWords->contains : null,
             'fee_excludes' => $fee === BankFilterFee::Words ? $feeWords->excludes : null,
             'action' => $action,
-            'planned_expense_id' => $pays && $expense ? self::id($data['planned_id'] ?? null) : null,
-            'planned_income_id' => $pays && ! $expense ? self::id($data['planned_id'] ?? null) : null,
+            'planned_expense_id' => $pays && $expense ? ModelId::sent($data['planned_id'] ?? null) : null,
+            'planned_income_id' => $pays && ! $expense ? ModelId::sent($data['planned_id'] ?? null) : null,
             'title' => $creates ? self::text($data['title'] ?? null) : null,
             'title_with_month' => $creates && filter_var($data['title_with_month'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'category_id' => $creates && $expense ? self::id($data['category_id'] ?? null) : null,
-            'organization_id' => $creates ? self::id($data['organization_id'] ?? null) : null,
-            'person_id' => $creates ? self::id($data['person_id'] ?? null) : null,
+            'category_id' => $creates && $expense ? ModelId::sent($data['category_id'] ?? null) : null,
+            'organization_id' => $creates ? ModelId::sent($data['organization_id'] ?? null) : null,
+            'person_id' => $creates ? ModelId::sent($data['person_id'] ?? null) : null,
             'card_type' => $card['type'] ?? null,
             'card_id' => $card['id'] ?? null,
             'notes' => $creates ? self::text($data['notes'] ?? null) : null,
-            'transfer_account_id' => $action === BankFilterAction::Transfer ? self::id($data['transfer_account_id'] ?? null) : null,
+            'transfer_account_id' => $action === BankFilterAction::Transfer ? ModelId::sent($data['transfer_account_id'] ?? null) : null,
         ];
-    }
-
-    /**
-     * An id sent by the form, or null.
-     *
-     * @param  mixed  $value  what arrived
-     */
-    private static function id(mixed $value): ?int
-    {
-        return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
     }
 
     /**

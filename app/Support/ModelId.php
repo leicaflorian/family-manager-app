@@ -25,4 +25,15 @@ final class ModelId
 
         return is_int($id) ? $id : throw new InvalidArgumentException($model::class.' has no numeric id.');
     }
+
+    /**
+     * An id sent by a form or a JSON body, or null: any positive number counts, a JSON float such as `12.0` too, so
+     * that the id looked for in the family is the same one that gets saved.
+     *
+     * @param  mixed  $value  what arrived
+     */
+    public static function sent(mixed $value): ?int
+    {
+        return is_numeric($value) && (int) $value > 0 ? (int) $value : null;
+    }
 }

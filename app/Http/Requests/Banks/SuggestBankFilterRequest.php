@@ -8,6 +8,7 @@ use App\Actions\Banks\SuggestBankFilter;
 use App\Enums\BankFilterAction;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Support\ModelId;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -103,9 +104,11 @@ final class SuggestBankFilterRequest extends FormRequest
         $sent = $this->input($field);
         $ids = [];
 
-        foreach (is_array($sent) ? $sent : [] as $id) {
-            if (is_int($id) || (is_string($id) && ctype_digit($id))) {
-                $ids[] = (int) $id;
+        foreach (is_array($sent) ? $sent : [] as $value) {
+            $id = ModelId::sent($value);
+
+            if ($id !== null) {
+                $ids[] = $id;
             }
         }
 

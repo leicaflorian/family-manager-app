@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Banks;
 
 use App\Models\BankFilter;
+use App\Support\ModelId;
 
 /**
  * What a bank filter takes, apart from what it does: the words, the direction, the account, the amounts and the
@@ -66,7 +67,7 @@ final readonly class BankFilterCriteria
             contains: self::words($data['contains'] ?? null),
             excludes: self::words($data['excludes'] ?? null),
             direction: $direction === 'income' ? 'income' : 'expense',
-            accountId: is_numeric($data['accountId'] ?? null) ? (int) $data['accountId'] : null,
+            accountId: ModelId::sent($data['accountId'] ?? null),
             amountMin: self::amount($data['amountMin'] ?? null),
             amountMax: self::amount($data['amountMax'] ?? null),
             pattern: is_string($pattern) && trim($pattern) !== '' ? $pattern : null,

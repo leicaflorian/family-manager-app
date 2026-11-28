@@ -12,3 +12,15 @@ test('the id of a saved record is its number', function (): void {
 test('a record without a number has no id', function (): void {
     ModelId::of(new Vehicle);
 })->throws(InvalidArgumentException::class, 'App\Models\Vehicle has no numeric id.');
+
+test('an id sent by a form is any positive number, a JSON float too', function (mixed $value, ?int $id): void {
+    expect(ModelId::sent($value))->toBe($id);
+})->with([
+    'int' => [12, 12],
+    'digits' => ['12', 12],
+    'float' => [12.0, 12],
+    'zero' => [0, null],
+    'negative' => ['-3', null],
+    'text' => ['abc', null],
+    'null' => [null, null],
+]);

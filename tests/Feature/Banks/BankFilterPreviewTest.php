@@ -58,8 +58,9 @@ function bankFilterPreviewRow(string $text, string $amount, string $day, array $
  * Asks the preview of a filter that creates «Ricarica Satispay» for SATISPAY, with more fields.
  *
  * @param  array<string, mixed>  $fields  what to change in the form
+ * @param  int  $options  the flags of `json_encode`, `JSON_PRESERVE_ZERO_FRACTION` to send an id as a float
  */
-function bankFilterPreviewAsk(array $fields = []): TestResponse
+function bankFilterPreviewAsk(array $fields = [], int $options = 0): TestResponse
 {
     return test()->postJson(route('budget.bank.filters.preview'), [
         'name' => 'Satispay',
@@ -70,7 +71,7 @@ function bankFilterPreviewAsk(array $fields = []): TestResponse
         'action' => 'create',
         'title' => 'Ricarica Satispay',
         ...$fields,
-    ]);
+    ], [], $options);
 }
 
 /**
@@ -223,6 +224,15 @@ test('a planned item of another family gives 404', function (): void {
     $theirs = insideFamilyOf($rossi, fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $rossi->family_id]));
 
     bankFilterPreviewAsk(['action' => 'pay', 'planned_id' => $theirs->id])->assertNotFound();
+});
+
+test('a planned item or an account of another family sent as a JSON float gives 404', function (): void {
+    $rossi = registerFamily('Rossi', 'luca@example.com');
+    $planned = insideFamilyOf($rossi, fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $rossi->family_id]));
+    $account = insideFamilyOf($rossi, fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $rossi->family_id]));
+
+    bankFilterPreviewAsk(['action' => 'pay', 'planned_id' => (float) $planned->id], JSON_PRESERVE_ZERO_FRACTION)->assertNotFound();
+    bankFilterPreviewAsk(['financial_account_id' => (float) $account->id], JSON_PRESERVE_ZERO_FRACTION)->assertNotFound();
 });
 
 test('a member sees the preview too', function (): void {

@@ -12,6 +12,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
 use App\Models\Organization;
+use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -355,6 +356,19 @@ test('another family\'s filter gives 404', function (): void {
 
     expect(insideFamilyOf($rossi, fn (): int => BankFilter::query()->count()))->toBe(1);
 });
+
+test('an id of another family sent as a JSON float gives 404 and saves nothing', function (string $field): void {
+    $rossi = registerFamily('Rossi', 'luca@example.com');
+    $id = insideFamilyOf($rossi, fn (): int => match ($field) {
+        'category_id' => ExpenseCategory::factory()->create(['family_id' => $rossi->family_id])->id,
+        'organization_id' => Organization::factory()->create(['family_id' => $rossi->family_id])->id,
+        'person_id' => Person::factory()->create(['family_id' => $rossi->family_id])->id,
+    });
+
+    $this->postJson(route('budget.bank.filters.store'), bankFilterPagesForm([$field => (float) $id]), [], JSON_PRESERVE_ZERO_FRACTION)->assertNotFound();
+
+    expect(insideBianchi(fn (): int => BankFilter::query()->count()))->toBe(0);
+})->with(['category_id', 'organization_id', 'person_id']);
 
 test('a card of another family gives 404', function (): void {
     $rossi = registerFamily('Rossi', 'luca@example.com');

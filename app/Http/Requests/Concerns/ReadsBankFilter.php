@@ -12,6 +12,7 @@ use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\Banks\BankFilterCriteria;
+use App\Support\ModelId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -41,11 +42,12 @@ trait ReadsBankFilter
         ];
 
         foreach ($models as $field => $model) {
-            $id = $this->input($field);
+            // The same reading as the save, so that no id is saved without being looked for (a JSON `12.0` too)
+            $id = ModelId::sent($this->input($field));
 
-            if (is_int($id) || (is_string($id) && ctype_digit($id))) {
+            if ($id !== null) {
                 /** @var class-string<Model> $model */
-                $model::query()->findOrFail((int) $id);
+                $model::query()->findOrFail($id);
             }
         }
     }
