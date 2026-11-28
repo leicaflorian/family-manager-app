@@ -32,15 +32,22 @@ import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
-import { dayOf } from '@/lib/banks';
+import { bankMoney, dayOf } from '@/lib/banks';
 import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
 import { create } from '@/routes/budget/movements';
 import { create as createPlanned } from '@/routes/budget/planned';
 
-const { row, canSort, canPlan } = defineProps<{
+const {
+    row,
+    canSort,
+    canPlan,
+    selected = false,
+} = defineProps<{
     /** The movement, as the server sends it in `rows`. */
     row: App.Data.BankTransactionData;
+    /** A panel is open for the movement (*It belongs to an expense*, *It is a transfer*…): the row is marked. */
+    selected?: boolean;
     /** Whether who looks can sort the movements (every account of the family). */
     canSort: boolean;
     /** Whether who looks can create a planned expense or income (an administrator). */
@@ -143,10 +150,14 @@ const tagClass = cn(
 <template>
     <li
         :data-wide="wide ? '' : undefined"
+        :aria-current="selected ? 'true' : undefined"
         :class="
-            wide
-                ? 'grid grid-cols-[56px_minmax(0,1fr)_150px_auto] items-start gap-x-4 gap-y-1 px-5 py-3.5'
-                : 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2.5 px-4 py-3.5'
+            cn(
+                wide
+                    ? 'grid grid-cols-[56px_minmax(0,1fr)_150px_auto] items-start gap-x-4 gap-y-1 px-5 py-3.5'
+                    : 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2.5 px-4 py-3.5',
+                selected && 'bg-action-soft',
+            )
         "
     >
         <span v-if="wide" class="pt-[11px] text-label text-ink">{{
@@ -183,7 +194,7 @@ const tagClass = cn(
                         row.amount > 0 && 'text-paid',
                     )
                 "
-                >{{ money(row.amount, row.currency) }}</span
+                >{{ bankMoney(row.amount, row.currency) }}</span
             >
             <span
                 v-if="row.fee"
@@ -249,7 +260,7 @@ const tagClass = cn(
             :class="
                 wide
                     ? 'col-start-4 row-start-1 flex flex-nowrap items-center justify-end gap-2'
-                    : 'col-span-full flex flex-wrap items-center gap-2'
+                    : 'col-span-full flex flex-nowrap items-center gap-2'
             "
         >
             <FmButton
@@ -264,6 +275,7 @@ const tagClass = cn(
                     v-if="sortable && row.orphan_fee"
                     variant="neutral"
                     row-action
+                    :shrink="!wide"
                     :icon="LinkIcon"
                     @click="emit('fee', row)"
                     >{{ $t('It is the commission of…') }}</FmButton
@@ -272,6 +284,7 @@ const tagClass = cn(
                     <FmButton
                         variant="neutral"
                         row-action
+                        :shrink="!wide"
                         :icon="Plus"
                         :href="createUrl"
                         >{{
@@ -283,13 +296,20 @@ const tagClass = cn(
                     <FmButton
                         variant="neutral"
                         row-action
+                        :shrink="!wide"
                         :icon="Search"
                         @click="emit('assign', row)"
                         >{{ assignLabel }}</FmButton
                     >
                 </template>
                 <span
-                    class="ml-auto flex text-ink-soft [&_button]:text-ink-soft"
+                    :class="
+                        cn(
+                            'ml-auto flex shrink-0 text-ink-soft [&_button]:text-ink-soft',
+                            // On the phone the 44 px square reaches into the padding of the row, as the boards draw it
+                            !wide && '-mr-3',
+                        )
+                    "
                     ><FmMenu plain>
                         <FmMenuItem
                             v-if="sortable"

@@ -15,7 +15,8 @@
  *   under a row of the Agenda: on the phone they share the line, on the computer 40 px.
  *   `rowAction` is a button of a row of *From the bank*, under it on the phone and
  *   in its column on the computer: its own width, 44 px, the body-sm text, an
- *   18 px icon and 10 px corners.
+ *   18 px icon and 10 px corners. `shrink` lets it get narrower than its text
+ *   in a short row.
  *
  * @group basics
  */
@@ -52,6 +53,7 @@ const {
     muted = false,
     compact = false,
     rowAction = false,
+    shrink = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
@@ -103,6 +105,12 @@ const {
      * text, an 18 px icon, 10 px at the sides and 10 px corners.
      */
     rowAction?: boolean;
+    /**
+     * It may get narrower than its text when the row is short, as the two
+     * buttons of a lone movement of *From the bank* that share the line with
+     * the menu on the phone: the room at the sides goes first.
+     */
+    shrink?: boolean;
 }>();
 
 defineEmits<{
@@ -140,6 +148,7 @@ const classes = computed((): string =>
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label wide:h-10 wide:flex-none wide:px-3.5',
         rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
+        shrink && 'min-w-0 shrink overflow-hidden',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&

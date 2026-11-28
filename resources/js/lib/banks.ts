@@ -1,5 +1,10 @@
 import { trans } from 'laravel-vue-i18n';
-import { formatDate, formatDayMonth, todayInRome } from '@/lib/format';
+import {
+    formatDate,
+    formatDayMonth,
+    formatMoney,
+    todayInRome,
+} from '@/lib/format';
 import { listNames } from '@/lib/names';
 import type { FlashSimilar } from '@/types/ui';
 
@@ -56,6 +61,18 @@ export function readTimes(hours: number[]): string {
     return listNames(
         hours.map((hour) => trans('at :hour', { hour: String(hour) })),
     );
+}
+
+/**
+ * An amount of a bank transaction as the lists of *From the bank* write it: money that came in with the «+», as the
+ * boards draw it; money that went out keeps its minus.
+ *
+ * @param amount - the amount, with its sign
+ * @param currency - the code of the currency
+ * @returns «+407,60 €», «-18,40 €»
+ */
+export function bankMoney(amount: number, currency: string): string {
+    return `${amount > 0 ? '+' : ''}${formatMoney(amount, currency)}`;
 }
 
 /**

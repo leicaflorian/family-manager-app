@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 import {
     bankInitials,
+    bankMoney,
     dayOf,
     lastReadText,
     readTimes,
@@ -24,6 +25,19 @@ describe('bankInitials', () => {
 
     it('gives nothing for an empty name', () => {
         expect(bankInitials('  ')).toBe('');
+    });
+});
+
+describe('bankMoney', () => {
+    it('writes money that came in with the plus, as the bank lists do', () => {
+        expect(bankMoney(407.6, 'EUR')).toBe('+407,60 €');
+        expect(bankMoney(0.04, 'EUR')).toBe('+0,04 €');
+        expect(bankMoney(12, 'USD')).toBe('+12,00 USD');
+    });
+
+    it('leaves money that went out and zero as they are', () => {
+        expect(bankMoney(-18.4, 'EUR')).toBe('-18,40 €');
+        expect(bankMoney(0, 'EUR')).toBe('0,00 €');
     });
 });
 

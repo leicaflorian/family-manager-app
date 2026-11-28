@@ -74,6 +74,30 @@ describe('BankLoneRow', () => {
         expect(screen.getByText('-72,40 €')).toBeInTheDocument();
     });
 
+    it('writes money that came in with the plus', () => {
+        mount({ ...booked, amount: 35 });
+
+        expect(screen.getByText('+35,00 €')).toBeInTheDocument();
+    });
+
+    it('is marked while its panel is open', () => {
+        mount(booked, { selected: true });
+
+        expect(screen.getByRole('listitem')).toHaveAttribute(
+            'aria-current',
+            'true',
+        );
+    });
+
+    it('on the phone keeps the menu on the line of the two buttons, which may get narrower', () => {
+        screenWidth(false);
+        mount(booked);
+
+        const create = screen.getByRole('link', { name: 'Create the expense' });
+        expect(create.parentElement).toHaveClass('flex-nowrap');
+        expect(create).toHaveClass('shrink');
+    });
+
     it('a direct debit shows its commission under it and both amounts', () => {
         mount(debit);
 
