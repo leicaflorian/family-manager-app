@@ -10,8 +10,12 @@
  * card) and the actions *Create a new …*, *Choose another…* and *Back to the
  * proposal*. A paper that names no card offers *Create the card*, unticked:
  * after the import *New card* opens with its document linked. Under the ticked box of a new policy, one box per
- * old policy of the same vehicle, home or job, ticked: *Cancel the policy …* (board *Proposta-polizza*). A part of the page `documents/Import`, not a component of the
- * canvas: it writes in the choices of the file (`useImportChoices`).
+ * old policy of the same vehicle, home or job, ticked: *Cancel the policy …* (board *Proposta-polizza*). A bill with
+ * more than one supply (board *Importa-luce-gas*) draws first one group per supply, under its heading (*Luce · POD …*):
+ * this same component with the proposal of the supply (`supplyProposal`) and its choices (`scopeToSupply`), with the
+ * box of its utility first, then its expense and its consumption; a thin line, then the boxes of the file (the
+ * organization, *Create the card*). A part of the page `documents/Import`, not a component of the canvas: it writes in
+ * the choices of the file (`useImportChoices`).
  */
 import type { LucideIcon } from '@lucide/vue';
 import {
@@ -38,6 +42,7 @@ import type {
     ImportChoices,
     OverrideValue,
 } from '@/composables/useImportChoices';
+import { scopeToSupply } from '@/composables/useImportChoices';
 import type { AlsoSide } from '@/lib/alsoDo';
 import {
     actionTexts,
@@ -59,6 +64,7 @@ import {
     recordHint,
     recordLabel,
     recordWarnings,
+    supplyProposal,
 } from '@/lib/alsoDo';
 import { unitLabel } from '@/lib/format';
 import { cardIcon, fieldInput, isMenuField } from '@/lib/cards';
@@ -81,7 +87,95 @@ const props = defineProps<{
     accounts: App.Data.OptionData[];
     /** The types of a health event. */
     healthTypes: App.Data.OptionData[];
+    /** The heading of the group of one supply of a bill (`SupplyProposalData.heading`); without it, *What I do too*. */
+    heading?: string;
+    /** What tells the fields of this group apart in the page; without it, the file. */
+    scope?: string;
 }>();
+
+/** What tells the fields of this group apart in the page: the file, or the file and the supply. */
+const idScope = computed((): string => props.scope ?? String(props.fileId));
+
+/** The groups of the supplies of a bill with more than one, each with its proposal, its choices and its errors. */
+const supplies = computed(() =>
+    props.proposal.supplies.map((supply) => ({
+        supply,
+        proposal: supplyProposal(props.proposal, supply),
+        choices: supplyChoices(supply.index),
+        errors: supplyErrors(supply.index),
+    })),
+);
+
+/** The choices of each supply, made once: the boxes of a group keep writing in the same place. */
+const scoped = new Map<number, ImportChoices>();
+
+/**
+ * The choices of one supply.
+ *
+ * @param index - the place of the supply in the reading
+ * @returns its choices, as the choices of a bill alone
+ */
+function supplyChoices(index: number): ImportChoices {
+    let choices = scoped.get(index);
+
+    if (!choices) {
+        choices = scopeToSupply(props.choices, index);
+        scoped.set(index, choices);
+    }
+
+    return choices;
+}
+
+/**
+ * Where the errors of a supply go in its group, under the names of a bill alone: the import names them
+ * `files.<n>.also.supplies.<i>.<path>`, and the page keeps `also.supplies.<i>.<path>` for the file.
+ */
+const SUPPLY_ERROR_PATHS: [from: string, to: string][] = [
+    ['targets.record', 'targets.records.utility'],
+    ['overrides.record.', 'overrides.records.utility.'],
+    ['record', 'records.utility'],
+];
+
+/**
+ * The errors of the last import about one supply, under the names of a bill alone: `also.supplies.1.record` becomes
+ * `also.records.utility`, `also.supplies.1.targets.record` becomes `also.targets.records.utility`,
+ * `also.supplies.1.overrides.record.<field>` becomes `also.overrides.records.utility.<field>`; `movement`,
+ * `consumption`, `targets.movement`, `due` and `overrides.movement|consumption.<field>` keep their path.
+ *
+ * @param index - the place of the supply in the reading
+ * @returns the errors of its boxes
+ */
+function supplyErrors(index: number): Record<string, string> {
+    const prefix = `also.supplies.${index}.`;
+
+    return Object.fromEntries(
+        Object.entries(props.errors)
+            .filter(([key]) => key.startsWith(prefix))
+            .map(([key, message]) => {
+                const path = key.slice(prefix.length);
+                const renamed = SUPPLY_ERROR_PATHS.find(([from]) =>
+                    from.endsWith('.') ? path.startsWith(from) : path === from,
+                );
+
+                return [
+                    `also.${renamed ? renamed[1] + path.slice(renamed[0].length) : path}`,
+                    message,
+                ];
+            }),
+    );
+}
+
+/** Whether boxes of the file come after the groups of the supplies, under a thin line. */
+const fileBoxesAfter = computed(
+    (): boolean =>
+        supplies.value.length > 0 &&
+        (props.proposal.movement !== null ||
+            props.proposal.event !== null ||
+            props.proposal.consumption !== null ||
+            props.proposal.records.length > 0 ||
+            policy.value !== undefined ||
+            props.proposal.createCard),
+);
 
 /** The icon of the box of each card; the card of the category takes the icon of its type. */
 const RECORD_ICONS: Record<
@@ -115,11 +209,19 @@ const [DefineActions, ReuseActions] = createReusableTemplate<{
     candidates: App.Data.OptionData[];
 }>();
 
+/** The boxes of the cards: after the expense in a file, first in the group of a supply (board *Importa-luce-gas*). */
+const [DefineRecords, ReuseRecords] = createReusableTemplate();
+
 /** The box whose menu to choose another is open. */
 const picking = ref<AlsoSide | undefined>();
 
 /** What the file sends as `also`: the boxes ticked. */
 const ticked = computed(() => props.choices.also.value);
+
+/** The cards ticked, as the file sends them. */
+const tickedRecords = computed(
+    (): App.Enums.RecordKind[] => ticked.value?.records ?? [],
+);
 
 /** Whether the expense is to pay. */
 const toPay = computed((): boolean =>
@@ -161,6 +263,21 @@ const seenFields = reactive(new Map<string, App.Data.CardFieldData>());
  */
 function alsoErrors(...keys: string[]): string[] {
     return keys.flatMap((key) => props.errors[`also.${key}`] ?? []);
+}
+
+/**
+ * The errors of the last import about the fields of a box: the corrections of the expense, of the consumption or of a
+ * card (`overrides.movement.amount`).
+ *
+ * @param box - where its fields sit under `also.overrides` (`movement`, `consumption`, `records.utility`)
+ * @returns the messages
+ */
+function fieldErrors(box: string): string[] {
+    const prefix = `also.overrides.${box}.`;
+
+    return Object.entries(props.errors)
+        .filter(([key]) => key.startsWith(prefix))
+        .map(([, message]) => message);
 }
 
 /**
@@ -447,7 +564,121 @@ function recordFields(
         </FmButton>
     </DefineActions>
 
-    <FmAlsoDo v-if="ticked" :hint="followsKind">
+    <DefineRecords>
+        <FmAlsoDoItem
+            v-for="draft in proposal.records"
+            :key="draft.kind"
+            :model-value="tickedRecords.includes(draft.kind)"
+            :label="recordLabel(draft)"
+            :hint="
+                recordHint(draft, {
+                    ticked: tickedRecords.includes(draft.kind),
+                    target: choices.targetOf(draft.kind),
+                    amount: proposal.movement
+                        ? proposal.movement.values.amount
+                        : undefined,
+                    cardType: proposal.cardType,
+                })
+            "
+            :warnings="
+                lines(
+                    alsoErrors(
+                        `records.${draft.kind}`,
+                        `targets.records.${draft.kind}`,
+                    ),
+                    fieldErrors(`records.${draft.kind}`),
+                    recordWarnings(draft, tickedRecords.includes(draft.kind)),
+                )
+            "
+            :icon="recordIcon(draft)"
+            @update:model-value="choices.setTicked(draft.kind, $event)"
+        >
+            <template v-if="!draft.existing">
+                <FormKit
+                    v-for="field in recordFields(draft)"
+                    :key="field.column"
+                    :type="fieldInput(field.kind)"
+                    :name="`${draft.kind}_${field.column}`"
+                    :label="$t(field.label)"
+                    validation="required"
+                    :options="
+                        field.kind === 'choice' || isMenuField(field.kind)
+                            ? field.options
+                            : undefined
+                    "
+                    :open-on-click="isMenuField(field.kind) ? true : undefined"
+                    :model-value="
+                        shown(
+                            draft.kind,
+                            field.column,
+                            draft.values[field.column],
+                        )
+                    "
+                    @update:model-value="
+                        write(
+                            draft.kind,
+                            field.column,
+                            draft.values[field.column],
+                            $event,
+                        )
+                    "
+                />
+                <p
+                    v-if="draft.reminder"
+                    class="m-0 flex items-center gap-1.5 text-meta text-ink-soft"
+                >
+                    <FmIcon :icon="Bell" :size="14" />
+                    {{ draft.reminder }}
+                </p>
+                <FormKit
+                    v-if="draft.kind === 'policy' && draft.replaces.length > 0"
+                    type="checkbox"
+                    :name="`replace_policies_${idScope}`"
+                    :options="
+                        replaceOptions(draft.replaces, { premiumMoves: false })
+                    "
+                    :model-value="replacing(draft)"
+                    @update:model-value="setReplacing(draft, $event)"
+                />
+            </template>
+            <template #actions>
+                <ReuseActions
+                    :side="draft.kind"
+                    :existing="draft.existing !== null"
+                    :candidates="candidateOptions(draft.candidates)"
+                />
+            </template>
+        </FmAlsoDoItem>
+    </DefineRecords>
+
+    <FmAlsoDo
+        v-if="ticked"
+        :title="heading"
+        :level="heading ? 4 : 3"
+        :hint="followsKind"
+    >
+        <ImportAlsoDoBoxes
+            v-for="group in supplies"
+            :key="group.supply.index"
+            :file-id="fileId"
+            :proposal="group.proposal"
+            :choices="group.choices"
+            :errors="group.errors"
+            :people="people"
+            :expense-categories="expenseCategories"
+            :accounts="accounts"
+            :health-types="healthTypes"
+            :heading="group.supply.heading"
+            :scope="`${fileId}-${group.supply.index}`"
+        />
+        <span
+            v-if="fileBoxesAfter"
+            aria-hidden="true"
+            class="mt-2 block h-px bg-edge-soft"
+        />
+
+        <ReuseRecords v-if="heading" />
+
         <FmAlsoDoItem
             v-if="proposal.movement"
             :model-value="ticked.movement"
@@ -468,7 +699,8 @@ function recordFields(
             "
             :warnings="
                 lines(
-                    alsoErrors('movement', 'targets.movement'),
+                    alsoErrors('movement', 'targets.movement', 'due'),
+                    fieldErrors('movement'),
                     movementWarnings(proposal.movement, {
                         ticked: ticked.movement,
                         due: toPay,
@@ -480,7 +712,7 @@ function recordFields(
         >
             <FormKit
                 v-if="movementFieldShown('amount')"
-                :id="`also-amount-${fileId}`"
+                :id="`also-amount-${idScope}`"
                 type="currency"
                 name="movement_amount"
                 :label="$t('Amount')"
@@ -520,7 +752,7 @@ function recordFields(
                     >
                         <input
                             type="radio"
-                            :name="`due-${fileId}`"
+                            :name="`due-${idScope}`"
                             class="m-0 size-[18px] shrink-0 accent-action"
                             :checked="choice.checked"
                             @change="setDue(choice.due)"
@@ -530,7 +762,7 @@ function recordFields(
                 </fieldset>
                 <FormKit
                     v-if="toPay"
-                    :id="`also-due-date-${fileId}`"
+                    :id="`also-due-date-${idScope}`"
                     type="datepicker"
                     name="due_date"
                     :label="$t('Deadline')"
@@ -647,6 +879,7 @@ function recordFields(
             :warnings="
                 lines(
                     alsoErrors('consumption'),
+                    fieldErrors('consumption'),
                     consumptionWarnings(
                         proposal.consumption,
                         ticked.consumption ?? false,
@@ -673,7 +906,7 @@ function recordFields(
             </FormKit>
             <div class="grid grid-cols-2 gap-2.5">
                 <FormKit
-                    :id="`also-consumption-from-${fileId}`"
+                    :id="`also-consumption-from-${idScope}`"
                     type="datepicker"
                     name="consumption_period_start"
                     :label="$t('From')"
@@ -684,7 +917,7 @@ function recordFields(
                     "
                 />
                 <FormKit
-                    :id="`also-consumption-to-${fileId}`"
+                    :id="`also-consumption-to-${idScope}`"
                     type="datepicker"
                     name="consumption_period_end"
                     :label="$t('To')"
@@ -712,89 +945,7 @@ function recordFields(
             />
         </FmAlsoDoItem>
 
-        <FmAlsoDoItem
-            v-for="draft in proposal.records"
-            :key="draft.kind"
-            :model-value="ticked.records.includes(draft.kind)"
-            :label="recordLabel(draft)"
-            :hint="
-                recordHint(draft, {
-                    ticked: ticked.records.includes(draft.kind),
-                    target: choices.targetOf(draft.kind),
-                    amount: proposal.movement
-                        ? proposal.movement.values.amount
-                        : undefined,
-                    cardType: proposal.cardType,
-                })
-            "
-            :warnings="
-                lines(
-                    alsoErrors(
-                        `records.${draft.kind}`,
-                        `targets.records.${draft.kind}`,
-                    ),
-                    recordWarnings(draft, ticked.records.includes(draft.kind)),
-                )
-            "
-            :icon="recordIcon(draft)"
-            @update:model-value="choices.setTicked(draft.kind, $event)"
-        >
-            <template v-if="!draft.existing">
-                <FormKit
-                    v-for="field in recordFields(draft)"
-                    :key="field.column"
-                    :type="fieldInput(field.kind)"
-                    :name="`${draft.kind}_${field.column}`"
-                    :label="$t(field.label)"
-                    validation="required"
-                    :options="
-                        field.kind === 'choice' || isMenuField(field.kind)
-                            ? field.options
-                            : undefined
-                    "
-                    :open-on-click="isMenuField(field.kind) ? true : undefined"
-                    :model-value="
-                        shown(
-                            draft.kind,
-                            field.column,
-                            draft.values[field.column],
-                        )
-                    "
-                    @update:model-value="
-                        write(
-                            draft.kind,
-                            field.column,
-                            draft.values[field.column],
-                            $event,
-                        )
-                    "
-                />
-                <p
-                    v-if="draft.reminder"
-                    class="m-0 flex items-center gap-1.5 text-meta text-ink-soft"
-                >
-                    <FmIcon :icon="Bell" :size="14" />
-                    {{ draft.reminder }}
-                </p>
-                <FormKit
-                    v-if="draft.kind === 'policy' && draft.replaces.length > 0"
-                    type="checkbox"
-                    :name="`replace_policies_${fileId}`"
-                    :options="
-                        replaceOptions(draft.replaces, { premiumMoves: false })
-                    "
-                    :model-value="replacing(draft)"
-                    @update:model-value="setReplacing(draft, $event)"
-                />
-            </template>
-            <template #actions>
-                <ReuseActions
-                    :side="draft.kind"
-                    :existing="draft.existing !== null"
-                    :candidates="candidateOptions(draft.candidates)"
-                />
-            </template>
-        </FmAlsoDoItem>
+        <ReuseRecords v-if="!heading" />
 
         <FmAlsoDoItem
             v-if="policy"
