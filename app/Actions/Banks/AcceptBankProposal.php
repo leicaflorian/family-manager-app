@@ -141,10 +141,10 @@ final readonly class AcceptBankProposal
     /**
      * Saves the filter *pays the due date* of the planned item with the words `BankText::words()` proposes for the
      * movement, on its account and in its direction, when: who said yes can create it and change the planned item,
-     * the planned item has no filter nor rule, the words are safe, and over the last 90 days they take, apart from this
-     * movement, only the ones already linked to a payment of the same planned item, never a commission. The check and
-     * the saving run in a short transaction that locks the planned item first, so two *Yes* on two movements of the
-     * same item save one filter.
+     * the planned item has no filter (an old rule left in `bank_match` does not count), the words are safe, and over
+     * the last 90 days they take, apart from this movement, only the ones already linked to a payment of the same
+     * planned item, never a commission. The check and the saving run in a short transaction that locks the planned
+     * item first, so two *Yes* on two movements of the same item save one filter.
      *
      * @param  BankTransaction  $transaction  the movement, now linked
      * @param  PlannedExpense|PlannedIncome  $planned  the planned item it paid
@@ -172,7 +172,7 @@ final readonly class AcceptBankProposal
             $column = $isExpense ? 'planned_expense_id' : 'planned_income_id';
             $current = $planned->newQuery()->find($planned->id);
 
-            if ($current === null || filled($current->bank_match) || BankFilter::query()->where($column, $planned->id)->exists()) {
+            if ($current === null || BankFilter::query()->where($column, $planned->id)->exists()) {
                 return null;
             }
 

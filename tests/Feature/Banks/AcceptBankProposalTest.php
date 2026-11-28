@@ -140,6 +140,18 @@ test('yes saves the filter of a planned item that has none and says so', functio
     });
 });
 
+test('yes saves the filter of a planned item that kept an old rule after its filter was deleted', function (): void {
+    insideBianchi(function (): void {
+        $planned = acceptBankProposalPlanned();
+        $planned->forceFill(['bank_match' => 'PASSO A DUE'])->save();
+        $row = acceptBankProposalRow('BONIFICO A FAVORE DI ASD PASSO A DUE', '-45.00', '2026-11-17');
+
+        $result = resolve(AcceptBankProposal::class)->handle($row, 'planned_expense:'.$planned->id.':2026-11-18', $this->marco);
+
+        expect($result['filter']?->planned_expense_id)->toBe($planned->id);
+    });
+});
+
 test('a filter is saved when last month\'s movement is already linked to the same planned item', function (): void {
     [$planned, $row] = insideBianchi(function (): array {
         $planned = acceptBankProposalPlanned();

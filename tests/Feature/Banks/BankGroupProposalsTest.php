@@ -98,6 +98,15 @@ it('does not propose a planned item that is finished or already has a filter', f
     expect(resolve(BankGroupProposals::class)->for(bankGroupProposalsGroup()))->toBeNull();
 });
 
+it('proposes a planned item that kept an old rule after its filter was deleted', function (): void {
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'amount' => 49.90, 'bank_match' => 'PALESTRA']);
+    foreach (['2026-09-20', '2026-10-20'] as $day) {
+        bankGroupProposalsRow('PAGAMENTO POS PALESTRA', '-49.90', $day);
+    }
+
+    expect(resolve(BankGroupProposals::class)->for(bankGroupProposalsGroup())?->plannedExpenseId)->toBe($planned->id);
+});
+
 it('proposes to create the expense like the latest recorded one', function (): void {
     $satispay = Organization::factory()->create(['family_id' => $this->marco->family_id, 'name' => 'Satispay']);
     $category = ExpenseCategory::factory()->create(['family_id' => $this->marco->family_id, 'name' => 'Varie']);

@@ -153,8 +153,8 @@ final class BankGroupProposals
     }
 
     /**
-     * The planned items that can still be paid by a proposal: not finished, no filter pays them, no rule of the old
-     * kind, oldest first.
+     * The planned items that can still be paid by a proposal: not finished, no filter pays them, oldest first (an old
+     * rule left in `bank_match` does not count: only a filter pays).
      *
      * @param  Builder<PlannedExpense>|Builder<PlannedIncome>  $query  the planned items of the family
      * @param  list<int>  $taken  the ids of the ones a filter pays already
@@ -165,7 +165,6 @@ final class BankGroupProposals
         return $query
             ->whereNotIn('id', $taken)
             ->where(static fn (Builder $query) => $query->whereNull('end_date')->orWhere('end_date', '>=', CarbonImmutable::today('Europe/Rome')->toDateString()))
-            ->where(static fn (Builder $query) => $query->whereNull('bank_match')->orWhere('bank_match', ''))
             ->orderBy('id');
     }
 
