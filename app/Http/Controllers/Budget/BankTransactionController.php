@@ -13,7 +13,10 @@ use App\Actions\Banks\RejectBankProposal;
 use App\Actions\Banks\RestoreBankTransaction;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
+use App\Data\BankFeeData;
 use App\Data\BankFilterData;
+use App\Data\BankGroupData;
+use App\Data\BankGroupRowData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
@@ -34,11 +37,16 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Services\Banks\BankFees;
+use App\Services\Banks\BankFilterPreview;
 use App\Services\Banks\BankFilters;
+use App\Services\Banks\BankGroupProposals;
+use App\Services\Banks\BankGroups;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankProposals;
 use App\Services\Banks\BankRows;
 use App\Services\Banks\RecurringBankTexts;
+use App\Support\Banks\BankFilterDraft;
+use App\Support\Banks\BankGroup;
 use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
 use App\Support\Banks\SyncHours;
@@ -48,6 +56,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -80,12 +89,18 @@ final class BankTransactionController extends Controller
         };
         $page = max(1, $filters->integer('page'));
         $block = null;
+        $bankGroups = resolve(BankGroups::class);
+        // The groups and what each proposes, read once for `groups`, `counts` and `group_rows`
+        $grouped = null;
+        $groupsRead = static function () use (&$grouped, $show, $bankGroups): array {
+            return $grouped ??= $show === 'unsorted' ? $bankGroups->all() : [];
+        };
         // One query for both `rows` and `next`, run the first time either is asked
-        $rows = function () use (&$block, $show, $all, $filters, $page, $bankFees): array {
+        $rows = function () use (&$block, $show, $all, $filters, $page, $bankFees, $bankGroups): array {
             return $block ??= match ($show) {
                 'all' => [...$all->page($filters, $page), 'fees' => [], 'orphans' => []],
                 'filters' => ['rows' => new Collection, 'more' => false, 'fees' => [], 'orphans' => []],
-                default => $this->unsortedBlock($page, $bankFees),
+                default => $this->unsortedBlock($page, $bankFees, $bankGroups),
             };
         };
 
@@ -116,6 +131,21 @@ final class BankTransactionController extends Controller
                     ->all();
             })->matchOn('id'),
             'next' => fn (): ?int => $rows()['more'] ? $page + 1 : null,
+            // The tab *To sort*: the groups of movements that look alike, biggest first, with what the system proposes for each
+            'groups' => fn (): array => $this->groupsData($groupsRead()),
+            // The movements of the group of `?group=` and what its proposal would do with each, asked by the page when a group opens
+            'group_rows' => Inertia::optional(fn (): array => $this->groupRows($groupsRead(), $filters->query('group'), $bankFees)),
+            'counts' => function () use ($show, $groupsRead, $bankGroups): array {
+                if ($show !== 'unsorted') {
+                    return ['unsorted' => 0, 'groups' => 0, 'lone' => 0];
+                }
+
+                return [
+                    'unsorted' => BankTransaction::query()->unsorted()->count(),
+                    'groups' => count($groupsRead()),
+                    'lone' => $bankGroups->lone()->count(),
+                ];
+            },
             // The list *All*: what the filters find, the values chosen and the accounts to choose from
             'total' => fn (): ?array => $show === 'all' ? $all->total($filters) : null,
             'filters' => fn (): ?array => $show === 'all' ? $filters->chosen() : null,
@@ -402,16 +432,14 @@ final class BankTransactionController extends Controller
      * once. One with no debit to sort is a row, an orphan (`orphans`, by id).
      *
      * @param  int  $page  the number of the block, from 1
+     * @param  BankGroups  $groups  gives the movements that are in no group
      * @return array{rows: Collection<int, BankTransaction>, more: bool, fees: array<int, BankTransaction>, orphans: list<int>}
      */
-    private function unsortedBlock(int $page, BankFees $bankFees): array
+    private function unsortedBlock(int $page, BankFees $bankFees, BankGroups $groups): array
     {
-        $rows = BankTransaction::query()
+        $rows = $groups->lone()
             ->with('financialAccount')
-            ->whereNull('ignored_at')
-            ->whereNull('transfer_account_id')
-            ->whereNull('expense_id')
-            ->whereNull('income_id')
+            ->reorder()
             ->orderByRaw('coalesce(booked_on, value_on) desc')
             ->orderByDesc('id')
             ->skip(($page - 1) * BankRows::PER_PAGE)
@@ -423,5 +451,58 @@ final class BankTransactionController extends Controller
         $rest = $shown->reject(static fn (BankTransaction $row): bool => in_array($row->id, $found['hidden'], true))->values();
 
         return ['rows' => $rest, 'more' => $rows->count() > BankRows::PER_PAGE, 'fees' => $found['fees'], 'orphans' => $found['orphans']];
+    }
+
+    /**
+     * The groups of the tab *To sort* as the page gets them, with the proposal of each (read once for all of them).
+     *
+     * @param  list<BankGroup>  $groups  the groups, biggest first
+     * @return list<BankGroupData>
+     */
+    private function groupsData(array $groups): array
+    {
+        $proposals = resolve(BankGroupProposals::class)->forAll(new SupportCollection($groups));
+        $texts = resolve(RecurringBankTexts::class);
+
+        return array_map(static function (BankGroup $group) use ($proposals, $texts): BankGroupData {
+            $chain = $texts->groupChain($group->transactions);
+            $newest = $chain === null ? null : end($chain);
+
+            return BankGroupData::fromGroup(
+                $group,
+                $proposals[$group->key] ?? null,
+                $newest === null || $newest === false ? null : route('budget.planned.create', ['kind' => $group->kind, 'bank' => $newest->id], false),
+            );
+        }, $groups);
+    }
+
+    /**
+     * The movements of the group a key names, newest first, each with what the proposal of the group would do with
+     * it. Nothing when no key is given or the group is gone.
+     *
+     * @param  list<BankGroup>  $groups  the groups, biggest first
+     * @param  mixed  $key  the value of `?group=`
+     * @return list<BankGroupRowData>
+     */
+    private function groupRows(array $groups, mixed $key, BankFees $bankFees): array
+    {
+        $group = is_string($key) ? array_find($groups, static fn (BankGroup $group): bool => $group->key === $key) : null;
+
+        if (! $group instanceof BankGroup) {
+            return [];
+        }
+
+        $draft = BankFilterDraft::fromGroup($group, resolve(BankGroupProposals::class)->for($group));
+        $rows = new Collection($group->transactions->all());
+        $forecasts = resolve(BankFilterPreview::class)->forGroup($rows, $draft);
+        $fees = $bankFees->onPage($rows)['fees'];
+
+        return array_values($rows->map(static fn (BankTransaction $row): BankGroupRowData => new BankGroupRowData(
+            BankTransactionData::fromTransaction($row),
+            isset($fees[$row->id]) ? BankFeeData::fromTransaction($fees[$row->id]) : null,
+            $forecasts[$row->id]['will'],
+            $forecasts[$row->id]['title'],
+            $forecasts[$row->id]['on'],
+        ))->all());
     }
 }

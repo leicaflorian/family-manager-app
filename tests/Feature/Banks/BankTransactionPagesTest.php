@@ -118,7 +118,7 @@ it('lists the unsorted transactions, newest first, with the pending ones marked'
 
 it('gives 50 rows at a time and the number of the next block', function (): void {
     $connection = bankTransactionPagesConnection($this->marco);
-    insideFamilyOf($this->marco, fn () => BankTransaction::factory()->count(52)->create([
+    insideFamilyOf($this->marco, fn () => BankTransaction::factory()->count(52)->sequence(fn ($sequence): array => ['counterparty' => 'Shop '.$sequence->index])->create([
         'family_id' => $connection->family_id,
         'bank_connection_id' => $connection->id,
         'financial_account_id' => $connection->accounts()->firstOrFail()->id,
@@ -303,20 +303,22 @@ it('marks the rows whose text comes back every month and lets only who can plan 
     $connection = bankTransactionPagesConnection($this->marco);
 
     foreach (['2026-09-12', '2026-10-12', '2026-11-12'] as $day) {
-        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => $day, 'amount' => '-13.99']);
+        bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'counterparty' => 'Netflix', 'booked_on' => $day, 'amount' => '-13.99']);
     }
     bankTransactionPagesRow($connection, ['text' => 'BAR CENTRALE', 'booked_on' => '2026-11-13']);
-    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'booked_on' => null, 'value_on' => '2026-11-14', 'status' => BankTransactionStatus::Pending, 'amount' => '-13.99']);
+    bankTransactionPagesRow($connection, ['text' => 'ADDEBITO SDD NETFLIX', 'counterparty' => 'Netflix', 'booked_on' => null, 'value_on' => '2026-11-14', 'status' => BankTransactionStatus::Pending, 'amount' => '-13.99']);
 
     $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('can_plan', true)
+        // The three booked debits are a group (its `recurring_url` says it comes back every month); the pending one and the bar are lone rows
+        ->has('rows', 2)
         ->where('rows.0.text', 'ADDEBITO SDD NETFLIX')
         ->where('rows.0.recurring', false)
         ->where('rows.1.text', 'BAR CENTRALE')
         ->where('rows.1.recurring', false)
-        ->where('rows.2.recurring', true)
-        ->where('rows.3.recurring', true)
-        ->where('rows.4.recurring', true));
+        ->has('groups', 1)
+        ->where('groups.0.count', 3)
+        ->where('groups.0.recurring_url', fn ($url): bool => is_string($url) && str_contains($url, 'budget/planned/expense/create?bank=')));
 
     bankTransactionPagesMember($this->marco);
     $this->get(route('budget.bank.index'))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
@@ -417,7 +419,7 @@ it('a commission is not an orphan when its debit is on the next block', function
     $debit = bankTransactionPagesSatispay($connection, '2026-11-08', '-10.00');
 
     foreach (range(1, 50) as $index) {
-        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'booked_on' => '2026-11-10', 'value_on' => '2026-11-10']);
+        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'counterparty' => 'Shop '.$index, 'booked_on' => '2026-11-10', 'value_on' => '2026-11-10']);
     }
     bankTransactionPagesRow($connection, ['text' => 'SHOP LAST', 'booked_on' => '2026-11-03', 'value_on' => '2026-11-03']);
 
@@ -431,13 +433,12 @@ it('a commission is not an orphan when its debit is on the next block', function
 
 it('a commission between two debits of one mandate on two blocks shows exactly once, under its own debit', function (): void {
     $connection = bankTransactionPagesConnection($this->marco);
-    // The commission is 2 days from the older debit and 3 from the newer one, which is on the first block
-    $newer = bankTransactionPagesSatispay($connection, '2026-11-08', '-10.00');
+    // Two debits of the mandate would be a group, so one is lone: its commission, 2 days later, is on the first block
     $fee = bankTransactionPagesSatispay($connection, '2026-11-05', '-0.40', true);
     $older = bankTransactionPagesSatispay($connection, '2026-11-03', '-10.00');
 
     foreach (range(1, 50) as $index) {
-        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'booked_on' => '2026-11-07', 'value_on' => '2026-11-07']);
+        bankTransactionPagesRow($connection, ['text' => 'SHOP '.$index, 'counterparty' => 'Shop '.$index, 'booked_on' => '2026-11-07', 'value_on' => '2026-11-07']);
     }
 
     $seen = [];
@@ -455,6 +456,5 @@ it('a commission between two debits of one mandate on two blocks shows exactly o
         });
     }
 
-    expect($seen)->toBe([$older->id])
-        ->and($newer->id)->not->toBe($older->id);
+    expect($seen)->toBe([$older->id]);
 });

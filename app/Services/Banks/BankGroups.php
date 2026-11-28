@@ -78,7 +78,7 @@ final readonly class BankGroups
     }
 
     /**
-     * The transactions still to sort that are in no group: not the ones of a group, and not the commission of a debit
+     * The transactions still to sort that are in no group, the pending ones too: not the ones of a group, and not the commission of a debit
      * (it goes with the debit). A commission with no debit stays, and so does what a filter takes.
      *
      * @return Builder<BankTransaction>
@@ -90,8 +90,12 @@ final readonly class BankGroups
             ->filter(static fn (BankGroup $group): bool => $group->transactions->count() >= 2)
             ->flatMap(static fn (BankGroup $group): array => $group->transactions->pluck('id')->all());
 
+        // Not `unsorted()`: the pending ones are listed too (they wait, marked), whatever their currency
         return BankTransaction::query()
-            ->unsorted()
+            ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
+            ->whereNull('expense_id')
+            ->whereNull('income_id')
             ->whereNotIn('id', [...$grouped->all(), ...$paired])
             ->latest('booked_on')
             ->latest('id');

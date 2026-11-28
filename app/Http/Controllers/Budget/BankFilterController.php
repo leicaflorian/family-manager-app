@@ -15,6 +15,8 @@ use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Services\Banks\BankFilterPreview;
+use App\Services\Banks\BankGroupProposals;
+use App\Services\Banks\BankGroups;
 use App\Services\Banks\BankRows;
 use App\Services\BudgetFormOptions;
 use App\Support\Banks\BankFilterCriteria;
@@ -40,9 +42,10 @@ final class BankFilterController extends Controller
     /**
      * The form of a new filter, filled when it comes from somewhere: `?planned=expense:12` pays that planned item
      * (only for who may create a filter that pays), `?from=<movement>` takes the words, the direction and the account
-     * of a movement, with `COMMISSIONI` among the words it must not have.
+     * of a movement, with `COMMISSIONI` among the words it must not have, `?group=<key>` takes the words and the proposal
+     * of a group of movements still to sort.
      *
-     * @throws NotFoundHttpException while the link to the bank is off, or when the planned item or the movement is not of the family
+     * @throws NotFoundHttpException while the link to the bank is off, or when the planned item, the movement or the group is not of the family
      */
     public function create(Request $request, BankFilterPreview $preview, BankRows $rows): Response
     {
@@ -159,6 +162,12 @@ final class BankFilterController extends Controller
     {
         $planned = null;
         $from = null;
+        $groupKey = $request->query('group');
+
+        if (is_string($groupKey) && $groupKey !== '') {
+            return $this->groupDraft($groupKey);
+        }
+
         $plannedKey = $request->query('planned');
         $fromId = $request->query('from');
 
@@ -187,6 +196,26 @@ final class BankFilterController extends Controller
             plannedExpenseId: $planned instanceof PlannedExpense ? $planned->id : null,
             plannedIncomeId: $planned !== null && ! $planned instanceof PlannedExpense ? $planned->id : null,
         );
+    }
+
+    /**
+     * The filter that takes a group of movements: its words, direction and account and what the system proposes for
+     * it. A proposal to pay is left out for who may not create a filter that pays.
+     *
+     * @param  string  $key  the key of the group
+     *
+     * @throws NotFoundHttpException when the group does not exist (any more)
+     */
+    private function groupDraft(string $key): BankFilterDraft
+    {
+        $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
+        $proposal = resolve(BankGroupProposals::class)->for($group);
+
+        if ($proposal?->action === BankFilterAction::Pay && ! Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])) {
+            $proposal = null;
+        }
+
+        return BankFilterDraft::fromGroup($group, $proposal);
     }
 
     /**
