@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
-use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
 use App\Data\Reading\Reading;
@@ -60,19 +59,6 @@ interface DocumentReader
      * @throws LogicException when the reading is off
      */
     public function corners(string $jpeg): ?array;
-
-    /**
-     * Asks the model to write the rule (*Come compare in banca*) that recognises the transactions of the same payment,
-     * from the texts of some of them, and records the call in `ai_readings` (purpose `bank_rule`, the account signed in,
-     * no file) in the current family before the answer is checked. Called only when `isActive()` is true.
-     *
-     * @param  list<string>  $examples  the texts of the transactions, already normalised
-     * @param  string  $locale  the language of the explanation (`it` or `en`)
-     *
-     * @throws ReadingFailed when the service gives no answer
-     * @throws LogicException when the reading is off
-     */
-    public function bankRule(array $examples, string $locale): BankRuleSuggestion;
 
     /**
      * Asks the model for the words of a bank filter that takes the transactions to keep and leaves the ones to drop,

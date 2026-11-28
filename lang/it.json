@@ -2959,5 +2959,12 @@
     "Pay a due date, Create the expense, It is a transfer or Ignore.": "Paga la scadenza, Crea la spesa, È un trasferimento o Ignora.",
     "Create the expense, It is a transfer or Ignore.": "Crea la spesa, È un trasferimento o Ignora.",
     "Mark an income received, Create the income, It is a transfer or Ignore.": "Segna arrivata un'entrata fissa, Crea l'entrata, È un trasferimento o Ignora.",
-    "Create the income, It is a transfer or Ignore.": "Crea l'entrata, È un trasferimento o Ignora."
+    "Create the income, It is a transfer or Ignore.": "Crea l'entrata, È un trasferimento o Ignora.",
+    "Improve the filter": "Migliora il filtro",
+    "The AI reads only the text of the movements, never the amounts.": "L'AI legge solo il testo dei movimenti, mai gli importi.",
+    "The filter takes no movement yet, so the AI has nothing to read.": "Il filtro non prende ancora nessun movimento, quindi l'AI non ha niente da leggere.",
+    "The AI is writing…": "L'AI sta scrivendo…",
+    "Undo the change": "Annulla la modifica",
+    "I changed the filter.": "Ho cambiato il filtro.",
+    "The AI suggests a new organization: :name. Add it from Organizations, then choose it here.": "L'AI propone un ente nuovo: :name. Aggiungilo da Enti, poi sceglilo qui."
 }

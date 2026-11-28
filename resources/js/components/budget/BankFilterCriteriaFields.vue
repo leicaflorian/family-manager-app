@@ -3,7 +3,7 @@
  * The section *Matches* of the form of a bank filter, as the board *Dalla-banca-filtro* draws it: the words the text
  * must contain and the ones it must not (tags: Enter adds one), the direction, the account the filter reads (or all of
  * them) and the amounts from and up to. An advanced filter, made from the rule of a planned item, has its expression
- * instead of the words, and it changes only as text.
+ * instead of the words, and it changes only as text. The slot, after the amounts, holds the AI buttons of the words.
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -131,5 +131,6 @@ const accounts = computed(() => [
                 />
             </div>
         </div>
+        <slot />
     </fieldset>
 </template>

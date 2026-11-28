@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Contracts\DocumentReader;
-use App\Data\Banks\BankRuleSuggestion;
 use App\Enums\BankTransactionStatus;
 use App\Enums\Role;
 use App\Exceptions\Reading\ReadingFailed;
@@ -13,6 +12,7 @@ use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\User;
+use App\Support\Reading\BankFilterSuggestion;
 use Carbon\CarbonImmutable;
 use Tests\Support\FakeDocumentReader;
 
@@ -21,7 +21,7 @@ beforeEach(function (): void {
     $this->marco = registerFamily();
     $this->marco->family->forceFill(['bank_feed_enabled' => true])->save();
     $this->actingAs($this->marco);
-    app()->instance(DocumentReader::class, (new FakeDocumentReader)->suggestsRule(new BankRuleSuggestion('SCUOLA.*DUE', 'The school.')));
+    app()->instance(DocumentReader::class, (new FakeDocumentReader)->suggestsFilter(new BankFilterSuggestion(['SCUOLA', 'DUE'], [], null, null, null, 'The school.')));
 });
 
 /**
@@ -130,13 +130,13 @@ test('the rule endpoint accepts pasted texts or transactions of the family, neve
 
     $this->postJson(route('budget.bank.rule'), ['examples' => ['PAGAMENTO SCUOLA PASSO A DUE'], 'kind' => 'expense'])
         ->assertOk()
-        ->assertJsonPath('pattern', 'SCUOLA.*DUE')
+        ->assertJsonPath('pattern', '^(?=.*SCUOLA)(?=.*DUE)')
         ->assertJsonPath('explanation', 'The school.')
         ->assertJsonPath('count', 2);
 
     $this->postJson(route('budget.bank.rule'), ['transactions' => [$mine->id], 'kind' => 'expense'])
         ->assertOk()
-        ->assertJsonPath('pattern', 'SCUOLA.*DUE');
+        ->assertJsonPath('pattern', '^(?=.*SCUOLA)(?=.*DUE)');
 
     $stranger = Family::factory()->create();
     $foreign = BankTransaction::factory()->create(['family_id' => $stranger->id, 'text' => 'SCUOLA ALTRUI']);

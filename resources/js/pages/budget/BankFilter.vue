@@ -6,12 +6,14 @@
  * them the movements of the last 90 days the filter written so far takes, asked again half a second after the last
  * change (the last answer wins). Under the list the sentence that says what saving does, *Delete*, *Cancel* and
  * *Save the filter*, which stays off while a movement is taken by another filter. A new filter can start from a
- * proposal (`draft`): from a movement or from a planned item.
+ * proposal (`draft`): from a movement, from a group or from a planned item; the AI buttons of the words sit under
+ * the amounts (`BankFilterAi`).
  */
 import { Head, router } from '@inertiajs/vue3';
 import { TriangleAlert, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import BankFilterAi from '@/components/budget/BankFilterAi.vue';
 import BankFilterActionFields from '@/components/budget/BankFilterActionFields.vue';
 import BankFilterCriteriaFields from '@/components/budget/BankFilterCriteriaFields.vue';
 import BankFilterFeeFields from '@/components/budget/BankFilterFeeFields.vue';
@@ -48,7 +50,7 @@ const props = defineProps<{
     options: BankFilterFormOptions;
     /** Whether who writes can make a filter that pays a due date (an administrator). */
     can_pay: boolean;
-    /** Whether the AI can read: the AI buttons of the words (a later step). */
+    /** Whether the AI can read: without it the AI buttons of the words are hidden. */
     ai?: boolean;
 }>();
 
@@ -75,6 +77,17 @@ const previewLoading = ref(false);
 
 /** The address of the tab *Filters*, where *Cancel*, *Close* and the trail lead. */
 const filtersUrl = bankIndex({ query: { show: 'filters' } }).url;
+
+/** The movements the AI reads: the ones the filter written so far takes (the first fifty are read). */
+const aiKeep = computed((): number[] =>
+    shownPreview.value.rows.map((row) => row.transaction.id),
+);
+
+/**
+ * A new filter that starts from a movement or a group without a proposal asks the AI once for its title, category and
+ * organization, as *Create the filter* on the group promises.
+ */
+const askAtOpen = props.filter === null && props.draft?.action === null;
 
 /** Who looks can change this filter: always for a new one. */
 const canSave = computed(
@@ -287,7 +300,14 @@ const { title, head } = usePageMeta({
                         v-model="values"
                         :options="options"
                         :problems="problems"
-                    />
+                    >
+                        <BankFilterAi
+                            v-model="values"
+                            :ai="ai"
+                            :keep="aiKeep"
+                            :auto="askAtOpen"
+                        />
+                    </BankFilterCriteriaFields>
                     <BankFilterFeeFields
                         v-if="values.direction !== 'income'"
                         v-model="values"

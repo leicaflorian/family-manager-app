@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Budget;
 
-use App\Actions\Banks\WriteBankMatch;
+use App\Actions\Banks\SuggestBankFilter;
 use App\Data\BankTransactionData;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Http\Controllers\Controller;
@@ -13,6 +13,7 @@ use App\Http\Requests\Banks\BankMatchRequest;
 use App\Http\Requests\Banks\WriteBankMatchRequest;
 use App\Models\BankTransaction;
 use App\Services\Banks\BankMatchPreview;
+use App\Support\Banks\BankMatch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -59,27 +60,34 @@ final class BankMatchController extends Controller
     }
 
     /**
-     * The rule the AI writes from the examples, with the sentence that explains it and what it recognises. A
-     * reading that is off, used up or without an answer is a 422 with its message under `examples`.
+     * The rule the AI writes from the examples, with the sentence that explains it and what it recognises. The AI now
+     * proposes the words of a bank filter (`SuggestBankFilter`); here they become a rule that needs every one of them.
+     * A reading that is off, used up or without an answer is a 422 with its message under `examples`.
      *
      * @throws NotFoundHttpException while the link to the bank is off, or when a transaction is not of the family
+     * @throws ValidationException when the reading is off, used up or gives no answer
      */
-    public function rule(WriteBankMatchRequest $request, WriteBankMatch $write): JsonResponse
+    public function rule(WriteBankMatchRequest $request, SuggestBankFilter $suggest): JsonResponse
     {
-        $texts = $request->texts();
+        $sign = $request->kind() === 'income' ? '1.00' : '-1.00';
+        $examples = array_map(static fn (string $text): BankTransaction => (new BankTransaction)->forceFill(['text' => $text, 'amount' => $sign, 'financial_account_id' => 0]), $request->texts());
 
         try {
-            $suggestion = $write->handle($texts, app()->getLocale());
+            $suggestion = $suggest->handle($examples, [], SuggestBankFilter::WORDS, app()->getLocale());
         } catch (ReadingFailed $failure) {
             report($failure);
 
             throw ValidationException::withMessages(['examples' => $failure->getMessage()]);
+        } catch (ValidationException $refused) {
+            throw ValidationException::withMessages(['examples' => (string) ($refused->validator->errors()->first('keep'))]);
         }
 
+        $pattern = implode('', array_map(static fn (string $word): string => '(?=.*'.preg_quote(BankMatch::normalize($word), '~').')', $suggestion->contains));
+
         return response()->json([
-            'pattern' => $suggestion->pattern,
+            'pattern' => '^'.$pattern,
             'explanation' => $suggestion->explanation,
-            ...BankMatchPreview::for($suggestion->pattern, $request->kind(), $request->accountId()),
+            ...BankMatchPreview::for('^'.$pattern, $request->kind(), $request->accountId()),
         ]);
     }
 }

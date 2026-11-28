@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Banks\SaveBankFilter;
+use App\Actions\Banks\SuggestBankFilter;
 use App\Contracts\DocumentReader;
 use App\Data\BankFilterData;
+use App\Data\Banks\BankFilterSuggestionData;
 use App\Enums\BankFilterAction;
+use App\Exceptions\Reading\ReadingFailed;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\BankFilterPreviewRequest;
 use App\Http\Requests\Banks\SaveBankFilterRequest;
+use App\Http\Requests\Banks\SuggestBankFilterRequest;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
@@ -29,6 +33,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -111,6 +116,27 @@ final class BankFilterController extends Controller
     public function preview(BankFilterPreviewRequest $request, BankFilterPreview $preview): JsonResponse
     {
         return response()->json($preview->for($request->criteria(), $request->filterColumns(), $request->changing()));
+    }
+
+    /**
+     * The words, and in the fill mode the title, category and organization, the AI proposes for the movements the
+     * filter must take and leave. Asked only by a button; writes nothing. A reading that is off, used up or without an
+     * answer is a 422 with its message under `keep`.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when a movement is not of the family
+     * @throws ValidationException when the reading is off, used up or gives no answer
+     */
+    public function suggest(SuggestBankFilterRequest $request, SuggestBankFilter $suggest): JsonResponse
+    {
+        try {
+            $suggestion = $suggest->handle($request->keep(), $request->drop(), $request->mode(), app()->getLocale());
+        } catch (ReadingFailed $failure) {
+            report($failure);
+
+            throw ValidationException::withMessages(['keep' => $failure->getMessage()]);
+        }
+
+        return response()->json(BankFilterSuggestionData::fromSuggestion($suggestion));
     }
 
     /**

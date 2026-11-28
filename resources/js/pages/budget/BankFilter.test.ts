@@ -388,4 +388,100 @@ describe('The form of a bank filter', () => {
         );
         expect(await screen.findByText(message)).toBeInTheDocument();
     });
+
+    it('the AI buttons are hidden without the AI', () => {
+        renderPage(BankFilter, props({ ai: false }));
+
+        expect(
+            screen.queryByRole('button', { name: 'Write it with the AI' }),
+        ).toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Improve the filter' }),
+        ).toBeNull();
+    });
+
+    it('Write it with the AI reads the movements the filter takes and fills the words', async () => {
+        request.mockImplementation((config) =>
+            Promise.resolve({
+                status: 200,
+                headers: {},
+                data: JSON.stringify(
+                    config.url === '/budget/bank/filters/suggest'
+                        ? {
+                              contains: ['SATISPAY', 'RICARICA'],
+                              excludes: [],
+                              title: null,
+                              category: null,
+                              category_id: null,
+                              organization: null,
+                              organization_id: null,
+                              organization_is_new: false,
+                              explanation: 'Takes the Satispay top-ups.',
+                          }
+                        : bankFilterPreview,
+                ),
+            }),
+        );
+        renderPage(BankFilter, props({ ai: true }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Write it with the AI' }),
+        );
+
+        expect(
+            await screen.findByText('Takes the Satispay top-ups.'),
+        ).toBeInTheDocument();
+        expect(request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                url: '/budget/bank/filters/suggest',
+                data: { keep: [9], drop: [], mode: 'words' },
+            }),
+        );
+        await pause();
+    });
+
+    it('a new filter from a group without a proposal asks the AI for title, category and organization when it opens', async () => {
+        request.mockImplementation((config) =>
+            Promise.resolve({
+                status: 200,
+                headers: {},
+                data: JSON.stringify(
+                    config.url === '/budget/bank/filters/suggest'
+                        ? {
+                              contains: ['SATISPAY'],
+                              excludes: ['COMMISSIONI'],
+                              title: 'Ricarica Satispay',
+                              category: 'Varie',
+                              category_id: 3,
+                              organization: null,
+                              organization_id: null,
+                              organization_is_new: false,
+                              explanation: 'Takes the Satispay top-ups.',
+                          }
+                        : bankFilterPreview,
+                ),
+            }),
+        );
+        renderPage(
+            BankFilter,
+            props({
+                filter: null,
+                draft: { ...satispay, id: null, action: null, title: null },
+                ai: true,
+            }),
+        );
+
+        expect(
+            await screen.findByText('Takes the Satispay top-ups.'),
+        ).toBeInTheDocument();
+        expect(request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: { keep: [9], drop: [], mode: 'fill' },
+            }),
+        );
+        expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue(
+            'Ricarica Satispay',
+        );
+        await pause();
+    });
 });

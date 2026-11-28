@@ -11,7 +11,7 @@ import { formatAmount, parseAmount } from '@/lib/forms';
 import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
 import { splitAround } from '@/lib/text';
 import type { MovementFormOptions } from '@/lib/budget';
-import { preview } from '@/routes/budget/bank/filters';
+import { preview, suggest } from '@/routes/budget/bank/filters';
 
 /** One piece of the line *Matches*: words (drawn as tags), an expression, or a plain text. */
 export type CriteriaPart =
@@ -603,6 +603,61 @@ export async function previewFilter(
                 (status === 0
                     ? trans('There is no network: try again in a while.')
                     : trans('This did not work. Try again in a while.')),
+        );
+    }
+}
+
+/** The AI could not write the filter: the message to show where the buttons are. */
+export class BankFilterSuggestError extends Error {}
+
+/**
+ * Asks the server what the AI proposes for a filter: the words, and in the fill mode a title, a category and an
+ * organization. Only the movements named are read by the AI, and only their text; nothing is saved.
+ *
+ * @param keep - the ids of the movements the filter must take
+ * @param drop - the ids of the movements it must leave
+ * @param mode - `words` for the words only, `fill` for the fields too
+ * @returns what the AI proposes
+ * @throws BankFilterSuggestError when the reading is off or used up, the AI does not answer, or there is no network
+ */
+export async function suggestFilter(
+    keep: number[],
+    drop: number[],
+    mode: 'words' | 'fill',
+): Promise<App.Data.Banks.BankFilterSuggestionData> {
+    try {
+        const response = await http.getClient().request({
+            method: 'post',
+            url: suggest.url(),
+            data: { keep, drop, mode },
+            headers: { Accept: 'application/json' },
+        });
+        const body = jsonBody(response.data);
+
+        if (body === null || !Array.isArray(body.contains)) {
+            throw new BankFilterSuggestError(
+                trans('This did not work. Try again in a while.'),
+            );
+        }
+
+        return body as unknown as App.Data.Banks.BankFilterSuggestionData;
+    } catch (error) {
+        if (error instanceof BankFilterSuggestError) {
+            throw error;
+        }
+
+        const { status, body } = failedAnswer(error);
+        const keepErrors = (body?.errors as { keep?: unknown } | undefined)
+            ?.keep;
+        const first = Array.isArray(keepErrors) ? keepErrors[0] : null;
+
+        throw new BankFilterSuggestError(
+            typeof first === 'string' && first !== ''
+                ? first
+                : (serverMessage(body) ??
+                      (status === 0
+                          ? trans('There is no network: try again in a while.')
+                          : trans('This did not work. Try again in a while.'))),
         );
     }
 }
