@@ -10,6 +10,7 @@ use App\Actions\Banks\RefreshBanks;
 use App\Actions\Banks\RestoreBankTransaction;
 use App\Actions\Banks\SettleFromBank;
 use App\Actions\Banks\UndoBankPayment;
+use App\Data\BankFilterData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
 use App\Enums\BankMatchSource;
@@ -20,6 +21,7 @@ use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
@@ -55,7 +57,8 @@ final class BankTransactionController extends Controller
     /**
      * The page: a block of the list (added below the ones already shown) under `?show=unsorted`, `?show=all` or
      * `?show=filters`. *All* lists every transaction the bank gave, filtered by `q`, `account`, `status`, `month` and
-     * `direction` (`?show=ignored` is *All* with the status *ignored*); *Filters* lists no movement until its task.
+     * `direction` (`?show=ignored` is *All* with the status *ignored*); *Filters* lists no movement, only the filters
+     * (`bank_filters`).
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family
      */
@@ -105,6 +108,15 @@ final class BankTransactionController extends Controller
             'total' => fn (): ?array => $show === 'all' ? $all->total($filters) : null,
             'filters' => fn (): ?array => $show === 'all' ? $filters->chosen() : null,
             'accounts' => fn (): array => $show === 'all' ? $all->accounts() : [],
+            // The tab *Filters*: every filter of the family by name, with how many movements it settled and what it lacks
+            'bank_filters' => fn (): array => $show === 'filters' ? array_values(BankFilter::query()
+                ->with(['financialAccount', 'plannedExpense', 'plannedIncome', 'transferAccount'])
+                ->withCount('transactions')
+                ->orderBy('name')
+                ->orderBy('id')
+                ->get()
+                ->map(BankFilterData::fromFilter(...))
+                ->all()) : [],
             // *It is a transfer*: the open accounts of the family, to choose the one on the other side
             'accounts_all' => fn (): array => $show === 'unsorted' ? $all->transferAccounts() : [],
             'banks_to_reconnect' => fn (): array => BankConnection::query()

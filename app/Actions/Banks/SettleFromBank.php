@@ -129,6 +129,39 @@ final readonly class SettleFromBank
     }
 
     /**
+     * What `handle()` would do with the transaction, without locks and without writing anything (the preview of a
+     * filter): the payment already recorded it would link (a free payment of the planned item with the same amount
+     * within a few days, or the free payment of the due date it settles when that one is paid), the open due date it
+     * would pay, or null when the transaction would stay to sort. The same steps as `handle()`, in the same order.
+     *
+     * @param  BankTransaction  $transaction  The transaction of the bank.
+     * @param  PlannedExpense|PlannedIncome  $planned  The planned item it would pay.
+     * @param  BankFilter|null  $filter  The filter that would pay it, which says how the commission of a direct debit is found.
+     */
+    public function foresee(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, ?BankFilter $filter = null): Expense|Income|Deadline|null
+    {
+        if (! $transaction->booked_on instanceof CarbonImmutable) {
+            return null;
+        }
+
+        $existing = $this->duplicates->findAny($transaction, $planned, $filter);
+
+        if ($existing !== null && $this->duplicates->isFree($existing, $transaction)) {
+            return $existing;
+        }
+
+        $deadline = $this->matcher->deadline($transaction, $planned);
+
+        if (! $deadline instanceof Deadline || ! $deadline->isPaid()) {
+            return $deadline;
+        }
+
+        $payment = $deadline->payment;
+
+        return $payment !== null && $this->duplicates->isFree($payment, $transaction) ? $payment : null;
+    }
+
+    /**
      * Records the payment of the due date as the bank tells it.
      *
      * @param  BankTransaction  $transaction  The transaction, locked.

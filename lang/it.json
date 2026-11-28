@@ -2809,5 +2809,19 @@
     "to :account": "a :account",
     "from :account": "da :account",
     "with the other half": "con l'altra metà",
-    "You have no other account yet.": "Non hai ancora un altro conto."
+    "You have no other account yet.": "Non hai ancora un altro conto.",
+    "Write at least one word of three letters or more: a filter without words would take every movement.": "Scrivi almeno una parola di tre lettere o più: un filtro senza parole prenderebbe tutti i movimenti.",
+    "This expression would take every movement or cannot be read: change it.": "Questa espressione prenderebbe tutti i movimenti o non si riesce a leggere: cambiala.",
+    "The amount up to must be at least the amount from.": "L'importo «a» deve essere almeno quello «da».",
+    "Write at least one word of three letters or more of the commission.": "Scrivi almeno una parola di tre lettere o più della commissione.",
+    "Choose another account than the one the filter reads.": "Scegli un conto diverso da quello che legge il filtro.",
+    "{1} A movement to sort is already taken by the filter :names: change one of the two.|[2,*] :count movements to sort are already taken by the filters :names: change one of the two.": "{1} Un movimento da sistemare lo prende già il filtro :names: cambia uno dei due.|[2,*] :count movimenti da sistemare li prendono già i filtri :names: cambia uno dei due.",
+    "Filter deleted. What it sorted stays as it is.": "Filtro eliminato. Quello che ha sistemato resta com'è.",
+    "{0} Filter saved.|{1} Filter saved: it sorted 1 movement.|[2,*] Filter saved: it sorted :count movements.": "{0} Filtro salvato.|{1} Filtro salvato: ha sistemato 1 movimento.|[2,*] Filtro salvato: ha sistemato :count movimenti.",
+    "Its words would take every movement, so it takes none: add a word of three letters or more.": "Le sue parole prenderebbero tutti i movimenti, quindi non ne prende nessuno: aggiungi una parola di tre lettere o più.",
+    "The planned item it pays is gone.": "La spesa o l'entrata fissa che paga non c'è più.",
+    "The planned expense ended on :date.": "La spesa fissa è finita il :date.",
+    "The planned income ended on :date.": "L'entrata fissa è finita il :date.",
+    "The account of the transfer is gone.": "Il conto del trasferimento non c'è più.",
+    "The account of the transfer is closed.": "Il conto del trasferimento è chiuso."
 }

@@ -61,8 +61,7 @@ final readonly class MatchBankTransactions
     public function forFilter(BankFilter $filter): int
     {
         $transactions = $this->safely(fn (): array => $this->filters->taken($filter->criteria(), config()->integer('bank_feed.first_days'))
-            ->filter(static fn (BankTransaction $transaction): bool => $transaction->expense_id === null && $transaction->income_id === null
-                && $transaction->ignored_at === null && $transaction->transfer_account_id === null && $transaction->declined_at === null)
+            ->filter(BankFilters::toSort(...))
             ->sortBy([
                 static fn (BankTransaction $a, BankTransaction $b): int => $a->booked_on?->toDateString() <=> $b->booked_on?->toDateString(),
                 static fn (BankTransaction $a, BankTransaction $b): int => $a->id <=> $b->id,

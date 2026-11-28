@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Banks;
 
+use App\Data\BankFilterData;
 use App\Enums\BankFilterAction;
 use App\Enums\BankFilterFee;
 
@@ -88,6 +89,14 @@ final readonly class BankFilterDraft
             transferAccountId: $proposal?->transferAccountId,
             detail: $proposal?->detail,
         );
+    }
+
+    /**
+     * The proposal as the form of a new filter receives it (`draft`).
+     */
+    public function toData(): BankFilterData
+    {
+        return BankFilterData::fromDraft($this);
     }
 
     /**

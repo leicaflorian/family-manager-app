@@ -11,9 +11,11 @@ use Carbon\CarbonImmutable;
 use Database\Factories\BankFilterFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
@@ -58,6 +60,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property-read PlannedExpense|null $plannedExpense
  * @property-read PlannedIncome|null $plannedIncome
  * @property-read FinancialAccount|null $transferAccount
+ * @property-read Collection<int, BankTransaction> $transactions
+ * @property-read int|null $transactions_count
  *
  * @method static BankFilterFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankFilter newModelQuery()
@@ -91,6 +95,16 @@ final class BankFilter extends FamilyModel
     public function criteria(): BankFilterCriteria
     {
         return BankFilterCriteria::fromFilter($this);
+    }
+
+    /**
+     * The transactions of the bank the filter settled (`bank_transactions.bank_filter_id`).
+     *
+     * @return HasMany<BankTransaction, $this>
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(BankTransaction::class);
     }
 
     /**
