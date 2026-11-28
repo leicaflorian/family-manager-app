@@ -341,6 +341,9 @@ function toggleIgnored(row: App.Data.BankTransactionData): void {
     }
 }
 
+/** What *Yes* and *No* ask back: the rows, the numbers and the shared number to sort. */
+const PROPOSAL_ONLY = ['rows', 'counts', 'next', 'bank_feed'];
+
 /** The movement *Yes* or *No* of «Maybe it is…» is being sent for, null while none is. */
 const proposing = ref<number | null>(null);
 
@@ -376,6 +379,7 @@ function acceptProposal(row: App.Data.BankTransactionData): void {
         { key: row.proposal.key },
         {
             preserveScroll: true,
+            only: PROPOSAL_ONLY,
             onStart: () => {
                 proposing.value = row.id;
             },
@@ -384,7 +388,11 @@ function acceptProposal(row: App.Data.BankTransactionData): void {
             },
             onError: (messages) => {
                 // A key that is not the proposal any more: the next load brings the right one
-                toast.error(messages.key ?? Object.values(messages)[0] ?? '');
+                toast.error(
+                    messages.key ??
+                        Object.values(messages)[0] ??
+                        trans('Something went wrong, try again.'),
+                );
             },
             onFinish: () => {
                 proposing.value = null;
@@ -408,6 +416,7 @@ function rejectProposal(row: App.Data.BankTransactionData): void {
     router.delete(rejectRoute(row.id).url, {
         data: { key: row.proposal.key },
         preserveScroll: true,
+        only: PROPOSAL_ONLY,
         onStart: () => {
             proposing.value = row.id;
         },

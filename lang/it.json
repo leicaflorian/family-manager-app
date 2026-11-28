@@ -3002,5 +3002,8 @@
     "Maybe it is: :title · due on :date · :amount": "Forse è: :title · scadenza del :date · :amount",
     "Maybe it is: :title · :date · :amount": "Forse è: :title · :date · :amount",
     "Maybe it is a transfer from :title": "Forse è un trasferimento da :title",
-    "Maybe it is a transfer to :title": "Forse è un trasferimento a :title"
+    "Maybe it is a transfer to :title": "Forse è un trasferimento a :title",
+    "Yes: :title": "Sì: :title",
+    "No: :title": "No: :title",
+    "Something went wrong, try again.": "Qualcosa è andato storto, riprova."
 }

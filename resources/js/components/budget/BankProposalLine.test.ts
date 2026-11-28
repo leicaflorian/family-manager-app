@@ -84,7 +84,9 @@ describe('BankProposalLine', () => {
     it('says yes with the key of the proposal', async () => {
         const view = mount(bankProposals.recorded);
 
-        await fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Yes: Spesa Famila' }),
+        );
 
         expect(view.emitted().yes).toEqual([
             [expect.objectContaining({ id: 2 })],
@@ -94,7 +96,9 @@ describe('BankProposalLine', () => {
     it('says no', async () => {
         const view = mount(bankProposals.recorded);
 
-        await fireEvent.click(screen.getByRole('button', { name: 'No' }));
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'No: Spesa Famila' }),
+        );
 
         expect(view.emitted().no).toEqual([
             [expect.objectContaining({ id: 2 })],
@@ -104,7 +108,11 @@ describe('BankProposalLine', () => {
     it('waits while it is being sent', () => {
         mount(bankProposals.recorded, -23.9, { busy: true });
 
-        expect(screen.getByRole('button', { name: 'Yes' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'No' })).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'Yes: Spesa Famila' }),
+        ).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'No: Spesa Famila' }),
+        ).toBeDisabled();
     });
 });

@@ -2,6 +2,7 @@ import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
 import { nextTick } from 'vue';
+import { toast } from 'vue-sonner';
 import {
     afterEach,
     beforeEach,
@@ -19,6 +20,8 @@ import {
 } from '@/test/fixtures';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import BankTransactions from './BankTransactions.vue';
+
+vi.mock('vue-sonner', () => ({ toast: { error: vi.fn() } }));
 
 const shared = vi.hoisted(() => ({
     bank_feed: { unsorted: 6 } as { unsorted: number } | null,
@@ -1427,7 +1430,7 @@ describe('Budget, From the bank, Maybe it is…', () => {
             props({ rows: withProposal(bankProposals.recorded) }),
         );
 
-        expect(screen.getAllByRole('button', { name: 'Yes' })).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: /^Yes/ })).toHaveLength(1);
         const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
         expect(within(row).getByText('Spesa Famila')).toBeInTheDocument();
     });
@@ -1441,7 +1444,7 @@ describe('Budget, From the bank, Maybe it is…', () => {
             }),
         );
 
-        expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull();
+        expect(screen.queryByRole('button', { name: /^Yes/ })).toBeNull();
     });
 
     it('Yes sends the key, keeps the scroll and the row goes', async () => {
@@ -1455,14 +1458,33 @@ describe('Budget, From the bank, Maybe it is…', () => {
             props({ rows: withProposal(bankProposals.recorded) }),
         );
 
-        await userEvent.click(screen.getByRole('button', { name: 'Yes' }));
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
 
         expect(post).toHaveBeenCalledWith(
             '/budget/bank/2/proposal',
             { key: 'expense:812' },
-            expect.objectContaining({ preserveScroll: true }),
+            expect.objectContaining({
+                preserveScroll: true,
+                only: ['rows', 'counts', 'next', 'bank_feed'],
+            }),
         );
         expect(screen.queryByText(/EDISON ENERGIA/)).not.toBeInTheDocument();
+    });
+
+    it('says something when the server refuses without a message', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onError?.({});
+        });
+        renderPage(
+            BankTransactions,
+            props({ rows: withProposal(bankProposals.recorded) }),
+        );
+
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
+
+        expect(toast.error).toHaveBeenCalledWith(
+            'Something went wrong, try again.',
+        );
     });
 
     it('Yes keeps the row and the line when the server refuses', async () => {
@@ -1475,10 +1497,10 @@ describe('Budget, From the bank, Maybe it is…', () => {
             props({ rows: withProposal(bankProposals.recorded) }),
         );
 
-        await userEvent.click(screen.getByRole('button', { name: 'Yes' }));
+        await userEvent.click(screen.getByRole('button', { name: /^Yes/ }));
 
         expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Yes' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: /^Yes/ })).toBeEnabled();
     });
 
     it('No sends the key, keeps the scroll and takes the line away but not the row', async () => {
@@ -1492,17 +1514,18 @@ describe('Budget, From the bank, Maybe it is…', () => {
             props({ rows: withProposal(bankProposals.recorded) }),
         );
 
-        await userEvent.click(screen.getByRole('button', { name: 'No' }));
+        await userEvent.click(screen.getByRole('button', { name: /^No/ }));
 
         expect(del).toHaveBeenCalledWith(
             '/budget/bank/2/proposal',
             expect.objectContaining({
                 data: { key: 'expense:812' },
                 preserveScroll: true,
+                only: ['rows', 'counts', 'next', 'bank_feed'],
             }),
         );
         expect(screen.getByText(/EDISON ENERGIA/)).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Yes' })).toBeNull();
+        expect(screen.queryByRole('button', { name: /^Yes/ })).toBeNull();
     });
 
     it('shows the next candidate the server sends after No', async () => {
@@ -1514,7 +1537,7 @@ describe('Budget, From the bank, Maybe it is…', () => {
             props({ rows: withProposal(bankProposals.recorded) }),
         );
 
-        await userEvent.click(screen.getByRole('button', { name: 'No' }));
+        await userEvent.click(screen.getByRole('button', { name: /^No/ }));
         await view.rerender(
             props({ rows: withProposal(bankProposals.deadline) }),
         );

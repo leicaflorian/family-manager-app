@@ -30,6 +30,27 @@ const emit = defineEmits<{
 
 const { date, money } = useFormat();
 
+/**
+ * The English sentence of a proposal: a transfer by the direction of the money, a due date, a recorded movement.
+ *
+ * @param p - the proposal
+ */
+function sentenceKey(p: App.Data.BankProposalData): string {
+    const keys: Record<string, string> = {
+        'transfer:in': 'Maybe it is a transfer from :title',
+        'transfer:out': 'Maybe it is a transfer to :title',
+        deadline: 'Maybe it is: :title · due on :date · :amount',
+        recorded: 'Maybe it is: :title · already recorded on :date · :amount',
+        movement: 'Maybe it is: :title · :date · :amount',
+    };
+
+    if (p.type === 'transfer') {
+        return keys[row.amount > 0 ? 'transfer:in' : 'transfer:out'];
+    }
+
+    return keys[p.type === 'movement' && p.recorded ? 'recorded' : p.type];
+}
+
 /** The proposal of the movement. */
 const proposal = computed((): App.Data.BankProposalData | null => row.proposal);
 
@@ -46,19 +67,7 @@ const parts = computed((): [string, string] => {
         amount: p.amount === null ? '' : money(p.amount, row.currency),
     };
 
-    return splitAround(
-        p.type === 'transfer'
-            ? row.amount > 0
-                ? 'Maybe it is a transfer from :title'
-                : 'Maybe it is a transfer to :title'
-            : p.type === 'deadline'
-              ? 'Maybe it is: :title · due on :date · :amount'
-              : p.recorded
-                ? 'Maybe it is: :title · already recorded on :date · :amount'
-                : 'Maybe it is: :title · :date · :amount',
-        'title',
-        replacements,
-    );
+    return splitAround(sentenceKey(p), 'title', replacements);
 });
 </script>
 
@@ -80,6 +89,7 @@ const parts = computed((): [string, string] => {
                 row-action
                 :icon="Check"
                 :disabled="busy"
+                :aria-label="$t('Yes: :title', { title: proposal.title })"
                 @click="emit('yes', row)"
                 >{{ $t('Yes') }}</FmButton
             >
@@ -87,6 +97,7 @@ const parts = computed((): [string, string] => {
                 variant="neutral"
                 row-action
                 :disabled="busy"
+                :aria-label="$t('No: :title', { title: proposal.title })"
                 @click="emit('no', row)"
                 >{{ $t('No') }}</FmButton
             >
