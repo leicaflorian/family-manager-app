@@ -433,8 +433,14 @@ it('the planned form carries its filter', function (): void {
             ->where('bank.filter', null)
             ->where('bank.create_url', null));
 
-    // Only an admin can open the edit form, and so the link to a filter that pays is always one he may follow
-    // Bank link off: no filter, no link
+    // With two filters that pay the item, the box shows the oldest
+    $second = insideBianchi(fn (): BankFilter => BankFilter::factory()->pays($planned)->create(['family_id' => $planned->family_id, 'name' => 'Netflix again', 'contains' => ['NFLX'], 'created_at' => now()->addDay()]));
+    $this->get(route('budget.planned.edit', ['kind' => 'expense', 'id' => $planned->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('bank.filter.id', $filter->id));
+    expect($second->id)->toBeGreaterThan($filter->id);
+
+    // Bank link off: no filter, no link (only an admin opens this form, so a link to a filter that pays is one he may follow)
     $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();
     $this->get(route('budget.planned.edit', ['kind' => 'expense', 'id' => $planned->id]))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
