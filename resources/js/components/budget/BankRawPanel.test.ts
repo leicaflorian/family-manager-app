@@ -43,6 +43,7 @@ const row: App.Data.BankTransactionData = {
     transfer: null,
     account_id: 4,
     proposal: null,
+    two_filters: null,
 };
 
 describe('BankRawPanel', () => {

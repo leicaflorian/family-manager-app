@@ -2230,6 +2230,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         transfer: null,
         account_id: 4,
         proposal: null,
+        two_filters: null,
     },
     {
         id: 2,
@@ -2253,6 +2254,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         transfer: null,
         account_id: 4,
         proposal: null,
+        two_filters: null,
     },
     {
         id: 1,
@@ -2276,6 +2278,7 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
         transfer: null,
         account_id: 4,
         proposal: null,
+        two_filters: null,
     },
 ];
 

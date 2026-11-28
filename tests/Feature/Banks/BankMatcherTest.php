@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 use App\Enums\ExceptionType;
 use App\Enums\IntervalUnit;
-use App\Models\BankConnection;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
-use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
-use App\Models\PlannedIncome;
 use App\Services\Banks\BankMatcher;
 
 beforeEach(function (): void {
@@ -52,90 +49,14 @@ function bankMatcherTransaction(string $text, string $amount, string $day, array
     ]);
 }
 
-test('the Luce rule picks Luce and its due date of 05/11/2026', function (): void {
+test('the due date of Luce that a debit of 06/11/2026 settles is the one of 05/11/2026', function (): void {
     insideBianchi(function (): void {
         $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05');
-        bankMatcherPlanned('Gas', 'ENI PLENITUDE', 60, '2026-01-10');
         $transaction = bankMatcherTransaction('ADDEBITO SDD EDISON ENERGIA SPA', '-84.20', '2026-11-06');
-        $matcher = resolve(BankMatcher::class);
 
-        $planned = $matcher->planned($transaction);
-        $deadline = $matcher->deadline($transaction, $planned);
+        $deadline = resolve(BankMatcher::class)->deadline($transaction, $luce);
 
-        expect($planned?->is($luce))->toBeTrue()
-            ->and($deadline?->occurrence->originalDate->toDateString())->toBe('2026-11-05');
-    });
-});
-
-test('an income never matches a planned expense and the other way round', function (): void {
-    insideBianchi(function (): void {
-        $expense = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05');
-        $income = PlannedIncome::factory()->create([
-            'family_id' => $expense->family_id, 'bank_match' => 'EDISON', 'amount' => 84.20, 'start_date' => '2026-01-05',
-        ]);
-        $matcher = resolve(BankMatcher::class);
-
-        expect($matcher->planned(bankMatcherTransaction('EDISON', '-84.20', '2026-11-05'))?->is($expense))->toBeTrue()
-            ->and($matcher->planned(bankMatcherTransaction('EDISON', '84.20', '2026-11-05'))?->is($income))->toBeTrue();
-
-        $income->delete();
-        expect($matcher->planned(bankMatcherTransaction('EDISON', '84.20', '2026-11-05')))->toBeNull();
-    });
-});
-
-test('a transaction in another currency matches nothing', function (): void {
-    insideBianchi(function (): void {
-        bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05');
-
-        expect(resolve(BankMatcher::class)->planned(bankMatcherTransaction('EDISON', '-84.20', '2026-11-05', ['currency' => 'USD'])))->toBeNull();
-    });
-});
-
-test('a rule tied to another linked account does not match', function (): void {
-    insideBianchi(function (): void {
-        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
-        $other = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
-        $linked = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
-        $transaction = bankMatcherTransaction('EDISON', '-84.20', '2026-11-05', ['financial_account_id' => $linked->id]);
-        $tied = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05', ['financial_account_id' => $other->id]);
-        $matcher = resolve(BankMatcher::class);
-
-        expect($matcher->planned($transaction))->toBeNull();
-
-        $tied->update(['financial_account_id' => $transaction->financial_account_id]);
-        expect($matcher->planned($transaction)?->is($tied))->toBeTrue();
-    });
-});
-
-test('a rule on an account not linked to a bank matches the transactions of every linked account', function (): void {
-    insideBianchi(function (): void {
-        $familyId = Family::query()->where('name', 'Bianchi')->sole()->id;
-        $default = FinancialAccount::factory()->create(['family_id' => $familyId, 'name' => 'Conto BPER']);
-        $linked = FinancialAccount::factory()->create(['family_id' => $familyId, 'bank_connection_id' => BankConnection::factory()->create(['family_id' => $familyId])->id]);
-        $luce = bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05', ['financial_account_id' => $default->id]);
-        $transaction = bankMatcherTransaction('EDISON', '-84.20', '2026-11-05', ['financial_account_id' => $linked->id]);
-
-        expect(resolve(BankMatcher::class)->planned($transaction)?->is($luce))->toBeTrue();
-    });
-});
-
-test('a planned expense that ended before the day does not match', function (): void {
-    insideBianchi(function (): void {
-        bankMatcherPlanned('Luce', 'EDISON', 84.20, '2026-01-05', ['end_date' => '2026-10-05']);
-
-        expect(resolve(BankMatcher::class)->planned(bankMatcherTransaction('EDISON', '-84.20', '2026-11-05')))->toBeNull();
-    });
-});
-
-test('between two planned expenses the closest amount wins, a tie picks none', function (): void {
-    insideBianchi(function (): void {
-        $small = bankMatcherPlanned('Affitto', 'ZAMBONI', 700, '2026-01-01', ['fee_amount' => 2]);
-        $big = bankMatcherPlanned('Affitto box', 'ZAMBONI', 800, '2026-01-01');
-        $matcher = resolve(BankMatcher::class);
-
-        expect($matcher->planned(bankMatcherTransaction('ZAMBONI SRL', '-702.00', '2026-11-02'))?->is($small))->toBeTrue()
-            ->and($matcher->planned(bankMatcherTransaction('ZAMBONI SRL', '-790.00', '2026-11-02'))?->is($big))->toBeTrue()
-            ->and($matcher->planned(bankMatcherTransaction('ZAMBONI SRL', '-751.00', '2026-11-02')))->toBeNull();
+        expect($deadline?->occurrence->originalDate->toDateString())->toBe('2026-11-05');
     });
 });
 

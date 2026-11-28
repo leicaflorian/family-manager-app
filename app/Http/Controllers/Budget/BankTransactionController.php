@@ -32,6 +32,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
 use App\Services\Banks\BankFees;
+use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankProposals;
 use App\Services\Banks\BankRows;
@@ -90,6 +91,8 @@ final class BankTransactionController extends Controller
             'rows' => Inertia::merge(function () use ($rows, $show): array {
                 // One read of the last months for the whole page, none for the other lists
                 $texts = resolve(RecurringBankTexts::class);
+                // One read of the filters for the whole page: a row to sort that two filters take names them
+                $bankFilters = resolve(BankFilters::class);
                 $block = $rows();
                 $fees = $block['fees'];
                 $orphans = $block['orphans'];
@@ -104,6 +107,7 @@ final class BankTransactionController extends Controller
                         $fees[$transaction->id] ?? null,
                         in_array($transaction->id, $orphans, true),
                         $proposals[$transaction->id] ?? null,
+                        $show === 'unsorted' ? $bankFilters->namesWhenShared($transaction) : null,
                     ))
                     ->values()
                     ->all();

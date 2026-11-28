@@ -7,8 +7,11 @@ use App\Actions\Banks\DetachBankFee;
 use App\Actions\Banks\LinkRecordedMovement;
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
+use App\Enums\BankFilterAction;
+use App\Enums\BankFilterFee;
 use App\Enums\BankMatchSource;
 use App\Models\BankConnection;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -127,10 +130,11 @@ test('a commission that arrives after its debit is attached at the next read', f
         $connection = BankConnection::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id]);
         $connection->writeSession('session-'.$connection->id, CarbonImmutable::now()->addDays(100));
         $account = FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'uid-1']);
-        PlannedExpense::factory()->create([
-            'family_id' => $connection->family_id, 'title' => 'Ricarica Satispay', 'bank_match' => 'MAN.SAT0023101207360112900', 'amount' => 10.0,
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $connection->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0,
             'fee_amount' => null, 'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => $account->id,
         ]);
+        BankFilter::factory()->pays($satispay)->create(['family_id' => $connection->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::Auto]);
         $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-11-24'), CarbonImmutable::parse('2026-11-24'), -10.0, 'EUR', attachBankFeeText(), null, true);
         $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-11-25'), CarbonImmutable::parse('2026-11-25'), -0.40, 'EUR', attachBankFeeText(true), null, true);
 
@@ -216,5 +220,53 @@ test('detaching never goes below zero', function (): void {
             ->and($fee->expense_id)->toBeNull()
             ->and($fee->matched_by)->toBeNull()
             ->and($fee->declined_at)->toBeNull();
+    });
+});
+
+test('a commission recognised by the words of the filter that arrives at a later read joins the expense the filter created', function (): void {
+    insideBianchi(function (): void {
+        $this->travelTo(CarbonImmutable::parse('2026-12-24 10:00', 'Europe/Rome'));
+        $connection = BankConnection::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id]);
+        $connection->writeSession('session-'.$connection->id, CarbonImmutable::now()->addDays(100));
+        $account = FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'uid-1']);
+        BankFilter::factory()->create([
+            'family_id' => $connection->family_id, 'name' => 'Satispay', 'contains' => ['SATISPAY'], 'excludes' => ['COMMISSIONI'],
+            'action' => BankFilterAction::Create, 'title' => 'Ricarica Satispay',
+            'fee_mode' => BankFilterFee::Words, 'fee_contains' => ['COMMISSIONI', 'SATISPAY'], 'fee_excludes' => [],
+        ]);
+        $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-12-24'), null, -10.0, 'EUR', 'RICARICA SATISPAY', null, true);
+        $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-12-25'), null, -0.40, 'EUR', 'COMMISSIONI SATISPAY', null, true);
+
+        $this->feed->gives([$debit]);
+        resolve(SyncBankConnection::class)->handle($connection->refresh());
+        $expense = Expense::query()->sole();
+        expect((float) $expense->amount)->toBe(10.0);
+
+        $this->travelTo(CarbonImmutable::parse('2026-12-25 10:00', 'Europe/Rome'));
+        $this->feed->gives([$debit, $fee]);
+        resolve(SyncBankConnection::class)->handle($connection->refresh());
+
+        $expense->refresh();
+        expect((float) $expense->amount)->toBe(10.4)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and(Expense::query()->count())->toBe(1)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->expense_id)->toBe($expense->id)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->matched_by)->toBe(BankMatchSource::Fee);
+    });
+});
+
+test('a later commission is not joined to a debit whose filter does not recognise it with words', function (): void {
+    insideBianchi(function (): void {
+        $filter = BankFilter::factory()->create([
+            'family_id' => attachBankFeeAccount()->family_id, 'contains' => ['SATISPAY'], 'fee_mode' => BankFilterFee::None,
+        ]);
+        $expense = Expense::factory()->create(['family_id' => $filter->family_id, 'amount' => 10, 'fee_amount' => null, 'date' => '2026-11-24']);
+        attachBankFeeRow('2026-11-24', '-10.00', false, ['text' => 'RICARICA SATISPAY', 'expense_id' => $expense->id, 'matched_by' => BankMatchSource::Rule, 'bank_filter_id' => $filter->id]);
+        $fee = attachBankFeeRow('2026-11-25', '-0.40', false, ['text' => 'COMMISSIONI SATISPAY']);
+
+        resolve(AttachBankFee::class)->forNew([$fee]);
+
+        expect($fee->refresh()->expense_id)->toBeNull()
+            ->and((float) $expense->refresh()->amount)->toBe(10.0);
     });
 });

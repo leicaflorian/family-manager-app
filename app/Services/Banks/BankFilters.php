@@ -9,6 +9,7 @@ use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterMatch;
+use App\Support\Banks\BankText;
 use App\Support\Banks\RuleAccount;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -49,6 +50,25 @@ final class BankFilters
         return $this->all()
             ->filter(static fn (BankFilter $filter): bool => BankFilterMatch::matches($filter->criteria(), $transaction))
             ->values();
+    }
+
+    /**
+     * The names of the filters that take a transaction, when two or more do: none of them settles it, and its row
+     * says which ones. Null for one filter or none, and for a transaction no filter can settle: not booked, not in
+     * euros, or a commission (it joins the expense of its debit by itself).
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     * @return list<string>|null
+     */
+    public function namesWhenShared(BankTransaction $transaction): ?array
+    {
+        if (BankText::isFee($transaction->text)) {
+            return null;
+        }
+
+        $taking = $this->matching($transaction);
+
+        return $taking->count() >= 2 ? array_values($taking->map(static fn (BankFilter $filter): string => $filter->name)->all()) : null;
     }
 
     /**

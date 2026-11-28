@@ -18,7 +18,6 @@ use App\Models\PlannedExpense;
 use App\Models\ReminderNotice;
 use App\Models\User;
 use App\Services\Banks\BankFees;
-use App\Services\Banks\BankMatcher;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -54,7 +53,7 @@ function bankUndoSettled(BankMatchSource $by = BankMatchSource::Rule): array
             'financial_account_id' => FinancialAccount::query()->where('name', 'Conto BancoPosta')->sole()->id,
             'text' => 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA', 'amount' => '-72.40', 'booked_on' => '2026-11-05', 'value_on' => '2026-11-05',
         ]);
-        $expense = resolve(SettleFromBank::class)->handle($transaction, resolve(BankMatcher::class)->planned($transaction) ?? $luce, $by);
+        $expense = resolve(SettleFromBank::class)->handle($transaction, $luce, $by);
         expect($expense)->toBeInstanceOf(Expense::class);
 
         return [$luce, $transaction->refresh(), $expense];

@@ -138,3 +138,17 @@ test('taken leaves out non-euro rows', function (): void {
 
     expect((new BankFilters)->taken(new BankFilterCriteria(contains: ['edison']))->pluck('id')->all())->toBe([$euro->id]);
 });
+
+test('names the filters when two or more take a booked euro transaction that is not a commission', function (): void {
+    [$family, $account] = bankFiltersFamily();
+    BankFilter::factory()->for($family)->create(['name' => 'Edison casa', 'contains' => ['edison']]);
+    BankFilter::factory()->for($family)->create(['name' => 'Edison ufficio', 'contains' => ['edison', 'energia']]);
+    $row = fn (array $state): BankTransaction => BankTransaction::factory()->for($family)->create(['financial_account_id' => $account->id, 'amount' => '-50.00', ...$state]);
+    $filters = new BankFilters;
+
+    expect($filters->namesWhenShared($row(['text' => 'Addebito EDISON energia'])))->toBe(['Edison casa', 'Edison ufficio'])
+        ->and($filters->namesWhenShared($row(['text' => 'EDISON luce'])))->toBeNull()
+        ->and($filters->namesWhenShared($row(['text' => 'COMMISSIONI EDISON energia'])))->toBeNull()
+        ->and($filters->namesWhenShared($row(['text' => 'EDISON energia', 'status' => BankTransactionStatus::Pending])))->toBeNull()
+        ->and($filters->namesWhenShared($row(['text' => 'EDISON energia', 'currency' => 'USD'])))->toBeNull();
+});

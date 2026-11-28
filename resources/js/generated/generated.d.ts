@@ -198,6 +198,7 @@ readonly orphan_fee: boolean,
 readonly transfer: App.Data.BankTransferData | null,
 readonly account_id: number | null,
 readonly proposal: App.Data.BankProposalData | null,
+readonly two_filters: string[] | null,
 };
 export type BankTransferData = {
 readonly account: string,
@@ -1322,6 +1323,7 @@ export type Area = 'home' | 'vehicles' | 'insurance' | 'banks' | 'health' | 'sch
 export type BankConnectionStatus = 'active' | 'needs_reconnect' | 'error';
 export type BankFilterAction = 'pay' | 'create' | 'transfer' | 'ignore';
 export type BankFilterFee = 'auto' | 'words' | 'none';
+export type BankFilterOutcome = 'paid' | 'created' | 'linked' | 'transferred' | 'ignored' | 'none';
 export type BankMatchSource = 'rule' | 'proposed' | 'assigned' | 'created' | 'duplicate' | 'fee';
 export type BankRowStatus = 'unsorted' | 'linked' | 'fee' | 'transfer' | 'ignored' | 'pending';
 export type BankTransactionStatus = 'booked' | 'pending';

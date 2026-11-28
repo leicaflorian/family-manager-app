@@ -39,6 +39,7 @@ final class BankTransactionData extends Data
      * @param  BankTransferData|null  $transfer  the account on the other side, when it is a transfer between the family's own accounts
      * @param  int|null  $account_id  the account of the transaction (`financial_account_id`)
      * @param  BankProposalData|null  $proposal  «Maybe it is…»: what the system proposes a lone movement to sort is
+     * @param  list<string>|null  $two_filters  the names of the filters that all take it, when two or more do: none of them settles it
      */
     public function __construct(
         public readonly int $id,
@@ -62,6 +63,7 @@ final class BankTransactionData extends Data
         public readonly ?BankTransferData $transfer = null,
         public readonly ?int $account_id = null,
         public readonly ?BankProposalData $proposal = null,
+        public readonly ?array $two_filters = null,
     ) {}
 
     /**
@@ -73,8 +75,9 @@ final class BankTransactionData extends Data
      * @param  BankTransaction|null  $fee  the commission paired with this direct debit
      * @param  bool  $orphanFee  this is a commission whose direct debit is not to sort
      * @param  BankProposalData|null  $proposal  «Maybe it is…» of a lone movement to sort (`BankProposals`)
+     * @param  list<string>|null  $twoFilters  the names of the filters that take it, when two or more do
      */
-    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false, ?BankTransaction $fee = null, bool $orphanFee = false, ?BankProposalData $proposal = null): self
+    public static function fromTransaction(BankTransaction $transaction, bool $recurring = false, bool $withLink = false, ?BankTransaction $fee = null, bool $orphanFee = false, ?BankProposalData $proposal = null, ?array $twoFilters = null): self
     {
         $account = $transaction->financialAccount;
 
@@ -100,6 +103,7 @@ final class BankTransactionData extends Data
             $transaction->transfer_account_id === null ? null : BankTransferData::fromTransaction($transaction),
             $transaction->financial_account_id,
             $proposal,
+            $twoFilters,
         );
     }
 

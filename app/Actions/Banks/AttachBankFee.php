@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Banks;
 
 use App\Enums\BankMatchSource;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Services\Banks\BankFees;
@@ -79,14 +80,15 @@ final readonly class AttachBankFee
      * after the link; a commission that is not there yet joins when it arrives (`forNew`).
      *
      * @param  BankTransaction  $debit  the debit, linked
+     * @param  BankFilter|null  $filter  the filter that took the debit, which says how its commission is found
      */
-    public function forDebit(BankTransaction $debit): void
+    public function forDebit(BankTransaction $debit, ?BankFilter $filter = null): void
     {
         if ($debit->expense_id === null || $debit->matched_by === BankMatchSource::Fee || BankText::isFee($debit->text)) {
             return;
         }
 
-        $fee = $this->fees->feeOf($debit);
+        $fee = $this->fees->feeOf($debit, $filter);
         $expense = $fee instanceof BankTransaction ? Expense::query()->find($debit->expense_id) : null;
 
         if ($fee instanceof BankTransaction && $expense instanceof Expense) {
@@ -95,21 +97,24 @@ final readonly class AttachBankFee
     }
 
     /**
-     * Joins the new commissions of a read whose debit is already linked to an expense. A failure is reported and the
-     * others go on: the read of the bank never fails for it.
+     * Joins the new commissions of a read to the expense of their debit when it is already linked: a commission of
+     * the mandate kind to its debit (`debitOf()`), otherwise any new transaction that the commission words of the
+     * filter of a linked debit take (`debitByWords()`). A failure is reported and the others go on: the read of the
+     * bank never fails for it.
      *
      * @param  iterable<BankTransaction>  $new  the transactions just saved
      */
     public function forNew(iterable $new): void
     {
         foreach ($new as $transaction) {
-            if (! BankText::isFee($transaction->text)) {
-                continue;
-            }
-
             try {
-                $debit = $this->fees->debitOf($transaction, includeSorted: true);
-                $expense = $debit?->expense_id !== null && $debit->matched_by !== BankMatchSource::Fee ? Expense::query()->find($debit->expense_id) : null;
+                $debit = BankText::isFee($transaction->text) ? $this->fees->debitOf($transaction, includeSorted: true) : null;
+                $expense = $this->expenseOf($debit);
+
+                if (! $expense instanceof Expense) {
+                    $debit = $this->fees->debitByWords($transaction);
+                    $expense = $this->expenseOf($debit);
+                }
 
                 if ($expense instanceof Expense) {
                     $this->handle($transaction, $expense, $debit);
@@ -118,5 +123,15 @@ final readonly class AttachBankFee
                 report($failure);
             }
         }
+    }
+
+    /**
+     * The expense a debit is linked to, unless the debit is itself a commission.
+     *
+     * @param  BankTransaction|null  $debit  the debit
+     */
+    private function expenseOf(?BankTransaction $debit): ?Expense
+    {
+        return $debit?->expense_id !== null && $debit->matched_by !== BankMatchSource::Fee ? Expense::query()->find($debit->expense_id) : null;
     }
 }

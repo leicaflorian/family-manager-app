@@ -28,6 +28,7 @@ const base: App.Data.BankTransactionData = {
     transfer: null,
     account_id: 4,
     proposal: null,
+    two_filters: null,
 };
 
 const linked: App.Data.BankTransactionData = {

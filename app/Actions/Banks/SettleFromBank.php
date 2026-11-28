@@ -6,6 +6,7 @@ namespace App\Actions\Banks;
 
 use App\Actions\Budget\RecordPayment;
 use App\Enums\BankMatchSource;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
@@ -66,11 +67,12 @@ final readonly class SettleFromBank
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
      * @param  BankMatchSource  $by  How it was recognised: by a rule, or by the person.
      * @param  CarbonImmutable|null  $occurrence  The due date the person chose (the date the rules give), instead of the one the matcher finds.
+     * @param  BankFilter|null  $filter  The filter that pays it, which says how the commission of a direct debit is found.
      * @return Expense|Income|null the payment it is now linked to, or null when it stays to sort (or is not to sort any more)
      */
-    public function handle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, BankMatchSource $by, ?CarbonImmutable $occurrence = null): Expense|Income|null
+    public function handle(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, BankMatchSource $by, ?CarbonImmutable $occurrence = null, ?BankFilter $filter = null): Expense|Income|null
     {
-        return DB::transaction(function () use ($transaction, $planned, $by, $occurrence): Expense|Income|null {
+        return DB::transaction(function () use ($transaction, $planned, $by, $occurrence, $filter): Expense|Income|null {
             // A person who assigns it settles it even after *It was not this one*; a rule never takes it again
             $current = BankTransaction::query()->unsorted()
                 ->when($by !== BankMatchSource::Assigned, static fn (Builder $query): Builder => $query->whereNull('declined_at'))
@@ -83,10 +85,11 @@ final readonly class SettleFromBank
             PlannedKind::lock($planned);
 
             // The person chose the due date: a payment of another one within a few days is not this transaction's
-            $existing = $occurrence instanceof CarbonImmutable ? null : $this->duplicates->find($current, $planned);
+            $existing = $occurrence instanceof CarbonImmutable ? null : $this->duplicates->findAny($current, $planned, $filter);
 
-            if ($existing !== null) {
-                return $this->link($current, $existing, BankMatchSource::Duplicate);
+            // Locked and read again before it is taken: another bank row may have taken it by another path meanwhile
+            if ($existing !== null && $this->duplicates->claim($existing, $current)) {
+                return $this->link($current, $existing, BankMatchSource::Duplicate, $filter);
             }
 
             try {
@@ -101,22 +104,22 @@ final readonly class SettleFromBank
             }
 
             if ($deadline->isPaid()) {
-                return $this->linkPaid($current, $deadline);
+                return $this->linkPaid($current, $deadline, $filter);
             }
 
             try {
                 try {
-                    $payment = $this->pay($current, $planned, $deadline);
+                    $payment = $this->pay($current, $planned, $deadline, $filter);
                 } catch (ValidationException) {
                     // Paid by somebody who did not wait for the lock: only the payment rolled back, the lock is still held
-                    return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate));
+                    return $this->linkPaid($current, $this->deadlines->find($planned, $deadline->occurrence->originalDate), $filter);
                 }
             } catch (NotFoundHttpException) {
                 // The due date went away meanwhile (the planned item was changed): nothing to pay or link, the transaction stays to sort
                 return null;
             }
 
-            $this->link($current, $payment, $by);
+            $this->link($current, $payment, $by, $filter);
             // Who assigned it by hand, or said yes to the proposal, knows already; a rule tells everyone
             $assigner = in_array($by, [BankMatchSource::Assigned, BankMatchSource::Proposed], true) ? Auth::guard('web')->id() : null;
             $this->notify->handle($current, $payment, $deadline, is_numeric($assigner) ? (int) $assigner : null);
@@ -131,14 +134,15 @@ final readonly class SettleFromBank
      * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item.
      * @param  Deadline  $deadline  The due date it settles.
+     * @param  BankFilter|null  $filter  The filter that pays it.
      *
      * @throws ValidationException if the due date is already paid
      */
-    private function pay(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, Deadline $deadline): Expense|Income
+    private function pay(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, Deadline $deadline, ?BankFilter $filter): Expense|Income
     {
         $amount = abs((float) $transaction->amount);
         // A commission the bank writes apart joins the payment when it is there (`AttachBankFee`), never twice
-        $fee = $planned instanceof PlannedExpense && ! $this->fees->isDetached($transaction) ? (float) $planned->fee_amount : 0.0;
+        $fee = $planned instanceof PlannedExpense && ! $this->fees->isDetached($transaction, $filter) ? (float) $planned->fee_amount : 0.0;
 
         // Otherwise the bank says the whole amount, commission included: a commission as big as the amount cannot be part of it
         return $this->recordPayment->handle(
@@ -152,18 +156,20 @@ final readonly class SettleFromBank
     }
 
     /**
-     * Links the transaction to the payment of a paid due date, when no other bank transaction has it.
+     * Links the transaction to the payment of a paid due date, when no other bank transaction has it (the payment is
+     * locked and read again, `BankDuplicates::claim()`).
      *
      * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  Deadline  $deadline  The due date, paid.
+     * @param  BankFilter|null  $filter  The filter that pays it.
      * @return Expense|Income|null the payment, or null when the transaction stays to sort
      */
-    private function linkPaid(BankTransaction $transaction, Deadline $deadline): Expense|Income|null
+    private function linkPaid(BankTransaction $transaction, Deadline $deadline, ?BankFilter $filter): Expense|Income|null
     {
         $payment = $deadline->payment;
 
-        return $payment !== null && $this->duplicates->isFree($payment, $transaction)
-            ? $this->link($transaction, $payment, BankMatchSource::Duplicate)
+        return $payment !== null && $this->duplicates->claim($payment, $transaction)
+            ? $this->link($transaction, $payment, BankMatchSource::Duplicate, $filter)
             : null;
     }
 
@@ -173,12 +179,13 @@ final readonly class SettleFromBank
      * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  Expense|Income  $payment  The payment.
      * @param  BankMatchSource  $by  How the link came.
+     * @param  BankFilter|null  $filter  The filter that pays it, which says how the commission is found.
      * @return Expense|Income the payment, read again when a commission joined it
      */
-    private function link(BankTransaction $transaction, Expense|Income $payment, BankMatchSource $by): Expense|Income
+    private function link(BankTransaction $transaction, Expense|Income $payment, BankMatchSource $by, ?BankFilter $filter): Expense|Income
     {
         $transaction->linkTo($payment, $by);
-        $this->attachFee->forDebit($transaction);
+        $this->attachFee->forDebit($transaction, $filter);
 
         return $payment instanceof Expense ? $payment->refresh() : $payment;
     }

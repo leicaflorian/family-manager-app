@@ -377,4 +377,12 @@ return [
         'words' => 'Riconoscila con queste parole',
         'none' => 'Nessuna commissione',
     ],
+    'bank_filter_outcome' => [
+        'paid' => 'Pagata la scadenza',
+        'created' => 'Creata la spesa',
+        'linked' => 'Collegato a una spesa già registrata',
+        'transferred' => 'Segnato come trasferimento',
+        'ignored' => 'Ignorato',
+        'none' => 'Niente da fare',
+    ],
 ];

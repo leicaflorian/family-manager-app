@@ -50,6 +50,7 @@ const row = (id: number, day: string, amount: number) =>
         transfer: null,
         account_id: 4,
         proposal: null,
+        two_filters: null,
     }) satisfies App.Data.BankTransactionData;
 
 beforeEach(() => {

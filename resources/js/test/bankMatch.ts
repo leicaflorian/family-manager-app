@@ -37,6 +37,7 @@ export function bankRow(
         transfer: null,
         account_id: 4,
         proposal: null,
+        two_filters: null,
     };
 }
 
