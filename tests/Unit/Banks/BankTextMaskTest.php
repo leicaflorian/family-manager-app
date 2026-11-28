@@ -36,3 +36,51 @@ test('mandate and creditor codes and shop names stay', function (): void {
 
     expect(BankTextMask::forModel($text, ['Ottavio']))->toBe($text);
 });
+
+test('an amount next to a currency becomes IMPORTO, also without two decimals', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'whole, EUR after' => ['COMMISSIONE 42 EUR', 'COMMISSIONE IMPORTO'],
+    'whole, EUR before' => ['RICARICA EUR 42 TIM', 'RICARICA IMPORTO TIM'],
+    'one decimal' => ['PAGAMENTO 42,5 EUR BAR', 'PAGAMENTO IMPORTO BAR'],
+    'thousands' => ['BONIFICO 1.234 EUR', 'BONIFICO IMPORTO'],
+]);
+
+test('an amount glued to letters becomes IMPORTO', function (): void {
+    expect(BankTextMask::forModel('PAGAMENTO POS42,00 NETFLIX', []))->toBe('PAGAMENTO POS IMPORTO NETFLIX');
+});
+
+test('a card number or its tail becomes CARTA', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'stars' => ['PAGAMENTO CARTA ****1234 AMAZON', 'PAGAMENTO CARTA CARTA AMAZON'],
+    'crosses' => ['POS XXXX1234 ESSELUNGA', 'POS CARTA ESSELUNGA'],
+    'sixteen digits' => ['ADDEBITO 4532015112830366 AMAZON', 'ADDEBITO CARTA AMAZON'],
+    'thirteen digits' => ['ADDEBITO 4532015112830 AMAZON', 'ADDEBITO CARTA AMAZON'],
+]);
+
+test('a run of nine to twelve digits becomes NUMERO', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'account' => ['GIROCONTO DA C/C 000012345678', 'GIROCONTO DA C/C NUMERO'],
+    'phone glued' => ['RICARICA TEL3331234567 TIM', 'RICARICA TEL NUMERO TIM'],
+    'nine digits' => ['RIF 123456789 ENEL', 'RIF NUMERO ENEL'],
+]);
+
+test('an invoice number shorter than nine digits stays', function (): void {
+    expect(BankTextMask::forModel('FATTURA 12345678 DEL MESE', []))->toBe('FATTURA 12345678 DEL MESE');
+});
+
+test('an IBAN after a slash or a dot, or written in groups, becomes IBAN', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'after C/C.' => ['GIROCONTO C/C.IT60X0542811101000000123456 RISPARMI', 'GIROCONTO C/C.IBAN RISPARMI'],
+    'after a slash' => ['BONIFICO /IT60X0542811101000000123456 AFFITTO', 'BONIFICO /IBAN AFFITTO'],
+    'in groups' => ['BONIFICO DA IT60 X054 2811 1010 0000 0123 456 AFFITTO CASA', 'BONIFICO DA IBAN AFFITTO CASA'],
+]);
+
+test('a creditor id after ID CREDITORE stays', function (): void {
+    $text = 'SDD ENEL ENERGIA ID CREDITORE IT12ZZZ0000012345678 FATTURA 123';
+
+    expect(BankTextMask::forModel($text, []))->toBe($text);
+});

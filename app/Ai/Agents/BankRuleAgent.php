@@ -35,7 +35,7 @@ The rule is a short regular expression in PCRE syntax, without delimiters and wi
 
 Rules:
 - Keep the words that stay the same from one payment to the next: who gets the money and the kind of operation.
-- IBAN, IMPORTO and PERSONA in the texts stand for hidden data (an account number, an amount, a person's name): never use them.
+- IBAN, IMPORTO, CARTA, NUMERO and PERSONA in the texts stand for hidden data (an account number, an amount, a card number, another long number, a person's name): never use them.
 - Leave out invoice numbers, dates, amounts, codes and card numbers.
 - Join the words with .* and write them in upper case.
 - Do not use ^ or $.

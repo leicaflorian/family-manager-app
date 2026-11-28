@@ -139,14 +139,16 @@ test('the texts reach the model without IBAN, amounts and the names of the famil
     $family = Family::factory()->create();
     $this->actingAs(User::factory()->for($family)->create(['name' => 'Giuseppina Rossetti']));
     Person::factory()->for($family)->create(['first_name' => 'Ottavio', 'last_name' => 'Bellandi']);
-    $kept = suggestBankFilterTransaction($family, 'Bonifico a Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Netflix Rossetti');
+    $kept = suggestBankFilterTransaction($family, 'Bonifico a Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Netflix Rossetti carta ****1234 spese 42 EUR');
 
     $suggestion = suggestBankFilterRun($family, [$kept]);
 
     Http::assertSent(function (Request $request): bool {
         $body = $request->body();
 
-        return str_contains($body, 'BONIFICO A PERSONA PERSONA IBAN IMPORTO NETFLIX PERSONA')
+        return str_contains($body, 'BONIFICO A PERSONA PERSONA IBAN IMPORTO NETFLIX PERSONA CARTA CARTA SPESE IMPORTO')
+            && ! str_contains($body, '1234')
+            && ! str_contains($body, '42 EUR')
             && ! str_contains($body, 'IT60X0542811101000000123456')
             && ! str_contains($body, '42,00')
             && ! str_contains($body, 'OTTAVIO')

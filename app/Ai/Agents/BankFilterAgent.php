@@ -36,7 +36,7 @@ The filter is a list of words: a transaction is taken when its text, in upper ca
 
 Rules:
 - contains: few words, in upper case, that stay the same from one transaction of the same thing to the next: who gets or gives the money, and the kind of operation when it helps. Every transaction to take must have all of them.
-- IBAN, IMPORTO and PERSONA in the texts stand for hidden data (an account number, an amount, a person's name): never use them.
+- IBAN, IMPORTO, CARTA, NUMERO and PERSONA in the texts stand for hidden data (an account number, an amount, a card number, another long number, a person's name): never use them.
 - Leave out invoice numbers, dates, amounts, codes that change every time and card numbers. Words of one or two letters do not count.
 - A mandate (MAN.…) or a creditor code (CID.…) of a direct debit is a good word on its own.
 - excludes: words that only the transactions to leave out have; an empty list when contains already leaves them out.

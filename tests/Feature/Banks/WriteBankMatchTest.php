@@ -150,12 +150,14 @@ test('the examples reach the model without IBAN, amounts and the names of the fa
     $this->actingAs(User::factory()->for($family)->create(['name' => 'Giuseppina Rossetti']));
     Person::factory()->for($family)->create(['first_name' => 'Ottavio', 'last_name' => 'Bellandi']);
 
-    bankWriteRun($family, ['Addebito Enel Energia Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Rossetti']);
+    bankWriteRun($family, ['Addebito Enel Energia Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Rossetti carta ****1234 spese 42 EUR']);
 
     Http::assertSent(function (Request $request): bool {
         $body = $request->body();
 
-        return str_contains($body, 'ADDEBITO ENEL ENERGIA PERSONA PERSONA IBAN IMPORTO PERSONA')
+        return str_contains($body, 'ADDEBITO ENEL ENERGIA PERSONA PERSONA IBAN IMPORTO PERSONA CARTA CARTA SPESE IMPORTO')
+            && ! str_contains($body, '1234')
+            && ! str_contains($body, '42 EUR')
             && ! str_contains($body, 'IT60X0542811101000000123456')
             && ! str_contains($body, '42,00')
             && ! str_contains($body, 'OTTAVIO')
