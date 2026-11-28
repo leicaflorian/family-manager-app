@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankFilterAction;
 use App\Enums\BankTransactionStatus;
 use App\Models\BankConnection;
 use App\Models\BankFilter;
@@ -9,6 +10,7 @@ use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
+use App\Models\PlannedExpense;
 use App\Services\Banks\BankFilters;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\CurrentFamily;
@@ -151,4 +153,34 @@ test('names the filters when two or more take a booked euro transaction that is 
         ->and($filters->namesWhenShared($row(['text' => 'COMMISSIONI EDISON energia'])))->toBeNull()
         ->and($filters->namesWhenShared($row(['text' => 'EDISON energia', 'status' => BankTransactionStatus::Pending])))->toBeNull()
         ->and($filters->namesWhenShared($row(['text' => 'EDISON energia', 'currency' => 'USD'])))->toBeNull();
+});
+
+test('the filters that pay the dual-fuel debit together give their planned expenses in order, the closest still settles alone', function (): void {
+    registerFamily();
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $acqua = PlannedExpense::factory()->create(['family_id' => $bill['luce']->family_id, 'title' => 'Acqua']);
+        BankFilter::factory()->pays($acqua)->create(['family_id' => $acqua->family_id, 'contains' => ['ACQUEDOTTO']]);
+        $transaction = enelDualFuelDebit($bill['account']);
+        $filters = new BankFilters;
+
+        expect(array_map(static fn (BankFilter $filter): int => $filter->id, $filters->payingTogether($transaction)))
+            ->toBe([$bill['luce']->id => $bill['filters']['luce']->id, $bill['gas']->id => $bill['filters']['gas']->id])
+            ->and($filters->settling($transaction)?->is($bill['filters']['luce']))->toBeTrue();
+    });
+});
+
+test('no planned expenses are paid together when a filter on the debit does something else, or for money in', function (): void {
+    registerFamily();
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $income = enelDualFuelDebit($bill['account'], '165.65');
+        $debit = enelDualFuelDebit($bill['account']);
+
+        expect((new BankFilters)->payingTogether($income))->toBe([]);
+
+        BankFilter::factory()->create(['family_id' => $debit->family_id, 'contains' => ['ENEL'], 'action' => BankFilterAction::Ignore]);
+
+        expect((new BankFilters)->payingTogether($debit))->toBe([]);
+    });
 });

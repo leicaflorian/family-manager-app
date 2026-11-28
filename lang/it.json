@@ -3033,5 +3033,18 @@
     "Inflow": "Entrata",
     "Find it on its own": "Trovala da sola",
     "Create the filter :name": "Crea il filtro :name",
-    "With a linked bank, a filter that pays the due date records the payment by itself.": "Con una banca collegata, un filtro che paga la scadenza registra il pagamento da solo."
+    "With a linked bank, a filter that pays the due date records the payment by itself.": "Con una banca collegata, un filtro che paga la scadenza registra il pagamento da solo.",
+    "Electricity and gas bill :month :year": "Bolletta luce e gas :month :year",
+    "Electricity and gas bill": "Bolletta luce e gas",
+    ":types bill :month :year": "Bolletta :types :month :year",
+    ":types bill": "Bolletta :types",
+    "I found an electricity and gas bill": "Ho trovato una bolletta della luce e del gas",
+    ":first and :second": ":first e :second",
+    "You already have an electricity utility: tick it if this is another supply.": "Hai già un'utenza della luce: spunta se è un'altra fornitura.",
+    "You already have a gas utility: tick it if this is another supply.": "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+    "You already have a water utility: tick it if this is another supply.": "Hai già un'utenza dell'acqua: spunta se è un'altra fornitura.",
+    "You already have a utility of this type: tick it if this is another supply.": "Hai già un'utenza di questo tipo: spunta se è un'altra fornitura.",
+    ":supply: :field": ":supply: :field",
+    "To record the consumption tick the utility of this supply.": "Per segnare i consumi spunta l'utenza di questa fornitura.",
+    "A bill of electricity and gas together is imported once: the document goes to both utilities, with an expense and a consumption for each supply.": "Una bolletta di luce e gas insieme si importa una volta: il documento va su tutte e due le utenze, con una spesa e un consumo per ogni fornitura."
 }

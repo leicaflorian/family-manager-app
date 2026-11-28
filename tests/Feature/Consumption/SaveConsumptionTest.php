@@ -192,3 +192,36 @@ it('refuses a utility that has no unit', function (): void {
         resolve(SaveConsumption::class)->handle($utility, saveConsumptionValues(), ConsumptionSource::Reading);
     }, UtilityType::Internet);
 })->throws(InvalidArgumentException::class);
+
+it('keeps one row per utility of a bill that carries electricity and gas', function (): void {
+    saveConsumptionInFamily(function (Utility $electricity, Document $bill): void {
+        $electricity->forceFill(['supply_point_code' => 'IT 001 E 87654321'])->save();
+        $gas = Utility::factory()->create(['family_id' => $electricity->family_id, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567890']);
+
+        $light = resolve(SaveConsumption::class)->handle($electricity, saveConsumptionValues(201.0), ConsumptionSource::Reading, $bill);
+        $heat = resolve(SaveConsumption::class)->handle($gas, saveConsumptionValues(48.0, '2026-10-01', '2026-10-31'), ConsumptionSource::Reading, $bill);
+
+        expect(UtilityConsumption::query()->count())->toBe(2)
+            ->and($light->document_id)->toBe($bill->id)
+            ->and($heat->document_id)->toBe($bill->id)
+            ->and($heat->id)->not->toBe($light->id)
+            ->and($heat->unit)->toBe(ConsumptionUnit::Smc);
+    });
+});
+
+it('updates the row of its own utility when the shared bill is saved again', function (): void {
+    saveConsumptionInFamily(function (Utility $electricity, Document $bill): void {
+        $gas = Utility::factory()->create(['family_id' => $electricity->family_id, 'type' => UtilityType::Gas]);
+        $light = resolve(SaveConsumption::class)->handle($electricity, saveConsumptionValues(201.0), ConsumptionSource::Reading, $bill);
+        $heat = resolve(SaveConsumption::class)->handle($gas, saveConsumptionValues(48.0, '2026-10-01', '2026-10-31'), ConsumptionSource::Reading, $bill);
+
+        $again = resolve(SaveConsumption::class)->handle($electricity, saveConsumptionValues(205.0), ConsumptionSource::Reading, $bill);
+
+        expect($again->id)->toBe($light->id)
+            ->and((float) $again->quantity)->toBe(205.0)
+            ->and($again->document_id)->toBe($bill->id)
+            ->and((float) $heat->refresh()->quantity)->toBe(48.0)
+            ->and($heat->document_id)->toBe($bill->id)
+            ->and(UtilityConsumption::query()->count())->toBe(2);
+    });
+});

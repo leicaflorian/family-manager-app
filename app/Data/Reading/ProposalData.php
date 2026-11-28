@@ -26,6 +26,7 @@ final class ProposalData extends Data
      * @param  bool  $createCard  the paper names no card (no card to create or link, no health event): the box *Create the card* opens *New card* with the document linked after the import
      * @param  string|null  $cardType  the card of the document category chosen in *What kind it is* (its own, otherwise its main one's), which decides the boxes; null when the reading decides
      * @param  ConsumptionProposalData|null  $consumption  the consumption of a bill of electricity, gas or water; null for any other paper
+     * @param  list<SupplyProposalData>  $supplies  for a bill with more than one supply, what each one proposes; then `movement` and `consumption` are null and `records` has no utility box
      */
     public function __construct(
         public readonly int $fileId,
@@ -38,6 +39,7 @@ final class ProposalData extends Data
         public readonly bool $createCard = false,
         public readonly ?string $cardType = null,
         public readonly ?ConsumptionProposalData $consumption = null,
+        public readonly array $supplies = [],
     ) {}
 
     /**
@@ -46,6 +48,6 @@ final class ProposalData extends Data
      */
     public function withoutCreateCard(): self
     {
-        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings, cardType: $this->cardType, consumption: $this->consumption);
+        return new self($this->fileId, $this->document, $this->movement, $this->event, $this->records, $this->policy, $this->warnings, cardType: $this->cardType, consumption: $this->consumption, supplies: $this->supplies);
     }
 }

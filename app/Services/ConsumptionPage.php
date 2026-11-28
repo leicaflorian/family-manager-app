@@ -307,8 +307,11 @@ final readonly class ConsumptionPage
     }
 
     /**
-     * The bills read for their consumption that could not be saved: the latest reading of each says why, unless it
-     * was saved or the document is not a bill. A bill drops out once it has its consumption.
+     * The bills read for their consumption that could not be saved: the latest reading of each says why, unless the
+     * document is not a bill. A bill drops out once it has its consumption of this utility. A reading is of the file,
+     * not of a utility: a bill of electricity and gas read and saved for one utility but without the row of this one
+     * (its supply not found or not valid, or read before the bills of several supplies) is to check here with *No
+     * consumption found*, so that the person writes it, and no second reading is paid.
      *
      * @param  Utility  $utility  the utility
      * @return list<array{document_id: int, title: string, date: string|null, reason: string}>
@@ -327,8 +330,10 @@ final readonly class ConsumptionPage
         foreach ($documents as $document) {
             $outcome = $document->file->aiReadings->first()?->outcome;
 
-            if ($outcome instanceof ConsumptionOutcome && ! in_array($outcome, [ConsumptionOutcome::Saved, ConsumptionOutcome::NotABill], true)) {
-                $list[] = ['document_id' => $document->id, 'title' => $document->title, 'date' => $document->date?->toDateString(), 'reason' => $outcome->label()];
+            if ($outcome instanceof ConsumptionOutcome && $outcome !== ConsumptionOutcome::NotABill) {
+                // Saved, yet without the row of this utility (`bills()`): saved for another utility of the bill
+                $reason = $outcome === ConsumptionOutcome::Saved ? ConsumptionOutcome::NoConsumption : $outcome;
+                $list[] = ['document_id' => $document->id, 'title' => $document->title, 'date' => $document->date?->toDateString(), 'reason' => $reason->label()];
             }
         }
 
@@ -336,7 +341,8 @@ final readonly class ConsumptionPage
     }
 
     /**
-     * The documents of the utility a reading can take (a PDF or a picture) that have no consumption yet.
+     * The documents of the utility a reading can take (a PDF or a picture) that have no consumption of this utility
+     * yet: a bill of electricity and gas with only the electricity row is still a bill of the gas.
      *
      * @param  Utility  $utility  the utility
      * @return MorphToMany<Document, Utility>
@@ -344,7 +350,7 @@ final readonly class ConsumptionPage
     private static function bills(Utility $utility): MorphToMany
     {
         return $utility->documents()
-            ->whereDoesntHave('consumption')
+            ->whereDoesntHave('consumptions', static fn (Builder $query): Builder => $query->where('utility_id', $utility->id))
             ->whereHas('file', static fn (Builder $query): Builder => $query->where(
                 static fn (Builder $query): Builder => $query->where('mime_type', 'application/pdf')->orWhere('mime_type', 'like', 'image/%'),
             ));

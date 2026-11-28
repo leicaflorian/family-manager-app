@@ -11,6 +11,7 @@ use App\Data\Reading\ConsumptionReading;
 use App\Enums\ConsumptionOutcome;
 use App\Enums\ConsumptionSource;
 use App\Enums\ReadingPurpose;
+use App\Enums\UtilityType;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Exceptions\Reading\ReadingSkipped;
 use App\Models\AiReading;
@@ -26,6 +27,8 @@ use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Timeout;
@@ -38,7 +41,7 @@ use Throwable;
  * at a time. It runs outside a request, so it works in the family of the bill, as the account that asked. It does not
  * call the model when the reading is off, the readings of the month are used up, or the bill already has its
  * consumption or a consumption reading. A consumption that passes `ConsumptionCheck` is saved; the row of the call
- * says what came of it.
+ * says what came of it. A bill of electricity and gas saves, with the same call, the other utilities linked to it.
  *
  * A service that is busy or cannot be reached is tried again after 10, 30 and 90 seconds: that call was not paid. Once
  * the model answered the call is paid, so nothing after it throws: an error is reported and the job ends, and the queue
@@ -169,8 +172,9 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Whether the bill is worth a call: the reading is on, the family has readings left, and the bill has neither its
-     * consumption nor a consumption reading (a second job of the same bill, or a bill imported meanwhile).
+     * Whether the bill is worth a call: the reading is on, the family has readings left, and the bill has neither the
+     * consumption of the utility of the job nor a consumption reading (a second job of the same bill, or a bill
+     * imported meanwhile). The row of another utility of the same bill (electricity and gas) does not count.
      *
      * @param  DocumentReader  $reader  the model
      * @param  ReadingAllowance  $allowance  the readings left this month
@@ -181,7 +185,7 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     {
         return $reader->isActive()
             && $allowance->left(CarbonImmutable::now('Europe/Rome')) > 0
-            && ! $document->consumption()->exists()
+            && ! $this->hasConsumption($document)
             && ! AiReading::query()->where('file_id', $file->id)->where('purpose', ReadingPurpose::Consumption)->exists();
     }
 
@@ -189,14 +193,14 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
      * A call of an earlier try whose outcome was never written (the worker was stopped between the call and the
      * outcome) gets `NoConsumption`, so the bill goes to *To check* instead of being lost: without an outcome it is
      * neither in the archive (it has a consumption reading) nor in *To check* (it has no outcome). Nothing is done when
-     * the bill has its consumption or the latest call has an outcome.
+     * the bill has the consumption of the utility of the job or the latest call has an outcome.
      *
      * @param  Document  $document  the bill
      * @param  File  $file  its file
      */
     private function closeUnfinished(Document $document, File $file): void
     {
-        if ($document->consumption()->exists()) {
+        if ($this->hasConsumption($document)) {
             return;
         }
 
@@ -212,7 +216,20 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
     }
 
     /**
-     * Saves the consumption when it passes the check, and says what came of it.
+     * Whether the bill has its row for the utility of the job.
+     *
+     * @param  Document  $document  the bill
+     */
+    private function hasConsumption(Document $document): bool
+    {
+        return $document->consumptions()->where('utility_id', $this->utilityId)->exists();
+    }
+
+    /**
+     * Saves the consumption when it passes the check, and says what came of it for the utility of the job. A bill of
+     * electricity and gas also saves, from the same answer, the supply of every other measured utility linked to it
+     * that has no row of the bill yet; what comes of those is not the outcome of the call. A bill that lists supplies
+     * without one of the utility of the job saves nothing for it: *No consumption found*, so it is to check.
      *
      * @param  ConsumptionReading  $reading  what the model found
      * @param  Utility  $utility  the utility of the bill
@@ -224,12 +241,79 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
             return ConsumptionOutcome::NotABill;
         }
 
-        $outcome = ConsumptionCheck::outcome($utility->type, $reading->quantity, $reading->unit, $reading->periodStart, $reading->periodEnd);
-        $start = ValidDate::carbon($reading->periodStart);
-        $end = ValidDate::carbon($reading->periodEnd);
+        $found = $this->supplyOf($reading, $utility);
+        $outcome = $found instanceof ConsumptionReading ? $this->saveFor($found, $utility, $document) : ConsumptionOutcome::NoConsumption;
+
+        foreach ($this->otherUtilities($reading, $utility, $document) as $other) {
+            $supply = $this->supplyOf($reading, $other);
+
+            if (! $supply instanceof ConsumptionReading) {
+                continue;
+            }
+
+            try {
+                $this->saveFor($supply, $other, $document);
+            } catch (Throwable $error) {
+                // The outcome of the call is the one of the utility of the job, already saved
+                report($error);
+            }
+        }
+
+        return $outcome;
+    }
+
+    /**
+     * The consumption of a utility on the bill: its own supply, or the flat fields of a bill without supplies. Null
+     * when the bill lists supplies and none is the utility's (the flat fields are those of the first supply, another's).
+     *
+     * @param  ConsumptionReading  $reading  what the model found
+     * @param  Utility  $utility  the utility
+     */
+    private function supplyOf(ConsumptionReading $reading, Utility $utility): ?ConsumptionReading
+    {
+        $found = $reading->forUtility($utility);
+
+        return $reading->supplies !== [] && $found === $reading ? null : $found;
+    }
+
+    /**
+     * The other measured utilities linked to a bill of several supplies that have no row of it yet; none for a bill
+     * of one supply.
+     *
+     * @param  ConsumptionReading  $reading  what the model found
+     * @param  Utility  $utility  the utility of the job
+     * @param  Document  $document  the bill
+     * @return Collection<int, Utility>
+     */
+    private function otherUtilities(ConsumptionReading $reading, Utility $utility, Document $document): Collection
+    {
+        if ($reading->supplies === []) {
+            return new Collection;
+        }
+
+        return $document->utilities()
+            ->whereKeyNot($utility->id)
+            ->whereIn('type', UtilityType::measured())
+            ->whereDoesntHave('consumptions', static fn (Builder $query): Builder => $query->where('document_id', $document->id))
+            ->orderBy('utilities.id')
+            ->get();
+    }
+
+    /**
+     * Saves the consumption of one utility when it passes the check, and says what came of it.
+     *
+     * @param  ConsumptionReading  $found  the consumption of the utility on the bill
+     * @param  Utility  $utility  the utility
+     * @param  Document  $document  the bill
+     */
+    private function saveFor(ConsumptionReading $found, Utility $utility, Document $document): ConsumptionOutcome
+    {
+        $outcome = ConsumptionCheck::outcome($utility->type, $found->quantity, $found->unit, $found->periodStart, $found->periodEnd);
+        $start = ValidDate::carbon($found->periodStart);
+        $end = ValidDate::carbon($found->periodEnd);
 
         // The check passed, so quantity and period are there: the second half only tells PHPStan
-        if ($outcome !== ConsumptionOutcome::Saved || $reading->quantity === null || ! $start instanceof CarbonImmutable || ! $end instanceof CarbonImmutable) {
+        if ($outcome !== ConsumptionOutcome::Saved || $found->quantity === null || ! $start instanceof CarbonImmutable || ! $end instanceof CarbonImmutable) {
             return $outcome;
         }
 
@@ -237,14 +321,14 @@ final class ReadConsumption implements ShouldBeUnique, ShouldQueue
         resolve(SaveConsumption::class)->handle($utility, new ConsumptionValues(
             periodStart: $start,
             periodEnd: $end,
-            quantity: $reading->quantity,
-            amount: $reading->totalAmount,
-            isEstimated: $reading->estimated ?? false,
-            hasAdjustments: $reading->adjusted ?? false,
-            energyAmount: $reading->energyAmount,
-            f1: $reading->f1,
-            f2: $reading->f2,
-            f3: $reading->f3,
+            quantity: $found->quantity,
+            amount: $found->totalAmount,
+            isEstimated: $found->estimated ?? false,
+            hasAdjustments: $found->adjusted ?? false,
+            energyAmount: $found->energyAmount,
+            f1: $found->f1,
+            f2: $found->f2,
+            f3: $found->f3,
         ), ConsumptionSource::Reading, $document);
 
         return ConsumptionOutcome::Saved;

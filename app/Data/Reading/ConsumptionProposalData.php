@@ -42,4 +42,13 @@ final class ConsumptionProposalData extends Data
     {
         return Translated::text('To record the consumption choose the utility above.');
     }
+
+    /**
+     * What the box of a supply of a bill with more than one says when the supply has no utility: its utility is the box
+     * of its group, to tick. The same for the proposal and for the import that refuses a ticked box.
+     */
+    public static function tickSupplyUtility(): string
+    {
+        return Translated::text('To record the consumption tick the utility of this supply.');
+    }
 }

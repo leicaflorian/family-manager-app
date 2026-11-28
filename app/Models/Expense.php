@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property numeric $amount
  * @property CarbonImmutable|null $date
  * @property int|null $planned_expense_id
+ * @property int|null $bank_transaction_id The bank transaction that paid it together with other expenses
  * @property CarbonImmutable|null $occurrence_date The original due date of the planned item that this payment settles
  * @property int|null $category_id
  * @property int|null $organization_id
@@ -40,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read BankTransaction|null $bankTransaction
  * @property-read Model|null $card
  * @property-read ExpenseCategory|null $category
  * @property-read Collection<int, Document> $documents
@@ -75,6 +77,16 @@ final class Expense extends FamilyModel
     public function plannedExpense(): BelongsTo
     {
         return $this->belongsTo(PlannedExpense::class);
+    }
+
+    /**
+     * The bank transaction that paid it together with other expenses (one debit for a bill of electricity and gas).
+     *
+     * @return BelongsTo<BankTransaction, $this>
+     */
+    public function bankTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BankTransaction::class);
     }
 
     /**

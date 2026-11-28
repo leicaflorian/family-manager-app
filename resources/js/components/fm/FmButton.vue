@@ -54,6 +54,7 @@ const {
     compact = false,
     rowAction = false,
     shrink = false,
+    wrap = false,
 } = defineProps<{
     /** The look: solid (blue), outline, soft (light blue), text, danger (red), neutral (white with a grey edge). */
     variant?: ButtonVariant;
@@ -111,6 +112,12 @@ const {
      * the menu on the phone: the words end with an ellipsis.
      */
     shrink?: boolean;
+    /**
+     * With a text: a long text goes on more lines inside a narrow box instead
+     * of overflowing it (the actions of a box of *Import* on the phone),
+     * aligned to the left and at least as tall as a control.
+     */
+    wrap?: boolean;
 }>();
 
 defineEmits<{
@@ -139,11 +146,17 @@ const onColor = useOnColor();
 const classes = computed((): string =>
     cn(
         // Every variant has the same size: two buttons side by side must match
-        'inline-flex shrink-0 items-center justify-center gap-2 text-body whitespace-nowrap transition-colors',
+        'inline-flex items-center justify-center gap-2 text-body transition-colors',
+        wrap
+            ? 'max-w-full justify-start text-left whitespace-normal'
+            : 'shrink-0 whitespace-nowrap',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action',
         'disabled:cursor-not-allowed disabled:border-0 disabled:bg-edge disabled:text-ink-soft',
         // With a text the height follows the panel; the icon squares do not
-        !label && 'h-control rounded-control',
+        !label &&
+            (wrap
+                ? 'min-h-control rounded-control py-2'
+                : 'h-control rounded-control'),
         styles[variant],
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label wide:h-10 wide:flex-none wide:px-3.5',

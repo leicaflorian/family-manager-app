@@ -816,6 +816,12 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
         notes: [
             trans('Do not import this file leaves it in To sort.'),
             trans('A file still being read is waited for.'),
+            only(
+                'budget',
+                trans(
+                    'A bill of electricity and gas together is imported once: the document goes to both utilities, with an expense and a consumption for each supply.',
+                ),
+            ),
         ],
     }),
     upload: () => ({

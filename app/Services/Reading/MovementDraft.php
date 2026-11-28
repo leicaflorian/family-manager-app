@@ -9,14 +9,18 @@ use App\Data\Reading\Extraction;
 use App\Data\Reading\MovementValuesData;
 use App\Enums\HealthEventType;
 use App\Enums\IncomeType;
+use App\Enums\UtilityType;
 use App\Models\Employment;
 use App\Models\ExpenseCategory;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
+use App\Models\Utility;
 use App\Support\CurrentFamily;
 use App\Support\Money;
+use App\Support\Reading\BillTitle;
 use App\Support\Reading\Choices;
 use App\Support\Reading\ReadingText;
+use App\Support\Reading\TypeCategory;
 use App\Support\Reading\ValidDate;
 use Carbon\CarbonImmutable;
 
@@ -46,13 +50,63 @@ final readonly class MovementDraft
      * @param  string  $locale  the language of the titles
      * @param  string|null  $cardType  the card of the document category; null when the reading decides
      * @param  int|null  $personId  the person of the document as it will be saved, whose job an income of a job category is linked to
+     * @param  bool  $withMovement  false when the movements are proposed elsewhere (one per supply): only the event is worked out
      * @return array{movement: ?MovementValuesData, movementSuggested: bool, event: ?EventValuesData, eventSuggested: bool}
      */
-    public function of(Extraction $x, ReadingContext $context, string $locale, ?string $cardType = null, ?int $personId = null): array
+    public function of(Extraction $x, ReadingContext $context, string $locale, ?string $cardType = null, ?int $personId = null, bool $withMovement = true): array
     {
         return $context->familyId === null
-            ? $this->build($x, $context, $locale, $cardType, $personId)
-            : CurrentFamily::using($context->familyId, fn (): array => $this->build($x, $context, $locale, $cardType, $personId));
+            ? $this->build($x, $context, $locale, $cardType, $personId, $withMovement)
+            : CurrentFamily::using($context->familyId, fn (): array => $this->build($x, $context, $locale, $cardType, $personId, $withMovement));
+    }
+
+    /**
+     * Whether the box of the movement of a paper starts ticked: always for a payslip and for the kinds of paper that
+     * are expenses, for a job category only with an amount read (a contract without one proposes it unticked), for an
+     * insurance paper only with its commitment, for a medical paper only with an amount.
+     *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply
+     * @param  MovementValuesData|null  $movement  the movement proposed
+     * @param  bool  $job  the document category has the card *Job*
+     */
+    public static function ticks(Extraction $x, ?MovementValuesData $movement, bool $job = false): bool
+    {
+        return $x->kind === 'payslip' || ($job && $x->total_amount !== null)
+            || in_array($x->kind, self::EXPENSE_KINDS, true)
+            || ($x->kind === 'insurance' && $movement?->lead !== null)
+            || ($x->kind === 'medical' && $x->total_amount !== null);
+    }
+
+    /**
+     * The expense of one supply of a bill with more than one, as the expense of a bill alone: the planned expense of
+     * its utility leads. Without one, the expense takes the category of the type of the supply and the title of a
+     * bill of that type («Bolletta gas novembre 2026»).
+     *
+     * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
+     * @param  ReadingContext  $context  the lists the model chose from; its family is where the cards are searched
+     * @param  Utility|null  $utility  the utility of the supply
+     * @param  string  $locale  the language of the title
+     */
+    public function forSupply(Extraction $supplyView, ReadingContext $context, ?Utility $utility, string $locale): MovementValuesData
+    {
+        $build = function () use ($supplyView, $context, $utility, $locale): MovementValuesData {
+            $links = $this->links->forSupply($supplyView, $context, $utility);
+            $values = $this->expense($supplyView, $context, $links, $locale, null);
+
+            if ($values->lead !== null) {
+                return $values;
+            }
+
+            $type = UtilityType::tryFrom($supplyView->utility_type ?? '');
+
+            return MovementValuesData::from([
+                ...$values->toArray(),
+                'title' => BillTitle::of($supplyView, $links->issuer ?? $this->say('Document', [], $locale), $type instanceof UtilityType ? [$type->value] : [], null, $values->date, $locale),
+                'category_id' => ($type instanceof UtilityType ? TypeCategory::of($type, $context->expenseCategories) : null) ?? $values->category_id,
+            ]);
+        };
+
+        return $context->familyId === null ? $build() : CurrentFamily::using($context->familyId, $build);
     }
 
     /**
@@ -63,24 +117,23 @@ final readonly class MovementDraft
      * @param  string  $locale  the language of the titles
      * @param  string|null  $cardType  the card of the document category
      * @param  int|null  $personId  the person of the document
+     * @param  bool  $withMovement  whether the movement is worked out
      * @return array{movement: ?MovementValuesData, movementSuggested: bool, event: ?EventValuesData, eventSuggested: bool}
      */
-    private function build(Extraction $x, ReadingContext $context, string $locale, ?string $cardType, ?int $personId): array
+    private function build(Extraction $x, ReadingContext $context, string $locale, ?string $cardType, ?int $personId, bool $withMovement): array
     {
         $links = $this->links->resolve($x, $context);
         $job = $cardType === 'employment';
-        $movement = $x->kind === 'payslip' || $job
-            ? $this->income($x, $context, $links, $locale, $job ? $personId : null)
-            : $this->expense($x, $context, $links, $locale, $cardType);
+        $movement = match (true) {
+            ! $withMovement => null,
+            $x->kind === 'payslip' || $job => $this->income($x, $context, $links, $locale, $job ? $personId : null),
+            default => $this->expense($x, $context, $links, $locale, $cardType),
+        };
         $event = $this->event($x, $links, $locale, $cardType === 'health_event');
 
         return [
             'movement' => $movement,
-            // A job category ticks the income only with an amount read: a contract without one proposes it unticked
-            'movementSuggested' => $x->kind === 'payslip' || ($job && $x->total_amount !== null)
-                || in_array($x->kind, self::EXPENSE_KINDS, true)
-                || ($x->kind === 'insurance' && $movement->lead !== null)
-                || ($x->kind === 'medical' && $x->total_amount !== null),
+            'movementSuggested' => $movement instanceof MovementValuesData && self::ticks($x, $movement, $job),
             'event' => $event,
             'eventSuggested' => $event instanceof EventValuesData && $event->type !== HealthEventType::Prescription->value,
         ];

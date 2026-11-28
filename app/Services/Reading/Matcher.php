@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Reading;
 
+use App\Data\Reading\SupplyData;
 use App\Enums\EmploymentStatus;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\SubscriptionStatus;
@@ -20,6 +21,7 @@ use App\Support\Reading\Codes;
 use App\Support\Reading\OrganizationKey;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -46,6 +48,31 @@ final class Matcher
 
         return $this->byCode(Utility::class, 'supply_point_code', $pod, $where)
             ?? $this->byCode(Utility::class, 'customer_code', $customer, $where);
+    }
+
+    /**
+     * The active utility of each supply of a bill with more than one: by its supply code, otherwise by the customer
+     * code of the bill, but only among the active utilities of the same type that have no supply code, and only
+     * when there is one of them. A utility already found for a supply before is not found again.
+     *
+     * @param  list<SupplyData>  $supplies  the supplies as read
+     * @param  string|null  $customer  the customer code of the bill as printed
+     * @return array<int, Utility|null> the utility by index of the supply, null when none fits
+     */
+    public function supplyUtilities(array $supplies, ?string $customer): array
+    {
+        $active = Utility::query()->where('status', UtilityStatus::Active)->orderBy('id')->get();
+        $found = [];
+
+        foreach ($supplies as $index => $supply) {
+            $utility = $this->firstWithCode($active, 'supply_point_code', $supply->supply_point_code)
+                ?? $this->onlyByCustomer($active, $supply->utility_type, $customer);
+            $taken = array_filter($found, static fn (?Utility $before): bool => $before?->id === $utility?->id);
+
+            $found[$index] = $taken === [] ? $utility : null;
+        }
+
+        return $found;
     }
 
     /**
@@ -198,17 +225,57 @@ final class Matcher
      */
     private function byCode(string $model, string $column, ?string $code, array $where = []): ?Model
     {
+        if (Codes::normalize($code) === '') {
+            return null;
+        }
+
+        return $this->firstWithCode($model::query()->where($where)->whereNotNull($column)->orderBy('id')->get(), $column, $code);
+    }
+
+    /**
+     * The first of the rows whose code column equals the wanted code once both are normalised.
+     *
+     * @template TModel of Model
+     *
+     * @param  Collection<int, TModel>  $rows  the candidates
+     * @param  string  $column  the column holding the code
+     * @param  string|null  $code  the code as printed
+     * @return TModel|null
+     */
+    private function firstWithCode(Collection $rows, string $column, ?string $code): ?Model
+    {
         $wanted = Codes::normalize($code);
 
         if ($wanted === '') {
             return null;
         }
 
-        return $model::query()->where($where)->whereNotNull($column)->orderBy('id')->get()
-            ->first(static function (Model $row) use ($column, $wanted): bool {
-                $stored = $row->getAttribute($column);
+        return $rows->first(static function (Model $row) use ($column, $wanted): bool {
+            $stored = $row->getAttribute($column);
 
-                return is_string($stored) && Codes::normalize($stored) === $wanted;
-            });
+            return is_string($stored) && Codes::normalize($stored) === $wanted;
+        });
+    }
+
+    /**
+     * The only utility of the type, without a supply code, with the customer code.
+     *
+     * @param  Collection<int, Utility>  $utilities  the active utilities
+     * @param  string|null  $type  the type of the supply, a value of `UtilityType`
+     * @param  string|null  $customer  the customer code as printed
+     */
+    private function onlyByCustomer(Collection $utilities, ?string $type, ?string $customer): ?Utility
+    {
+        $wanted = Codes::normalize($customer);
+
+        if ($type === null || $wanted === '') {
+            return null;
+        }
+
+        $matches = $utilities->filter(static fn (Utility $utility): bool => $utility->type->value === $type
+            && Codes::normalize($utility->supply_point_code) === ''
+            && Codes::normalize($utility->customer_code) === $wanted);
+
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 }

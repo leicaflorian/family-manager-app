@@ -14,6 +14,7 @@ import { hasChanges } from '@/lib/unsavedChanges';
 import {
     consumptionDraft,
     consumptionProposal,
+    dualFuelProposal,
     enrolmentProposal,
     ferriProposal,
     homeDraft,
@@ -1184,6 +1185,7 @@ describe('Import', () => {
                 complete: [],
                 cardType: 'insurance_policy',
                 replaces: [],
+                hint: null,
             };
             renderPage(
                 Import,
@@ -1232,6 +1234,7 @@ describe('Import', () => {
                     employment_id: null,
                 },
             ],
+            hint: null,
         };
 
         it('ticks the old policy under the new policy box', async () => {
@@ -1917,5 +1920,300 @@ describe('Import', () => {
                 screen.queryByText('bolletta-luce.pdf needs a look'),
             ).not.toBeInTheDocument();
         });
+    });
+});
+
+describe('Import, a bill with two supplies', () => {
+    /**
+     * The group of one supply, under its heading.
+     *
+     * @param name - the heading
+     * @returns the group
+     */
+    function group(name: string): HTMLElement {
+        return screen.getByRole('heading', { name }).parentElement!;
+    }
+
+    it('draws a group per supply, with its utility, its expense and its consumption, as the board Importa-luce-gas', () => {
+        renderPage(Import, ferriProps(dualFuelProposal));
+
+        const electricity = group('Luce · POD IT 001 E 87654321');
+        const gas = group('Gas · PDR 00881234567890');
+        expect(
+            within(electricity).getByRole('checkbox', {
+                name: /Create the expense of 96,25 €/,
+            }),
+        ).toBeChecked();
+        expect(
+            within(gas).getByRole('checkbox', {
+                name: /Create the expense of 69,40 €/,
+            }),
+        ).toBeChecked();
+        const utility = within(gas).getByRole('checkbox', {
+            name: /Gas · Enel Energia/,
+        });
+        expect(utility).not.toBeChecked();
+        expect(
+            within(utility.closest('label')!).getByText(
+                "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+            ),
+        ).toBeInTheDocument();
+        expect(
+            within(electricity).getByRole('checkbox', {
+                name: /Record the consumption/,
+            }),
+        ).toBeChecked();
+        expect(
+            within(gas).getByRole('checkbox', {
+                name: /Record the consumption/,
+            }),
+        ).not.toBeChecked();
+    });
+
+    it('says under what was found how much the bill is and how much each supply', () => {
+        const bill = file({
+            id: 7,
+            name: 'bolletta-enel-luce-gas-novembre.pdf',
+            reading_status: 'done',
+            proposal: {
+                ...proposal,
+                headline: 'I found an electricity and gas bill',
+                found: [
+                    { label: 'Who sent it', value: 'Enel Energia' },
+                    {
+                        label: 'How much',
+                        value: '165,65 € · luce 96,25 €, gas 69,40 €',
+                    },
+                    { label: 'Due on', value: '21/11/2026' },
+                ],
+            },
+        });
+        renderPage(Import, ferriProps(dualFuelProposal, { files: [bill] }));
+
+        const notice = screen
+            .getByText('I found an electricity and gas bill')
+            .closest('[role="status"]')!;
+        expect(notice).toHaveTextContent(
+            'How much · 165,65 € · luce 96,25 €, gas 69,40 €',
+        );
+        expect(notice).not.toHaveTextContent('Who sent it');
+    });
+
+    it('titles the supplies one level under What I do too', () => {
+        renderPage(Import, ferriProps(dualFuelProposal));
+
+        expect(
+            screen.getByRole('heading', { level: 3, name: 'What I do too' }),
+        ).toBeInTheDocument();
+        expect(
+            screen
+                .getAllByRole('heading', { level: 4 })
+                .map((heading) => heading.textContent?.trim()),
+        ).toEqual(['Luce · POD IT 001 E 87654321', 'Gas · PDR 00881234567890']);
+    });
+
+    it('with the Budget off has only the utility in each group', () => {
+        renderPage(
+            Import,
+            ferriProps({
+                ...dualFuelProposal,
+                supplies: dualFuelProposal.supplies.map((supply) => ({
+                    ...supply,
+                    movement: null,
+                    consumption: null,
+                })),
+            }),
+        );
+
+        for (const name of [
+            'Luce · POD IT 001 E 87654321',
+            'Gas · PDR 00881234567890',
+        ]) {
+            const boxes = within(group(name)).getAllByRole('checkbox');
+            expect(boxes).toHaveLength(1);
+            expect(boxes[0]!.closest('label')!.textContent).toMatch(
+                /utility|utenza/,
+            );
+        }
+        expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    });
+
+    it('puts a line, then the organization and Create the card after the groups', () => {
+        const organization = {
+            ...ferriProposal.records[0]!,
+            title: "l'ente Enel Energia",
+            existing: { id: 2, title: 'Enel Energia' },
+            suggested: true,
+        };
+        const { container } = renderPage(
+            Import,
+            ferriProps({
+                ...dualFuelProposal,
+                records: [organization],
+                createCard: true,
+            }),
+        );
+
+        const line = container.querySelector('span.h-px')!;
+        const gasGroup = group('Gas · PDR 00881234567890');
+        const link = screen.getByRole('checkbox', {
+            name: /Link to the organization "Enel Energia"/,
+        });
+        const create = screen.getByRole('checkbox', {
+            name: /Create the card/,
+        });
+        const follows = (a: Node, b: Node): boolean =>
+            Boolean(
+                a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+            );
+        expect(follows(gasGroup, line)).toBe(true);
+        expect(follows(line, link)).toBe(true);
+        expect(follows(link, create)).toBe(true);
+        expect(
+            within(gasGroup).queryByRole('checkbox', {
+                name: /Create the card/,
+            }),
+        ).toBeNull();
+    });
+
+    it('puts the utility of a supply before its expense, as the board', () => {
+        renderPage(Import, ferriProps(dualFuelProposal));
+
+        const boxes = within(group('Gas · PDR 00881234567890'))
+            .getAllByRole('checkbox')
+            .map((box) => box.closest('label')!.textContent);
+        expect(boxes[0]).toMatch(/Gas · Enel Energia/);
+        expect(boxes[1]).toMatch(/Create the expense of 69,40 €/);
+        expect(boxes[2]).toMatch(/Record the consumption/);
+    });
+
+    it('keeps apart the choices to pay of the two expenses', async () => {
+        renderPage(Import, ferriProps(dualFuelProposal));
+
+        const radios = screen.getAllByRole('radio');
+        expect(radios).toHaveLength(4);
+        expect(
+            new Set(radios.map((radio) => radio.getAttribute('name'))).size,
+        ).toBe(2);
+    });
+
+    it('imports with the choices of both supplies', async () => {
+        const post = vi.spyOn(router, 'post').mockImplementation(() => {});
+        vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(Import, ferriProps(dualFuelProposal));
+        await settle();
+
+        await fireEvent.click(
+            within(group('Gas · PDR 00881234567890')).getByRole('checkbox', {
+                name: /Gas · Enel Energia/,
+            }),
+        );
+        await fireEvent.click(
+            within(group('Luce · POD IT 001 E 87654321')).getByRole(
+                'checkbox',
+                { name: /Record the consumption/ },
+            ),
+        );
+        await fireEvent.click(importButton('Import the file'));
+
+        expect(sent(post)[0]?.also?.supplies).toEqual({
+            0: {
+                movement: true,
+                record: true,
+                consumption: false,
+                targets: { movement: 'auto', record: 'auto' },
+            },
+            1: {
+                movement: true,
+                record: true,
+                consumption: false,
+                targets: { movement: 'auto', record: 'auto' },
+            },
+        });
+    });
+
+    it('shows an error about a supply in its group', async () => {
+        const message = 'To record the consumption choose the utility.';
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
+            visit?.onError?.({
+                'files.0.also.supplies.1.consumption': message,
+            });
+        });
+        renderPage(Import, ferriProps(dualFuelProposal));
+        await settle();
+
+        await fireEvent.click(importButton('Import the file'));
+
+        const box = within(group('Gas · PDR 00881234567890'))
+            .getByRole('checkbox', { name: /Record the consumption/ })
+            .closest('label')!;
+        expect(within(box).getByText(message)).toBeInTheDocument();
+        expect(
+            within(group('Luce · POD IT 001 E 87654321')).queryByText(message),
+        ).not.toBeInTheDocument();
+    });
+
+    it('puts every error of a supply, as the import names them, under its box', async () => {
+        const errors: Record<string, string> = {
+            'files.0.also.supplies.0.movement': 'E movement 0',
+            'files.0.also.supplies.0.targets.movement': 'E target movement 0',
+            'files.0.also.supplies.0.due': 'E due 0',
+            'files.0.also.supplies.0.overrides.movement.amount': 'E amount 0',
+            'files.0.also.supplies.1.record': 'E record 1',
+            'files.0.also.supplies.1.targets.record': 'E target record 1',
+            'files.0.also.supplies.1.overrides.record.customer_code':
+                'E customer code 1',
+            'files.0.also.supplies.1.consumption': 'E consumption 1',
+            'files.0.also.supplies.1.overrides.consumption.quantity':
+                'E quantity 1',
+        };
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, visit) => {
+            visit?.onError?.(errors);
+        });
+        renderPage(Import, ferriProps(dualFuelProposal));
+        await settle();
+
+        await fireEvent.click(importButton('Import the file'));
+
+        const box = (heading: string, name: RegExp): HTMLElement =>
+            within(group(heading))
+                .getByRole('checkbox', { name })
+                .closest('label')!;
+        const expense = box(
+            'Luce · POD IT 001 E 87654321',
+            /Create the expense/,
+        );
+        const utility = box('Gas · PDR 00881234567890', /Gas · Enel Energia/);
+        const consumption = box(
+            'Gas · PDR 00881234567890',
+            /Record the consumption/,
+        );
+        for (const message of [
+            'E movement 0',
+            'E target movement 0',
+            'E due 0',
+            'E amount 0',
+        ]) {
+            expect(within(expense).getByText(message)).toBeInTheDocument();
+        }
+        for (const message of [
+            'E record 1',
+            'E target record 1',
+            'E customer code 1',
+        ]) {
+            expect(within(utility).getByText(message)).toBeInTheDocument();
+        }
+        for (const message of ['E consumption 1', 'E quantity 1']) {
+            expect(within(consumption).getByText(message)).toBeInTheDocument();
+        }
+    });
+
+    it('draws a bill of one supply as before, without groups', () => {
+        renderPage(Import, ferriProps(consumptionProposal));
+
+        expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
+        expect(
+            screen.getByRole('checkbox', { name: /Record the consumption/ }),
+        ).toBeChecked();
     });
 });

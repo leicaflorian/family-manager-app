@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Deadline;
 use App\Support\Money;
 use App\Support\Translated;
+use Closure;
 
 /**
  * Tells everyone in the family that the bank paid a due date: a notice of the bell for each account, both roles,
@@ -35,16 +36,48 @@ final readonly class NotifyBankPayment
         $account = $transaction->financialAccount->name ?? $payment->financialAccount->name ?? '';
         $far = ! $deadline->occurrence->estimated && $this->isFar($amount, $planned);
 
+        $this->tell($transaction, $except, function (string $locale) use ($amount, $planned, $account, $far): array {
+            $lines = [Translated::text(':amount from :account', ['amount' => Money::euro($amount), 'account' => $account], $locale)];
+
+            if ($far) {
+                $lines[] = Translated::text(':amount instead of :planned', ['amount' => Money::euro($amount), 'planned' => Money::euro($planned)], $locale);
+            }
+
+            return $lines;
+        });
+    }
+
+    /**
+     * Writes one notice for each account about a debit that paid more planned expenses together (a bill of
+     * electricity and gas): «165,65 € dal Conto BPER». The row of the bell names the planned expenses.
+     *
+     * @param  BankTransaction  $transaction  The transaction of the bank that paid.
+     * @param  list<Expense>  $payments  The payments it is linked to, the first one in `expense_id`.
+     * @param  int|null  $except  The account that assigned the transaction, which gets no notice.
+     */
+    public function handleSplit(BankTransaction $transaction, array $payments, ?int $except = null): void
+    {
+        $amount = abs((float) $transaction->amount);
+        $account = $transaction->financialAccount->name ?? ($payments[0] ?? null)?->financialAccount->name ?? '';
+
+        $this->tell($transaction, $except, static fn (string $locale): array => [
+            Translated::text(':amount from :account', ['amount' => Money::euro($amount), 'account' => $account], $locale),
+        ]);
+    }
+
+    /**
+     * Writes a notice about the transaction for each account of the family but one, with the lines written in the
+     * language of each account.
+     *
+     * @param  BankTransaction  $transaction  The transaction of the bank.
+     * @param  int|null  $except  The account that gets no notice.
+     * @param  Closure(string): list<string>  $lines  The lines of the notice in a language.
+     */
+    private function tell(BankTransaction $transaction, ?int $except, Closure $lines): void
+    {
         User::query()->inFamily($transaction->family_id)->when($except !== null, static fn ($query) => $query->whereKeyNot($except))->get()
-            ->each(function (User $user) use ($transaction, $amount, $planned, $account, $far): void {
-                $locale = $user->mailLocale();
-                $lines = [Translated::text(':amount from :account', ['amount' => Money::euro($amount), 'account' => $account], $locale)];
-
-                if ($far) {
-                    $lines[] = Translated::text(':amount instead of :planned', ['amount' => Money::euro($amount), 'planned' => Money::euro($planned)], $locale);
-                }
-
-                ReminderNotice::query()->create(['user_id' => $user->id, 'bank_transaction_id' => $transaction->id, 'sent_at' => now(), 'lines' => $lines]);
+            ->each(static function (User $user) use ($transaction, $lines): void {
+                ReminderNotice::query()->create(['user_id' => $user->id, 'bank_transaction_id' => $transaction->id, 'sent_at' => now(), 'lines' => $lines($user->mailLocale())]);
             });
     }
 

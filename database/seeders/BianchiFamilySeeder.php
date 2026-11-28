@@ -275,7 +275,7 @@ final class BianchiFamilySeeder extends Seeder
         $this->records = [
             'Casa di via Roma' => $home,
             'Luce - Edison' => $this->utility(UtilityType::Electricity, 'Edison', $home, 'IT 001 E 12345678'),
-            'Gas - Enel' => $this->utility(UtilityType::Gas, 'Enel Energia', $home),
+            'Gas - Enel' => $this->utility(UtilityType::Gas, 'Enel Energia', $home, '00881234567890'),
             'Acqua - Hera' => $this->utility(UtilityType::Water, 'Hera', $home),
             'Internet - Fastweb' => $this->utility(UtilityType::Internet, 'Fastweb', $home),
             'Fiat Panda' => $panda,
@@ -826,7 +826,7 @@ final class BianchiFamilySeeder extends Seeder
     }
 
     /**
-     * The files in *To sort*: six already read, as the reading leaves them, and a copy of the file of a document.
+     * The files in *To sort*: seven already read, as the reading leaves them, and a copy of the file of a document.
      * The readings are written by hand, with no call to the service; the proposal of each is built from them like a
      * real reading does.
      */
@@ -861,6 +861,23 @@ final class BianchiFamilySeeder extends Seeder
         $this->reading(
             $this->uploadedBy($this->file('set-informativo-unipolsai.pdf', toSort: true), 'Marco'),
             new Extraction(kind: 'insurance', issuer_name: 'UnipolSai', organization_id: $unipol->id, policy_number: '40/123456', plate_number: 'GH 482 TK', insurance_type: 'car', confidence: 'medium'),
+        );
+
+        // A dual-fuel bill of Enel: the gas is the supply of *Gas - Enel*, the electricity a POD of no utility
+        $supply = ['consumption_estimated' => false, 'consumption_adjusted' => false];
+        $this->reading(
+            $this->uploadedBy($this->file('bolletta-enel-luce-gas-novembre.pdf', toSort: true), 'Laura'),
+            Extraction::from([
+                'kind' => 'utility_bill', 'title' => 'Bolletta luce e gas', 'issuer_name' => 'Enel Energia', 'organization_id' => $this->organizations['Enel Energia']->id,
+                'total_amount' => 165.65, 'issue_date' => '2026-11-05', 'due_date' => '2026-11-21', 'period_start' => '2026-09-01', 'period_end' => '2026-09-30',
+                'consumption_quantity' => 201.0, 'consumption_unit' => 'kwh', 'consumption_estimated' => false, 'consumption_adjusted' => false,
+                'supply_point_code' => 'IT 001 E 87654321', 'customer_code' => '310045678', 'iban_last_four' => '4821', 'utility_type' => 'electricity',
+                'supplies' => [
+                    [...$supply, 'utility_type' => 'electricity', 'supply_point_code' => 'IT 001 E 87654321', 'amount' => 96.25, 'period_start' => '2026-09-01', 'period_end' => '2026-09-30', 'consumption_quantity' => 201.0, 'consumption_unit' => 'kwh'],
+                    [...$supply, 'utility_type' => 'gas', 'supply_point_code' => '00881234567890', 'amount' => 69.40, 'period_start' => '2026-10-01', 'period_end' => '2026-10-31', 'consumption_quantity' => 48.0, 'consumption_unit' => 'smc'],
+                ],
+                'confidence' => 'high',
+            ]),
         );
 
         // The same file as the October bill, which is the file of a document: the page tells it is a copy

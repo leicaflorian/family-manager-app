@@ -99,6 +99,44 @@ final class BankFilters
     }
 
     /**
+     * The planned expenses that the filters taking a debit pay, when two or more filters take it and all of them pay
+     * (a bill of electricity and gas, whose two planned expenses both had the rule of the supplier): each one still
+     * payable on the day, by the filter that pays it, in order of id of the planned expense. Empty for money in, for
+     * one filter or none, and when any filter that takes it does something else. `BankSplit` asks it whether one debit
+     * pays them together. Plain reads, as `settling()`.
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     * @return array<int, BankFilter> the filters, by the id of the planned expense they pay
+     */
+    public function payingTogether(BankTransaction $transaction): array
+    {
+        if ($transaction->kind() !== 'expense') {
+            return [];
+        }
+
+        $taking = $this->matching($transaction);
+
+        if ($taking->count() < 2 || $taking->contains(static fn (BankFilter $filter): bool => $filter->action !== BankFilterAction::Pay)) {
+            return [];
+        }
+
+        $paying = [];
+
+        foreach ($taking as $filter) {
+            $planned = $filter->loadMissing('plannedExpense')->plannedExpense;
+
+            // Two filters on the same planned expense: the oldest says how it is paid
+            if ($planned instanceof PlannedExpense && self::payable($planned, $transaction) && ! isset($paying[$planned->id])) {
+                $paying[$planned->id] = $filter;
+            }
+        }
+
+        ksort($paying);
+
+        return $paying;
+    }
+
+    /**
      * Whether the planned item of a filter that pays can be paid with the transaction: it is of the same direction,
      * and did not end before the day of the transaction.
      *

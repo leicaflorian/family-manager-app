@@ -21,14 +21,45 @@ final readonly class LinkResolver
     public function __construct(private Matcher $matcher) {}
 
     /**
-     * The links of a reading.
+     * The links of a reading. With more than one supply each one looks for its utility, and the first utility found
+     * tells the issuer, the person and whether a subscription is searched, as the only utility does.
      *
      * @param  Extraction  $x  what the model read
      * @param  ReadingContext  $context  the lists the model chose from
      */
     public function resolve(Extraction $x, ReadingContext $context): ResolvedLinks
     {
-        $utility = $this->matcher->utility($x->supply_point_code, $x->customer_code);
+        if (! $x->isMultiSupply()) {
+            return $this->withUtility($x, $context, $this->matcher->utility($x->supply_point_code, $x->customer_code), []);
+        }
+
+        $utilities = array_values(array_filter($this->matcher->supplyUtilities($x->supplies, $x->customer_code)));
+
+        return $this->withUtility($x, $context, $utilities[0] ?? null, $utilities);
+    }
+
+    /**
+     * The links of one supply of a bill with more than one, with the utility already found for it (or none).
+     *
+     * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
+     * @param  ReadingContext  $context  the lists the model chose from
+     * @param  Utility|null  $utility  the utility of the supply
+     */
+    public function forSupply(Extraction $supplyView, ReadingContext $context, ?Utility $utility): ResolvedLinks
+    {
+        return $this->withUtility($supplyView, $context, $utility, $utility instanceof Utility ? [$utility] : []);
+    }
+
+    /**
+     * The links of a reading whose utility is known.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  ReadingContext  $context  the lists the model chose from
+     * @param  Utility|null  $utility  the utility of the paper
+     * @param  list<Utility>  $utilities  the utilities of the supplies, when the paper has more than one
+     */
+    private function withUtility(Extraction $x, ReadingContext $context, ?Utility $utility, array $utilities): ResolvedLinks
+    {
         $vehicle = $this->matcher->vehicle($x->plate_number);
         $policy = $this->matcher->policy($x->policy_number);
 
@@ -52,6 +83,7 @@ final readonly class LinkResolver
             personId: $personId,
             organizationId: $organizationId,
             issuer: Choices::label($context->organizations, $organizationId) ?? $x->issuer_name,
+            utilities: $utilities,
         );
     }
 }

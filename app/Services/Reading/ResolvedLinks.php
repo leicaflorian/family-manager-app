@@ -24,6 +24,7 @@ final readonly class ResolvedLinks
      * @param  int|null  $personId  the person the paper is about: by tax code, otherwise the model's choice
      * @param  int|null  $organizationId  the issuer: from the utility or the policy, otherwise the model's choice or its name
      * @param  string|null  $issuer  the name of the issuer, from the list or as printed
+     * @param  list<Utility>  $utilities  with more than one supply, the utilities found for them in order; `utility` is the first
      */
     public function __construct(
         public ?Utility $utility,
@@ -34,5 +35,6 @@ final readonly class ResolvedLinks
         public ?int $personId,
         public ?int $organizationId,
         public ?string $issuer,
+        public array $utilities = [],
     ) {}
 }

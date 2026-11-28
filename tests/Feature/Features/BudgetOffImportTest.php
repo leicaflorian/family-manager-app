@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Data\Reading\ImportChoices;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
+use App\Data\Reading\SupplyProposalData;
 use App\Enums\HealthEventType;
 use App\Enums\OrganizationType;
 use App\Enums\RecordKind;
@@ -24,6 +25,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -114,6 +116,21 @@ test('with the Budget off, the reading proposes no movement, no due date and no 
         ->and($bill->consumption)->toBeNull();
 });
 
+test('with the Budget off, each supply of a dual-fuel bill keeps its utility box, without expense or consumption', function (): void {
+    budgetOffImportSwitchOff();
+    $gas = Utility::factory()->for($this->admin->family)->create(['type' => 'gas', 'supply_point_code' => EnelBill::PDR]);
+    $file = File::factory()->for($this->admin->family)->read(EnelBill::answer())->create(['to_sort' => true, 'created_by' => $this->admin->id]);
+
+    $proposal = budgetOffImportProposal($file);
+
+    expect($proposal->supplies)->toHaveCount(2)
+        ->and($proposal->supplies[0]->record?->kind)->toBe(RecordKind::Utility)
+        ->and($proposal->supplies[1]->record?->existing['id'])->toBe($gas->id)
+        ->and(array_map(static fn (SupplyProposalData $supply): array => [$supply->movement, $supply->consumption], $proposal->supplies))->toBe([[null, null], [null, null]])
+        ->and($proposal->movement)->toBeNull()
+        ->and($proposal->consumption)->toBeNull();
+});
+
 test('with the Budget off the page gets proposals without movement', function (): void {
     budgetOffImportSwitchOff();
     $file = budgetOffImportInvoice();
@@ -137,6 +154,12 @@ test('with the Budget off, an import that asks for money is refused', function (
     'the movement target' => [['targets' => ['movement' => 'new']], 'files.0.also.targets.movement'],
     'the consumption' => [['consumption' => true], 'files.0.also.consumption'],
     'a correction of the consumption' => [['overrides' => ['consumption' => ['quantity' => 10]]], 'files.0.also.overrides.consumption'],
+    'the expense of a supply' => [['supplies' => [0 => ['movement' => true]]], 'files.0.also.supplies.0.movement'],
+    'a due date of a supply' => [['supplies' => [0 => ['due' => true]]], 'files.0.also.supplies.0.due'],
+    'the consumption of a supply' => [['supplies' => [1 => ['consumption' => true]]], 'files.0.also.supplies.1.consumption'],
+    'a correction of the expense of a supply' => [['supplies' => [0 => ['overrides' => ['movement' => ['amount' => 10]]]]], 'files.0.also.supplies.0.overrides.movement'],
+    'a correction of the consumption of a supply' => [['supplies' => [1 => ['overrides' => ['consumption' => ['quantity' => 10]]]]], 'files.0.also.supplies.1.overrides.consumption'],
+    'the expense target of a supply' => [['supplies' => [0 => ['targets' => ['movement' => 'new']]]], 'files.0.also.supplies.0.targets.movement'],
 ]);
 
 test('with the Budget off, an import as the page sends it saves the document and the event, and no money', function (): void {

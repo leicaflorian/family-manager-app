@@ -17,6 +17,7 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\ReminderNotice;
 use App\Models\User;
+use App\Services\Banks\BankSplit;
 use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -431,5 +432,46 @@ test('the preview picks the next open due date as the save does', function (): v
 
         expect($paidOne?->occurrence_date?->toDateString())->toBe('2025-12-10')
             ->and($paidTwo?->occurrence_date?->toDateString())->toBe('2026-06-10');
+    });
+});
+
+test('a split found before the locks and no longer true under them pays nothing', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        $match = resolve(BankSplit::class)->find($transaction);
+        expect($match?->mode)->toBe('pay');
+
+        // Gas is paid by hand between the read and the locks
+        Expense::factory()->create(['family_id' => $transaction->family_id, 'planned_expense_id' => $bill['gas']->id, 'occurrence_date' => '2026-11-30', 'date' => '2026-11-26', 'amount' => 69.40]);
+
+        expect(resolve(SettleFromBank::class)->split($transaction, $match, BankMatchSource::Rule))->toBe([])
+            ->and(Expense::query()->count())->toBe(1)
+            ->and($transaction->refresh()->expense_id)->toBeNull()
+            ->and(ReminderNotice::query()->count())->toBe(0);
+    });
+});
+
+test('the split locks the bank row, then the planned expenses in order of id, before any plain read', function (): void {
+    Date::setTestNow(CarbonImmutable::parse('2026-11-27 07:00', 'Europe/Rome'));
+    insideBianchi(function (): void {
+        $bill = enelDualFuelBill();
+        $transaction = enelDualFuelDebit($bill['account']);
+        $match = resolve(BankSplit::class)->find($transaction);
+
+        DB::enableQueryLog();
+        expect(resolve(SettleFromBank::class)->split($transaction, $match, BankMatchSource::Rule))->toHaveCount(2);
+        $log = DB::getQueryLog();
+        $locks = array_values(array_filter($log, static fn (array $query): bool => str_contains($query['query'], 'for update')));
+
+        // The filter of the match is read with a shared lock right after the bank row, as `ApplyBankFilter` does
+        expect(str_contains($log[0]['query'], 'from `bank_transactions`') && str_contains($log[0]['query'], 'for update'))->toBeTrue()
+            ->and(str_contains($log[1]['query'], 'from `bank_filters`') && str_contains($log[1]['query'], 'lock in share mode'))->toBeTrue()
+            ->and($log[1]['bindings'][0])->toBe($bill['filters']['luce']->id)
+            ->and(str_contains($log[2]['query'], 'from `planned_expenses`') && str_contains($log[2]['query'], 'for update'))->toBeTrue()
+            ->and(str_contains($log[3]['query'], 'from `planned_expenses`') && str_contains($log[3]['query'], 'for update'))->toBeTrue()
+            ->and([$log[2]['bindings'][0], $log[3]['bindings'][0]])->toBe([$bill['luce']->id, $bill['gas']->id])
+            ->and(count($locks))->toBeGreaterThanOrEqual(3);
     });
 });

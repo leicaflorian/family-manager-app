@@ -27,10 +27,11 @@ final readonly class BankDuplicates
 
     /**
      * The expense or income somebody already recorded for the bank transaction: free (not linked to another bank
-     * transaction; a commission linked to it does not count), of the same direction, with the same amount to the cent
-     * (a direct debit with its commission counts as the two together, `BankFees::amounts()`, the commission found as
-     * the filter says), dated within 7 days of the bank transaction, before or after. With a planned item only its
-     * payments count (a filter that pays a due date, a settling). The closest date wins.
+     * transaction, nor one of the expenses another debit still pays together, `expenses.bank_transaction_id` of a
+     * debit linked to one of them; a commission linked to it does not count), of the same direction, with the same
+     * amount to the cent (a direct debit with its commission counts as the two together, `BankFees::amounts()`, the
+     * commission found as the filter says), dated within 7 days of the bank transaction, before or after. With a
+     * planned item only its payments count (a filter that pays a due date, a settling). The closest date wins.
      *
      * @param  BankTransaction  $transaction  The bank transaction.
      * @param  PlannedExpense|PlannedIncome|null  $planned  The planned item it pays, to look only among its payments.
@@ -60,6 +61,9 @@ final readonly class BankDuplicates
             ->whereIn(DB::raw('round(amount * 100)'), $amounts)
             ->whereNotIn('id', $this->others($transaction)->whereNotNull($column)->select($column))
             ->when($skip !== [], static fn (Builder $query) => $query->whereNotIn('id', $skip))
+            ->when($isExpense, static fn (Builder $query) => $query->where(static fn (Builder $query) => $query->whereNull('bank_transaction_id')
+                ->orWhere('bank_transaction_id', $transaction->id)
+                ->orWhereNotIn('bank_transaction_id', BankTransaction::query()->splitHeads()->select('id'))))
             ->get()
             ->sortBy(static fn (Expense|Income $payment): int => abs((int) round($day->startOfDay()->diffInDays($payment->date?->startOfDay(), false))))
             ->first();
@@ -122,7 +126,8 @@ final readonly class BankDuplicates
      * Takes a payment for the bank transaction inside the transaction that links them: the payment is locked, then
      * the other bank transactions that have it are read with a locking read, which sees what another transaction
      * committed while this one waited. Two bank transactions that found the same free payment at the same moment
-     * take it once: the second finds it taken. Called after the bank row (and the planned item) are locked.
+     * take it once: the second finds it taken. An expense another debit still pays together is taken too. Called
+     * after the bank row (and the planned item) are locked.
      *
      * @param  Expense|Income  $payment  The payment found free (`findAny()`).
      * @param  BankTransaction  $transaction  The bank transaction, locked.
@@ -130,7 +135,9 @@ final readonly class BankDuplicates
      */
     public function claim(Expense|Income $payment, BankTransaction $transaction): bool
     {
-        if (! $payment->newQuery()->whereKey($payment->getKey())->lockForUpdate()->exists()) {
+        $locked = $payment->newQuery()->whereKey($payment->getKey())->lockForUpdate()->first();
+
+        if ($locked === null || ($locked instanceof Expense && $this->inOtherSplit($locked->bank_transaction_id, $transaction, true))) {
             return false;
         }
 
@@ -141,17 +148,35 @@ final readonly class BankDuplicates
     }
 
     /**
-     * Whether a payment is free for the bank transaction: not linked to another bank transaction. The commission of a
-     * direct debit joined to it does not take it.
+     * Whether a payment is free for the bank transaction: not linked to another bank transaction, nor one of the
+     * expenses another debit still pays together (linked to one of them). The commission of a direct debit joined to
+     * it does not take it.
      *
      * @param  Expense|Income  $payment  The payment.
      * @param  BankTransaction  $transaction  The bank transaction that would link to it.
      */
     public function isFree(Expense|Income $payment, BankTransaction $transaction): bool
     {
+        if ($payment instanceof Expense && $this->inOtherSplit($payment->bank_transaction_id, $transaction, false)) {
+            return false;
+        }
+
         return ! $this->others($transaction)
             ->where($this->column($payment instanceof Expense), $payment->id)
             ->exists();
+    }
+
+    /**
+     * Whether an expense belongs to the split of another debit that still heads it (`BankTransaction::splitHeads()`).
+     *
+     * @param  int|null  $splitId  The `bank_transaction_id` of the expense.
+     * @param  BankTransaction  $transaction  The bank transaction that would link to it.
+     * @param  bool  $lock  Whether to read the other debit with a locking read (inside the transaction that links).
+     */
+    private function inOtherSplit(?int $splitId, BankTransaction $transaction, bool $lock): bool
+    {
+        return $splitId !== null && $splitId !== $transaction->id
+            && BankTransaction::query()->splitHeads()->whereKey($splitId)->when($lock, static fn (Builder $query) => $query->lockForUpdate())->exists();
     }
 
     /**

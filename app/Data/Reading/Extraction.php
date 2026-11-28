@@ -12,6 +12,8 @@ use App\Enums\MaintenanceType;
 use App\Enums\OrganizationType;
 use App\Enums\UtilityType;
 use App\Models\File;
+use OutOfBoundsException;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -46,10 +48,20 @@ final class Extraction extends Data
         'consumption_energy_amount', 'consumption_f1', 'consumption_f2', 'consumption_f3',
     ];
 
+    /** The fields of each supply of a dual-fuel bill (`SupplyData`), in the order of the schema. */
+    public const array SUPPLY_FIELDS = [
+        'utility_type', 'supply_point_code', 'amount', 'period_start', 'period_end', ...self::CONSUMPTION_FIELDS,
+    ];
+
+    /** The fields of the document that a supply has too, and that the view of a supply takes from it. */
+    private const array FROM_SUPPLY = [
+        'utility_type', 'supply_point_code', 'period_start', 'period_end', ...self::CONSUMPTION_FIELDS,
+    ];
+
     /** Every field of the answer, in the order of the schema. */
     public const array FIELDS = [
         'kind', 'title', 'issuer_name', 'organization_id', 'total_amount', 'fee_amount', 'issue_date', 'due_date', 'expiry_date',
-        'period_start', 'period_end', ...self::CONSUMPTION_FIELDS, 'supply_point_code', 'customer_code', 'iban_last_four', 'policy_number', 'plate_number',
+        'period_start', 'period_end', ...self::CONSUMPTION_FIELDS, 'supply_point_code', 'customer_code', 'supplies', 'iban_last_four', 'policy_number', 'plate_number',
         'tax_code', 'expense_category_id', 'document_category_id', 'person_id', 'income_type', 'maintenance_type', 'health_type',
         'outcome', 'next_checkup_date', 'utility_type', 'insurance_type', 'organization_type', 'durable_good', 'item_name',
         'item_brand', 'item_model', 'warranty_expiry_date', 'vehicle_brand', 'vehicle_model', 'vehicle_year', 'contract_start_date',
@@ -104,6 +116,7 @@ final class Extraction extends Data
      * @param  string|null  $contract_start_date  `YYYY-MM-DD`
      * @param  string|null  $summary  one short sentence about the paper
      * @param  string|null  $confidence  one of `CONFIDENCES`
+     * @param  list<SupplyData>  $supplies  the supplies of a bill with two or more (a dual-fuel bill), else empty
      */
     public function __construct(
         public ?string $kind = null,
@@ -153,7 +166,39 @@ final class Extraction extends Data
         public ?string $contract_start_date = null,
         public ?string $summary = null,
         public ?string $confidence = null,
+        #[DataCollectionOf(SupplyData::class)]
+        public array $supplies = [],
     ) {}
+
+    /** Whether the paper is a bill with two or more supplies, each with its own code. */
+    public function isMultiSupply(): bool
+    {
+        return count($this->supplies) >= 2;
+    }
+
+    /**
+     * The reading seen from one supply: the amount, the code, the type, the period and the consumption of that
+     * supply, no title and no supplies; the issuer, the dates, the customer code, the account, the categories and
+     * the person of the document. The reading itself does not change.
+     *
+     * @param  int  $index  the place of the supply in `supplies`
+     *
+     * @throws OutOfBoundsException when there is no supply at that place
+     */
+    public function forSupply(int $index): self
+    {
+        $supply = $this->supplies[$index] ?? throw new OutOfBoundsException("No supply {$index} in the reading.");
+        $view = clone $this;
+
+        foreach (self::FROM_SUPPLY as $field) {
+            $view->{$field} = $supply->{$field};
+        }
+        $view->total_amount = $supply->amount;
+        $view->title = null;
+        $view->supplies = [];
+
+        return $view;
+    }
 
     /**
      * What the model read from a file, or an empty reading for a file never read.

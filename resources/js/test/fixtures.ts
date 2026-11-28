@@ -2057,6 +2057,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
             complete: [],
             cardType: null,
             replaces: [],
+            hint: null,
         },
     ],
     policy: null,
@@ -2064,6 +2065,7 @@ export const ferriProposal: App.Data.Reading.ProposalData = {
     createCard: false,
     cardType: null,
     consumption: null,
+    supplies: [],
 };
 
 /**
@@ -2137,6 +2139,7 @@ export const homeDraft: App.Data.Reading.RecordDraftData = {
     complete: [],
     cardType: 'home',
     replaces: [],
+    hint: null,
 };
 
 /**
@@ -2756,4 +2759,273 @@ export const bankFilterOptions: BankFilterFormOptions = {
     ],
     accounts: [{ id: 4, name: 'Conto BancoPosta ·· 3307' }],
     transfer_accounts: [{ id: 6, name: 'Libretto postale', connected: false }],
+};
+
+/**
+ * The proposal of the dual-fuel Enel bill of the Bianchi, as `Proposal::build()` sends it (task 5): the electricity
+ * links its utility and its planned expense *Luce*, the gas utility without codes is not taken, so the box of the
+ * gas creates one, unticked, with the line that says why.
+ */
+export const dualFuelProposal: App.Data.Reading.ProposalData = {
+    fileId: 34,
+    document: {
+        title: 'Bolletta luce e gas novembre 2026',
+        category_id: 2,
+        person_id: null,
+        organization_id: 2,
+        date: '2026-11-05',
+        expiry_date: null,
+        links: [
+            {
+                type: 'utility',
+                id: 1,
+            },
+        ],
+        headline: 'Ho trovato una bolletta della luce e del gas',
+        found: [
+            {
+                label: 'Da chi arriva',
+                value: 'Enel Energia',
+            },
+            {
+                label: 'Quanto',
+                value: '165,65 € · luce 96,25 €, gas 69,40 €',
+            },
+            {
+                label: 'Entro il',
+                value: '21/11/2026',
+            },
+        ],
+    },
+    movement: null,
+    event: null,
+    records: [],
+    policy: null,
+    warnings: [],
+    createCard: false,
+    cardType: 'utility',
+    consumption: null,
+    supplies: [
+        {
+            index: 0,
+            utility_type: 'electricity',
+            supply_point_code: 'IT 001 E 87654321',
+            amount: 96.25,
+            heading: 'Luce · POD IT 001 E 87654321',
+            record: {
+                kind: 'utility',
+                title: "l'utenza Luce · Enel Energia",
+                values: {
+                    type: 'electricity',
+                    supply_point_code: 'IT 001 E 87654321',
+                    customer_code: '310045678',
+                    organization_id: 2,
+                    person_id: null,
+                    home_id: 1,
+                    activation_date: null,
+                },
+                suggested: true,
+                missing: [],
+                existing: {
+                    id: 1,
+                    title: 'Luce (IT 001 E 87654321)',
+                },
+                candidates: [
+                    {
+                        id: 3,
+                        label: 'Acqua',
+                    },
+                    {
+                        id: 2,
+                        label: 'Gas',
+                    },
+                    {
+                        id: 4,
+                        label: 'Internet',
+                    },
+                    {
+                        id: 1,
+                        label: 'Luce (IT 001 E 87654321)',
+                    },
+                ],
+                reminder: null,
+                fields: [],
+                complete: [],
+                cardType: 'utility',
+                replaces: [],
+                hint: null,
+            },
+            movement: {
+                values: {
+                    kind: 'expense',
+                    title: 'Luce novembre 2026',
+                    amount: 96.25,
+                    fee_amount: null,
+                    date: '2026-11-21',
+                    due_date: '2026-11-21',
+                    organization_id: 2,
+                    category_id: 5,
+                    financial_account_id: 1,
+                    person_id: 1,
+                    income_type: null,
+                    employment_id: null,
+                    notes: 'Bolletta luce e gas di settembre e ottobre 2026\nPeriodo: 01/09/2026 – 30/09/2026',
+                    lead: {
+                        id: 8,
+                        title: 'Luce',
+                        amount: 72,
+                        is_estimated: true,
+                    },
+                },
+                suggested: true,
+                duplicate: null,
+                changes: [],
+                warnings: [],
+                others: 0,
+                blocked: null,
+                due: {
+                    suggested: false,
+                    date: '2026-11-21',
+                    plan: null,
+                    occurrence: null,
+                    mode: 'new',
+                },
+                pays: null,
+                candidates: [
+                    {
+                        id: 72,
+                        title: 'Parcheggio',
+                        date: '2026-10-24',
+                        amount: 12,
+                    },
+                ],
+                fill: [],
+                complete: [],
+            },
+            consumption: {
+                values: {
+                    period_start: '2026-09-01',
+                    period_end: '2026-09-30',
+                    quantity: 201,
+                    unit: 'kwh',
+                    amount: 96.25,
+                    is_estimated: false,
+                },
+                suggested: true,
+                utility: {
+                    id: 1,
+                    title: 'Luce - Enel Energia',
+                },
+                blocked: null,
+                fill: [],
+                complete: [],
+                priceWarning: false,
+            },
+        },
+        {
+            index: 1,
+            utility_type: 'gas',
+            supply_point_code: '00881234567890',
+            amount: 69.4,
+            heading: 'Gas · PDR 00881234567890',
+            record: {
+                kind: 'utility',
+                title: "l'utenza Gas · Enel Energia",
+                values: {
+                    type: 'gas',
+                    supply_point_code: '00881234567890',
+                    customer_code: '310045678',
+                    organization_id: 2,
+                    person_id: null,
+                    home_id: 1,
+                    activation_date: null,
+                },
+                suggested: false,
+                missing: [],
+                existing: null,
+                candidates: [
+                    {
+                        id: 3,
+                        label: 'Acqua',
+                    },
+                    {
+                        id: 2,
+                        label: 'Gas',
+                    },
+                    {
+                        id: 4,
+                        label: 'Internet',
+                    },
+                    {
+                        id: 1,
+                        label: 'Luce (IT 001 E 87654321)',
+                    },
+                ],
+                reminder: null,
+                fields: [],
+                complete: [],
+                cardType: 'utility',
+                replaces: [],
+                hint: "Hai già un'utenza del gas: spunta se è un'altra fornitura.",
+            },
+            movement: {
+                values: {
+                    kind: 'expense',
+                    title: 'Bolletta gas novembre 2026',
+                    amount: 69.4,
+                    fee_amount: null,
+                    date: '2026-11-21',
+                    due_date: '2026-11-21',
+                    organization_id: 2,
+                    category_id: 6,
+                    financial_account_id: 1,
+                    person_id: null,
+                    income_type: null,
+                    employment_id: null,
+                    notes: 'Bolletta luce e gas di settembre e ottobre 2026\nPeriodo: 01/10/2026 – 31/10/2026',
+                    lead: null,
+                },
+                suggested: true,
+                duplicate: null,
+                changes: [],
+                warnings: [],
+                others: 0,
+                blocked: null,
+                due: {
+                    suggested: false,
+                    date: '2026-11-21',
+                    plan: null,
+                    occurrence: null,
+                    mode: 'new',
+                },
+                pays: null,
+                candidates: [
+                    {
+                        id: 72,
+                        title: 'Parcheggio',
+                        date: '2026-10-24',
+                        amount: 12,
+                    },
+                ],
+                fill: [],
+                complete: [],
+            },
+            consumption: {
+                values: {
+                    period_start: '2026-10-01',
+                    period_end: '2026-10-31',
+                    quantity: 48,
+                    unit: 'smc',
+                    amount: 69.4,
+                    is_estimated: false,
+                },
+                suggested: false,
+                utility: null,
+                blocked: "Per segnare i consumi scegli l'utenza qui sopra.",
+                fill: [],
+                complete: ['utility'],
+                priceWarning: false,
+            },
+        },
+    ],
 };

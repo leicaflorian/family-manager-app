@@ -42,6 +42,14 @@ describe('FmAlsoDo', () => {
         ).toBeInTheDocument();
     });
 
+    it('is a heading of level 4 when it sits inside another one', () => {
+        render(FmAlsoDo, { props: { title: 'Luce · POD 1', level: 4 } });
+
+        expect(
+            screen.getByRole('heading', { level: 4, name: 'Luce · POD 1' }),
+        ).toBeInTheDocument();
+    });
+
     it('says a line under the title, when it has one', () => {
         const view = render(FmAlsoDo, {
             props: { hint: 'The proposals follow the kind.' },
