@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
+import { nextTick } from 'vue';
 import {
     afterEach,
     beforeEach,
@@ -1261,9 +1262,11 @@ describe('Budget, From the bank, the groups', () => {
         const reload = vi
             .spyOn(router, 'reload')
             .mockImplementation((options) => {
-                options?.onSuccess?.({} as never);
+                options?.onSuccess?.({
+                    props: { group_rows: structuredClone(bankGroupRows) },
+                } as never);
             });
-        const view = renderPage(BankTransactions, groupProps());
+        renderPage(BankTransactions, groupProps());
 
         await userEvent.click(
             screen.getByRole('button', { name: /Satispay Europe/ }),
@@ -1276,11 +1279,9 @@ describe('Budget, From the bank, the groups', () => {
                 preserveUrl: true,
             }),
         );
-        await view.rerender(
-            groupProps({ group_rows: structuredClone(bankGroupRows) }),
-        );
-
-        const panel = screen.getByRole('dialog', { name: 'Satispay Europe' });
+        const panel = await screen.findByRole('dialog', {
+            name: 'Satispay Europe',
+        });
         expect(
             within(panel).getAllByRole('button', {
                 name: 'It is not of this group',
@@ -1288,17 +1289,60 @@ describe('Budget, From the bank, the groups', () => {
         ).toHaveLength(6);
     });
 
+    it('two groups opened quickly show the rows of the last one, whatever order the answers come in', async () => {
+        screenWidth(true);
+        const answers: Array<() => void> = [];
+        const inpsRows = bankGroupRows.slice(0, 2).map((row) => ({
+            ...row,
+            transaction: {
+                ...row.transaction,
+                text: 'BONIFICO SEPA DA INPS ASSEGNO UNICO',
+            },
+        }));
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            const key = (options?.data as { group?: string } | undefined)
+                ?.group;
+            answers.push(() =>
+                options?.onSuccess?.({
+                    props: {
+                        group_rows:
+                            key === '3f9a1c2b7d4e' ? bankGroupRows : inpsRows,
+                    },
+                } as never),
+            );
+        });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        await userEvent.click(
+            screen.getByRole('button', { name: /INPS · Assegno Unico/ }),
+        );
+        // The answer for INPS comes first, the one for Satispay after it
+        answers[1]();
+        answers[0]();
+        await nextTick();
+
+        const panel = screen.getByRole('dialog', {
+            name: 'INPS · Assegno Unico',
+        });
+        expect(
+            within(panel).getAllByText('BONIFICO SEPA DA INPS ASSEGNO UNICO'),
+        ).toHaveLength(2);
+        expect(within(panel).queryByText(/Satispay Europe S\.A\./)).toBeNull();
+    });
+
     it('when wide, the open group puts the groups in a list beside it, and the lone movements bring the page back', async () => {
         screenWidth(true);
         vi.spyOn(router, 'reload').mockImplementation((options) => {
-            options?.onSuccess?.({} as never);
+            options?.onSuccess?.({ props: { group_rows: [] } } as never);
         });
-        const view = renderPage(BankTransactions, groupProps());
+        renderPage(BankTransactions, groupProps());
 
         await userEvent.click(
             screen.getByRole('button', { name: /INPS · Assegno Unico/ }),
         );
-        await view.rerender(groupProps({ group_rows: [] }));
 
         const nav = screen.getByRole('navigation', { name: 'Groups' });
         expect(
@@ -1314,6 +1358,33 @@ describe('Budget, From the bank, the groups', () => {
         expect(screen.queryByRole('dialog')).toBeNull();
         expect(
             screen.getByRole('region', { name: 'Lone movements' }),
+        ).toBeInTheDocument();
+    });
+
+    it('the number of the lone movements follows the server after a sort, without taking the row off twice', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onSuccess?.({} as never);
+        });
+        const view = renderPage(BankTransactions, groupProps({ next: 2 }));
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Ignore' }));
+        // The redirect after the sort brings the counts already lowered
+        await view.rerender(
+            groupProps({
+                next: 2,
+                counts: { unsorted: 267, groups: 31, lone: 41 },
+            }),
+        );
+
+        expect(
+            screen.getByRole('heading', { name: 'Lone movements · 41' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Show 39 more movements' }),
         ).toBeInTheDocument();
     });
 

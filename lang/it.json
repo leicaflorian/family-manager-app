@@ -2995,5 +2995,10 @@
     "{1} Show one more movement|[2,*] Show :count more movements": "{1} Mostra un altro movimento|[2,*] Mostra altri :count movimenti",
     "Only the movements no filter takes stay here. The ones a filter takes, or a fixed expense with the rule, are sorted by themselves.": "Qui restano i movimenti che nessun filtro prende. Quelli presi da un filtro, o da una spesa fissa con la regola, si sistemano da soli.",
     "{1} Show the other group|[2,*] Show the other :count groups": "{1} Mostra l'altro gruppo|[2,*] Mostra altri :count gruppi",
-    "{1} :total to sort · :count group|[2,*] :total to sort · :count groups": "{1} :total da sistemare · :count gruppo|[2,*] :total da sistemare · :count gruppi"
+    "{1} :total to sort · :count group|[2,*] :total to sort · :count groups": "{1} :total da sistemare · :count gruppo|[2,*] :total da sistemare · :count gruppi",
+    "Already recorded: link «:title»": "Già registrata: collega «:title»",
+    "Already recorded: link «:title» of :day": "Già registrata: collega «:title» del :day",
+    "{1} :count new expense, with its commission of :fee|[2,*] :count new expenses, each with its commission of :fee": "{1} :count spesa nuova, con la sua commissione da :fee|[2,*] :count spese nuove, ognuna con la sua commissione da :fee",
+    "{1} :count new expense, with its commission|[2,*] :count new expenses, each with its commission": "{1} :count spesa nuova, con la sua commissione|[2,*] :count spese nuove, ognuna con la sua commissione",
+    ":first, and :rest": ":first, e :rest"
 }

@@ -3,6 +3,7 @@ import { bankGroups } from '@/test/fixtures';
 import {
     groupAmounts,
     groupDays,
+    groupFilterUrl,
     groupMonths,
     groupProposal,
 } from './bankGroups';
@@ -53,5 +54,14 @@ describe('bankGroups', () => {
             }),
         ).toBe('pay the planned expense «Netflix»');
         expect(groupProposal(cashback)).toBeNull();
+    });
+
+    it('leads to the new filter of the group, asking the AI only without a proposal', () => {
+        expect(groupFilterUrl(satispay)).toBe(
+            '/budget/bank/filters/create?group=3f9a1c2b7d4e',
+        );
+        expect(groupFilterUrl(cashback)).toBe(
+            '/budget/bank/filters/create?group=5d7f2a90c3e1&ai=1',
+        );
     });
 });

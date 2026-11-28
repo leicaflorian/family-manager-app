@@ -484,7 +484,11 @@ export function summaryLine(
  * What a movement of the preview will become, for its tag: «Create the expense», «Link «Ricarica Satispay» of
  * 24/11», «Pay the due date of 05/12»…
  *
+ * In the panel of a group of *To sort* (`look` `group`, boards *Dalla banca, il gruppo*) a link says the expense is
+ * already recorded («Already recorded: link «Ricarica Satispay» of 24/11») and the expense to create stays grey.
+ *
  * @param row - the movement of the preview, or of a group of *To sort* (`BankGroupRowData`)
+ * @param look - `preview` for the form of a filter, `group` for the panel of a group
  * @returns the text and its tone: `paid` (green), `action` (blue) or `muted` (grey)
  */
 export function willTag(
@@ -492,6 +496,7 @@ export function willTag(
         App.Data.BankFilterPreviewRowData,
         'transaction' | 'will' | 'will_title' | 'will_on'
     >,
+    look: 'preview' | 'group' = 'preview',
 ): {
     text: string;
     tone: 'paid' | 'action' | 'muted';
@@ -505,9 +510,24 @@ export function willTag(
                 text: income
                     ? trans('Create the income')
                     : trans('Create the expense'),
-                tone: 'action',
+                tone: look === 'group' ? 'muted' : 'action',
             };
         case 'link':
+            if (look === 'group') {
+                return {
+                    text:
+                        day === null
+                            ? trans('Already recorded: link «:title»', {
+                                  title: row.will_title ?? '',
+                              })
+                            : trans('Already recorded: link «:title» of :day', {
+                                  title: row.will_title ?? '',
+                                  day,
+                              }),
+                    tone: 'paid',
+                };
+            }
+
             return {
                 text:
                     day === null

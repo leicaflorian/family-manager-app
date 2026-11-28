@@ -12,29 +12,27 @@
  */
 import {
     ChevronDown,
-    CornerDownRight,
     Link as LinkIcon,
     ListFilter,
     Plus,
-    Sparkles,
-    SearchX,
     Split,
     X,
 } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import BankFeeLine from '@/components/budget/BankFeeLine.vue';
+import BankGroupProposal from '@/components/budget/BankGroupProposal.vue';
 import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { willTag } from '@/lib/bankFilters';
-import { groupAmounts, groupDays, groupProposal } from '@/lib/bankGroups';
+import { groupAmounts, groupDays, groupFilterUrl } from '@/lib/bankGroups';
 import { dayOf } from '@/lib/banks';
 import { formatDayMonth } from '@/lib/format';
 import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
-import { create as createFilter } from '@/routes/budget/bank/filters';
 
 const { group, rows } = defineProps<{
     /** The group, as the server sends it in `groups`. */
@@ -64,13 +62,8 @@ const shown = computed((): App.Data.BankGroupRowData[] =>
     all.value ? (rows ?? []) : (rows ?? []).slice(0, FIRST),
 );
 
-/** What the system proposes, in a few words; null without a proposal. */
-const proposal = computed((): string | null => groupProposal(group));
-
-/** The new filter of the group, filled in with the proposal. */
-const filterUrl = computed(
-    (): string => createFilter({ query: { group: group.key } }).url,
-);
+/** The new filter of the group, filled in with the proposal (asking the AI when there is none). */
+const filterUrl = computed((): string => groupFilterUrl(group));
 
 /** The account and whether the money goes out or comes in. */
 const accountLine = computed((): string =>
@@ -85,30 +78,77 @@ const amountsLine = computed(
 );
 
 /**
+ * How the new expenses are written in the outcome: with the commission each brings when every one has one (its
+ * amount when it is the same for all), as the board «10 new expenses, each with its commission of 0,40 €».
+ *
+ * @param created - the movements that would create an expense or an income
+ * @returns the words, and whether they carry the commission
+ */
+function createdWords(created: App.Data.BankGroupRowData[]): {
+    text: string;
+    withFee: boolean;
+} {
+    if (group.kind === 'income') {
+        return {
+            text: transChoice(
+                '{1} :count new income|[2,*] :count new incomes',
+                created.length,
+            ),
+            withFee: false,
+        };
+    }
+
+    const fees = created.map((row) => row.fee);
+
+    if (fees.some((fee) => fee === null)) {
+        return {
+            text: transChoice(
+                '{1} :count new expense|[2,*] :count new expenses',
+                created.length,
+            ),
+            withFee: false,
+        };
+    }
+
+    const amounts = new Set(
+        fees.map((fee) => Math.round(Math.abs(fee?.amount ?? 0) * 100)),
+    );
+    const currency = created[0]?.transaction.currency ?? 'EUR';
+
+    return {
+        text:
+            amounts.size === 1
+                ? transChoice(
+                      '{1} :count new expense, with its commission of :fee|[2,*] :count new expenses, each with its commission of :fee',
+                      created.length,
+                      {
+                          fee: money(Math.abs(fees[0]?.amount ?? 0), currency),
+                      },
+                  )
+                : transChoice(
+                      '{1} :count new expense, with its commission|[2,*] :count new expenses, each with its commission',
+                      created.length,
+                  ),
+        withFee: true,
+    };
+}
+
+/**
  * What saving the filter would do to the movements, counted from what the server says of each: «Saving the filter:
- * 10 new expenses and 1 already recorded to link. No duplicates.»; null while the movements are asked or when
- * nothing would happen.
+ * 10 new expenses, each with its commission of 0,40 €, and 1 already recorded to link. No duplicates.»; null while
+ * the movements are asked or when nothing would happen.
  */
 const outcome = computed((): string | null => {
     if (rows === null) {
         return null;
     }
 
-    const count = (will: string): number =>
-        rows.filter((row) => row.will === will).length;
     const income = group.kind === 'income';
-    const created = count('create');
-    const linked = count('link');
-    const paid = count('pay');
-    const parts = [
-        created > 0
-            ? transChoice(
-                  income
-                      ? '{1} :count new income|[2,*] :count new incomes'
-                      : '{1} :count new expense|[2,*] :count new expenses',
-                  created,
-              )
-            : null,
+    const created = rows.filter((row) => row.will === 'create');
+    const linked = rows.filter((row) => row.will === 'link').length;
+    const paid = rows.filter((row) => row.will === 'pay').length;
+    const first = created.length > 0 ? createdWords(created) : null;
+    const others = [
         linked > 0
             ? transChoice(
                   '{1} :count already recorded to link|[2,*] :count already recorded to link',
@@ -125,11 +165,20 @@ const outcome = computed((): string | null => {
             : null,
     ].filter((part): part is string => part !== null);
 
-    return parts.length === 0
-        ? null
-        : trans('Saving the filter: :what. No duplicates.', {
-              what: listNames(parts),
-          });
+    if (first === null && others.length === 0) {
+        return null;
+    }
+
+    // The commission clause ends with a comma, so what follows it comes after «, and»
+    const what =
+        first?.withFee && others.length > 0
+            ? trans(':first, and :rest', {
+                  first: first.text,
+                  rest: listNames(others),
+              })
+            : listNames(first === null ? others : [first.text, ...others]);
+
+    return trans('Saving the filter: :what. No duplicates.', { what });
 });
 
 /** The text of *Show … more*: how many and from which day. */
@@ -148,7 +197,8 @@ const moreText = computed((): string => {
 });
 
 /**
- * The look of the tag of what the proposal would do, as the boards: green for a link, grey otherwise.
+ * The look of the tag of what the proposal would do, as the boards: green for a link, grey for an expense to create
+ * (the tones `willTag` gives in the look of a group), blue for a due date to pay.
  *
  * @param tone - the tone `willTag` gives
  * @returns the classes
@@ -182,7 +232,7 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
         "
     >
         <div v-if="wide" class="flex items-center justify-between gap-3">
-            <h2 class="m-0 text-sheet-title text-ink">{{ group.name }}</h2>
+            <h2 class="m-0 text-stat text-ink">{{ group.name }}</h2>
             <button
                 type="button"
                 :aria-label="$t('Close')"
@@ -197,26 +247,7 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
             <span class="text-meta text-ink-soft">{{ amountsLine }}</span>
         </div>
 
-        <span
-            v-if="proposal"
-            class="flex items-start gap-2 rounded-lg bg-action-soft px-3 py-2.5 text-label text-action-dark"
-        >
-            <Sparkles aria-hidden="true" class="mt-px size-[18px] shrink-0" />
-            <span class="min-w-0">{{
-                $t('Proposal: :proposal', { proposal })
-            }}</span>
-        </span>
-        <span
-            v-else
-            class="flex items-start gap-2 rounded-lg bg-card-sunken px-3 py-2.5 text-meta text-ink-soft"
-        >
-            <SearchX aria-hidden="true" class="mt-px size-[18px] shrink-0" />
-            <span class="min-w-0">{{
-                $t(
-                    'No similar expense found. When you create the filter, the AI suggests title and category.',
-                )
-            }}</span>
-        </span>
+        <BankGroupProposal :group="group" />
         <span v-if="outcome" class="text-meta text-ink-soft">{{
             outcome
         }}</span>
@@ -250,26 +281,11 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                                 class="text-meta wrap-anywhere text-ink-soft"
                                 >{{ row.transaction.text }}</span
                             >
-                            <span
+                            <BankFeeLine
                                 v-if="row.fee"
-                                class="flex items-center gap-1.5 text-meta text-ink-soft"
-                            >
-                                <CornerDownRight
-                                    aria-hidden="true"
-                                    class="size-3.5 shrink-0"
-                                />{{
-                                    $t('+ :fee commission, :day', {
-                                        fee: money(
-                                            Math.abs(row.fee.amount),
-                                            row.transaction.currency,
-                                        ),
-                                        day: dayOf({
-                                            booked_on: row.fee.booked_on,
-                                            value_on: null,
-                                        }),
-                                    })
-                                }}
-                            </span>
+                                :fee="row.fee"
+                                :currency="row.transaction.currency"
+                            />
                         </span>
                         <span class="flex shrink-0 flex-col items-end">
                             <span
@@ -300,7 +316,7 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                             >
                         </span>
                     </div>
-                    <span :class="tagClass(willTag(row).tone)">
+                    <span :class="tagClass(willTag(row, 'group').tone)">
                         <LinkIcon
                             v-if="row.will === 'link'"
                             aria-hidden="true"
@@ -310,7 +326,7 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                             v-else-if="row.will === 'create'"
                             aria-hidden="true"
                             class="size-3.5 shrink-0"
-                        />{{ willTag(row).text }}
+                        />{{ willTag(row, 'group').text }}
                     </span>
                     <div class="flex">
                         <FmButton

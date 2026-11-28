@@ -1,10 +1,12 @@
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { longMonth, monthName } from '@/lib/budget';
 import { formatDayMonth, formatMoney } from '@/lib/format';
+import { create as createFilter } from '@/routes/budget/bank/filters';
 
 /** The fields of a group the words below read. */
 type Group = Pick<
     App.Data.BankGroupData,
+    | 'key'
     | 'kind'
     | 'count'
     | 'min'
@@ -109,4 +111,20 @@ export function groupProposal(group: Group): string | null {
         default:
             return null;
     }
+}
+
+/**
+ * The form of the new filter of a group, filled in with the proposal. Without a proposal it asks the AI for title and
+ * category (`ai=1`); with one the form needs nothing more.
+ *
+ * @param group - the group
+ * @returns the address
+ */
+export function groupFilterUrl(group: Group): string {
+    return createFilter({
+        query:
+            group.proposal_action === null
+                ? { group: group.key, ai: 1 }
+                : { group: group.key },
+    }).url;
 }

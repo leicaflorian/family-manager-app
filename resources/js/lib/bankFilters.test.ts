@@ -1,6 +1,6 @@
 import { http } from '@inertiajs/vue3';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { bankFilterPreview, bankFilters } from '@/test/fixtures';
+import { bankFilterPreview, bankFilters, bankGroupRows } from '@/test/fixtures';
 import {
     actionLine,
     actionPieces,
@@ -10,6 +10,7 @@ import {
     formValues,
     previewFilter,
     summaryLine,
+    willTag,
 } from './bankFilters';
 
 type Client = ReturnType<typeof http.getClient>;
@@ -253,6 +254,33 @@ describe('the body of an income filter', () => {
             fee_mode: 'none',
             fee_contains: [],
             fee_excludes: [],
+        });
+    });
+});
+
+describe('willTag', () => {
+    it('in the preview of a filter says what it will do, in blue for an action', () => {
+        expect(willTag(bankGroupRows[0])).toEqual({
+            text: 'Link «Ricarica Satispay» of 24/11',
+            tone: 'paid',
+        });
+        expect(willTag(bankGroupRows[1])).toEqual({
+            text: 'Create the expense',
+            tone: 'action',
+        });
+    });
+
+    it('in the panel of a group says a link is already recorded and leaves the expense to create grey', () => {
+        expect(willTag(bankGroupRows[0], 'group')).toEqual({
+            text: 'Already recorded: link «Ricarica Satispay» of 24/11',
+            tone: 'paid',
+        });
+        expect(
+            willTag({ ...bankGroupRows[0], will_on: null }, 'group').text,
+        ).toBe('Already recorded: link «Ricarica Satispay»');
+        expect(willTag(bankGroupRows[1], 'group')).toEqual({
+            text: 'Create the expense',
+            tone: 'muted',
         });
     });
 });

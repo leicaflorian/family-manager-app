@@ -98,7 +98,7 @@ const props = defineProps<{
     bank_filters?: App.Data.BankFilterData[];
     /** The tab *To sort*: the groups of movements that look alike, biggest first. */
     groups?: App.Data.BankGroupData[];
-    /** The movements of the group asked with `?group=`, only when the page asks them. */
+    /** The movements of the group asked with `?group=`, only when the page asks them (read from the answer of that request). */
     group_rows?: App.Data.BankGroupRowData[];
     /** The tab *To sort*: how many to sort, how many groups and how many lone movements (pending and in other currencies too: not a sum). */
     counts?: { unsorted: number; groups: number; lone: number };
@@ -236,14 +236,17 @@ const groupsHead = computed((): string =>
     ),
 );
 
-/** How many lone movements there are, without the ones that went from the page. */
-const loneCount = computed((): number =>
-    Math.max(0, (props.counts?.lone ?? props.rows.length) - gone.value.length),
+/**
+ * How many lone movements there are. The server sends the number already lowered after a sort (the sorting actions
+ * redirect back), so the rows gone from the page are not taken off again.
+ */
+const loneCount = computed(
+    (): number => props.counts?.lone ?? shown.value.length,
 );
 
-/** How many lone movements are not loaded yet. */
+/** How many lone movements are not on the page yet. */
 const moreLone = computed((): number =>
-    Math.max(0, (props.counts?.lone ?? props.rows.length) - props.rows.length),
+    Math.max(0, loneCount.value - shown.value.length),
 );
 
 /** The look of the *Show…* buttons at the end of a list. */
@@ -263,20 +266,17 @@ function loadMore(): void {
 /** The key of the group open, null while none is. */
 const openKey = ref<string | null>(null);
 
-/** The key of the group whose movements `group_rows` holds now, null until they arrive. */
-const rowsKey = ref<string | null>(null);
+/**
+ * The movements of the group open, null while the page asks them. Kept here from the answer of the request of that
+ * group: two groups opened quickly can answer in any order, and a later visit without `group_rows` does not empty
+ * the panel.
+ */
+const openedRows = ref<App.Data.BankGroupRowData[] | null>(null);
 
 /** The group open, null while none is (or it went from the list). */
 const openedGroup = computed(
     (): App.Data.BankGroupData | null =>
         groups.value.find((group) => group.key === openKey.value) ?? null,
-);
-
-/** The movements of the group open, null while the page asks them. */
-const openedRows = computed((): App.Data.BankGroupRowData[] | null =>
-    rowsKey.value !== null && rowsKey.value === openKey.value
-        ? (props.group_rows ?? [])
-        : null,
 );
 
 /** Wide with a group open: the groups become a list and the group goes beside it, as the boards *Dalla banca, il gruppo*. */
@@ -291,15 +291,18 @@ const beside = computed(
  */
 function openGroup(group: App.Data.BankGroupData): void {
     openKey.value = group.key;
-    rowsKey.value = null;
+    openedRows.value = null;
     router.reload({
         data: { group: group.key },
         only: ['group_rows'],
         preserveUrl: true,
-        onSuccess: () => {
-            // A group opened in the meantime waits for its own movements
+        onSuccess: (page) => {
+            // The answer of a group opened before the last one is dropped
             if (openKey.value === group.key) {
-                rowsKey.value = group.key;
+                openedRows.value =
+                    (page.props.group_rows as
+                        | App.Data.BankGroupRowData[]
+                        | undefined) ?? [];
             }
         },
     });
@@ -308,6 +311,7 @@ function openGroup(group: App.Data.BankGroupData): void {
 /** Closes the group open. */
 function closeGroup(): void {
     openKey.value = null;
+    openedRows.value = null;
 }
 
 /**
@@ -852,6 +856,7 @@ const { title, head } = usePageMeta({
                     </div>
                     <nav
                         v-if="beside"
+                        v-auto-animate
                         :aria-label="$t('Groups')"
                         class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
                     >

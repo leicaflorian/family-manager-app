@@ -15,16 +15,19 @@ import {
     ArrowUpRight,
     ChevronRight,
     Repeat1,
-    SearchX,
-    Sparkles,
 } from '@lucide/vue';
 import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import BankGroupProposal from '@/components/budget/BankGroupProposal.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import { groupAmounts, groupMonths, groupProposal } from '@/lib/bankGroups';
+import {
+    groupAmounts,
+    groupFilterUrl,
+    groupMonths,
+    groupProposal,
+} from '@/lib/bankGroups';
 import { cn } from '@/lib/utils';
-import { create as createFilter } from '@/routes/budget/bank/filters';
 
 const {
     group,
@@ -50,10 +53,8 @@ const income = computed((): boolean => group.kind === 'income');
 /** What the system proposes, in a few words; null without a proposal. */
 const proposal = computed((): string | null => groupProposal(group));
 
-/** The new filter of the group, filled in with the proposal. */
-const filterUrl = computed(
-    (): string => createFilter({ query: { group: group.key } }).url,
-);
+/** The new filter of the group, filled in with the proposal (asking the AI when there is none). */
+const filterUrl = computed((): string => groupFilterUrl(group));
 
 /** The words of *It comes back every month* for money out or in. */
 const recurLabel = computed((): string =>
@@ -144,32 +145,13 @@ const headClass = computed((): string =>
             />
         </button>
 
-        <span
-            v-if="proposal"
-            class="flex items-start gap-2 rounded-lg bg-action-soft px-3 py-2.5 text-label text-action-dark"
-        >
-            <Sparkles aria-hidden="true" class="mt-px size-[18px] shrink-0" />
-            <span class="min-w-0">{{
-                $t('Proposal: :proposal', { proposal })
-            }}</span>
-        </span>
-        <span
-            v-else
-            class="flex items-start gap-2 rounded-lg bg-card-sunken px-3 py-2.5 text-meta text-ink-soft"
-        >
-            <SearchX aria-hidden="true" class="mt-px size-[18px] shrink-0" />
-            <span class="min-w-0">{{
-                $t(
-                    'No similar expense found. When you create the filter, the AI suggests title and category.',
-                )
-            }}</span>
-        </span>
+        <BankGroupProposal :group="group" />
 
         <div class="flex flex-wrap items-center justify-end gap-2">
             <Link
                 v-if="group.recurring_url"
                 :href="group.recurring_url"
-                class="flex min-h-11 min-w-0 flex-[1_1_250px] items-center gap-2 rounded-md bg-action-soft px-3 py-2 text-label text-action-dark"
+                class="flex min-h-11 min-w-0 flex-[1_1_250px] items-center gap-2 rounded-control bg-action-soft px-3 py-2 text-label text-action-dark"
             >
                 <Repeat1 aria-hidden="true" class="size-[18px] shrink-0" />
                 <span class="min-w-0 grow">{{ recurLabel }}</span>

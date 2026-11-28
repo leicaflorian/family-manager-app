@@ -16,7 +16,6 @@ import { Link } from '@inertiajs/vue3';
 import {
     ArrowLeftRight,
     ChevronRight,
-    CornerDownRight,
     EyeOff,
     Link as LinkIcon,
     Plus,
@@ -27,6 +26,7 @@ import {
 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import BankFeeLine from '@/components/budget/BankFeeLine.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmMenu from '@/components/fm/FmMenu.vue';
 import FmMenuItem from '@/components/fm/FmMenuItem.vue';
@@ -58,7 +58,7 @@ const emit = defineEmits<{
     ignore: [row: App.Data.BankTransactionData];
 }>();
 
-defineSlots<{
+const slots = defineSlots<{
     /** What the system proposes for the movement («Maybe it is…»), under the text. */
     proposal?: () => unknown;
 }>();
@@ -119,19 +119,19 @@ const twoFilters = computed((): string | null =>
         : null,
 );
 
-/** The commission with its day, under the text. */
-const feeLine = computed((): string | null =>
-    row.fee
-        ? trans('+ :fee commission, :day', {
-              fee: money(Math.abs(row.fee.amount), row.currency),
-              day: dayOf({ booked_on: row.fee.booked_on, value_on: null }),
-          })
-        : null,
+/** Something goes under the text: the proposal, the note of two filters, the offer, a tag. */
+const extras = computed(
+    (): boolean =>
+        slots.proposal !== undefined ||
+        twoFilters.value !== null ||
+        recurs.value ||
+        row.orphan_fee ||
+        row.pending,
 );
 
 /** The look of the offer to create a planned expense, as the boards draw it. */
 const recurClass = cn(
-    'flex items-center gap-2 rounded-md bg-action-soft px-3 py-2 text-label text-action-dark',
+    'flex items-center gap-2 rounded-control bg-action-soft px-3 py-2 text-label text-action-dark',
 );
 
 /** The look of a small grey or yellow tag (*Commission*, *Pending*). */
@@ -145,112 +145,63 @@ const tagClass = cn(
         :data-wide="wide ? '' : undefined"
         :class="
             wide
-                ? 'grid grid-cols-[56px_minmax(0,1fr)_150px_auto] items-start gap-4 px-5 py-3.5'
-                : 'flex flex-col gap-2.5 px-4 py-3.5'
+                ? 'grid grid-cols-[56px_minmax(0,1fr)_150px_auto] items-start gap-x-4 gap-y-1 px-5 py-3.5'
+                : 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2.5 px-4 py-3.5'
         "
     >
         <span v-if="wide" class="pt-[11px] text-label text-ink">{{
             dayOf(row)
         }}</span>
-        <div :class="wide ? 'contents' : 'flex items-start gap-3'">
-            <span
-                :class="
-                    cn('flex min-w-0 grow flex-col', wide ? 'gap-1' : 'gap-0.5')
-                "
-            >
-                <span class="text-body-sm wrap-anywhere text-ink">{{
-                    row.text
-                }}</span>
-                <span class="text-meta text-ink-soft">{{
-                    wide
-                        ? row.account
-                        : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
-                }}</span>
-                <span
-                    v-if="feeLine"
-                    class="flex items-center gap-1.5 text-meta text-ink-soft"
-                    ><CornerDownRight
-                        aria-hidden="true"
-                        class="size-3.5 shrink-0"
-                    />{{ feeLine }}</span
-                >
-                <template v-if="wide">
-                    <slot name="proposal" />
-                    <span
-                        v-if="twoFilters"
-                        role="note"
-                        class="flex items-start gap-2 rounded-md bg-warning-soft px-2.5 py-2 text-meta text-ink"
-                    >
-                        <TriangleAlert
-                            aria-hidden="true"
-                            class="mt-px size-4 shrink-0 text-warning"
-                        />{{ twoFilters }}
-                    </span>
-                    <Link
-                        v-if="recurs"
-                        :href="recurUrl"
-                        :class="cn(recurClass, 'min-h-9 self-start')"
-                    >
-                        <Repeat aria-hidden="true" class="size-[18px]" />
-                        {{ recurLabel }}
-                        <ChevronRight aria-hidden="true" class="size-[18px]" />
-                    </Link>
-                    <span
-                        v-if="row.orphan_fee"
-                        class="flex flex-wrap items-center gap-2"
-                    >
-                        <span
-                            :class="
-                                cn(tagClass, 'bg-card-sunken text-ink-soft')
-                            "
-                            >{{ $t('Commission') }}</span
-                        >
-                        <span class="text-meta text-ink-soft">{{
-                            $t('Left without its direct debit')
-                        }}</span>
-                    </span>
-                    <span
-                        v-if="row.pending"
-                        class="flex flex-wrap items-center gap-2"
-                    >
-                        <span
-                            :class="
-                                cn(tagClass, 'bg-warning-soft text-warning')
-                            "
-                            >{{ $t('Pending') }}</span
-                        >
-                        <span class="text-meta text-ink-soft">{{
-                            $t('It is sorted when the bank books it')
-                        }}</span>
-                    </span>
-                </template>
-            </span>
+        <span :class="cn('flex min-w-0 flex-col', wide ? 'gap-1' : 'gap-0.5')">
+            <span class="text-body-sm wrap-anywhere text-ink">{{
+                row.text
+            }}</span>
+            <span class="text-meta text-ink-soft">{{
+                wide
+                    ? row.account
+                    : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
+            }}</span>
+            <BankFeeLine
+                v-if="row.fee"
+                :fee="row.fee"
+                :currency="row.currency"
+            />
+        </span>
+        <span
+            :class="
+                cn(
+                    'flex shrink-0 flex-col items-end',
+                    wide && 'pt-2.5 text-right',
+                )
+            "
+        >
             <span
                 :class="
                     cn(
-                        'flex shrink-0 flex-col items-end',
-                        wide && 'pt-2.5 text-right',
+                        'shrink-0 text-amount whitespace-nowrap',
+                        row.pending && 'text-ink-soft',
+                        row.amount > 0 && 'text-paid',
                     )
                 "
+                >{{ money(row.amount, row.currency) }}</span
             >
-                <span
-                    :class="
-                        cn(
-                            'shrink-0 text-amount whitespace-nowrap',
-                            row.pending && 'text-ink-soft',
-                            row.amount > 0 && 'text-paid',
-                        )
-                    "
-                    >{{ money(row.amount, row.currency) }}</span
-                >
-                <span
-                    v-if="row.fee"
-                    class="text-meta whitespace-nowrap text-ink-soft"
-                    >+ {{ money(Math.abs(row.fee.amount), row.currency) }}</span
-                >
-            </span>
-        </div>
-        <template v-if="!wide">
+            <span
+                v-if="row.fee"
+                class="text-meta whitespace-nowrap text-ink-soft"
+                >+ {{ money(Math.abs(row.fee.amount), row.currency) }}</span
+            >
+        </span>
+        <div
+            v-if="extras"
+            :class="
+                cn(
+                    'flex min-w-0 flex-col',
+                    wide
+                        ? 'col-start-2 row-start-2 gap-1'
+                        : 'col-span-full gap-2.5',
+                )
+            "
+        >
             <slot name="proposal" />
             <span
                 v-if="twoFilters"
@@ -265,19 +216,40 @@ const tagClass = cn(
             <Link
                 v-if="recurs"
                 :href="recurUrl"
-                :class="cn(recurClass, 'min-h-11')"
+                :class="
+                    cn(recurClass, wide ? 'min-h-9 self-start' : 'min-h-11')
+                "
             >
                 <Repeat aria-hidden="true" class="size-[18px] shrink-0" />
                 <span class="grow">{{ recurLabel }}</span>
                 <ChevronRight aria-hidden="true" class="size-[18px] shrink-0" />
             </Link>
-        </template>
+            <span
+                v-if="row.orphan_fee"
+                class="flex flex-wrap items-center gap-2"
+            >
+                <span :class="cn(tagClass, 'bg-card-sunken text-ink-soft')">{{
+                    $t('Commission')
+                }}</span>
+                <span class="text-meta text-ink-soft">{{
+                    $t('Left without its direct debit')
+                }}</span>
+            </span>
+            <span v-if="row.pending" class="flex flex-wrap items-center gap-2">
+                <span :class="cn(tagClass, 'bg-warning-soft text-warning')">{{
+                    $t('Pending')
+                }}</span>
+                <span class="text-meta text-ink-soft">{{
+                    $t('It is sorted when the bank books it')
+                }}</span>
+            </span>
+        </div>
         <div
             v-if="canSort && (row.ignored || !row.pending)"
             :class="
                 wide
-                    ? 'flex flex-nowrap items-center justify-end gap-2'
-                    : 'flex flex-wrap items-center gap-2'
+                    ? 'col-start-4 row-start-1 flex flex-nowrap items-center justify-end gap-2'
+                    : 'col-span-full flex flex-wrap items-center gap-2'
             "
         >
             <FmButton
@@ -334,26 +306,5 @@ const tagClass = cn(
                 >
             </template>
         </div>
-        <template v-if="!wide">
-            <div
-                v-if="row.orphan_fee"
-                class="flex flex-wrap items-center gap-2"
-            >
-                <span :class="cn(tagClass, 'bg-card-sunken text-ink-soft')">{{
-                    $t('Commission')
-                }}</span>
-                <span class="text-meta text-ink-soft">{{
-                    $t('Left without its direct debit')
-                }}</span>
-            </div>
-            <div v-if="row.pending" class="flex flex-wrap items-center gap-2">
-                <span :class="cn(tagClass, 'bg-warning-soft text-warning')">{{
-                    $t('Pending')
-                }}</span>
-                <span class="text-meta text-ink-soft">{{
-                    $t('It is sorted when the bank books it')
-                }}</span>
-            </div>
-        </template>
     </li>
 </template>

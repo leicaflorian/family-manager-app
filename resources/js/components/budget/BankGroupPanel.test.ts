@@ -33,7 +33,7 @@ describe('BankGroupPanel', () => {
         ).toBeInTheDocument();
         expect(
             within(panel).getByText(
-                'Saving the filter: 10 new expenses and 1 already recorded to link. No duplicates.',
+                'Saving the filter: 10 new expenses, each with its commission of 0,40 €, and 1 already recorded to link. No duplicates.',
             ),
         ).toBeInTheDocument();
         expect(
@@ -55,11 +55,14 @@ describe('BankGroupPanel', () => {
         expect(within(items[0]).getByText('-10,00 €')).toBeInTheDocument();
         expect(within(items[0]).getByText('+ 0,40 €')).toBeInTheDocument();
         expect(
-            within(items[0]).getByText('Link «Ricarica Satispay» of 24/11'),
-        ).toBeInTheDocument();
-        expect(
-            within(items[1]).getByText('Create the expense'),
-        ).toBeInTheDocument();
+            within(items[0]).getByText(
+                'Already recorded: link «Ricarica Satispay» of 24/11',
+            ),
+        ).toHaveClass('bg-paid-soft', 'text-paid');
+        expect(within(items[1]).getByText('Create the expense')).toHaveClass(
+            'bg-card-sunken',
+            'text-ink-soft',
+        );
 
         await userEvent.click(
             within(panel).getByRole('button', {
@@ -67,6 +70,32 @@ describe('BankGroupPanel', () => {
             }),
         );
         expect(within(list).getAllByRole('listitem')).toHaveLength(11);
+    });
+
+    it('says the commission without its amount when the amounts differ, and not at all without one', () => {
+        screenWidth(true);
+        const mixed = bankGroupRows.map((row, index) =>
+            index === 2 && row.fee
+                ? { ...row, fee: { ...row.fee, amount: -0.5 } }
+                : row,
+        );
+        const view = renderPage(BankGroupPanel, { group, rows: mixed });
+        expect(
+            screen.getByText(
+                'Saving the filter: 10 new expenses, each with its commission, and 1 already recorded to link. No duplicates.',
+            ),
+        ).toBeInTheDocument();
+        view.unmount();
+
+        renderPage(BankGroupPanel, {
+            group,
+            rows: bankGroupRows.map((row) => ({ ...row, fee: null })),
+        });
+        expect(
+            screen.getByText(
+                'Saving the filter: 10 new expenses and 1 already recorded to link. No duplicates.',
+            ),
+        ).toBeInTheDocument();
     });
 
     it('waits for the movements while they are asked', () => {
@@ -108,6 +137,9 @@ describe('BankGroupPanel', () => {
         screenWidth(true);
         const wide = renderPage(BankGroupPanel, { group, rows: bankGroupRows });
         expect(wide.container.querySelector('[role="dialog"]')).not.toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'Satispay Europe' }),
+        ).toHaveClass('text-stat');
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(wide.emitted('close')).toHaveLength(1);
     });

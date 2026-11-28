@@ -61,13 +61,22 @@ describe('BankGroupCard', () => {
     });
 
     it('Create the filter leads to the new filter of the group', () => {
-        renderPage(BankGroupCard, { group: satispay });
-
+        const view = renderPage(BankGroupCard, { group: satispay });
         expect(
             screen.getByRole('link', { name: 'Create the filter' }),
         ).toHaveAttribute(
             'href',
             '/budget/bank/filters/create?group=3f9a1c2b7d4e',
+        );
+        view.unmount();
+
+        // Without a proposal the form asks the AI for title and category
+        renderPage(BankGroupCard, { group: cashback });
+        expect(
+            screen.getByRole('link', { name: 'Create the filter' }),
+        ).toHaveAttribute(
+            'href',
+            '/budget/bank/filters/create?group=5d7f2a90c3e1&ai=1',
         );
     });
 
