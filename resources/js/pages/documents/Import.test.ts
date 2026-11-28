@@ -1970,6 +1970,35 @@ describe('Import, a bill with two supplies', () => {
         ).not.toBeChecked();
     });
 
+    it('says under what was found how much the bill is and how much each supply', () => {
+        const bill = file({
+            id: 7,
+            name: 'bolletta-enel-luce-gas-novembre.pdf',
+            reading_status: 'done',
+            proposal: {
+                ...proposal,
+                headline: 'I found an electricity and gas bill',
+                found: [
+                    { label: 'Who sent it', value: 'Enel Energia' },
+                    {
+                        label: 'How much',
+                        value: '165,65 € · luce 96,25 €, gas 69,40 €',
+                    },
+                    { label: 'Due on', value: '21/11/2026' },
+                ],
+            },
+        });
+        renderPage(Import, ferriProps(dualFuelProposal, { files: [bill] }));
+
+        const notice = screen
+            .getByText('I found an electricity and gas bill')
+            .closest('[role="status"]')!;
+        expect(notice).toHaveTextContent(
+            'How much · 165,65 € · luce 96,25 €, gas 69,40 €',
+        );
+        expect(notice).not.toHaveTextContent('Who sent it');
+    });
+
     it('titles the supplies one level under What I do too', () => {
         renderPage(Import, ferriProps(dualFuelProposal));
 

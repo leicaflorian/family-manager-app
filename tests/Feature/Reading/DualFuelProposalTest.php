@@ -258,3 +258,10 @@ test('a reading saved before the supplies proposes exactly as one saved with non
         ->and($before['consumption'])->not->toBeNull()
         ->and($before['document']['title'])->toBe('Bolletta luce novembre 2026');
 });
+
+test('the consumption of a supply whose utility box is unticked asks to tick it, not to choose the utility above', function (): void {
+    $gas = dualFuelProposal(choices: ['supplies' => [1 => ['record' => false, 'consumption' => true]]])->supplies[1];
+
+    expect($gas->consumption?->blocked)->toBe("Per segnare i consumi spunta l'utenza di questa fornitura.")
+        ->and($gas->consumption?->complete)->toBe(['utility']);
+});

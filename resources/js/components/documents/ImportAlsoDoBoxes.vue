@@ -544,6 +544,7 @@ function recordFields(
         <FmButton
             v-if="existing && choices.targetOf(side) !== 'new'"
             variant="text"
+            wrap
             @click="setTarget(side, 'new')"
         >
             {{ actionTexts(side, existing, income).create }}
@@ -551,6 +552,7 @@ function recordFields(
         <FmButton
             v-if="candidates.length > 0 && picking !== side"
             variant="text"
+            wrap
             @click="picking = side"
         >
             {{ actionTexts(side, existing, income).choose }}
@@ -558,6 +560,7 @@ function recordFields(
         <FmButton
             v-if="choices.targetOf(side) !== 'auto'"
             variant="text"
+            wrap
             @click="setTarget(side, 'auto')"
         >
             {{ $t('Back to the proposal') }}
@@ -883,6 +886,7 @@ function recordFields(
                     consumptionWarnings(
                         proposal.consumption,
                         ticked.consumption ?? false,
+                        Boolean(heading),
                     ),
                 )
             "
@@ -904,27 +908,32 @@ function recordFields(
                     </span>
                 </template>
             </FormKit>
-            <div class="grid grid-cols-2 gap-2.5">
-                <FormKit
-                    :id="`also-consumption-from-${idScope}`"
-                    type="datepicker"
-                    name="consumption_period_start"
-                    :label="$t('From')"
-                    validation="required"
-                    :model-value="consumptionShown('period_start')"
-                    @update:model-value="
-                        writeConsumption('period_start', $event)
-                    "
-                />
-                <FormKit
-                    :id="`also-consumption-to-${idScope}`"
-                    type="datepicker"
-                    name="consumption_period_end"
-                    :label="$t('To')"
-                    validation="required"
-                    :model-value="consumptionShown('period_end')"
-                    @update:model-value="writeConsumption('period_end', $event)"
-                />
+            <!-- Side by side only where both dates fit whole: in a box of the phone one under the other -->
+            <div class="@container">
+                <div class="grid grid-cols-1 gap-x-2.5 @[19rem]:grid-cols-2">
+                    <FormKit
+                        :id="`also-consumption-from-${idScope}`"
+                        type="datepicker"
+                        name="consumption_period_start"
+                        :label="$t('From')"
+                        validation="required"
+                        :model-value="consumptionShown('period_start')"
+                        @update:model-value="
+                            writeConsumption('period_start', $event)
+                        "
+                    />
+                    <FormKit
+                        :id="`also-consumption-to-${idScope}`"
+                        type="datepicker"
+                        name="consumption_period_end"
+                        :label="$t('To')"
+                        validation="required"
+                        :model-value="consumptionShown('period_end')"
+                        @update:model-value="
+                            writeConsumption('period_end', $event)
+                        "
+                    />
+                </div>
             </div>
             <FormKit
                 type="toggle"

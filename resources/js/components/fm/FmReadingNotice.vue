@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * What the reading of a file says once it ended: when it is done, the sentence of what was found with the
- * invitation to check it; when it failed, is off or was skipped, the reason, with *Read again* beside when the page
+ * invitation to check it and, when the page gives one, a line of what was found under it (the amount of a bill of
+ * more supplies, board *Importa-luce-gas*); when it failed, is off or was skipped, the reason, with *Read again* beside when the page
  * offers it and asking again can help (failed or off). Nothing while the file waits or was never read.
  *
  * @group basics
@@ -11,11 +12,13 @@ import { computed } from 'vue';
 import { canReadAgain, isNotRead } from '@/lib/reading';
 import FmNotice from './FmNotice.vue';
 
-const { status, headline, error, again } = defineProps<{
+const { status, headline, line, error, again } = defineProps<{
     /** Where the reading stands. */
     status?: App.Enums.ReadingStatus | null;
     /** What the reading found, in a sentence; shown when it is done. */
     headline?: string | null;
+    /** A line of what was found, shown under the invitation when the reading is done: «**How much** · 165,65 € · …». */
+    line?: App.Data.Reading.FoundLineData | null;
     /** Why the file was not read; shown when it failed (with a sentence of its own when missing), is off or was skipped. */
     error?: string | null;
     /** True when the page can put the reading back in the queue: *Read again* shows for a reading failed or off. */
@@ -52,6 +55,10 @@ const reason = computed(() => {
 <template>
     <FmNotice v-if="found" :title="found">
         {{ $t('Check it, change what is wrong and save.') }}
+        <span v-if="line" class="block text-ink">
+            <strong class="font-semibold">{{ line.label }}</strong> ·
+            {{ line.value }}
+        </span>
     </FmNotice>
     <FmNotice
         v-else-if="reason"

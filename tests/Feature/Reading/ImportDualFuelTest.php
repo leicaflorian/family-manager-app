@@ -255,10 +255,10 @@ test('a consumption ticked with the utility box of its supply unticked is refuse
     $this->actingAs(User::query()->where('email', 'marco.bianchi@example.com')->sole())
         ->postJson(route('import.store'), ['files' => [importDualFuelEntry($file, $choices)]])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['files.0.also.supplies.1.consumption'])
+        ->assertJsonValidationErrors(['files.0.also.supplies.1.consumption' => __('To record the consumption tick the utility of this supply.')])
         ->assertJsonMissingValidationErrors(['files.0.also.supplies.0.consumption']);
 
-    expect(fn (): Document => importDualFuel($file, $choices))->toThrow(ValidationException::class);
+    expect(fn (): Document => importDualFuel($file, $choices))->toThrow(ValidationException::class, __('To record the consumption tick the utility of this supply.'));
     insideBianchi(fn (): Expectation => expect(Document::query()->where('file_id', $file->id)->exists())->toBeFalse()
         ->and(UtilityConsumption::query()->where('utility_id', $this->utilities['gas']->id)->whereDate('period_start', '2026-10-01')->exists())->toBeFalse());
 });

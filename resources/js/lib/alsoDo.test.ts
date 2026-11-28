@@ -885,6 +885,14 @@ describe('consumption box', () => {
         ]);
     });
 
+    it('in the group of a supply asks to tick the utility of the supply', () => {
+        const none = consumption({ utility: null, complete: ['utility'] });
+
+        expect(consumptionWarnings(none, false, true)).toEqual([
+            'To record the consumption tick the utility of this supply.',
+        ]);
+    });
+
     it('lists the fields to fill in the box while it is ticked', () => {
         const missing = consumption(
             { fill: ['quantity', 'period_start', 'period_end'] },

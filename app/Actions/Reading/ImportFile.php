@@ -303,7 +303,7 @@ final readonly class ImportFile
             }
 
             if ($supply->consumption instanceof ConsumptionProposalData && ($own->consumption ?? $supply->consumption->suggested)) {
-                $this->consumption($view, $supply->consumption, $document, $utility);
+                $this->consumption($view, $supply->consumption, $document, $utility, supply: true);
             }
         }
     }
@@ -774,17 +774,18 @@ final readonly class ImportFile
      * @param  ConsumptionProposalData  $proposed  the consumption side of the proposal
      * @param  Document  $document  the document, the bill of the row
      * @param  Utility|null  $utility  the utility of the row
+     * @param  bool  $supply  the consumption of one supply of a bill with more than one: without a utility, the utility box of the supply is the one to tick
      *
      * @throws ValidationException if the consumption misses its utility, quantity or period
      */
-    private function consumption(Extraction $x, ConsumptionProposalData $proposed, Document $document, ?Utility $utility): UtilityConsumption
+    private function consumption(Extraction $x, ConsumptionProposalData $proposed, Document $document, ?Utility $utility, bool $supply = false): UtilityConsumption
     {
         $values = $proposed->values;
 
         // The proposal made again after the cards does not see a utility created with the file among the links the page
         // sent, so the document decides whether it has one; what is missing in the box still stops the import
         if (! $utility instanceof Utility) {
-            throw ValidationException::withMessages(['consumption' => ConsumptionProposalData::chooseUtility()]);
+            throw ValidationException::withMessages(['consumption' => $supply ? ConsumptionProposalData::tickSupplyUtility() : ConsumptionProposalData::chooseUtility()]);
         }
 
         // A value missing, out of range or a period reversed: the box says it (the message of the utility comes first

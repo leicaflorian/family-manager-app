@@ -457,11 +457,14 @@ export function consumptionHint(
  *
  * @param consumption - the consumption of the proposal
  * @param ticked - whether its box is ticked
+ * @param supply - the box is in the group of a supply of a bill with more
+ *   than one: its utility is the box of the group, to tick
  * @returns the lines
  */
 export function consumptionWarnings(
     consumption: App.Data.Reading.ConsumptionProposalData,
     ticked: boolean,
+    supply = false,
 ): string[] {
     const { quantity, amount, unit } = consumption.values;
     const lines: string[] = [];
@@ -477,9 +480,13 @@ export function consumptionWarnings(
 
     if (consumption.complete.includes('utility')) {
         lines.push(
-            trans(
-                'To record the consumption choose the utility above, in «Link it to».',
-            ),
+            supply
+                ? trans(
+                      'To record the consumption tick the utility of this supply.',
+                  )
+                : trans(
+                      'To record the consumption choose the utility above, in «Link it to».',
+                  ),
         );
     }
 

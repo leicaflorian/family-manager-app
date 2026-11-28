@@ -189,7 +189,7 @@ final readonly class Proposal
                 heading: $this->heading($supply->utility_type, $supply->supply_point_code, $locale),
                 record: $record,
                 movement: $budget ? $this->supplyMovement($view, $context, $utility, $own, $side['date'], $locale) : null,
-                consumption: $budget ? $this->consumptionOf($view, $utility, $created, $own) : null,
+                consumption: $budget ? $this->consumptionOf($view, $utility, $created, $own, supply: true) : null,
             );
         }
 
@@ -301,8 +301,9 @@ final readonly class Proposal
      * @param  Utility|null  $utility  the utility already there
      * @param  UtilityType|null  $created  the type of the utility created with the file
      * @param  ImportChoices  $choices  the choices of the person, or of the supply
+     * @param  bool  $supply  the consumption of one supply of a bill with more than one: without a utility, its box asks to tick the utility of the supply
      */
-    private function consumptionOf(Extraction $x, ?Utility $utility, ?UtilityType $created, ImportChoices $choices): ?ConsumptionProposalData
+    private function consumptionOf(Extraction $x, ?Utility $utility, ?UtilityType $created, ImportChoices $choices, bool $supply = false): ?ConsumptionProposalData
     {
         if (! $this->readsConsumption($x)) {
             return null;
@@ -343,7 +344,7 @@ final readonly class Proposal
             default => $missing,
         };
         $blocked = match (true) {
-            $complete !== [] => ConsumptionProposalData::chooseUtility(),
+            $complete !== [] => $supply ? ConsumptionProposalData::tickSupplyUtility() : ConsumptionProposalData::chooseUtility(),
             $missing !== [] => Translated::text('To record the consumption write the quantity and the period in its box.'),
             $rated === ConsumptionOutcome::OutOfRange => Translated::text('To record the consumption correct the quantity in its box.'),
             $rated === ConsumptionOutcome::BadPeriod => Translated::text('To record the consumption correct the period in its box: the first day comes before the last, and it lasts at most 400 days.'),
