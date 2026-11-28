@@ -81,14 +81,37 @@ export function dayOf(
 }
 
 /**
- * The flash `similar` of a visit, if it is there and has the shape the server gives it.
+ * Whether the reason of the flash `similar` has its shape: null (the server has no name or words for it), or the
+ * kind and the name.
+ *
+ * @param reason - the reason the flash carries
+ * @returns true when it can be read
+ */
+function isSimilarReason(reason: unknown): boolean {
+    if (reason === null) {
+        return true;
+    }
+
+    const value = reason as { kind?: unknown; name?: unknown } | undefined;
+
+    return (
+        typeof value === 'object' &&
+        (value.kind === 'mandate' || value.kind === 'words') &&
+        typeof value.name === 'string'
+    );
+}
+
+/**
+ * The flash `similar` of a visit, if it is there and has the shape the server gives it: the count, the rows, the
+ * action, the filter, the reason, the kind, the amounts, the days and the address of the form.
  *
  * @param flash - the flash of the page (or of a visit)
- * @returns what the server flashed after a movement of a group was sorted by hand, null without it
+ * @returns what the server flashed after a movement of a group was sorted by hand, null without it or with another shape
  */
 export function similarOf(flash: unknown): FlashSimilar | null {
-    const value = (flash as { similar?: Partial<FlashSimilar> } | null)
-        ?.similar;
+    const value = (
+        flash as { similar?: Record<keyof FlashSimilar, unknown> } | null
+    )?.similar;
 
     return value !== undefined &&
         value !== null &&
@@ -98,7 +121,15 @@ export function similarOf(flash: unknown): FlashSimilar | null {
         (value.action === 'pay' ||
             value.action === 'create' ||
             value.action === 'transfer') &&
+        (value.kind === 'expense' || value.kind === 'income') &&
+        typeof value.filter === 'object' &&
+        value.filter !== null &&
+        isSimilarReason(value.reason) &&
+        typeof value.min === 'number' &&
+        typeof value.max === 'number' &&
+        typeof value.from === 'string' &&
+        typeof value.to === 'string' &&
         typeof value.url === 'string'
-        ? (value as FlashSimilar)
+        ? (value as unknown as FlashSimilar)
         : null;
 }

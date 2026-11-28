@@ -168,6 +168,22 @@ test('a linked one is shown and not counted', function (): void {
         ->and($response->json('summary'))->toBe(['pay' => 0, 'create' => 1, 'link' => 0, 'transfer' => 0, 'ignore' => 0]);
 });
 
+test('says of each row whether it is still to sort: not a linked one, not a commission', function (): void {
+    $expense = bankFilterPreviewExpense('Ricarica Satispay', '10.00', '2026-11-24');
+    $linked = bankFilterPreviewRow('DOMICILIAZIONE SATISPAY', '-10.00', '2026-11-24', ['expense_id' => $expense->id, 'matched_by' => BankMatchSource::Duplicate]);
+    $open = bankFilterPreviewRow('DOMICILIAZIONE SATISPAY', '-20.00', '2026-11-17');
+    $declined = bankFilterPreviewRow('DOMICILIAZIONE SATISPAY', '-30.00', '2026-11-10', ['declined_at' => '2026-11-12 10:00']);
+    $fee = bankFilterPreviewRow('COMMISSIONI SATISPAY', '-0.40', '2026-11-18');
+
+    $rows = collect(bankFilterPreviewAsk(['excludes' => []])->assertOk()->json('rows'))
+        ->mapWithKeys(fn (array $row): array => [$row['transaction']['id'] => [$row['will'], $row['to_sort']]]);
+
+    expect($rows->get($linked->id))->toBe(['linked', false])
+        ->and($rows->get($open->id))->toBe(['create', true])
+        ->and($rows->get($declined->id))->toBe(['none', true])
+        ->and($rows->get($fee->id))->toBe(['none', false]);
+});
+
 test('shows the fee found by the words of the filter', function (): void {
     bankFilterPreviewRow('DOMICILIAZIONE SATISPAY EUROPE', '-10.00', '2026-11-24');
     $fee = bankFilterPreviewRow('COMMISSIONI SATISPAY', '-0.40', '2026-11-25');

@@ -320,13 +320,14 @@ const added = computed(
  * *It is not of this group* (*Leave it out* without a group): the server changes the filter to leave the movement out
  * (or says the AI can be asked), and the list is the one of the changed filter at once. A movement still to sort is
  * asked about in the box *Movement taken out*; one of the group of the address also leaves the group for good. A
- * movement already sorted, or of another group, only changes the filter.
+ * movement already sorted, a commission, or one of another group only changes the filter.
  *
  * @param preview - the row of the movement taken out
  */
 async function drop(preview: App.Data.BankFilterPreviewRowData): Promise<void> {
     const row = preview.transaction;
-    const toSort = preview.will !== 'linked';
+    // Only a movement still to sort by hand is asked about (not a linked one, not a commission): the server says it
+    const toSort = preview.to_sort;
     const ofGroup =
         props.group != null && (props.example_ids ?? []).includes(row.id);
 

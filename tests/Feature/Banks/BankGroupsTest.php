@@ -23,6 +23,7 @@ use App\Support\Banks\BankText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
@@ -536,6 +537,26 @@ it('says the words when there is no mandate', function (): void {
 
     $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
         ->assertInertiaFlash('similar.reason.kind', 'words');
+});
+
+it('sends no reason when the movements of a mandate have no name to say', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO SDD MAN.ABC123 CID.IT99', '-10.00', '2026-11-0'.$day, ['counterparty' => null]));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.reason', null);
+});
+
+it('forgets only its own toast and offer when the form of a filter asks with JSON', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+    $expense = Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Bar', 'amount' => 10, 'date' => '2026-11-01', 'planned_expense_id' => null]);
+    Inertia::flash('kept', 'from before');
+
+    $this->postJson(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'movement_id' => $expense->id])->assertNoContent();
+
+    expect(session('inertia.flash_data'))->toBe(['kept' => 'from before']);
 });
 
 it('carries at most twenty rows and the real count when there are more than twenty others', function (): void {

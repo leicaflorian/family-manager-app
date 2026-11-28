@@ -2738,6 +2738,7 @@ export const bankFilterPreview: App.Data.BankFilterPreviewData = {
             will_title: 'Ricarica Satispay',
             taken_by: null,
             will_on: '2026-11-23',
+            to_sort: true,
         },
     ],
     summary: { pay: 0, create: 0, link: 1, transfer: 0, ignore: 0 },

@@ -176,6 +176,7 @@ readonly will: string,
 readonly will_title: string | null,
 readonly taken_by: string | null,
 readonly will_on: string | null,
+readonly to_sort: boolean,
 };
 export type BankFilterRefinementData = {
 readonly contains: string[],

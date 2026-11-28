@@ -22,6 +22,7 @@ final class BankFilterPreviewRowData extends Data
      * @param  string|null  $will_title  the due date it pays, the movement it creates or links, or the account of the transfer
      * @param  string|null  $taken_by  the name of the other filter that takes it already, while it is to sort: two filters on one movement do not save
      * @param  string|null  $will_on  the day of the movement it links or of the due date it pays (`yyyy-mm-dd`)
+     * @param  bool  $to_sort  the movement is still among the ones to sort by hand: not linked, not put aside, not a transfer and not a commission
      */
     public function __construct(
         public readonly BankTransactionData $transaction,
@@ -31,5 +32,6 @@ final class BankFilterPreviewRowData extends Data
         public readonly ?string $will_title,
         public readonly ?string $taken_by,
         public readonly ?string $will_on = null,
+        public readonly bool $to_sort = false,
     ) {}
 }

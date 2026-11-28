@@ -80,13 +80,27 @@ describe('dayOf', () => {
 describe('similarOf', () => {
     const flash = {
         count: 3,
+        kind: 'expense',
         rows: [],
         action: 'create',
+        filter: { id: null, name: 'Satispay', action: 'create' },
+        reason: { kind: 'mandate', name: 'Satispay' },
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-17',
         url: '/budget/bank/filters/create?from=2',
     };
 
     it('takes the flash `similar` the server sent', () => {
         expect(similarOf({ similar: flash })).toEqual(flash);
+    });
+
+    it('takes it without a reason, when the server has no name or words for it', () => {
+        expect(similarOf({ similar: { ...flash, reason: null } })).toEqual({
+            ...flash,
+            reason: null,
+        });
     });
 
     it('gives null without it, or when it has not the shape', () => {
@@ -95,5 +109,23 @@ describe('similarOf', () => {
         expect(similarOf({ similar: { ...flash, count: 0 } })).toBeNull();
         expect(similarOf({ similar: { ...flash, action: 'x' } })).toBeNull();
         expect(similarOf({ similar: { ...flash, url: 5 } })).toBeNull();
+    });
+
+    it('gives null when the filter, the reason, the amounts or the days have not the shape', () => {
+        for (const wrong of [
+            { filter: undefined },
+            { filter: null },
+            { filter: 'Satispay' },
+            { reason: undefined },
+            { reason: { kind: 'other', name: 'Satispay' } },
+            { reason: { kind: 'mandate', name: 5 } },
+            { kind: 'loan' },
+            { min: '10' },
+            { max: null },
+            { from: undefined },
+            { to: 20261117 },
+        ]) {
+            expect(similarOf({ similar: { ...flash, ...wrong } })).toBeNull();
+        }
     });
 });

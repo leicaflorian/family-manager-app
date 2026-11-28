@@ -30,7 +30,7 @@ final readonly class BankSimilar
 
     /**
      * Flashes `similar` for the movement just sorted: `count` of the others like it, the first twenty as `rows`, the
-     * `action` the filter would do (`pay`, `create` or `transfer`), the filter itself as data (`filter`), why they are alike (`reason`: the mandate or the words), their amounts (`min`, `max`), days (`from`, `to`) and `kind`, and the `url` of the form of the new filter.
+     * `action` the filter would do (`pay`, `create` or `transfer`), the filter itself as data (`filter`), why they are alike (`reason`: the mandate or the words, null without a name or words), their amounts (`min`, `max`), days (`from`, `to`) and `kind`, and the `url` of the form of the new filter.
      *
      * @param  BankTransaction  $transaction  the movement just sorted
      */
@@ -61,9 +61,7 @@ final readonly class BankSimilar
             'count' => $siblings->count(),
             'kind' => $transaction->kind(),
             'filter' => $draft->toData()->toArray(),
-            'reason' => BankText::mandate($transaction->text) === null
-                ? ['kind' => 'words', 'name' => implode(' ', $draft->contains)]
-                : ['kind' => 'mandate', 'name' => $draft->name],
+            'reason' => $this->reason($transaction, $draft),
             'min' => (float) $amounts->min(),
             'max' => (float) $amounts->max(),
             'from' => (string) $days->min(),
@@ -72,5 +70,25 @@ final readonly class BankSimilar
             'action' => $draft->action->value,
             'url' => route('budget.bank.filters.create', ['from' => $transaction->id], absolute: false),
         ]);
+    }
+
+    /**
+     * Why the movements are alike: the mandate they share (with the name of the filter) or the words of the filter;
+     * null when there is no name or no words to say, so the page writes no sentence with a hole in it.
+     *
+     * @param  BankTransaction  $transaction  the movement just sorted
+     * @param  BankFilterDraft  $draft  the filter for the others
+     * @return array{kind: 'mandate'|'words', name: string}|null
+     */
+    private function reason(BankTransaction $transaction, BankFilterDraft $draft): ?array
+    {
+        $mandate = BankText::mandate($transaction->text) !== null;
+        $name = trim($mandate ? $draft->name : implode(' ', $draft->contains));
+
+        if ($name === '') {
+            return null;
+        }
+
+        return ['kind' => $mandate ? 'mandate' : 'words', 'name' => $name];
     }
 }

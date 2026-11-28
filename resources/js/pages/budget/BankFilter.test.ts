@@ -626,6 +626,7 @@ describe('The form of a bank filter', () => {
                 will: 'create',
                 will_title: null,
                 will_on: null,
+                to_sort: true,
             };
         }
 
@@ -953,9 +954,26 @@ describe('The form of a bank filter', () => {
         });
 
         it('a movement already sorted only changes the filter: it does not leave the group and is not asked about', async () => {
-            const linked = { ...wash, will: 'linked' };
+            const linked = { ...wash, will: 'linked', to_sort: false };
             server({ rows: kept, refined, ai: false });
             renderEni({ preview: { ...before, rows: [...kept, linked] } });
+
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+
+            expect(calls('/budget/bank/23/leave')).toHaveLength(0);
+            expect(
+                screen.queryByRole('region', { name: 'Movement taken out' }),
+            ).toBeNull();
+            await pause();
+        });
+
+        it('a commission only changes the filter: it is not to sort by hand, so it does not leave the group and is not asked about', async () => {
+            const commission = { ...wash, will: 'none', to_sort: false };
+            server({ rows: kept, refined, ai: false });
+            renderEni({ preview: { ...before, rows: [...kept, commission] } });
 
             await dropWash();
             await screen.findByText(

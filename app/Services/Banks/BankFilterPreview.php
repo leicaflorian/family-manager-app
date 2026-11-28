@@ -73,6 +73,7 @@ final readonly class BankFilterPreview
                 will_title: $forecast['title'],
                 taken_by: $takenBy,
                 will_on: $forecast['on'],
+                to_sort: $this->toSortByHand($row),
             );
         }
 
@@ -159,6 +160,18 @@ final readonly class BankFilterPreview
         };
 
         return ['will' => $will, 'title' => $foreseen['title'], 'on' => $foreseen['on'], 'used' => $foreseen['used']];
+    }
+
+    /**
+     * Whether the movement is still among the ones to sort by hand (*To sort*): not linked, not put aside, not a
+     * transfer and not a commission. One declined by *It was not this one* is: no filter takes it, the person does.
+     *
+     * @param  BankTransaction  $row  the movement
+     */
+    private function toSortByHand(BankTransaction $row): bool
+    {
+        return $row->expense_id === null && $row->income_id === null && $row->ignored_at === null
+            && $row->transfer_account_id === null && ! BankText::isFee($row->text);
     }
 
     /**

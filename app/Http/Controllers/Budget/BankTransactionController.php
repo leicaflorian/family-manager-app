@@ -59,6 +59,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -465,7 +466,7 @@ final class BankTransactionController extends Controller
     /**
      * The answer of an action on a movement: the page it leads to for a visit, an empty answer for the form of a
      * filter, which asks with JSON and stays where it is. The form shows its own message, so the toast and the offer
-     * of similar movements written for the next page are taken back.
+     * of similar movements written for the next page are taken back; anything else flashed before stays.
      *
      * @param  RedirectResponse  $redirect  where a visit goes
      */
@@ -475,7 +476,14 @@ final class BankTransactionController extends Controller
             return $redirect;
         }
 
-        session()->forget(SessionKey::FLASH_DATA);
+        $flashed = session()->get(SessionKey::FLASH_DATA, []);
+        $kept = is_array($flashed) ? Arr::except($flashed, ['toast', 'similar']) : [];
+
+        if ($kept === []) {
+            session()->forget(SessionKey::FLASH_DATA);
+        } else {
+            session()->put(SessionKey::FLASH_DATA, $kept);
+        }
 
         return response()->noContent();
     }
