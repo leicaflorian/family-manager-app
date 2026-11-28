@@ -35,7 +35,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final readonly class Deadlines
 {
     /** How many months back a due date still counts as late. */
-    private const int MONTHS_BACK = 12;
+    public const int MONTHS_BACK = 12;
 
     /** How many years around a date `find()` looks, because an exception can move a due date. */
     private const int FIND_YEARS = 2;

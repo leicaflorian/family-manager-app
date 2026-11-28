@@ -141,8 +141,10 @@ final readonly class AcceptBankProposal
     /**
      * Saves the filter *pays the due date* of the planned item with the words `BankText::words()` proposes for the
      * movement, on its account and in its direction, when: who said yes can create it and change the planned item,
-     * the planned item has no filter nor rule, the words are safe, and over the last 90 days they take only this
-     * movement and the ones already linked to a payment of the same planned item, never a commission.
+     * the planned item has no filter nor rule, the words are safe, and over the last 90 days they take, apart from this
+     * movement, only the ones already linked to a payment of the same planned item, never a commission. The check and
+     * the saving run in a short transaction that locks the planned item first, so two *Yes* on two movements of the
+     * same item save one filter.
      *
      * @param  BankTransaction  $transaction  the movement, now linked
      * @param  PlannedExpense|PlannedIncome  $planned  the planned item it paid
@@ -150,10 +152,7 @@ final readonly class AcceptBankProposal
      */
     private function saveFilter(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, User $user): ?BankFilter
     {
-        $column = $planned instanceof PlannedExpense ? 'planned_expense_id' : 'planned_income_id';
-
-        if (! Gate::forUser($user)->allows('create', [BankFilter::class, BankFilterAction::Pay]) || ! Gate::forUser($user)->allows('update', $planned)
-            || filled($planned->bank_match) || BankFilter::query()->where($column, $planned->id)->exists()) {
+        if (! Gate::forUser($user)->allows('create', [BankFilter::class, BankFilterAction::Pay]) || ! Gate::forUser($user)->allows('update', $planned)) {
             return null;
         }
 
@@ -167,27 +166,36 @@ final readonly class AcceptBankProposal
             return null;
         }
 
-        $payments = $planned instanceof PlannedExpense
-            ? Expense::query()->where('planned_expense_id', $planned->id)->pluck('id')->all()
-            : Income::query()->where('planned_income_id', $planned->id)->pluck('id')->all();
-        $paymentColumn = $planned instanceof PlannedExpense ? 'expense_id' : 'income_id';
-        $others = $this->filters->taken($criteria, self::FILTER_DAYS)->filter(
-            static fn (BankTransaction $row): bool => $row->id !== $transaction->id
-                && (BankText::isFee($row->text) || ! in_array($paymentColumn === 'expense_id' ? $row->expense_id : $row->income_id, $payments, true)),
-        );
+        return DB::transaction(function () use ($transaction, $planned, $criteria): ?BankFilter {
+            PlannedKind::lock($planned);
+            $isExpense = $planned instanceof PlannedExpense;
+            $column = $isExpense ? 'planned_expense_id' : 'planned_income_id';
+            $current = $planned->newQuery()->find($planned->id);
 
-        if ($others->isNotEmpty()) {
-            return null;
-        }
+            if ($current === null || filled($current->bank_match) || BankFilter::query()->where($column, $planned->id)->exists()) {
+                return null;
+            }
 
-        return BankFilter::query()->create([
-            'name' => $planned->displayTitle(),
-            'contains' => $criteria->contains,
-            'direction' => $criteria->direction,
-            'financial_account_id' => $transaction->financial_account_id,
-            'action' => BankFilterAction::Pay,
-            $column => $planned->id,
-        ]);
+            $payments = $isExpense
+                ? Expense::query()->where('planned_expense_id', $planned->id)->pluck('id')->all()
+                : Income::query()->where('planned_income_id', $planned->id)->pluck('id')->all();
+            $others = $this->filters->taken($criteria, self::FILTER_DAYS, except: $transaction->id)->filter(
+                static fn (BankTransaction $row): bool => BankText::isFee($row->text) || ! in_array($isExpense ? $row->expense_id : $row->income_id, $payments, true),
+            );
+
+            if ($others->isNotEmpty()) {
+                return null;
+            }
+
+            return BankFilter::query()->create([
+                'name' => $planned->displayTitle(),
+                'contains' => $criteria->contains,
+                'direction' => $criteria->direction,
+                'financial_account_id' => $transaction->financial_account_id,
+                'action' => BankFilterAction::Pay,
+                $column => $planned->id,
+            ]);
+        });
     }
 
     /**

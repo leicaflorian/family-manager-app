@@ -351,7 +351,7 @@ return [
     ],
     'bank_match_source' => [
         'rule' => 'By a rule',
-        'proposed' => 'Proposed by a filter',
+        'proposed' => 'Proposal accepted',
         'assigned' => 'Assigned by you',
         'created' => 'Created from it',
         'duplicate' => 'Linked to an existing one',

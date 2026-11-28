@@ -15,7 +15,6 @@ use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Deadlines;
-use App\Services\Occurrences;
 use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankText;
 use App\Support\Deadline;
@@ -45,14 +44,8 @@ final readonly class BankProposals
     /** The days between the two halves of a transfer. */
     private const int TRANSFER_DAYS = 3;
 
-    /** The most days a due date can be from the movement, whatever the period (as `BankMatcher::deadline()`). */
-    private const int MAX_REACH = 45;
-
     /** How far an estimated amount can be from the amount of the bank, as a share of the estimate. */
     private const float ESTIMATE_SHARE = 0.2;
-
-    /** The months back a late due date is looked for. */
-    private const int MONTHS_BACK = 12;
 
     /** The shortest word of a name that counts when looking for the name in a text. */
     private const int MIN_WORD = 3;
@@ -63,7 +56,7 @@ final readonly class BankProposals
     /** The words a bank writes on a transfer between two accounts of the same person. */
     private const array TRANSFER_WORDS = ['GIROCONTO', 'POSTAGIRO', 'GIRO DA', 'GIRO A'];
 
-    public function __construct(private BankGroups $groups, private BankFees $fees, private Deadlines $deadlines, private Occurrences $occurrences) {}
+    public function __construct(private BankGroups $groups, private BankFees $fees, private Deadlines $deadlines, private BankMatcher $matcher) {}
 
     /**
      * The proposal of each movement of a block, with a fixed number of queries whatever the size of the block. A
@@ -185,6 +178,7 @@ final readonly class BankProposals
         $signed = array_values(array_unique($rows->map(fn (BankTransaction $row): int => -$this->signedCents($row->amount))->all()));
         $window = [$first->subDays(self::RECORDED_DAYS)->toDateString(), $last->addDays(self::RECORDED_DAYS)->toDateString()];
 
+        // Free to link: `BankDuplicates::isFree()` in batch form, one subquery for the whole block instead of one query per candidate
         $expenses = Expense::query()->with('organization')
             ->whereBetween('date', $window)
             ->whereIn(DB::raw('round(amount * 100)'), $cents)
@@ -207,7 +201,7 @@ final readonly class BankProposals
         $once = array_values(array_filter($planned, static fn (PlannedExpense|PlannedIncome $item): bool => ! Schedule::of($item)->recurring));
         $deadlines = [];
         $found = [
-            ...($recurring === [] ? [] : $this->deadlines->between($recurring, $first->subMonthsNoOverflow(self::MONTHS_BACK), $last->addDays(self::MAX_REACH))),
+            ...($recurring === [] ? [] : $this->deadlines->between($recurring, $first->subMonthsNoOverflow(Deadlines::MONTHS_BACK), $last->addDays(BankMatcher::MAX_REACH))),
             ...($once === [] ? [] : $this->deadlines->between($once, CarbonImmutable::parse('1900-01-01'), CarbonImmutable::parse('2999-12-31'))),
         ];
 
@@ -369,26 +363,10 @@ final readonly class BankProposals
             return null;
         }
 
-        $schedule = Schedule::of($planned);
+        // The rule is the matcher's, on the due dates the block read once
+        $found = $this->matcher->chooseDeadline($deadlines, $day, Schedule::of($planned));
 
-        if (! $schedule->recurring) {
-            return array_find($deadlines, static fn (Deadline $deadline): bool => ! $deadline->isPaid());
-        }
-
-        $reach = min(self::MAX_REACH, (int) floor($this->occurrences->stepDays($schedule) / 2));
-        $near = array_values(array_filter($deadlines, fn (Deadline $deadline): bool => $this->days($row, $deadline->occurrence->date) <= $reach));
-        // In order of date: on a tie the earlier due date stays first
-        usort($near, fn (Deadline $a, Deadline $b): int => $this->days($row, $a->occurrence->date) <=> $this->days($row, $b->occurrence->date));
-
-        if ($near !== []) {
-            return $near[0]->isPaid() ? null : $near[0];
-        }
-
-        $since = $day->subMonthsNoOverflow(self::MONTHS_BACK)->toDateString();
-
-        return array_find($deadlines, static fn (Deadline $deadline): bool => ! $deadline->isPaid()
-            && $deadline->occurrence->date->toDateString() < $day->toDateString()
-            && $deadline->occurrence->date->toDateString() >= $since);
+        return $found instanceof Deadline && ! $found->isPaid() ? $found : null;
     }
 
     /**

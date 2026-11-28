@@ -140,6 +140,22 @@ test('yes saves the filter of a planned item that has none and says so', functio
     });
 });
 
+test('a filter is saved when last month\'s movement is already linked to the same planned item', function (): void {
+    [$planned, $row] = insideBianchi(function (): array {
+        $planned = acceptBankProposalPlanned();
+        $october = Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Retta danza ottobre 2026', 'amount' => 45.00, 'date' => '2026-10-17', 'planned_expense_id' => $planned->id, 'occurrence_date' => '2026-10-18', 'financial_account_id' => null]);
+        acceptBankProposalRow('BONIFICO A FAVORE DI ASD PASSO A DUE', '-45.00', '2026-10-17', ['expense_id' => $october->id, 'matched_by' => BankMatchSource::Assigned, 'counterparty' => 'Ottobre']);
+
+        return [$planned, acceptBankProposalRow('BONIFICO A FAVORE DI ASD PASSO A DUE', '-45.00', '2026-11-17')];
+    });
+
+    $this->actingAs($this->marco)
+        ->post(route('budget.bank.proposal.accept', $row->id), ['key' => 'planned_expense:'.$planned->id.':2026-11-18'])
+        ->assertInertiaFlash('toast.message', 'Paid: Retta danza November 2026 · from now on it pays itself');
+
+    insideBianchi(fn (): Expectation => expect(BankFilter::query()->where('planned_expense_id', $planned->id)->count())->toBe(1));
+});
+
 test('no filter when its words would take other movements', function (array $other): void {
     [$planned, $row] = insideBianchi(function () use ($other): array {
         $planned = acceptBankProposalPlanned();
