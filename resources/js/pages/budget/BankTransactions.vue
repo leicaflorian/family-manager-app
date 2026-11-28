@@ -949,7 +949,7 @@ const { title, head } = usePageMeta({
                                     'min-w-0 flex-1 text-meta text-ink-soft wide:order-last wide:basis-full',
                                     show === 'all' &&
                                         !sideOpen &&
-                                        'computer:order-0 computer:min-w-80 computer:basis-0',
+                                        'computer:min-w-80 computer:basis-0',
                                 )
                             "
                             >{{ readLine }}</span

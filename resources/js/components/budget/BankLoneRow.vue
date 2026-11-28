@@ -286,7 +286,7 @@ const tagClass = cn(
                     v-if="sortable && row.orphan_fee"
                     variant="neutral"
                     row-action
-                    :shrink="!wide"
+                    :shrink="!wide || compact"
                     :icon="LinkIcon"
                     @click="emit('fee', row)"
                     >{{ $t('It is the commission of…') }}</FmButton
@@ -295,7 +295,7 @@ const tagClass = cn(
                     <FmButton
                         variant="neutral"
                         row-action
-                        :shrink="!wide"
+                        :shrink="!wide || compact"
                         :icon="Plus"
                         :href="createUrl"
                         >{{
@@ -307,7 +307,7 @@ const tagClass = cn(
                     <FmButton
                         variant="neutral"
                         row-action
-                        :shrink="!wide"
+                        :shrink="!wide || compact"
                         :icon="Search"
                         @click="emit('assign', row)"
                         >{{ assignLabel }}</FmButton

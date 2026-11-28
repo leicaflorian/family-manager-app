@@ -91,6 +91,10 @@ describe('BankLoneRow', () => {
             screen.getByRole('link', { name: 'Create the expense' })
                 .parentElement,
         ).toHaveClass('col-start-2');
+        // A narrow column beside the panel: the buttons get narrower, the menu stays in the row
+        expect(
+            screen.getByRole('link', { name: 'Create the expense' }),
+        ).toHaveClass('shrink');
     });
 
     it('is marked while its panel is open', () => {
