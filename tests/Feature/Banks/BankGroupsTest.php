@@ -15,8 +15,10 @@ use App\Models\Organization;
 use App\Models\Person;
 use App\Models\PlannedExpense;
 use App\Models\User;
+use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankGroups;
 use App\Services\Banks\FakeBankFeed;
+use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankGroup;
 use App\Support\Banks\BankText;
@@ -580,4 +582,74 @@ it('the draft of a planned item has no excluded words without a movement, and th
         ->and($alone->action)->toBe(BankFilterAction::Pay)->and($alone->plannedExpenseId)->toBe($planned->id)
         ->and($with->excludes)->toBe(['COMMISSIONI'])->and($with->contains)->toBe(BankText::words($row->text))
         ->and($with->accountId)->toBe($row->financial_account_id);
+});
+
+it('the offer for the others takes the words the group has in common, not the words of the one movement', function (): void {
+    bankGroupsSimilarOn();
+    [$keep, $wash] = bankGroupsEni();
+    $siblings = [$keep[1]->id, $keep[2]->id, $wash->id];
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($keep[0]))
+        ->assertInertiaFlash('similar.count', 3);
+
+    $flash = session('inertia.flash_data.similar');
+    $filter = $flash['filter'];
+    $taken = resolve(BankFilters::class)->taken(BankFilterCriteria::fromArray([
+        'contains' => $filter['contains'], 'excludes' => $filter['excludes'], 'direction' => $filter['direction'], 'accountId' => $filter['financial_account_id'],
+    ]))->pluck('id')->all();
+
+    expect($filter['contains'])->toContain('ENI')
+        ->and($filter['contains'])->not->toContain('EMILIA')
+        ->and($taken)->toContain(...$siblings)
+        ->and($flash['reason'])->toBe(['kind' => 'words', 'name' => implode(' ', $filter['contains'])]);
+
+    // The form the offer opens starts from the same words
+    $this->get($flash['url'])->assertInertia(fn ($page) => $page->where('draft.contains', $filter['contains']));
+});
+
+it('says whether the movements like it have a commission', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.fee', false);
+});
+
+it('says the commission when a movement like it has one, and carries it under its row', function (): void {
+    bankGroupsSimilarOn();
+    $text = 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900';
+    $rows = collect([10, 20])->map(fn (int $day): BankTransaction => bankGroupsRow($text, '-10.00', '2026-11-'.$day, ['counterparty' => 'Satispay']));
+    $fee = bankGroupsRow('COMMISSIONI '.$text, '-0.40', '2026-11-21', ['counterparty' => 'Satispay']);
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.count', 1)
+        ->assertInertiaFlash('similar.fee', true)
+        ->assertInertiaFlash('similar.rows.0.fee.id', $fee->id);
+});
+
+it('offers nothing when the words of the draft would not take the movements like it', function (): void {
+    bankGroupsSimilarOn();
+    // Same counterparty, so one group, but no word of the texts in common
+    $rows = collect([['1', 'BONIFICO ALFA'], ['2', 'PRELIEVO BETA'], ['3', 'ADDEBITO GAMMA']])
+        ->map(fn (array $row): BankTransaction => bankGroupsRow($row[1], '-10.00', '2026-11-0'.$row[0], ['counterparty' => 'Zeta Srl']));
+    expect(resolve(BankGroups::class)->siblings($rows[0]))->toHaveCount(2);
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlashMissing('similar');
+});
+
+it('a movement cannot leave a group that is gone, and nothing is written', function (): void {
+    bankGroupsSimilarOn();
+    $first = bankGroupsRow('PAGAMENTO POS ENI STATION', '-30.00', '2026-11-10', ['counterparty' => 'Eni']);
+    $wash = bankGroupsRow('PAGAMENTO POS ENI LAVAGGIO', '-12.00', '2026-11-12', ['counterparty' => 'Eni']);
+    $key = resolve(BankGroups::class)->keyOf($wash);
+    $this->postJson(route('budget.bank.leave', $wash), ['group' => $key])->assertNoContent();
+
+    // The group had two: the one left is alone, and has no group to leave
+    $this->postJson(route('budget.bank.leave', $first), ['group' => $key])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('group');
+
+    expect($first->refresh()->rejected_proposals)->toBeNull();
 });

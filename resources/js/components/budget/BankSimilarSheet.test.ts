@@ -118,6 +118,15 @@ describe('BankSimilarSheet', () => {
         expect(screen.getByText(/with the commission/)).toBeInTheDocument();
     });
 
+    it('does not promise the commission when none of the movements has one', async () => {
+        await open({ ...similar(3, 'create'), fee: false });
+
+        expect(
+            screen.getByText(/creates the expense «Ricarica Satispay»/),
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/with the commission/)).toBeNull();
+    });
+
     it('says what a filter that pays does', async () => {
         await open(similar(3, 'pay'));
 

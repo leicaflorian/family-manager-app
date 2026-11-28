@@ -176,7 +176,7 @@ describe('The form of a bank filter', () => {
                 .getAllByRole('radio')
                 .map((radio) => radio.closest('label')?.textContent?.trim()),
         ).toEqual([
-            expect.stringContaining('Find it by itself'),
+            expect.stringContaining('Find it on its own'),
             expect.stringContaining('Recognise it with these words'),
             expect.stringContaining('No commission'),
         ]);
@@ -185,7 +185,7 @@ describe('The form of a bank filter', () => {
         ).toBeInTheDocument();
 
         await userEvent.click(
-            within(fee).getByRole('radio', { name: /Find it by itself/ }),
+            within(fee).getByRole('radio', { name: /Find it on its own/ }),
         );
         await settle();
 
@@ -300,6 +300,17 @@ describe('The form of a bank filter', () => {
         expect(hasChanges()).toBe(true);
     });
 
+    it('the direction is Outflow or Inflow', () => {
+        renderPage(BankFilter, props());
+
+        expect(
+            screen.getByRole('button', { name: 'Outflow' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: 'Inflow' }),
+        ).toBeInTheDocument();
+    });
+
     it('a change of direction clears what belongs to the other direction', async () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
         renderPage(
@@ -307,9 +318,7 @@ describe('The form of a bank filter', () => {
             props({ filter: { ...satispay, planned_expense_id: 7 } }),
         );
 
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Coming in' }),
-        );
+        await userEvent.click(screen.getByRole('button', { name: 'Inflow' }));
         await settle();
         await pause();
         await userEvent.click(
@@ -333,9 +342,7 @@ describe('The form of a bank filter', () => {
         const put = vi.spyOn(router, 'put').mockImplementation(() => {});
         renderPage(BankFilter, props());
 
-        await userEvent.click(
-            screen.getByRole('button', { name: 'Coming in' }),
-        );
+        await userEvent.click(screen.getByRole('button', { name: 'Inflow' }));
         await settle();
 
         expect(
@@ -796,6 +803,69 @@ describe('The form of a bank filter', () => {
                 expect.objectContaining({ data: { group: 'abc' } }),
             ]);
             expect(calls('/budget/bank/filters/suggest')).toHaveLength(0);
+            await pause();
+        });
+
+        it('a filter of a group is titled Create the filter and the name of the group', () => {
+            renderEni();
+
+            expect(
+                screen.getByRole('heading', {
+                    name: 'Create the filter Eni (POS)',
+                    level: 1,
+                }),
+            ).toBeInTheDocument();
+        });
+
+        it('the close X is a link that goes back to the filters of From the bank', async () => {
+            const visit = vi
+                .spyOn(router, 'visit')
+                .mockImplementation(() => {});
+            renderEni();
+            const close = screen.getByRole('link', { name: 'Close' });
+
+            expect(close).toHaveAttribute('href', '/budget/bank?show=filters');
+            await userEvent.click(close);
+            expect(visit).toHaveBeenCalledWith(
+                '/budget/bank?show=filters',
+                expect.anything(),
+            );
+        });
+
+        it('the last movement the filter takes has no button to take it out', () => {
+            renderEni({ preview: { ...before, rows: [kept[0]!] } });
+
+            expect(
+                screen.queryByRole('button', {
+                    name: 'It is not of this group',
+                }),
+            ).toBeNull();
+        });
+
+        it('once the movement taken out is sorted, the list is asked again', async () => {
+            server({ rows: [...kept, wash], refined: null, ai: false });
+            renderEni();
+            await dropWash();
+            const box = await screen.findByRole('region', {
+                name: 'Movement taken out',
+            });
+            await settle();
+            const asked = calls('/budget/bank/filters/preview').length;
+
+            await userEvent.click(
+                within(box).getByRole('button', { name: 'Ignore' }),
+            );
+            await within(box).findByText('Done: the movement is sorted.');
+            await settle();
+
+            const after = calls('/budget/bank/filters/preview');
+            expect(after).toHaveLength(asked + 1);
+            expect(after.at(-1)!.data).not.toHaveProperty('drop');
+            expect(
+                await screen.findByRole('region', {
+                    name: 'The movements it takes · 2',
+                }),
+            ).toBeInTheDocument();
             await pause();
         });
 

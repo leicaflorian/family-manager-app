@@ -104,6 +104,19 @@ describe('BankFiltersList', () => {
         expect(row).toHaveTextContent('2 movements');
     });
 
+    it('Edit and Delete in the row are buttons of a row, in the body-sm text', () => {
+        screenWidth(true);
+        renderPage(BankFiltersList, { filters: [satispay] });
+        const row = rowOf('Satispay');
+
+        expect(within(row).getByRole('link', { name: 'Edit' })).toHaveClass(
+            'text-body-sm',
+        );
+        expect(within(row).getByRole('button', { name: 'Delete' })).toHaveClass(
+            'text-body-sm',
+        );
+    });
+
     it('Delete asks before', async () => {
         screenWidth(true);
         const destroy = vi.spyOn(router, 'delete').mockImplementation(() => {});

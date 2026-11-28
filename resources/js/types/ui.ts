@@ -19,6 +19,8 @@ export type FlashSimilar = {
     action: 'pay' | 'create' | 'transfer';
     filter: App.Data.BankFilterData;
     reason: { kind: 'mandate' | 'words'; name: string } | null;
+    /** Whether one of the movements has a commission; absent in an older flash, when the filter alone decides. */
+    fee?: boolean;
     min: number;
     max: number;
     from: string;

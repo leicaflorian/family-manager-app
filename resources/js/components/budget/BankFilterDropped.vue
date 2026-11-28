@@ -5,7 +5,8 @@
  * filter), the movement with the word that leaves it out marked, and «What is this movement?» with four choices:
  * *It belongs to an expense* (the search panel of *From the bank*), *Create the expense* (the form of a new movement
  * from it), *It is a transfer* (the sheet of the other account) and *Ignore*. The choices are sent without leaving
- * the form, so the filter being written stays; once one worked the box says so.
+ * the form, so the filter being written stays; once one worked the box says so and tells the form (`sorted`), which
+ * asks its list again.
  */
 import { ArrowLeftRight, EyeOff, Plus, Search } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -38,6 +39,11 @@ const {
     accounts: { id: number; name: string; connected: boolean }[];
     /** Why the movement could not leave its group, null when it could. */
     error?: string | null;
+}>();
+
+const emit = defineEmits<{
+    /** One of the choices worked: the movement is sorted, and what the filter would do to it changed. */
+    sorted: [];
 }>();
 
 const { money } = useFormat();
@@ -85,6 +91,7 @@ async function send(
     try {
         await sendBankAction(url, data);
         done.value = true;
+        emit('sorted');
         assignOpen.value = false;
         transferOpen.value = false;
     } catch (error) {

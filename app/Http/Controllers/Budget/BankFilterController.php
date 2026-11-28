@@ -246,9 +246,12 @@ final class BankFilterController extends Controller
             return ['draft' => null, 'examples' => [], 'group' => null];
         }
 
-        // From a movement alone the draft is what happened to the movement (a due date paid, an expense, a transfer)
+        // From a movement alone the draft is what happened to the movement (a due date paid, an expense, a transfer),
+        // with the words it shares with the others of its group, as the offer that links here said
         if ($planned === null) {
-            return ['draft' => BankFilterDraft::fromLink($from, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])), 'examples' => $examples, 'group' => null];
+            $siblings = resolve(BankGroups::class)->siblings($from);
+
+            return ['draft' => BankFilterDraft::fromLink($from, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]), $siblings), 'examples' => $examples, 'group' => null];
         }
 
         return ['draft' => BankFilterDraft::fromPlanned($planned, $from), 'examples' => $examples, 'group' => null];

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The section *Commission* of the form of a bank filter, as the board *Dalla-banca-filtro* draws it: three choices
- * (*Find it by itself*, the one with the same mandate; *Recognise it with these words*; *No commission*), each with
+ * (*Find it on its own*, the one with the same mandate; *Recognise it with these words*; *No commission*), each with
  * the line that explains it. Only *Recognise it with these words* shows the words of the commission, the ones it
  * contains and the ones it does not, under the choices.
  */
@@ -26,7 +26,7 @@ const words = wordsFieldProps();
 const choices = computed(() => [
     {
         value: 'auto',
-        label: trans('Find it by itself'),
+        label: trans('Find it on its own'),
         help: trans('The one with the same mandate, within 5 days.'),
     },
     {

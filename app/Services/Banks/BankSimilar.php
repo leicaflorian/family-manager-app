@@ -8,6 +8,7 @@ use App\Data\BankTransactionData;
 use App\Enums\BankFilterAction;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankText;
 use Illuminate\Support\Facades\Gate;
@@ -25,12 +26,17 @@ final readonly class BankSimilar
 
     /**
      * @param  BankGroups  $groups  the groups of the movements still to sort
+     * @param  BankFees  $fees  which commission belongs to which debit
+     * @param  BankFilters  $filters  what the criteria of a filter take
      */
-    public function __construct(private BankGroups $groups) {}
+    public function __construct(private BankGroups $groups, private BankFees $fees, private BankFilters $filters) {}
 
     /**
-     * Flashes `similar` for the movement just sorted: `count` of the others like it, the first twenty as `rows`, the
-     * `action` the filter would do (`pay`, `create` or `transfer`), the filter itself as data (`filter`), why they are alike (`reason`: the mandate or the words, null without a name or words), their amounts (`min`, `max`), days (`from`, `to`) and `kind`, and the `url` of the form of the new filter.
+     * Flashes `similar` for the movement just sorted: `count` of the others like it that its filter takes (nothing when it takes none), the first twenty as `rows`, the
+     * `action` the filter would do (`pay`, `create` or `transfer`), the filter itself as data (`filter`, with the words
+     * the movements share), why they are alike (`reason`: the mandate or the words, null without a name or words), whether
+     * any of them has a commission (`fee`; each row carries its own), their amounts (`min`, `max`), days (`from`, `to`)
+     * and `kind`, and the `url` of the form of the new filter.
      *
      * @param  BankTransaction  $transaction  the movement just sorted
      */
@@ -42,17 +48,31 @@ final readonly class BankSimilar
             return;
         }
 
-        $draft = BankFilterDraft::fromLink($transaction, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]));
-
-        if (! $draft->action instanceof BankFilterAction) {
-            return;
-        }
-
         $siblings = $this->groups->siblings($transaction);
 
         if ($siblings->isEmpty()) {
             return;
         }
+
+        $draft = BankFilterDraft::fromLink($transaction, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]), $siblings);
+
+        if (! $draft->action instanceof BankFilterAction) {
+            return;
+        }
+
+        // The offer counts only what its filter would take: siblings with no word in common may take none
+        $taken = $this->filters->taken(BankFilterCriteria::fromArray([
+            'contains' => $draft->contains, 'excludes' => $draft->excludes, 'direction' => $draft->direction,
+            'accountId' => $draft->accountId, 'pattern' => $draft->pattern,
+        ]))->pluck('id')->flip();
+        $siblings = $siblings->filter(static fn (BankTransaction $row): bool => $taken->has($row->id))->values();
+
+        if ($siblings->isEmpty()) {
+            return;
+        }
+
+        $rows = $siblings->take(self::ROWS)->values();
+        $fees = $this->fees->pairs($siblings);
 
         $amounts = $siblings->map(static fn (BankTransaction $row): float => round(abs((float) $row->amount), 2));
         $days = $siblings->map(static fn (BankTransaction $row): string => (string) ($row->booked_on ?? $row->value_on)?->toDateString());
@@ -62,11 +82,12 @@ final readonly class BankSimilar
             'kind' => $transaction->kind(),
             'filter' => $draft->toData()->toArray(),
             'reason' => $this->reason($transaction, $draft),
+            'fee' => $fees !== [],
             'min' => (float) $amounts->min(),
             'max' => (float) $amounts->max(),
             'from' => (string) $days->min(),
             'to' => (string) $days->max(),
-            'rows' => $siblings->take(self::ROWS)->map(static fn (BankTransaction $row): BankTransactionData => BankTransactionData::fromTransaction($row))->values()->all(),
+            'rows' => $rows->map(static fn (BankTransaction $row): BankTransactionData => BankTransactionData::fromTransaction($row, fee: $fees[$row->id] ?? null))->all(),
             'action' => $draft->action->value,
             'url' => route('budget.bank.filters.create', ['from' => $transaction->id], absolute: false),
         ]);

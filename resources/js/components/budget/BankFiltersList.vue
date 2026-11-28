@@ -209,6 +209,7 @@ function advancedText(filter: App.Data.BankFilterData): string {
                 >
                 <FmDeleteButton
                     v-if="filter.can.delete && filter.id !== null"
+                    row-action
                     :url="destroy(filter.id).url"
                     :question="
                         $t('Delete the filter :name?', { name: filter.name })

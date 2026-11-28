@@ -116,8 +116,17 @@ const intro = computed((): string =>
         .join(' '),
 );
 
-/** What the filter would do, as the line *Action* of the filter writes it. */
-const will = computed((): string => actionLine(similar.filter));
+/**
+ * What the filter would do, as the line *Action* of the filter writes it; «with the commission» only when one of the
+ * movements has a commission (`fee: false` from the server), not just because the filter would look for one.
+ */
+const will = computed((): string =>
+    actionLine(
+        similar.fee === false
+            ? { ...similar.filter, fee_mode: 'none' }
+            : similar.filter,
+    ),
+);
 </script>
 
 <template>

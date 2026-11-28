@@ -22,7 +22,7 @@ describe('BankFilterCriteriaFields', () => {
             .closest<HTMLElement>('[data-type]')!;
         expect(within(words).getByText('SATISPAY')).toBeInTheDocument();
         expect(
-            screen.getByRole('button', { name: 'Going out' }),
+            screen.getByRole('button', { name: 'Outflow' }),
         ).toBeInTheDocument();
         expect(shown(await openMenu('Bank account'))).toEqual([
             'All the accounts',
