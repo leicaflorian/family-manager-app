@@ -388,12 +388,23 @@ describe('Budget, From the bank', () => {
             screen.getByRole('button', { name: /ADDEBITO DIRETTO SDD EDISON/ }),
         );
 
+        const panel = screen.getByRole('complementary', {
+            name: 'Bank transaction',
+        });
+        expect(panel.closest('li')).toBeNull();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.getByText('tx-2')).toBeInTheDocument();
+        // The row of the panel is marked, and its action goes under the text so the amounts stay in line
         expect(
             screen
-                .getByRole('dialog', { name: 'Bank transaction' })
+                .getByRole('button', { name: /ADDEBITO DIRETTO SDD EDISON/ })
                 .closest('li'),
-        ).toBeNull();
-        expect(screen.getByText('tx-2')).toBeInTheDocument();
+        ).toHaveAttribute('aria-current', 'true');
+
+        await userEvent.keyboard('{Escape}');
+        expect(
+            screen.queryByRole('complementary', { name: 'Bank transaction' }),
+        ).not.toBeInTheDocument();
     });
 
     it('takes a link back after asking, and the row goes under a status filter', async () => {
@@ -859,6 +870,74 @@ describe('Budget, From the bank, sorting', () => {
         expect(menuButton.parentElement).toHaveClass('text-ink-soft');
         expect(menuButton).toHaveClass('size-control-md', 'bg-transparent');
         expect(menuButton).not.toHaveClass('border');
+    });
+
+    it('when wide, It belongs to an expense opens beside the list with the row marked, and closes the sheet of the similar ones', async () => {
+        screenWidth(true);
+        stubSearch({ planned: [], recorded: [] });
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, props());
+        await settle();
+        expect(
+            screen.getByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', {
+                name: 'It belongs to an expense',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(row).toHaveAttribute('aria-current', 'true');
+    });
+
+    it('when wide, It is a transfer opens beside the list, one panel at a time', async () => {
+        screenWidth(true);
+        stubSearch({ planned: [], recorded: [] });
+        renderPage(
+            BankTransactions,
+            props({
+                accounts_all: [
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+        const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', {
+                name: 'It belongs to an expense',
+            }),
+        );
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+
+        expect(
+            screen.getByRole('complementary', { name: 'It is a transfer' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'It belongs to an expense',
+            }),
+        ).not.toBeInTheDocument();
     });
 
     it('posts the planned due date chosen in the sheet, with its original date', async () => {
@@ -1737,10 +1816,13 @@ describe('Budget, From the bank, the filter for the others', () => {
             }),
         ).toBeInTheDocument();
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-        // In the flow of the page: the list stays there to read and to use
+        // As with a group open: the groups become the list of one column, the lone movements a row that brings them back
         expect(
-            screen.getByRole('region', { name: 'Lone movements' }),
+            screen.getByRole('navigation', { name: 'Groups' }),
         ).toBeInTheDocument();
+        expect(
+            screen.queryByRole('region', { name: 'Lone movements' }),
+        ).not.toBeInTheDocument();
 
         await userEvent.click(
             screen.getByRole('button', { name: /Satispay Europe/ }),
@@ -1753,6 +1835,26 @@ describe('Budget, From the bank, the filter for the others', () => {
         ).not.toBeInTheDocument();
         expect(
             screen.getByRole('complementary', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+    });
+
+    it('when wide, the row of the lone movements closes the sheet and brings them back', async () => {
+        screenWidth(true);
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, groupProps());
+        await settle();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Lone movements · 42/ }),
+        );
+
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('region', { name: 'Lone movements' }),
         ).toBeInTheDocument();
     });
 

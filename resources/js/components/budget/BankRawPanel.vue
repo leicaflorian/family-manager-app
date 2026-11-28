@@ -3,27 +3,33 @@
  * The transaction as the bank gave it, read only, as the boards *Dalla banca, il movimento* draw it: the full text
  * of the bank, who pays (or is paid), the booking and the value date, the amount with its currency, the account, the
  * status at the bank, the code of the bank and when it was read; under them what the transaction is in the app (the tag,
- * the movement it is linked to) and, for a linked one the server lets undo, *It was not this one*. On the phone it is a
- * bottom sheet; wide, a panel in the page at the right of the list (the page puts it in its column). The panel only says
- * what the person did (`close`, `undo`).
+ * the movement it is linked to) and, for a linked one the server lets undo, *It was not this one*. It sits in
+ * `BankPanelFrame`: on the phone a bottom sheet; wide, a panel in the column the page gives it, which Escape closes,
+ * never taller than the screen. The panel only says what the person did (`close`, `undo`).
  *
  * @group panels
  */
-import { Undo2, X } from '@lucide/vue';
+import { Undo2 } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
+import BankPanelFrame from '@/components/budget/BankPanelFrame.vue';
 import BankRowState from '@/components/budget/BankRowState.vue';
-import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
 import { useAppName } from '@/composables/useAppName';
 import { useFormat } from '@/composables/useFormat';
-import { useWideLayout } from '@/composables/useWideLayout';
+import { bankMoney } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 
-const { row, canSort = true } = defineProps<{
+const {
+    row,
+    canSort = true,
+    returnFocus,
+} = defineProps<{
     /** The transaction to show. */
     row: App.Data.BankTransactionData;
     /** Whether who looks can take a link back. */
     canSort?: boolean;
+    /** Where the focus goes at the closing when what opened the panel is gone (wide only). */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -33,9 +39,8 @@ const emit = defineEmits<{
     undo: [row: App.Data.BankTransactionData];
 }>();
 
-const wide = useWideLayout();
 const appName = useAppName();
-const { money, date } = useFormat();
+const { date } = useFormat();
 
 /** The title of the panel. */
 const title = computed((): string => trans('Bank transaction'));
@@ -59,8 +64,6 @@ interface Line {
     term: string;
     /** What the bank says, empty when it says nothing (the line is left out). */
     value: string;
-    /** The value is a code, in a monospace face. */
-    mono?: boolean;
     /** The value is the amount, drawn with its colour and the currency. */
     amount?: boolean;
 }
@@ -83,12 +86,12 @@ const lines = computed((): Line[] =>
             },
             {
                 term: trans('Amount'),
-                value: money(row.amount, row.currency),
+                value: bankMoney(row.amount, row.currency),
                 amount: true,
             },
-            { term: trans('Account'), value: row.account ?? '' },
+            { term: trans('Bank account'), value: row.account ?? '' },
             { term: trans('Status at the bank'), value: bankStatus.value },
-            { term: trans('Bank code'), value: row.provider_id, mono: true },
+            { term: trans('Bank code'), value: row.provider_id },
             { term: trans('Read'), value: readAt.value },
         ] satisfies Line[]
     ).filter((line) => line.value !== ''),
@@ -96,34 +99,12 @@ const lines = computed((): Line[] =>
 </script>
 
 <template>
-    <component
-        :is="wide ? 'aside' : FmBottomSheet"
-        v-bind="
-            wide
-                ? {
-                      role: 'dialog',
-                      'aria-label': title,
-                      class: 'flex flex-col gap-3.5 rounded-sheet bg-card px-6 pt-5 pb-6 shadow-card',
-                  }
-                : {
-                      open: true,
-                      title,
-                      'onUpdate:open': (open: boolean) =>
-                          !open && emit('close'),
-                  }
-        "
+    <BankPanelFrame
+        :open="true"
+        :title="title"
+        :return-focus="returnFocus"
+        @update:open="(open: boolean) => !open && emit('close')"
     >
-        <div v-if="wide" class="flex items-center justify-between gap-3">
-            <h2 class="m-0 text-subtitle text-ink">{{ title }}</h2>
-            <button
-                type="button"
-                :aria-label="$t('Close')"
-                class="flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-ink-soft"
-                @click="emit('close')"
-            >
-                <X aria-hidden="true" :size="20" />
-            </button>
-        </div>
         <p class="m-0 text-body-sm text-ink-soft">
             {{ $t('As the bank gave it, read only.') }}
         </p>
@@ -145,18 +126,14 @@ const lines = computed((): Line[] =>
                 class="grid grid-cols-[132px_minmax(0,1fr)] gap-3 border-b border-divider py-2.5"
             >
                 <dt class="text-meta text-ink-soft">{{ line.term }}</dt>
-                <dd
-                    :class="
-                        cn(
-                            'm-0 text-body-sm wrap-anywhere text-ink',
-                            line.mono && 'font-mono',
-                        )
-                    "
-                >
+                <dd class="m-0 text-body-sm wrap-anywhere text-ink">
                     <template v-if="line.amount">
-                        <span :class="cn(row.amount > 0 && 'text-paid')">{{
-                            line.value
-                        }}</span>
+                        <span
+                            :class="
+                                cn('text-label', row.amount > 0 && 'text-paid')
+                            "
+                            >{{ line.value }}</span
+                        >
                         · {{ row.currency }}
                     </template>
                     <template v-else>{{ line.value }}</template>
@@ -180,5 +157,5 @@ const lines = computed((): Line[] =>
                 }}
             </button>
         </div>
-    </component>
+    </BankPanelFrame>
 </template>

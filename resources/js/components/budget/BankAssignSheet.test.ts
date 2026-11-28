@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import BankAssignSheet from './BankAssignSheet.vue';
 
 const transaction = bankTransactions[1]!;
@@ -116,6 +116,33 @@ afterEach(() => {
 });
 
 describe('BankAssignSheet', () => {
+    it('writes the amount of a credit with the plus, in green', async () => {
+        stubServer();
+        open({ transaction: { ...transaction, amount: 407.6 } });
+        await settle();
+
+        expect(screen.getByText('+407,60 €')).toHaveClass('text-paid');
+    });
+
+    it('when wide is a panel beside the list, not a dialog, and Escape closes it', async () => {
+        screenWidth(true);
+        stubServer();
+        const view = open();
+        await settle();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        const panel = screen.getByRole('complementary', {
+            name: 'It belongs to an expense',
+        });
+        expect(
+            await within(panel).findByText('Fixed expenses'),
+        ).toBeInTheDocument();
+
+        await userEvent.keyboard('{Escape}');
+
+        expect(view.emitted('update:open')?.at(-1)).toEqual([false]);
+    });
+
     it('asks the server while the person types and shows two groups', async () => {
         const fetchMock = stubServer();
         open();

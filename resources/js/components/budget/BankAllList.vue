@@ -4,20 +4,21 @@
  * transaction the bank gave with its day, its text, the amount, the tag of what it is (`BankRowState`) and the one
  * action it has: *It was not this one* on a linked one (when the server says it can be taken back) and *Put back among
  * the movements* on one set aside or marked as a transfer. On a computer a row is a grid (day, text, amount, action);
- * on the phone the day and the account go under the text and the action under the tag. The text opens the transaction as the bank gave it. The
- * last line says how long the movements not linked to an expense are kept. The list only says what the person did
+ * on the phone the day and the account go under the text and the action under the tag. The action column has the same
+ * width on every row, so the amounts stay in line; `compact` (beside the panel of a transaction) has no action column
+ * and puts the action under the text. Money that came in has the «+». The text opens the transaction as the bank gave
+ * it. The last line, with the ⓘ, says how long the movements not linked to an expense are kept. The list only says what the person did
  * (`open`, `undo`, `restore`): the page asks the server.
  *
  * Under a row the slot `under` receives the row, for what goes with it (the commission of a debit).
  *
  * @group rows
  */
-import { RotateCcw, Undo2 } from '@lucide/vue';
-import { useFormat } from '@/composables/useFormat';
+import { Info, RotateCcw, Undo2 } from '@lucide/vue';
 import { useWideLayout } from '@/composables/useWideLayout';
 import BankRowState from '@/components/budget/BankRowState.vue';
 import FmButton from '@/components/fm/FmButton.vue';
-import { dayOf } from '@/lib/banks';
+import { bankMoney, dayOf } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 
@@ -25,6 +26,7 @@ const {
     rows,
     canSort,
     selected = null,
+    compact = false,
 } = defineProps<{
     /** The transactions to list, in the order to show them. */
     rows: App.Data.BankTransactionData[];
@@ -32,6 +34,8 @@ const {
     canSort: boolean;
     /** The id of the transaction whose bank panel is open, marked in the list. */
     selected?: number | null;
+    /** Wide beside the panel of a transaction: no action column, the action goes under the text. */
+    compact?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -49,7 +53,6 @@ defineSlots<{
 }>();
 
 const wide = useWideLayout();
-const { money } = useFormat();
 
 /**
  * Whether a row has the button to take the link back.
@@ -84,8 +87,12 @@ function putBack(row: App.Data.BankTransactionData): boolean {
             :class="
                 cn(
                     wide
-                        ? 'grid grid-cols-[56px_minmax(0,1fr)_104px_auto] items-start gap-4 px-5 py-3.5'
+                        ? 'grid items-start gap-x-4 px-5 py-3.5'
                         : 'flex flex-col gap-2 px-4 py-3.5',
+                    wide &&
+                        (compact
+                            ? 'grid-cols-[56px_minmax(0,1fr)_104px] gap-y-2'
+                            : 'grid-cols-[56px_minmax(0,1fr)_104px_200px] gap-y-4'),
                     selected === row.id && 'bg-action-soft',
                 )
             "
@@ -117,31 +124,19 @@ function putBack(row: App.Data.BankTransactionData): boolean {
                             row.amount > 0 && 'text-paid',
                         )
                     "
-                    >{{ money(row.amount, row.currency) }}</span
+                    >{{ bankMoney(row.amount, row.currency) }}</span
                 >
             </div>
-            <span v-if="wide" class="flex min-h-9 justify-end">
-                <FmButton
-                    v-if="undoable(row)"
-                    variant="text"
-                    row-action
-                    :icon="Undo2"
-                    class="text-overdue"
-                    @click="emit('undo', row)"
-                    >{{ $t('It was not this one') }}</FmButton
-                >
-                <FmButton
-                    v-else-if="canSort && putBack(row)"
-                    variant="neutral"
-                    row-action
-                    :icon="RotateCcw"
-                    @click="emit('restore', row)"
-                    >{{ $t('Put back among the movements') }}</FmButton
-                >
-            </span>
             <div
-                v-else-if="canSort && (undoable(row) || putBack(row))"
-                class="flex flex-wrap items-center gap-2"
+                v-if="canSort && (undoable(row) || putBack(row))"
+                :class="
+                    cn(
+                        'flex items-center gap-2',
+                        !wide && 'flex-wrap',
+                        wide && !compact && 'min-h-9 justify-end',
+                        wide && compact && 'col-start-2',
+                    )
+                "
             >
                 <FmButton
                     v-if="undoable(row)"
@@ -163,7 +158,9 @@ function putBack(row: App.Data.BankTransactionData): boolean {
             </div>
         </li>
     </ul>
-    <p class="m-0 px-1 text-meta text-ink-soft">
-        {{ $t('Movements not linked to an expense are kept 12 months.') }}
+    <p class="m-0 flex items-center gap-2 px-1 text-meta text-ink-soft">
+        <Info aria-hidden="true" class="size-3.5 shrink-0" />{{
+            $t('Movements not linked to an expense are kept 12 months.')
+        }}
     </p>
 </template>

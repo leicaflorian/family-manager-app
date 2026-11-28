@@ -188,6 +188,42 @@ describe('BankAllList', () => {
         ).toBeNull();
     });
 
+    it('writes money that came in with the plus', () => {
+        renderPage(BankAllList, { rows: [transferIn], canSort: true });
+
+        expect(screen.getByText('+500,00 €')).toBeInTheDocument();
+    });
+
+    it('wide, keeps the amounts in line: the actions have a column of their own width on every row', () => {
+        screenWidth(true);
+        renderPage(BankAllList, { rows: [base, linked], canSort: true });
+
+        for (const row of screen.getAllByRole('listitem')) {
+            expect(row).toHaveClass(
+                'grid-cols-[56px_minmax(0,1fr)_104px_200px]',
+            );
+        }
+    });
+
+    it('wide and compact, beside the panel, puts the action under the text', () => {
+        screenWidth(true);
+        renderPage(BankAllList, {
+            rows: [base, linked],
+            canSort: true,
+            compact: true,
+        });
+
+        const row = screen
+            .getByRole('button', { name: 'It was not this one' })
+            .closest('li')!;
+        expect(row).toHaveClass('grid-cols-[56px_minmax(0,1fr)_104px]');
+        // In the column of the text, on a line of its own under it
+        expect(
+            screen.getByRole('button', { name: 'It was not this one' })
+                .parentElement,
+        ).toHaveClass('col-start-2');
+    });
+
     it('the last line says unlinked movements are kept 12 months', () => {
         renderPage(BankAllList, { rows: [base], canSort: true });
 

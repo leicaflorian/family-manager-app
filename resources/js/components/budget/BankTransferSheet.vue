@@ -5,16 +5,18 @@
  * the other accounts of the family as radio buttons (the first is chosen; the one of the transaction is not offered),
  * *Add an account*, the note that a transfer does not count in the Budget and the one about the other half. The sheet
  * only says which account was chosen (`choose`); the page sends it and shows what the server answers in `error`.
+ * It sits in `BankPanelFrame`: on the phone a bottom sheet, wide a panel beside the list (Escape closes it).
  *
  * @group panels
  */
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeftRight, Landmark, Plus } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
-import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import BankPanelFrame from '@/components/budget/BankPanelFrame.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import { useFormat } from '@/composables/useFormat';
+import { bankMoney } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import { create } from '@/routes/cards';
 
@@ -42,7 +44,7 @@ const emit = defineEmits<{
 /** The sheet is open. */
 const open = defineModel<boolean>('open', { default: false });
 
-const { money, date } = useFormat();
+const { date } = useFormat();
 
 /** Whether it is a credit: the money came from the other account. */
 const income = computed(() => transaction.amount > 0);
@@ -79,7 +81,7 @@ function confirm(): void {
 </script>
 
 <template>
-    <FmBottomSheet v-model:open="open" :title="$t('It is a transfer')">
+    <BankPanelFrame v-model:open="open" :title="$t('It is a transfer')">
         <div class="flex items-start gap-3 rounded-card bg-canvas px-3.5 py-3">
             <FmIcon
                 :icon="Landmark"
@@ -99,9 +101,15 @@ function confirm(): void {
                         .join(' · ')
                 }}</span>
             </span>
-            <span class="shrink-0 text-amount whitespace-nowrap">{{
-                money(transaction.amount, transaction.currency)
-            }}</span>
+            <span
+                :class="
+                    cn(
+                        'shrink-0 text-amount whitespace-nowrap',
+                        transaction.amount > 0 && 'text-paid',
+                    )
+                "
+                >{{ bankMoney(transaction.amount, transaction.currency) }}</span
+            >
         </div>
 
         <fieldset class="m-0 flex min-w-0 flex-col gap-2.5 border-0 p-0">
@@ -203,5 +211,5 @@ function confirm(): void {
                 >{{ $t('Mark as a transfer') }}</FmButton
             >
         </div>
-    </FmBottomSheet>
+    </BankPanelFrame>
 </template>

@@ -5,7 +5,9 @@
  * then the line with how many movements the filters find and their sum, and *Remove the filters* while one is on. A
  * change asks the server at once (the text after a short pause in typing) with a partial reload of the list that starts
  * over (`reset` of the rows) and writes the filters in the address, so the next blocks of the list and a refresh keep
- * them. Every filter is always sent, empty ones as an empty text, so none of the old address stays.
+ * them. Every filter is always sent, empty ones as an empty text, so none of the old address stays. Wide, each menu
+ * writes its small name before the value («Bank account **Conto BancoPosta**»); on the phone only the value, cut when it is
+ * long. Four menus in a row when the column has room for them, two beside the panel of a transaction and on the phone.
  *
  * @group forms
  */
@@ -14,6 +16,7 @@ import { transChoice, trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import { useFormat } from '@/composables/useFormat';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { monthName } from '@/lib/budget';
 import { todayInRome } from '@/lib/format';
 import { textOrNull } from '@/lib/forms';
@@ -40,6 +43,25 @@ const { filters, accounts, total } = defineProps<{
 }>();
 
 const { money } = useFormat();
+const wide = useWideLayout();
+
+/** What FormKit gives to the slots `selection` (a value chosen) and `placeholder` (the empty value, *All…*). */
+interface Selection {
+    /** The option chosen, missing for the empty value. */
+    option?: { label?: unknown };
+    /** What the menu writes for the empty value. */
+    placeholder?: unknown;
+}
+
+/**
+ * The words a menu shows for its value: the option chosen, or what it writes for the empty one.
+ *
+ * @param context - what FormKit gives to the slot
+ * @returns the words of the value
+ */
+function shownLabel(context: Selection): string {
+    return String(context.option?.label ?? context.placeholder ?? '');
+}
 
 /** The text in the box, which can be ahead of the one the server has. */
 const text = ref(filters.q ?? '');
@@ -100,6 +122,46 @@ const monthChoices = computed(() => {
         ...months.map((value) => ({ value, label: monthName(value) })),
     ];
 });
+
+/** One menu of the filters: its name, its label, its options and the value the server read. */
+interface Menu {
+    /** The filter it changes. */
+    name: 'account' | 'status' | 'month' | 'direction';
+    /** Its name, said to screen readers and written small before the value when wide. */
+    label: string;
+    /** The options, the empty one first. */
+    options: { value: string; label: string }[];
+    /** The value chosen, empty for none. */
+    value: string;
+}
+
+/** The four menus, in the order of the boards. */
+const menus = computed((): Menu[] => [
+    {
+        name: 'account',
+        label: trans('Bank account'),
+        options: accountChoices.value,
+        value: filters.account === null ? '' : String(filters.account),
+    },
+    {
+        name: 'status',
+        label: trans('Status'),
+        options: statuses.value,
+        value: filters.status ?? '',
+    },
+    {
+        name: 'month',
+        label: trans('Month'),
+        options: monthChoices.value,
+        value: filters.month ?? '',
+    },
+    {
+        name: 'direction',
+        label: trans('Direction'),
+        options: directions.value,
+        value: filters.direction ?? '',
+    },
+]);
 
 /** The line under the filters: «94 movements · -1.842,30 €». */
 const found = computed((): string =>
@@ -192,57 +254,42 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-2.5">
+    <div class="@container flex flex-col gap-2.5">
         <FmSearchField
             v-model="text"
             :label="$t('Search in the text of the movement')"
             @submit="ask({ q: text.trim() })"
         />
-        <div class="grid grid-cols-2 gap-2 wide:grid-cols-4">
+        <div class="grid grid-cols-2 gap-2 @3xl:grid-cols-4">
             <FormKit
+                v-for="menu in menus"
+                :key="menu.name"
                 type="dropdown"
-                name="account"
-                :label="$t('Bank account')"
-                :options="accountChoices"
-                :model-value="
-                    filters.account === null ? '' : String(filters.account)
-                "
+                :name="menu.name"
+                :label="menu.label"
+                :options="menu.options"
+                :model-value="menu.value"
                 :classes="{ label: 'sr-only', outer: 'mb-0!' }"
                 @update:model-value="
-                    (value: unknown) => choose('account', value)
+                    (value: unknown) => choose(menu.name, value)
                 "
-            />
-            <FormKit
-                type="dropdown"
-                name="status"
-                :label="$t('Status')"
-                :options="statuses"
-                :model-value="filters.status ?? ''"
-                :classes="{ label: 'sr-only', outer: 'mb-0!' }"
-                @update:model-value="
-                    (value: unknown) => choose('status', value)
-                "
-            />
-            <FormKit
-                type="dropdown"
-                name="month"
-                :label="$t('Month')"
-                :options="monthChoices"
-                :model-value="filters.month ?? ''"
-                :classes="{ label: 'sr-only', outer: 'mb-0!' }"
-                @update:model-value="(value: unknown) => choose('month', value)"
-            />
-            <FormKit
-                type="dropdown"
-                name="direction"
-                :label="$t('Direction')"
-                :options="directions"
-                :model-value="filters.direction ?? ''"
-                :classes="{ label: 'sr-only', outer: 'mb-0!' }"
-                @update:model-value="
-                    (value: unknown) => choose('direction', value)
-                "
-            />
+            >
+                <template
+                    v-for="section in ['selection', 'placeholder'] as const"
+                    :key="section"
+                    #[section]="context: Selection"
+                >
+                    <span class="flex min-w-0 items-baseline gap-1.5">
+                        <span
+                            v-if="wide"
+                            class="shrink-0 text-meta text-ink-soft"
+                            >{{ menu.label }}</span
+                        ><span class="truncate text-label text-ink">{{
+                            shownLabel(context)
+                        }}</span>
+                    </span>
+                </template>
+            </FormKit>
         </div>
         <div class="flex items-baseline justify-between gap-3 px-1">
             <span role="status" class="text-label text-ink">{{ found }}</span>

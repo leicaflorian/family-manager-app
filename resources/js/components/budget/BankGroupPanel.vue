@@ -310,8 +310,9 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                         <FmButton
                             variant="text"
                             muted
+                            row-action
                             :icon="Split"
-                            class="-ml-2 px-2"
+                            class="-ml-2.5"
                             @click="emit('notOfGroup', row.transaction)"
                             >{{ $t('It is not of this group') }}</FmButton
                         >

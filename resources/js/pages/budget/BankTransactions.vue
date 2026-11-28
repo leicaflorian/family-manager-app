@@ -21,9 +21,11 @@ import { Head, router, usePage, WhenVisible } from '@inertiajs/vue3';
 import {
     ChevronDown,
     ChevronRight,
+    CircleCheck,
     Funnel,
     Landmark,
     List,
+    ListFilter,
     Plus,
     RefreshCw,
 } from '@lucide/vue';
@@ -294,13 +296,24 @@ const beside = computed(
 );
 
 /**
+ * Wide with a group open or the sheet of the similar movements: the groups are the list of one column and the lone
+ * movements a row that brings them back, as the boards *Dalla banca, il gruppo* and *altri movimenti come questo*.
+ */
+const groupList = computed(
+    (): boolean =>
+        groups.value.length > 0 &&
+        wide.value &&
+        (openedGroup.value !== null || similar.value !== null),
+);
+
+/**
  * Opens a group and asks the server for its movements.
  *
  * @param group - the group
  */
 function openGroup(group: App.Data.BankGroupData): void {
     // One panel beside the list at a time
-    similar.value = null;
+    closePanels();
     openKey.value = group.key;
     lastKey = group.key;
     openedRows.value = null;
@@ -393,6 +406,16 @@ function currentTab(): HTMLElement | null {
 function closeGroup(): void {
     openKey.value = null;
     openedRows.value = null;
+}
+
+/** Closes every panel: one is open at a time, beside the list when wide. */
+function closePanels(): void {
+    closeGroup();
+    similar.value = null;
+    assigning.value = null;
+    feeing.value = null;
+    transferring.value = null;
+    rawId.value = null;
 }
 
 /**
@@ -534,7 +557,7 @@ function offerSimilar(flash: unknown): void {
     }
 
     lastOffered = found;
-    closeGroup();
+    closePanels();
     similar.value = found;
 }
 
@@ -566,6 +589,7 @@ const assignProcessing = ref(false);
  * @param row - the transaction
  */
 function openAssign(row: App.Data.BankTransactionData): void {
+    closePanels();
     assignError.value = null;
     assigning.value = row;
 }
@@ -631,6 +655,7 @@ const transferProcessing = ref(false);
  * @param row - the transaction
  */
 function openTransfer(row: App.Data.BankTransactionData): void {
+    closePanels();
     transferError.value = null;
     transferring.value = row;
 }
@@ -697,6 +722,7 @@ const feeProcessing = ref(false);
  * @param row - the commission left alone
  */
 function openFee(row: App.Data.BankTransactionData): void {
+    closePanels();
     feeError.value = null;
     feeing.value = row;
 }
@@ -769,6 +795,35 @@ const rawId = ref<number | null>(null);
 const rawRow = computed(
     (): App.Data.BankTransactionData | null =>
         shown.value.find((row) => row.id === rawId.value) ?? null,
+);
+
+/**
+ * Opens the transaction as the bank gave it.
+ *
+ * @param row - the transaction
+ */
+function openRaw(row: App.Data.BankTransactionData): void {
+    closePanels();
+    rawId.value = row.id;
+}
+
+/** A panel that goes in the column at the right of the page when wide is open (all but the group's). */
+const sideOpen = computed(
+    (): boolean =>
+        similar.value !== null ||
+        assigning.value !== null ||
+        feeing.value !== null ||
+        transferring.value !== null ||
+        rawRow.value !== null,
+);
+
+/** The movement a panel is open for, marked in its list. */
+const markedId = computed(
+    (): number | null =>
+        assigning.value?.id ??
+        feeing.value?.id ??
+        transferring.value?.id ??
+        null,
 );
 
 /** The transaction whose link *It was not this one* is asking to take back. */
@@ -876,23 +931,37 @@ const { title, head } = usePageMeta({
                     </template>
                 </FmNotice>
 
-                <div class="flex flex-wrap items-center gap-2.5">
+                <div
+                    class="flex flex-col gap-2.5 wide:flex-row wide:flex-wrap wide:items-center"
+                >
                     <FmTabs
                         variant="pill"
                         :tabs="filters"
                         :label="$t('Movements from the bank')"
-                        class="min-w-fit flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
+                        class="wide:w-115 wide:max-w-full"
                     />
-                    <FmButton
-                        variant="neutral"
-                        :icon="RefreshCw"
-                        :disabled="updating"
-                        @click="update"
-                        >{{ $t('Update') }}</FmButton
-                    >
-                    <span class="basis-full text-meta text-ink-soft">{{
-                        readLine
-                    }}</span>
+                    <!-- On the phone the last read and Update share a line; wide, Update follows the tabs and the
+                         last read goes under them (on the row of the tabs under All on the computer, with room) -->
+                    <div class="flex items-center gap-3 wide:contents">
+                        <span
+                            :class="
+                                cn(
+                                    'min-w-0 flex-1 text-meta text-ink-soft wide:order-last wide:basis-full',
+                                    show === 'all' &&
+                                        !sideOpen &&
+                                        'computer:order-0 computer:min-w-80 computer:basis-0',
+                                )
+                            "
+                            >{{ readLine }}</span
+                        >
+                        <FmButton
+                            variant="neutral"
+                            :icon="RefreshCw"
+                            :disabled="updating"
+                            @click="update"
+                            >{{ $t('Update') }}</FmButton
+                        >
+                    </div>
                 </div>
 
                 <template v-if="show === 'filters'">
@@ -945,71 +1014,46 @@ const { title, head } = usePageMeta({
                         :accounts="accounts ?? []"
                         :total="total ?? { count: shown.length, sum: 0 }"
                     />
-                    <div
-                        :class="
-                            wide && rawRow
-                                ? 'grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5'
-                                : 'flex flex-col'
-                        "
-                    >
-                        <div class="flex min-w-0 flex-col gap-4">
-                            <BankAllList
-                                v-if="shown.length > 0"
-                                :rows="shown"
-                                :can-sort="can_sort"
-                                :selected="rawRow?.id ?? null"
-                                @open="(row) => (rawId = row.id)"
-                                @undo="(row) => (undoing = row)"
-                                @restore="restoreRow"
-                            />
-                            <FmEmpty
-                                v-else
-                                :icon="Landmark"
-                                :title="
-                                    filterOn
-                                        ? $t('No movement matches the filters')
-                                        : $t('No movement yet')
-                                "
-                                :text="
-                                    filterOn
-                                        ? $t(
-                                              'Remove a filter or change the search.',
-                                          )
-                                        : $t(
-                                              'The movements the bank gives you appear here.',
-                                          )
-                                "
-                            />
-                            <WhenVisible
-                                v-if="next"
-                                :key="next"
-                                always
-                                :params="{
-                                    data: nextData,
-                                    only: ['rows', 'next'],
-                                    preserveUrl: true,
-                                }"
-                            />
-                        </div>
-                        <div
-                            v-if="wide && rawRow"
-                            class="sticky top-[calc(var(--app-header,0px)+--spacing(4))]"
-                        >
-                            <BankRawPanel
-                                :row="rawRow"
-                                :can-sort="can_sort"
-                                @close="rawId = null"
-                                @undo="(row) => (undoing = row)"
-                            />
-                        </div>
+                    <div class="flex min-w-0 flex-col gap-4">
+                        <BankAllList
+                            v-if="shown.length > 0"
+                            :rows="shown"
+                            :can-sort="can_sort"
+                            :selected="rawRow?.id ?? null"
+                            :compact="wide && rawRow !== null"
+                            @open="openRaw"
+                            @undo="(row) => (undoing = row)"
+                            @restore="restoreRow"
+                        />
+                        <FmEmpty
+                            v-else
+                            :icon="Landmark"
+                            :title="
+                                filterOn
+                                    ? $t('No movement matches the filters')
+                                    : $t('No movement yet')
+                            "
+                            :text="
+                                filterOn
+                                    ? $t(
+                                          'Remove a filter or change the search.',
+                                      )
+                                    : $t(
+                                          'The movements the bank gives you appear here.',
+                                      )
+                            "
+                        />
+                        <WhenVisible
+                            v-if="next"
+                            :key="next"
+                            always
+                            :params="{
+                                data: nextData,
+                                only: ['rows', 'next'],
+                                preserveUrl: true,
+                            }"
+                        />
                     </div>
-                    <BankRawPanel
-                        v-if="!wide && rawRow"
-                        :row="rawRow"
-                        :can-sort="can_sort"
-                        @close="rawId = null"
-                        @undo="(row) => (undoing = row)"
-                    />
                     <FmConfirm
                         v-model:open="undoOpen"
                         :question="undoText.question"
@@ -1021,7 +1065,8 @@ const { title, head } = usePageMeta({
 
                 <FmEmpty
                     v-else-if="shown.length === 0 && groups.length === 0"
-                    :icon="Landmark"
+                    :icon="CircleCheck"
+                    tone="paid"
                     :title="$t('Nothing left to sort')"
                     :text="
                         $t(
@@ -1030,14 +1075,16 @@ const { title, head } = usePageMeta({
                     "
                 >
                     <FmButton
-                        variant="outline"
+                        variant="neutral"
+                        row-action
                         :icon="List"
                         :href="bankIndex({ query: { show: 'all' } }).url"
                         >{{ $t('All the movements') }}</FmButton
                     >
                     <FmButton
-                        variant="outline"
-                        :icon="Funnel"
+                        variant="neutral"
+                        row-action
+                        :icon="ListFilter"
                         :href="bankIndex({ query: { show: 'filters' } }).url"
                         >{{ $t('Your filters') }}</FmButton
                     >
@@ -1061,7 +1108,7 @@ const { title, head } = usePageMeta({
                                     {{ groupsHead }}
                                 </h2>
                                 <span
-                                    v-if="!beside"
+                                    v-if="!groupList"
                                     class="text-meta text-ink-soft"
                                     >{{
                                         $t(
@@ -1071,7 +1118,7 @@ const { title, head } = usePageMeta({
                                 >
                             </div>
                             <nav
-                                v-if="beside"
+                                v-if="groupList"
                                 v-auto-animate
                                 :aria-label="$t('Groups')"
                                 class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
@@ -1101,7 +1148,13 @@ const { title, head } = usePageMeta({
                             <template v-else>
                                 <div
                                     v-auto-animate
-                                    class="grid grid-cols-1 gap-3 wide:grid-cols-2"
+                                    :class="
+                                        cn(
+                                            'grid grid-cols-1 gap-3',
+                                            // Beside a panel the column is too narrow for two cards
+                                            !sideOpen && 'wide:grid-cols-2',
+                                        )
+                                    "
                                 >
                                     <BankGroupCard
                                         v-for="group in shownGroups"
@@ -1130,10 +1183,10 @@ const { title, head } = usePageMeta({
                                 </button>
                             </template>
                             <button
-                                v-if="beside && loneCount > 0"
+                                v-if="groupList && loneCount > 0"
                                 type="button"
                                 class="flex cursor-pointer items-center gap-3 rounded-card border-0 bg-card px-4 py-3.5 text-left text-ink shadow-card"
-                                @click="closeGroup"
+                                @click="closePanels"
                             >
                                 <span class="flex grow flex-col gap-0.5">
                                     <span class="text-body-strong">{{
@@ -1166,7 +1219,7 @@ const { title, head } = usePageMeta({
                         </div>
 
                         <section
-                            v-if="!beside && shown.length > 0"
+                            v-if="!groupList && shown.length > 0"
                             :aria-label="$t('Lone movements')"
                             class="flex flex-col gap-3"
                         >
@@ -1197,6 +1250,7 @@ const { title, head } = usePageMeta({
                                         :row="row"
                                         :can-sort="can_sort"
                                         :can-plan="can_plan"
+                                        :selected="wide && row.id === markedId"
                                         @assign="openAssign"
                                         @transfer="openTransfer"
                                         @fee="openFee"
@@ -1253,47 +1307,55 @@ const { title, head } = usePageMeta({
                 </template>
             </div>
 
+            <!-- The panels that follow an action: wide in the column at the right of the page, on the phone sheets -->
             <div
-                v-if="wide && similar"
-                class="sticky top-[calc(var(--app-header,0px)+--spacing(4))] w-[400px] shrink-0"
+                v-if="sideOpen"
+                :class="
+                    wide
+                        ? 'sticky top-[calc(var(--app-header,0px)+--spacing(4))] w-[400px] shrink-0'
+                        : 'contents'
+                "
             >
                 <BankSimilarSheet
+                    v-if="similar"
                     v-model:open="similarOpen"
                     :similar="similar"
                     :return-focus="currentTab"
                 />
+                <BankAssignSheet
+                    v-if="assigning"
+                    v-model:open="assignOpen"
+                    :transaction="assigning"
+                    :error="assignError"
+                    :processing="assignProcessing"
+                    @assign="assignTo"
+                />
+                <BankFeeSheet
+                    v-if="feeing"
+                    v-model:open="feeOpen"
+                    :transaction="feeing"
+                    :error="feeError"
+                    :processing="feeProcessing"
+                    @choose="attachFee"
+                />
+                <BankTransferSheet
+                    v-if="transferring"
+                    v-model:open="transferOpen"
+                    :transaction="transferring"
+                    :accounts="accounts_all ?? []"
+                    :error="transferError"
+                    :processing="transferProcessing"
+                    @choose="markTransfer"
+                />
+                <BankRawPanel
+                    v-if="show === 'all' && rawRow"
+                    :row="rawRow"
+                    :can-sort="can_sort"
+                    :return-focus="currentTab"
+                    @close="rawId = null"
+                    @undo="(row) => (undoing = row)"
+                />
             </div>
         </div>
-
-        <BankAssignSheet
-            v-if="assigning"
-            v-model:open="assignOpen"
-            :transaction="assigning"
-            :error="assignError"
-            :processing="assignProcessing"
-            @assign="assignTo"
-        />
-        <BankFeeSheet
-            v-if="feeing"
-            v-model:open="feeOpen"
-            :transaction="feeing"
-            :error="feeError"
-            :processing="feeProcessing"
-            @choose="attachFee"
-        />
-        <BankTransferSheet
-            v-if="transferring"
-            v-model:open="transferOpen"
-            :transaction="transferring"
-            :accounts="accounts_all ?? []"
-            :error="transferError"
-            :processing="transferProcessing"
-            @choose="markTransfer"
-        />
-        <BankSimilarSheet
-            v-if="!wide && similar"
-            v-model:open="similarOpen"
-            :similar="similar"
-        />
     </div>
 </template>

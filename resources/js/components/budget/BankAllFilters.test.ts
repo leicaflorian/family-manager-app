@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/vue3';
 import userEvent from '@testing-library/user-event';
-import { screen } from '@testing-library/vue';
+import { screen, within } from '@testing-library/vue';
 import {
     afterEach,
     beforeEach,
@@ -9,7 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { choose, renderPage } from '@/test/page';
+import { choose, renderPage, screenWidth } from '@/test/page';
 import BankAllFilters from './BankAllFilters.vue';
 
 beforeEach(() => {
@@ -20,6 +20,7 @@ beforeEach(() => {
 afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 const none: {
@@ -47,6 +48,31 @@ function show(
 }
 
 describe('BankAllFilters', () => {
+    it('wide, writes the small name of each menu before the value', () => {
+        screenWidth(true);
+        show({ account: 4 });
+
+        const account = screen.getByRole('button', { name: /Bank account/ });
+        expect(account).toHaveTextContent(
+            'Bank accountConto BancoPosta ·· 3307',
+        );
+        expect(
+            screen.getByRole('button', { name: /^Direction/ }),
+        ).toHaveTextContent('DirectionMoney out and in');
+    });
+
+    it('on the phone writes only the value, cut when it is long', () => {
+        screenWidth(false);
+        show({ account: 4 });
+
+        const account = screen.getByRole('button', { name: /Bank account/ });
+        expect(account).toHaveTextContent('Conto BancoPosta ·· 3307');
+        expect(account).not.toHaveTextContent('Bank account');
+        expect(
+            within(account).getByText('Conto BancoPosta ·· 3307'),
+        ).toHaveClass('truncate', 'text-label');
+    });
+
     it('choosing a status asks the server with the filter and resets the rows', async () => {
         const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
         show();

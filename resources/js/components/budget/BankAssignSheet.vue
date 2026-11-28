@@ -8,17 +8,19 @@
  * what the server answers in `error`. With `fee` it is the sheet *It is the commission of…* (the boards *Dalla banca,
  * è la commissione di*): only the expenses already recorded, the ones of the organization named in the commission
  * first, and the line under the list says what the expense becomes with the commission added (`BankFeeSheet`).
+ * It sits in `BankPanelFrame`: on the phone a bottom sheet, wide a panel beside the list (Escape closes it).
  *
  * @group panels
  */
 import { CircleCheck, Landmark } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
-import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import BankPanelFrame from '@/components/budget/BankPanelFrame.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmIcon from '@/components/fm/FmIcon.vue';
 import FmSearchField from '@/components/fm/FmSearchField.vue';
 import { useFormat } from '@/composables/useFormat';
+import { bankMoney } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import type { BankAssignChoice } from '@/lib/bankAssign';
 import { candidates } from '@/routes/budget/bank';
@@ -398,7 +400,7 @@ function confirm(): void {
 </script>
 
 <template>
-    <FmBottomSheet
+    <BankPanelFrame
         v-model:open="open"
         :title="
             fee
@@ -427,9 +429,15 @@ function confirm(): void {
                         .join(' · ')
                 }}</span>
             </span>
-            <span class="shrink-0 text-amount whitespace-nowrap">{{
-                money(transaction.amount, transaction.currency)
-            }}</span>
+            <span
+                :class="
+                    cn(
+                        'shrink-0 text-amount whitespace-nowrap',
+                        transaction.amount > 0 && 'text-paid',
+                    )
+                "
+                >{{ bankMoney(transaction.amount, transaction.currency) }}</span
+            >
         </div>
 
         <div class="flex flex-col gap-1.5">
@@ -588,5 +596,5 @@ function confirm(): void {
                 >{{ confirmLabel }}</FmButton
             >
         </div>
-    </FmBottomSheet>
+    </BankPanelFrame>
 </template>

@@ -117,6 +117,8 @@ describe('BankGroupPanel', () => {
             name: 'It is not of this group',
         });
         expect(buttons).toHaveLength(6);
+        // A button of a row, in the small text, as the board
+        expect(buttons[0]).toHaveClass('text-body-sm');
 
         await userEvent.click(buttons[1]);
         expect(view.emitted('notOfGroup')).toEqual([

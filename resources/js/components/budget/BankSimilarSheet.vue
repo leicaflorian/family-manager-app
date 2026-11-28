@@ -9,7 +9,7 @@
  *
  * @group panels
  */
-import { ChevronDown, ListFilter, Sparkles } from '@lucide/vue';
+import { ChevronDown, ListFilter } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import BankFeeLine from '@/components/budget/BankFeeLine.vue';
@@ -190,7 +190,7 @@ const will = computed((): string => actionLine(similar.filter));
         <span
             class="flex items-start gap-2 rounded-card bg-action-soft px-3 py-2.5 text-label text-action-dark"
         >
-            <Sparkles aria-hidden="true" class="mt-0.5 size-4 shrink-0" />
+            <ListFilter aria-hidden="true" class="mt-0.5 size-4 shrink-0" />
             <span class="min-w-0 first-letter:uppercase">{{ will }}</span>
         </span>
         <p class="m-0 text-meta text-ink-soft">

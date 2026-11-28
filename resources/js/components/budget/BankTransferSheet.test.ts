@@ -1,8 +1,8 @@
 import userEvent from '@testing-library/user-event';
 import { screen, within } from '@testing-library/vue';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { bankTransactions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import BankTransferSheet from './BankTransferSheet.vue';
 
 /** A payment, on the account named «Conto BancoPosta ·· 3307». */
@@ -34,7 +34,23 @@ async function open(
     return view;
 }
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('BankTransferSheet', () => {
+    it('when wide is a panel beside the list, not a dialog, and Escape closes it', async () => {
+        screenWidth(true);
+        const view = await open(debit);
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', { name: 'It is a transfer' }),
+        ).toBeInTheDocument();
+
+        await userEvent.keyboard('{Escape}');
+
+        expect(view.emitted('update:open')?.at(-1)).toEqual([false]);
+    });
+
     it('hides only the account of the transaction when two accounts have the same name', async () => {
         const view = renderPage(BankTransferSheet, {
             open: true,
@@ -67,6 +83,12 @@ describe('BankTransferSheet', () => {
         expect(
             screen.getByRole('link', { name: 'Add an account' }),
         ).toBeInTheDocument();
+    });
+
+    it('writes the amount of a credit with the plus, in green', async () => {
+        await open(credit);
+
+        expect(screen.getByText('+500,00 €')).toHaveClass('text-paid');
     });
 
     it('asks «From which account does it come?» for a credit', async () => {

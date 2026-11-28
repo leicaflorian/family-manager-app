@@ -51,7 +51,9 @@ describe('BankRawPanel', () => {
         screenWidth(true);
         renderPage(BankRawPanel, { row });
 
-        const panel = screen.getByRole('dialog', { name: 'Bank transaction' });
+        const panel = screen.getByRole('complementary', {
+            name: 'Bank transaction',
+        });
         expect(
             within(panel).getByText('BONIFICO SEPA Da INPS ASSEGNO UNICO'),
         ).toBeInTheDocument();
@@ -60,11 +62,11 @@ describe('BankRawPanel', () => {
         expect(value('Who pays')).toBe('INPS');
         expect(value('Booking date')).toBe('17/11/2026');
         expect(value('Value date')).toBe('18/11/2026');
-        expect(value('Account')).toContain('Conto BancoPosta ·· 3307');
+        expect(value('Bank account')).toContain('Conto BancoPosta ·· 3307');
         expect(value('Status at the bank')).toBe('Booked');
         expect(value('Bank code')).toBe('2026111700731845529');
         expect(value('Read')).toBe('27/11/2026 at 07:00');
-        expect(value('Amount')).toContain('407,60');
+        expect(value('Amount')).toContain('+407,60');
         expect(value('Amount')).toContain('EUR');
         expect(within(panel).getByText('An income')).toBeInTheDocument();
     });
@@ -79,8 +81,24 @@ describe('BankRawPanel', () => {
         phone.unmount();
 
         screenWidth(true);
-        const wide = renderPage(BankRawPanel, { row });
-        expect(wide.container.querySelector('[role="dialog"]')).not.toBeNull();
+        renderPage(BankRawPanel, { row });
+        expect(
+            screen.getByRole('complementary', { name: 'Bank transaction' }),
+        ).toBeInTheDocument();
+    });
+
+    it('when wide takes the focus to its title and closes with Escape', async () => {
+        screenWidth(true);
+        const view = renderPage(BankRawPanel, { row });
+
+        await vi.waitFor(() =>
+            expect(
+                screen.getByRole('heading', { name: 'Bank transaction' }),
+            ).toHaveFocus(),
+        );
+        await userEvent.keyboard('{Escape}');
+
+        expect(view.emitted('close')).toHaveLength(1);
     });
 
     it('asks to close and to take the link back', async () => {
@@ -113,7 +131,7 @@ describe('BankRawPanel', () => {
             'Booking date',
             'Value date',
             'Amount',
-            'Account',
+            'Bank account',
             'Status at the bank',
             'Bank code',
             'Read',
