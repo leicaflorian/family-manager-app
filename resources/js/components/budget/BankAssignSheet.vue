@@ -37,6 +37,7 @@ const {
     transaction,
     error = null,
     processing = false,
+    returnFocus,
     fee = false,
 } = defineProps<{
     /** The transaction to assign. */
@@ -47,6 +48,8 @@ const {
     processing?: boolean;
     /** The transaction is a commission left alone: it joins an expense already recorded. */
     fee?: boolean;
+    /** Where the focus goes at the closing when what opened it is gone (wide only): the row sent leaves the page. */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -402,6 +405,7 @@ function confirm(): void {
 <template>
     <BankPanelFrame
         v-model:open="open"
+        :return-focus="returnFocus"
         :title="
             fee
                 ? $t('It is the commission of…')

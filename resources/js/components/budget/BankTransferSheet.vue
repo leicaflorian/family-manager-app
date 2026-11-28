@@ -25,6 +25,7 @@ const {
     accounts,
     error = null,
     processing = false,
+    returnFocus,
 } = defineProps<{
     /** The transaction to mark. */
     transaction: App.Data.BankTransactionData;
@@ -34,6 +35,8 @@ const {
     error?: string | null;
     /** The account is being sent. */
     processing?: boolean;
+    /** Where the focus goes at the closing when what opened it is gone (wide only): the row sent leaves the page. */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -81,7 +84,11 @@ function confirm(): void {
 </script>
 
 <template>
-    <BankPanelFrame v-model:open="open" :title="$t('It is a transfer')">
+    <BankPanelFrame
+        v-model:open="open"
+        :title="$t('It is a transfer')"
+        :return-focus="returnFocus"
+    >
         <div class="flex items-start gap-3 rounded-card bg-canvas px-3.5 py-3">
             <FmIcon
                 :icon="Landmark"

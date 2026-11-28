@@ -814,7 +814,7 @@ const sideOpen = computed(
         assigning.value !== null ||
         feeing.value !== null ||
         transferring.value !== null ||
-        rawRow.value !== null,
+        (props.show === 'all' && rawRow.value !== null),
 );
 
 /** The movement a panel is open for, marked in its list. */
@@ -1251,6 +1251,7 @@ const { title, head } = usePageMeta({
                                         :can-sort="can_sort"
                                         :can-plan="can_plan"
                                         :selected="wide && row.id === markedId"
+                                        :compact="wide && sideOpen"
                                         @assign="openAssign"
                                         @transfer="openTransfer"
                                         @fee="openFee"
@@ -1328,6 +1329,7 @@ const { title, head } = usePageMeta({
                     :transaction="assigning"
                     :error="assignError"
                     :processing="assignProcessing"
+                    :return-focus="currentTab"
                     @assign="assignTo"
                 />
                 <BankFeeSheet
@@ -1336,6 +1338,7 @@ const { title, head } = usePageMeta({
                     :transaction="feeing"
                     :error="feeError"
                     :processing="feeProcessing"
+                    :return-focus="currentTab"
                     @choose="attachFee"
                 />
                 <BankTransferSheet
@@ -1345,6 +1348,7 @@ const { title, head } = usePageMeta({
                     :accounts="accounts_all ?? []"
                     :error="transferError"
                     :processing="transferProcessing"
+                    :return-focus="currentTab"
                     @choose="markTransfer"
                 />
                 <BankRawPanel

@@ -92,7 +92,7 @@ function putBack(row: App.Data.BankTransactionData): boolean {
                     wide &&
                         (compact
                             ? 'grid-cols-[56px_minmax(0,1fr)_104px] gap-y-2'
-                            : 'grid-cols-[56px_minmax(0,1fr)_104px_200px] gap-y-4'),
+                            : 'grid-cols-[56px_minmax(0,1fr)_104px_210px] gap-y-4'),
                     selected === row.id && 'bg-action-soft',
                 )
             "

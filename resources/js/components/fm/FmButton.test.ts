@@ -241,8 +241,10 @@ describe('FmButton', () => {
         const button = screen.getByRole('button', {
             name: 'Create the expense',
         });
-        expect(button).toHaveClass('min-w-0', 'shrink', 'overflow-hidden');
+        expect(button).toHaveClass('min-w-0', 'shrink');
         expect(button).not.toHaveClass('shrink-0');
+        // The words end with an ellipsis, not cut in the middle of a letter
+        expect(screen.getByText('Create the expense')).toHaveClass('truncate');
     });
 
     it('rowAction has the 18 px icon of the boards', () => {

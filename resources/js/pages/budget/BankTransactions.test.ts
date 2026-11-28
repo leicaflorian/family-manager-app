@@ -905,6 +905,69 @@ describe('Budget, From the bank, sorting', () => {
         expect(row).toHaveAttribute('aria-current', 'true');
     });
 
+    it.each([
+        ['It belongs to an expense', 'Mark as paid'],
+        ['It is a transfer', 'Mark as a transfer'],
+    ])(
+        'when wide, after %s is sent the focus comes back to the tab',
+        async (open, confirm) => {
+            screenWidth(true);
+            stubSearch({
+                planned: [
+                    {
+                        kind: 'expense',
+                        id: 6,
+                        title: 'Gas',
+                        organization: null,
+                        due_on: '2026-11-02',
+                        occurrence: '2026-10-30',
+                        late: true,
+                        amount: 84.2,
+                        estimated: true,
+                        paid_on: null,
+                        ended: false,
+                        ended_on: null,
+                    },
+                ],
+                recorded: [],
+            });
+            vi.spyOn(router, 'post').mockImplementation(
+                (_url, _data, options) => {
+                    options?.onSuccess?.({} as never);
+                },
+            );
+            renderPage(
+                BankTransactions,
+                props({
+                    accounts_all: [
+                        { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                    ],
+                }),
+            );
+            const row = screen.getByText(/EDISON ENERGIA/).closest('li')!;
+
+            if (open === 'It is a transfer') {
+                await userEvent.click(
+                    within(row).getByRole('button', { name: 'More actions' }),
+                );
+                await userEvent.click(
+                    screen.getByRole('menuitem', { name: open }),
+                );
+            } else {
+                await userEvent.click(
+                    within(row).getByRole('button', { name: open }),
+                );
+            }
+            await userEvent.click(
+                await screen.findByRole('button', { name: confirm }),
+            );
+            await settle();
+
+            expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /To sort/ })).toHaveFocus();
+        },
+    );
+
     it('when wide, It is a transfer opens beside the list, one panel at a time', async () => {
         screenWidth(true);
         stubSearch({ planned: [], recorded: [] });

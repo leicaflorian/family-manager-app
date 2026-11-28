@@ -8,7 +8,8 @@
  * commission left alone has *It is the commission of…*; one put aside has *Put back among the movements*; a text
  * that came back three months in a row offers *It comes back every month*. The row only says what was tapped
  * (`assign`, `transfer`, `fee`, `ignore`): the page opens the sheets and writes. The slot `proposal` is where
- * «Maybe it is…» goes.
+ * «Maybe it is…» goes. Beside a panel (`compact`, wide) it has three columns and the actions on a line under the
+ * text; while its panel is open it is marked (`selected`).
  *
  * @group rows
  */
@@ -43,11 +44,14 @@ const {
     canSort,
     canPlan,
     selected = false,
+    compact = false,
 } = defineProps<{
     /** The movement, as the server sends it in `rows`. */
     row: App.Data.BankTransactionData;
     /** A panel is open for the movement (*It belongs to an expense*, *It is a transfer*…): the row is marked. */
     selected?: boolean;
+    /** Wide beside a panel: three columns (day, text, amount) and the actions on a line under the text. */
+    compact?: boolean;
     /** Whether who looks can sort the movements (every account of the family). */
     canSort: boolean;
     /** Whether who looks can create a planned expense or income (an administrator). */
@@ -154,8 +158,12 @@ const tagClass = cn(
         :class="
             cn(
                 wide
-                    ? 'grid grid-cols-[56px_minmax(0,1fr)_150px_auto] items-start gap-x-4 gap-y-1 px-5 py-3.5'
+                    ? 'grid items-start gap-x-4 gap-y-1 px-5 py-3.5'
                     : 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2.5 px-4 py-3.5',
+                wide &&
+                    (compact
+                        ? 'grid-cols-[56px_minmax(0,1fr)_104px] gap-y-2.5'
+                        : 'grid-cols-[56px_minmax(0,1fr)_150px_auto]'),
                 selected && 'bg-action-soft',
             )
         "
@@ -258,9 +266,12 @@ const tagClass = cn(
         <div
             v-if="canSort && (row.ignored || !row.pending)"
             :class="
-                wide
-                    ? 'col-start-4 row-start-1 flex flex-nowrap items-center justify-end gap-2'
-                    : 'col-span-full flex flex-nowrap items-center gap-2'
+                cn(
+                    'flex flex-nowrap items-center gap-2',
+                    !wide && 'col-span-full',
+                    wide && !compact && 'col-start-4 row-start-1 justify-end',
+                    wide && compact && 'col-span-2 col-start-2',
+                )
             "
         >
             <FmButton

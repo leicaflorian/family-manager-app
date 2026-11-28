@@ -13,6 +13,7 @@ const {
     transaction,
     error = null,
     processing = false,
+    returnFocus,
 } = defineProps<{
     /** The commission left alone. */
     transaction: App.Data.BankTransactionData;
@@ -20,6 +21,8 @@ const {
     error?: string | null;
     /** The choice is being sent. */
     processing?: boolean;
+    /** Where the focus goes at the closing when what opened it is gone (wide only). */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -38,6 +41,7 @@ const open = defineModel<boolean>('open', { default: false });
         :transaction="transaction"
         :error="error"
         :processing="processing"
+        :return-focus="returnFocus"
         @assign="
             (choice) =>
                 'movement_id' in choice && emit('choose', choice.movement_id)

@@ -80,6 +80,19 @@ describe('BankLoneRow', () => {
         expect(screen.getByText('+35,00 €')).toBeInTheDocument();
     });
 
+    it('wide and compact, beside a panel, has three columns and the actions on a line under the text', () => {
+        screenWidth(true);
+        mount(booked, { compact: true });
+
+        expect(screen.getByRole('listitem')).toHaveClass(
+            'grid-cols-[56px_minmax(0,1fr)_104px]',
+        );
+        expect(
+            screen.getByRole('link', { name: 'Create the expense' })
+                .parentElement,
+        ).toHaveClass('col-start-2');
+    });
+
     it('is marked while its panel is open', () => {
         mount(booked, { selected: true });
 

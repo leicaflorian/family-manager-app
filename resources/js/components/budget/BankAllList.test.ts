@@ -200,7 +200,7 @@ describe('BankAllList', () => {
 
         for (const row of screen.getAllByRole('listitem')) {
             expect(row).toHaveClass(
-                'grid-cols-[56px_minmax(0,1fr)_104px_200px]',
+                'grid-cols-[56px_minmax(0,1fr)_104px_210px]',
             );
         }
     });

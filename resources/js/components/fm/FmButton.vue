@@ -108,7 +108,7 @@ const {
     /**
      * It may get narrower than its text when the row is short, as the two
      * buttons of a lone movement of *From the bank* that share the line with
-     * the menu on the phone: the room at the sides goes first.
+     * the menu on the phone: the words end with an ellipsis.
      */
     shrink?: boolean;
 }>();
@@ -148,7 +148,7 @@ const classes = computed((): string =>
         compact &&
             'h-control flex-1 basis-0 gap-[7px] rounded-lg px-0 text-label wide:h-10 wide:flex-none wide:px-3.5',
         rowAction && 'h-control gap-1.5 rounded-md px-2.5 text-body-sm',
-        shrink && 'min-w-0 shrink overflow-hidden',
+        shrink && 'min-w-0 shrink',
         wide && 'w-full',
         // Only the icon: the light grey square of the canvas
         label &&
@@ -190,7 +190,8 @@ const iconSize = computed((): number => {
         :class="classes"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </a>
     <Link
         v-else-if="href"
@@ -200,7 +201,8 @@ const iconSize = computed((): number => {
         :class="classes"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </Link>
     <button
         v-else
@@ -212,6 +214,7 @@ const iconSize = computed((): number => {
         @click="$emit('click', $event)"
     >
         <FmIcon v-if="icon" :icon="icon" :size="iconSize" />
-        <slot v-if="!label" />
+        <span v-if="!label && shrink" class="truncate"><slot /></span>
+        <slot v-else-if="!label" />
     </button>
 </template>
