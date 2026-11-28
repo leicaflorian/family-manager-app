@@ -116,6 +116,20 @@ final class RecordDrafts
     }
 
     /**
+     * The box of the utility of one supply of a bill with more than one: the utility of the supply to link, otherwise
+     * a new one with the type, the codes, the issuer, the holder and the home, as the box of a bill alone.
+     *
+     * @param  Extraction  $supplyView  the reading seen from the supply (`Extraction::forSupply()`)
+     * @param  array{terminatedUtility: ?Utility, homes: Collection<int, Home>, ...}  $found  what the searches found
+     * @param  array{organization_id: ?int, organization_name: ?string, person_id: ?int, date: ?CarbonImmutable}  $document  the document as the person will save it
+     * @param  Utility|null  $utility  the utility of the supply
+     */
+    public static function supply(Extraction $supplyView, array $found, array $document, ?Utility $utility): RecordDraftData
+    {
+        return self::utility($supplyView, $found, $document, RecordLabel::linked($utility));
+    }
+
+    /**
      * The cards the reading proposes, each with its conditions.
      *
      * @param  Extraction  $x  the reading

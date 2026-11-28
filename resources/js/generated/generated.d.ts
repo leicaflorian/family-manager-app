@@ -1110,6 +1110,7 @@ vehicle_year: number | null,
 contract_start_date: string | null,
 summary: string | null,
 confidence: string | null,
+supplies: App.Data.Reading.SupplyData[],
 };
 export type FoundLineData = {
 readonly label: string,
@@ -1190,6 +1191,7 @@ readonly warnings: string[],
 readonly createCard: boolean,
 readonly cardType: string | null,
 readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
+readonly supplies: App.Data.Reading.SupplyProposalData[],
 };
 export type RecordDraftData = {
 readonly kind: App.Enums.RecordKind,
@@ -1210,6 +1212,32 @@ readonly fields: App.Data.CardFieldData[],
 readonly complete: string[],
 readonly cardType: string | null,
 readonly replaces: App.Data.ReplaceablePolicyData[],
+readonly hint: string | null,
+};
+export type SupplyData = {
+utility_type: string | null,
+supply_point_code: string | null,
+amount: number | null,
+period_start: string | null,
+period_end: string | null,
+consumption_quantity: number | null,
+consumption_unit: string | null,
+consumption_estimated: boolean | null,
+consumption_adjusted: boolean | null,
+consumption_energy_amount: number | null,
+consumption_f1: number | null,
+consumption_f2: number | null,
+consumption_f3: number | null,
+};
+export type SupplyProposalData = {
+readonly index: number,
+readonly utility_type: string | null,
+readonly supply_point_code: string | null,
+readonly amount: number | null,
+readonly heading: string,
+readonly record: App.Data.Reading.RecordDraftData | null,
+readonly movement: App.Data.Reading.MovementProposalData | null,
+readonly consumption: App.Data.Reading.ConsumptionProposalData | null,
 };
 }
 namespace Search {

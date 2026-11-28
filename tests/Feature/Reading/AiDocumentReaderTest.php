@@ -10,6 +10,7 @@ use App\Contracts\DocumentReader;
 use App\Data\Banks\BankRuleSuggestion;
 use App\Data\Mail\MailScreeningAnswer;
 use App\Data\Reading\ConsumptionReading;
+use App\Data\Reading\Extraction;
 use App\Data\Reading\Reading;
 use App\Enums\ReadingPurpose;
 use App\Exceptions\Reading\ReadingFailed;
@@ -24,6 +25,7 @@ use App\Support\CurrentFamily;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     Storage::fake('local');
@@ -118,6 +120,55 @@ test('gemini reads a pdf', function (): void {
         ->and($reading->outputTokens)->toBe(412 + 620)
         ->and($reading->cacheReadTokens)->toBe(0);
 });
+
+test('a dual-fuel bill is asked for and read with its supplies', function (): void {
+    $answer = aiAnswer('gemini-bill');
+    $answer['steps'][1]['content'][0]['text'] = json_encode(EnelBill::answer(['organization_id' => 7]), JSON_THROW_ON_ERROR);
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response($answer)]);
+
+    $reading = aiReader('gemini', 'gemini-3.8-flash')->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it');
+
+    Http::assertSent(function (Request $request): bool {
+        $schema = $request['response_format']['schema'];
+
+        return in_array('supplies', $schema['required'], true)
+            && $schema['properties']['supplies']['type'] === 'array'
+            && $schema['properties']['supplies']['items']['required'] === Extraction::SUPPLY_FIELDS
+            && str_contains((string) $request['system_instruction'], ReadingPrompt::SUPPLIES_RULE);
+    });
+    expect($reading->extraction->supplies)->toHaveCount(2)
+        ->and($reading->extraction->supplies[1]->supply_point_code)->toBe(EnelBill::PDR)
+        ->and($reading->extraction->supplies[1]->amount)->toBe(69.40)
+        ->and($reading->extraction->total_amount)->toBe(165.65)
+        ->and($reading->extraction->organization_id)->toBe(7);
+});
+
+test('every reader gets the supplies with the same rules as the fields of the document', function (string $provider, string $host, string $fixture, string $model): void {
+    Http::fake([$host.'/*' => Http::response(aiAnswer($fixture))]);
+
+    aiReader($provider, $model)->read(aiReaderSource($this->pdf, 'application/pdf'), $this->context, 'it');
+
+    Http::assertSent(function (Request $request) use ($provider): bool {
+        $schema = $provider === 'anthropic' ? $request['output_config']['format']['schema'] : $request['response_format']['schema'];
+        $supplies = $schema['properties']['supplies'];
+        $item = $supplies['items'];
+
+        // A field of a supply is sent exactly as the field of the document with the same name and type
+        $same = collect(['utility_type', 'supply_point_code', 'period_start', 'consumption_quantity', 'consumption_unit', 'consumption_estimated'])
+            ->every(fn (string $field): bool => $item['properties'][$field] === $schema['properties'][$field]);
+
+        return $supplies['type'] === 'array'
+            && $item['type'] === 'object'
+            && $item['additionalProperties'] === false
+            && $item['required'] === Extraction::SUPPLY_FIELDS
+            && array_keys($item['properties']) === Extraction::SUPPLY_FIELDS
+            && $item['properties']['amount'] === $schema['properties']['total_amount']
+            && $same;
+    });
+})->with([
+    'gemini' => ['gemini', 'generativelanguage.googleapis.com', 'gemini-bill', 'gemini-3.8-flash'],
+    'anthropic' => ['anthropic', 'api.anthropic.com', 'anthropic-bill', 'claude-opus-5-5'],
+]);
 
 test('anthropic asks low effort and the fallback', function (): void {
     Http::fake(['api.anthropic.com/*' => Http::response(aiAnswer('anthropic-bill'))]);

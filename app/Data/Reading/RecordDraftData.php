@@ -29,6 +29,7 @@ final class RecordDraftData extends Data
      * @param  list<string>  $complete  the (`date`, `person_id`, `organization_id`) required fields still empty that come from the document, written in its form
      * @param  string|null  $cardType  the type of the morph map of the card (`utility`, `home`); null for an organization
      * @param  list<ReplaceablePolicyData>  $replaces  for a new policy, the old ones of the same type and card it can cancel (none for whoever cannot edit them)
+     * @param  string|null  $hint  the line under the box that says why it starts unticked (`You already have a gas utility: tick it if this is another supply.`)
      */
     public function __construct(
         public readonly RecordKind $kind,
@@ -43,5 +44,6 @@ final class RecordDraftData extends Data
         public readonly array $complete = [],
         public readonly ?string $cardType = null,
         public readonly array $replaces = [],
+        public readonly ?string $hint = null,
     ) {}
 }

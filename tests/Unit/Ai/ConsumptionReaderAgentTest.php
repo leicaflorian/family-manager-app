@@ -111,6 +111,12 @@ test('the system text says when to fill the supplies', function (): void {
     expect(new ConsumptionReaderAgent('gemini-3.8-flash')->instructions())->toContain('supplies: Fill `supplies` only when the bill has two or more supplies');
 });
 
+test('the rule of the supplies shares its start with the full reading and keeps its own end', function (): void {
+    expect(new ConsumptionReaderAgent('gemini-3.8-flash')->instructions())->toEndWith(
+        "\n- supplies: Fill `supplies` only when the bill has two or more supplies, each with its own supply code (a dual-fuel bill); otherwise leave it empty. For each supply: utility_type, supply_point_code, amount (the total of that supply in euro), period_start, period_end and the consumption_* fields of that supply, with the rules above. total_amount stays the total to pay; period_start, period_end and the consumption_* fields of the document are those of the first supply.",
+    )->toContain(ReadingPrompt::SUPPLIES_LIST);
+});
+
 test('the answer of a bill of electricity and gas keeps both supplies, and the flat fields are the first', function (): void {
     $reading = ConsumptionReaderAgent::parse(consumptionReaderAgentEnel());
 

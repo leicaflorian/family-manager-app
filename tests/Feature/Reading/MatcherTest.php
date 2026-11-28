@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Data\Reading\SupplyData;
 use App\Enums\EmploymentStatus;
 use App\Enums\FinancialAccountStatus;
 use App\Enums\SubscriptionStatus;
 use App\Enums\UtilityStatus;
+use App\Enums\UtilityType;
 use App\Models\Employment;
 use App\Models\Family;
 use App\Models\FinancialAccount;
@@ -18,6 +20,7 @@ use App\Models\Vehicle;
 use App\Services\Reading\Matcher;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
+use Tests\Support\EnelBill;
 
 beforeEach(function (): void {
     $this->bianchi = Family::factory()->create(['name' => 'Bianchi']);
@@ -300,5 +303,53 @@ describe('subscription', function (): void {
 
         Subscription::factory()->for(test()->bianchi)->count(2)->create(['organization_id' => $organization->id]);
         expect($this->matcher->subscription($organization->id))->toBeNull();
+    });
+});
+
+describe('supplyUtilities', function (): void {
+    beforeEach(function (): void {
+        $this->electricity = new SupplyData(utility_type: 'electricity', supply_point_code: EnelBill::POD, amount: 96.25);
+        $this->gas = new SupplyData(utility_type: 'gas', supply_point_code: EnelBill::PDR, amount: 69.40);
+    });
+
+    test('each supply finds its utility by its code, whatever the customer codes', function (): void {
+        $luce = Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Electricity, 'supply_point_code' => 'IT001E87654321', 'customer_code' => EnelBill::CUSTOMER]);
+        $gas = Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Gas, 'supply_point_code' => '0088 1234 5678 90', 'customer_code' => null]);
+
+        $found = $this->matcher->supplyUtilities([$this->electricity, $this->gas], EnelBill::CUSTOMER);
+
+        expect(array_keys($found))->toBe([0, 1])->and($found[0]?->id)->toBe($luce->id)->and($found[1]?->id)->toBe($gas->id);
+    });
+
+    test('a utility without a code is found by the customer code, only if it is the one of the type', function (): void {
+        Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Electricity, 'supply_point_code' => null, 'customer_code' => EnelBill::CUSTOMER]);
+        $gas = Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Gas, 'supply_point_code' => null, 'customer_code' => EnelBill::CUSTOMER]);
+
+        expect($this->matcher->supplyUtilities([$this->gas], EnelBill::CUSTOMER)[0]?->id)->toBe($gas->id);
+
+        Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Gas, 'supply_point_code' => null, 'customer_code' => EnelBill::CUSTOMER]);
+
+        expect($this->matcher->supplyUtilities([$this->gas], EnelBill::CUSTOMER)[0])->toBeNull();
+    });
+
+    test('a utility with another code is not found by the customer code', function (): void {
+        Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Gas, 'supply_point_code' => '00889999999999', 'customer_code' => EnelBill::CUSTOMER]);
+
+        expect($this->matcher->supplyUtilities([$this->gas], EnelBill::CUSTOMER)[0])->toBeNull();
+    });
+
+    test('a utility goes to one supply only', function (): void {
+        $luce = Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Electricity, 'supply_point_code' => EnelBill::POD]);
+
+        $found = $this->matcher->supplyUtilities([$this->electricity, new SupplyData(utility_type: 'electricity', supply_point_code: EnelBill::POD, amount: 10.0)], null);
+
+        expect($found[0]?->id)->toBe($luce->id)->and($found[1])->toBeNull();
+    });
+
+    test('an ended utility is not found, nor one of another family', function (): void {
+        Utility::factory()->for(test()->bianchi)->create(['type' => UtilityType::Gas, 'supply_point_code' => EnelBill::PDR, 'status' => UtilityStatus::Terminated]);
+        CurrentFamily::using(test()->rossi->id, fn () => Utility::factory()->for(test()->rossi)->create(['type' => UtilityType::Electricity, 'supply_point_code' => EnelBill::POD]));
+
+        expect($this->matcher->supplyUtilities([$this->electricity, $this->gas], EnelBill::CUSTOMER))->toBe([0 => null, 1 => null]);
     });
 });

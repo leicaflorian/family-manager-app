@@ -57,7 +57,7 @@ final readonly class SaveRecords
                 continue;
             }
 
-            $card = $this->existing($draft) ?? $this->create($draft, $out['ids']);
+            $card = $this->card($draft, $out['ids']);
             $out['records'][$draft->kind->value] = $card;
             $out['ids'][$draft->kind->value] = RecordLabel::id($card);
 
@@ -113,6 +113,21 @@ final readonly class SaveRecords
         }
 
         return $records;
+    }
+
+    /**
+     * The card of a box: the one already there it links to, otherwise a new one, with what the cards saved before
+     * give.
+     *
+     * @param  RecordDraftData  $draft  the box
+     * @param  array<string, int>  $ids  the cards saved before, by kind
+     *
+     * @throws ValidationException if a new card misses a required field
+     * @throws ModelNotFoundException if the card to link is no longer there
+     */
+    public function card(RecordDraftData $draft, array $ids): Model
+    {
+        return $this->existing($draft) ?? $this->create($draft, $ids);
     }
 
     /**

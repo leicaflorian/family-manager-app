@@ -22,6 +22,7 @@ use App\Data\Reading\MovementValuesData;
 use App\Data\Reading\PolicyGiverData;
 use App\Data\Reading\ProposalData;
 use App\Data\Reading\RecordDraftData;
+use App\Data\Reading\SupplyProposalData;
 use App\Data\ReplaceablePolicyData;
 use App\Enums\Area;
 use App\Enums\ConsumptionSource;
@@ -73,6 +74,11 @@ use Throwable;
  * 5. the intervention, with the expense;
  * 6. the old policies the new policy replaces, ticked under its box ({@see ReplacePolicy}): after the movement, so a
  *    premium the file just planned for the new policy counts.
+ *
+ * A bill with more than one supply (a dual-fuel bill) saves one document for all of them: the utility of each supply
+ * whose box is ticked is linked or created in step 1, the document is linked to all of them, and steps 3 and 4b are
+ * done for each supply with its own choices, its expense and its consumption only on its utility linked to the
+ * document (a supply whose utility box is unticked has none: its consumption is refused, as for a bill alone).
  *
  * The proposal it starts from is the one the request checked, when the caller passes it and the paper takes no
  * policy from another file (the policies are the only thing the other files change); otherwise it is made here.
@@ -184,15 +190,22 @@ final readonly class ImportFile
         // The form was filled before the other files of the import were saved: the cards they created, which this file
         // names too (a second paper with the number of the policy the first one created), are not in it
         $found = array_values(array_filter($proposal->document->links, static fn (array $link): bool => in_array($link, $roundCards, true)));
-        $document = $this->document($file, $proposal, $choices, [...$before['links'], ...$found], $policy, $this->unticked($first, $choices));
+        $utilities = $this->supplyUtilities($first, $choices, $before['ids']);
+        $supplyLinks = array_values(array_map(static fn (Utility $utility): array => ['type' => 'utility', 'id' => $utility->id], array_filter($utilities)));
+        $unlinked = [...$this->unticked($first, $choices), ...$this->untickedSupplies($first, $supplyLinks)];
+        $document = $this->document($file, $proposal, $choices, [...$before['links'], ...$found, ...$supplyLinks], $policy, $unlinked);
+        $x = Extraction::ofFile($file);
         $movement = $choices->movement && $proposal->movement instanceof MovementProposalData
-            ? $this->movement($file, $proposal->movement, $choices, $document, $this->ownCard($first, $before['records']))
+            ? $this->movement($x, $file, $proposal->movement, $choices, $document, $this->ownCard($first, $before['records']))
             : null;
         $expense = $movement instanceof Expense ? $movement : null;
         $event = $choices->event && $proposal->event instanceof EventProposalData ? $this->event($proposal->event, $document, $expense) : null;
         if ($proposal->consumption instanceof ConsumptionProposalData && ($choices->consumption ?? $proposal->consumption->suggested)) {
-            $this->consumption($file, $proposal->consumption, $document);
+            $utility = $this->proposedUtility($proposal->consumption) ?? $document->utilities()->orderBy('utilities.id')->get()
+                ->first(static fn (Utility $card): bool => ConsumptionUnit::forUtility($card->type) instanceof ConsumptionUnit);
+            $this->consumption($x, $proposal->consumption, $document, $utility);
         }
+        $this->supplies($x, $file, $proposal->supplies, $choices, $document, $utilities);
         $after = $this->records->after($first->records, $choices->records, $before['ids'], $document, $expense);
         $this->replacePolicies($first, $choices, $before['records'][RecordKind::Policy->value] ?? null);
 
@@ -203,6 +216,96 @@ final readonly class ImportFile
         }
 
         return ['document' => $document, 'movement' => $movement, 'event' => $event, 'records' => [...$before['records'], ...$after], 'warnings' => $warnings];
+    }
+
+    /**
+     * Step 1 for a bill with more than one supply: the utility of each supply whose box is ticked (as sent, otherwise as
+     * proposed), linked or created.
+     *
+     * @param  ProposalData  $first  the proposal before anything is saved
+     * @param  ImportChoices  $choices  what the person confirmed
+     * @param  array<string, int>  $ids  the cards saved before, by kind
+     * @return array<int, ?Utility> the utility of each supply by its index, null for a box not ticked
+     *
+     * @throws ValidationException if a new utility misses a required field
+     * @throws ModelNotFoundException if a utility to link is no longer there
+     */
+    private function supplyUtilities(ProposalData $first, ImportChoices $choices, array $ids): array
+    {
+        $utilities = [];
+        foreach ($first->supplies as $supply) {
+            $box = $supply->record;
+            $ticked = $box instanceof RecordDraftData && $choices->supplyRecordTicked($supply->index, $box->suggested);
+            $card = $ticked ? $this->records->card($box, $ids) : null;
+            $utilities[$supply->index] = $card instanceof Utility ? $card : null;
+        }
+
+        return $utilities;
+    }
+
+    /**
+     * The utilities the proposal links the document to for its supplies whose box was unticked: the box decides.
+     *
+     * @param  ProposalData  $first  the proposal the person saw
+     * @param  list<array{type: string, id: int}>  $saved  the utilities of the supplies saved with the file
+     * @return list<array{type: string, id: int}>
+     */
+    private function untickedSupplies(ProposalData $first, array $saved): array
+    {
+        if ($first->supplies === []) {
+            return [];
+        }
+
+        return array_values(array_filter($first->document->links, static fn (array $link): bool => $link['type'] === 'utility' && ! in_array($link, $saved, true)));
+    }
+
+    /**
+     * Steps 3 and 4b for each supply of a bill with more than one, with its own choices: its expense (or its due date
+     * to pay) referring to its utility, and its consumption in the row of its utility, the one saved with the file
+     * and linked to the document. Every planned expense the supplies touch (the one that leads an expense, the one
+     * whose due date is to pay, the one a receipt pays) is locked first, by ascending id, as the bank payments lock
+     * them: `SaveMovement` and the exception of a due date lock them again later, which in the same transaction does
+     * not wait, so no lock is ever taken in the order of the supplies.
+     *
+     * @param  Extraction  $x  what the model read
+     * @param  File  $file  the file
+     * @param  list<SupplyProposalData>  $supplies  the supplies of the proposal, made again after the cards
+     * @param  ImportChoices  $choices  what the person confirmed
+     * @param  Document  $document  the document of the file
+     * @param  array<int, ?Utility>  $utilities  the utility of each supply saved with the file, by index
+     *
+     * @throws ValidationException if a ticked box misses what it needs, or a due date is already paid
+     */
+    private function supplies(Extraction $x, File $file, array $supplies, ImportChoices $choices, Document $document, array $utilities): void
+    {
+        $planned = [];
+        foreach ($supplies as $supply) {
+            $own = $choices->forSupply($supply->index);
+            if ($own->movement && $supply->movement instanceof MovementProposalData) {
+                $planned[] = $supply->movement->values->lead['id'] ?? null;
+                $planned[] = $supply->movement->due->plan['id'] ?? null;
+                $planned[] = $supply->movement->pays['planned'] ?? null;
+            }
+        }
+        $planned = array_values(array_unique(array_filter($planned, is_int(...))));
+        if ($planned !== []) {
+            PlannedExpense::query()->whereKey($planned)->orderBy('id')->lockForUpdate()->get();
+        }
+
+        foreach ($supplies as $supply) {
+            $own = $choices->forSupply($supply->index);
+            $view = $x->forSupply($supply->index);
+            $utility = $utilities[$supply->index] ?? null;
+
+            if ($own->movement && $supply->movement instanceof MovementProposalData) {
+                $card = $utility instanceof Utility ? ['card_type' => 'utility', 'card_id' => $utility->id] : [];
+                $this->movement($view, $file, $supply->movement, $own, $document, $card, $card);
+            }
+
+            if ($supply->consumption instanceof ConsumptionProposalData && ($own->consumption ?? $supply->consumption->suggested)) {
+                $this->consumption($view, $supply->consumption, $document, $utility);
+            }
+        }
     }
 
     /**
@@ -338,20 +441,22 @@ final readonly class ImportFile
      * Step 3: the movement already recorded takes the document and what changes on it; otherwise the expense to pay,
      * the payment of a due date, or a new expense or income.
      *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply
      * @param  File  $file  the file
      * @param  MovementProposalData  $proposed  the movement side of the proposal
      * @param  ImportChoices  $choices  what the person confirmed
      * @param  Document  $document  the document of the file
      * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
+     * @param  array{card_type?: string, card_id?: int}|null  $card  the card of a new movement whatever else gives one (the utility of a supply, or none); null to take it as for a bill alone
      *
      * @throws ValidationException if the movement misses its amount or date, or its due date is already paid
      */
-    private function movement(File $file, MovementProposalData $proposed, ImportChoices $choices, Document $document, array $own): Expense|Income|PlannedExpense
+    private function movement(Extraction $x, File $file, MovementProposalData $proposed, ImportChoices $choices, Document $document, array $own, ?array $card = null): Expense|Income|PlannedExpense
     {
         $kind = $proposed->values->kind;
 
         if ($proposed->duplicate !== null) {
-            return $this->linked($file, $proposed, $document);
+            return $this->linked($x, $file, $proposed, $document);
         }
 
         $due = $proposed->due;
@@ -362,14 +467,14 @@ final readonly class ImportFile
         }
 
         if ($toPay) {
-            return $this->toPay($proposed, $document, $own);
+            return $this->toPay($proposed, $document, $card ?? $this->card($document, $own));
         }
 
         if ($proposed->pays !== null) {
             return $this->payment($proposed->values, $proposed->pays, $document, $own);
         }
 
-        $columns = $this->columns($proposed->values, $document, $own);
+        $columns = $this->columns($proposed->values, $document, $own, $card);
         $movement = $this->saveMovement->handle($kind, $columns);
         $movement->documents()->syncWithoutDetaching([$document->id]);
 
@@ -380,6 +485,7 @@ final readonly class ImportFile
      * The movement already recorded, or picked by hand: it takes the document and, for an expense, what the file
      * changes on it. A commitment taken pays the due date the day of the expense falls on.
      *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply
      * @param  File  $file  the file
      * @param  MovementProposalData  $proposed  the movement side
      * @param  Document  $document  the document
@@ -387,7 +493,7 @@ final readonly class ImportFile
      * @throws ModelNotFoundException if it is no longer there
      * @throws ValidationException if the due date of the commitment was paid in the meantime
      */
-    private function linked(File $file, MovementProposalData $proposed, Document $document): Expense|Income
+    private function linked(Extraction $x, File $file, MovementProposalData $proposed, Document $document): Expense|Income
     {
         $id = $proposed->duplicate['id'] ?? 0;
         $movement = $proposed->values->kind === 'income' ? Income::query()->findOrFail($id) : Expense::query()->findOrFail($id);
@@ -397,7 +503,7 @@ final readonly class ImportFile
             return $movement;
         }
 
-        $data = $this->expenseChanges->of($movement, $proposed->values, Extraction::ofFile($file), ReadingContext::for($file))['data'];
+        $data = $this->expenseChanges->of($movement, $proposed->values, $x, ReadingContext::for($file))['data'];
         if (! array_key_exists('planned_expense_id', $data)) {
             if ($data !== []) {
                 $movement->update($data);
@@ -422,11 +528,11 @@ final readonly class ImportFile
      *
      * @param  MovementProposalData  $proposed  the movement side, with "to pay" in effect and its deadline
      * @param  Document  $document  the document
-     * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
+     * @param  array{card_type?: string, card_id?: int}  $card  the card a new planned expense refers to
      *
      * @throws ModelNotFoundException if the planned expense is no longer there
      */
-    private function toPay(MovementProposalData $proposed, Document $document, array $own): PlannedExpense
+    private function toPay(MovementProposalData $proposed, Document $document, array $card): PlannedExpense
     {
         $due = $proposed->due;
         $values = $proposed->values;
@@ -447,7 +553,7 @@ final readonly class ImportFile
                 'financial_account_id' => $values->financial_account_id,
                 'person_id' => $values->person_id,
                 'notes' => $values->notes,
-                ...$this->card($document, $own),
+                ...$card,
             ])
             : PlannedExpense::query()->findOrFail($due->plan['id'] ?? 0);
 
@@ -459,7 +565,7 @@ final readonly class ImportFile
             $this->exception($planned, CarbonImmutable::parse($due->occurrence, 'Europe/Rome'), (float) $values->amount, $deadline);
         }
 
-        $document->update(['planned_expense_id' => $planned->id]);
+        $document->waitOn($planned);
 
         return $planned;
     }
@@ -537,9 +643,10 @@ final readonly class ImportFile
      * @param  MovementValuesData  $values  the values of the proposal
      * @param  Document  $document  the document, whose title names a movement without one and whose links give the card
      * @param  array{card_type?: string, card_id?: int}  $own  the card of the document category saved with the file
+     * @param  array{card_type?: string, card_id?: int}|null  $card  the card of the expense whatever its commitment gives (the utility of a supply, or none); null to take it as for a bill alone
      * @return array<string, mixed>
      */
-    private function columns(MovementValuesData $values, Document $document, array $own): array
+    private function columns(MovementValuesData $values, Document $document, array $own, ?array $card = null): array
     {
         $shared = [
             'title' => $values->title ?? $document->title,
@@ -560,7 +667,11 @@ final readonly class ImportFile
             ...$shared,
             'fee_amount' => $values->fee_amount,
             'category_id' => $values->category_id,
-            ...($values->lead === null ? $this->card($document, $own) : []),
+            ...match (true) {
+                $card !== null => $card,
+                $values->lead === null => $this->card($document, $own),
+                default => [],
+            },
         ];
     }
 
@@ -644,23 +755,31 @@ final readonly class ImportFile
     }
 
     /**
-     * Step 4b: the consumption of the bill, in the row of its utility: the one of the proposal, otherwise the first of
-     * electricity, gas or water the saved document is linked to (a utility created with the file). A reading never
-     * overwrites a row written by hand. What only the reading has (an adjustment, the energy part, the bands) is
-     * saved as read.
+     * The utility the consumption box of the proposal goes to, when it found one.
      *
-     * @param  File  $file  the file, whose reading gives what the box does not show
+     * @param  ConsumptionProposalData  $proposed  the consumption side of the proposal
+     */
+    private function proposedUtility(ConsumptionProposalData $proposed): ?Utility
+    {
+        return $proposed->utility === null ? null : Utility::query()->find($proposed->utility['id']);
+    }
+
+    /**
+     * Step 4b: the consumption of the bill, in the row of its utility: the one of the proposal, otherwise the first of
+     * electricity, gas or water the saved document is linked to (a utility created with the file); for a supply, its
+     * own utility. A reading never overwrites a row written by hand. What only the reading has (an adjustment, the
+     * energy part, the bands) is saved as read.
+     *
+     * @param  Extraction  $x  what the model read, or the reading seen from one supply: it gives what the box does not show
      * @param  ConsumptionProposalData  $proposed  the consumption side of the proposal
      * @param  Document  $document  the document, the bill of the row
+     * @param  Utility|null  $utility  the utility of the row
      *
      * @throws ValidationException if the consumption misses its utility, quantity or period
      */
-    private function consumption(File $file, ConsumptionProposalData $proposed, Document $document): UtilityConsumption
+    private function consumption(Extraction $x, ConsumptionProposalData $proposed, Document $document, ?Utility $utility): UtilityConsumption
     {
         $values = $proposed->values;
-        $utility = $proposed->utility === null ? null : Utility::query()->find($proposed->utility['id']);
-        $utility ??= $document->utilities()->orderBy('utilities.id')->get()
-            ->first(static fn (Utility $card): bool => ConsumptionUnit::forUtility($card->type) instanceof ConsumptionUnit);
 
         // The proposal made again after the cards does not see a utility created with the file among the links the page
         // sent, so the document decides whether it has one; what is missing in the box still stops the import
@@ -675,8 +794,6 @@ final readonly class ImportFile
                 ? $proposed->blocked
                 : Translated::text('To record the consumption write the quantity and the period in its box.')]);
         }
-
-        $x = Extraction::ofFile($file);
 
         return $this->saveConsumption->handle($utility, new ConsumptionValues(
             periodStart: CarbonImmutable::parse($values->period_start, 'Europe/Rome'),
