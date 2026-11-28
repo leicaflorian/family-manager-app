@@ -19,7 +19,6 @@ use App\Http\Requests\Banks\SaveBankFilterRequest;
 use App\Http\Requests\Banks\SuggestBankFilterRequest;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
-use App\Models\PlannedExpense;
 use App\Services\Banks\BankFilterPreview;
 use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankGroupProposals;
@@ -28,7 +27,6 @@ use App\Services\Banks\BankRows;
 use App\Services\BudgetFormOptions;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterDraft;
-use App\Support\Banks\BankText;
 use App\Support\Banks\RefineBankFilter;
 use App\Support\PlannedKind;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -253,18 +251,7 @@ final class BankFilterController extends Controller
             return ['draft' => BankFilterDraft::fromLink($from, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay])), 'examples' => $examples, 'group' => null];
         }
 
-        $draft = new BankFilterDraft(
-            name: $planned->displayTitle(),
-            contains: $from instanceof BankTransaction ? BankText::words($from->text) : [],
-            excludes: $from instanceof BankTransaction ? ['COMMISSIONI'] : [],
-            direction: $planned instanceof PlannedExpense ? 'expense' : 'income',
-            accountId: $from?->financial_account_id,
-            action: BankFilterAction::Pay,
-            plannedExpenseId: $planned instanceof PlannedExpense ? $planned->id : null,
-            plannedIncomeId: $planned instanceof PlannedExpense ? null : $planned->id,
-        );
-
-        return ['draft' => $draft, 'examples' => $examples, 'group' => null];
+        return ['draft' => BankFilterDraft::fromPlanned($planned, $from), 'examples' => $examples, 'group' => null];
     }
 
     /**

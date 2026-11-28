@@ -19,6 +19,7 @@ use App\Services\Banks\BankGroups;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankGroup;
+use App\Support\Banks\BankText;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -251,7 +252,7 @@ it('after creating an expense from a movement of a group the page says how many 
 
     $flash = session('inertia.flash_data.similar');
 
-    expect($flash['rows'])->toHaveCount(5)
+    expect($flash['rows'])->toHaveCount(7)
         ->and(collect($flash['rows'])->pluck('id')->all())->each->not->toBe($rows[0]->id);
 });
 
@@ -478,4 +479,84 @@ it('a group of two: the movement leaves it and is ignored from the form, though 
     expect(resolve(BankGroups::class)->find($key))->toBeNull()
         ->and($wash->refresh()->ignored_at)->not->toBeNull()
         ->and($first->refresh()->ignored_at)->toBeNull();
+});
+
+it('says what the filter for the others would do after a recorded expense is linked', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+    $expense = Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Bar Rossi', 'amount' => 10, 'date' => '2026-11-01']);
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'movement_id' => $expense->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.action', 'create');
+});
+
+it('offers the filter for the others after a due date is paid that already has a paying filter', function (): void {
+    bankGroupsSimilarOn();
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce', 'start_date' => '2026-01-05', 'financial_account_id' => null, 'bank_match' => null]);
+    BankFilter::factory()->pays($planned)->create(['family_id' => $this->marco->family_id, 'contains' => ['MUTUO']]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-0'.$day, ['counterparty' => 'Edison']));
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.action', 'pay');
+});
+
+it('offers nothing to a member who pays a due date, who cannot make a filter that pays', function (): void {
+    bankGroupsSimilarOn(member: true);
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce', 'start_date' => '2026-01-05', 'financial_account_id' => null, 'bank_match' => null]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-0'.$day, ['counterparty' => 'Edison']));
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlashMissing('similar');
+});
+
+it('the flash carries the filter as data, why they are alike, the amounts and the days', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([['1', '-10.00'], ['2', '-30.00'], ['3', '-50.00']])->map(fn (array $day): BankTransaction => bankGroupsRow('ADDEBITO SDD SATISPAY EUROPE MAN.ABC123 CID.IT99', $day[1], '2026-11-0'.$day[0], ['counterparty' => 'Satispay']));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.filter.action', 'create')
+        ->assertInertiaFlash('similar.filter.title', 'Bar Rossi')
+        ->assertInertiaFlash('similar.filter.fee_mode', 'auto')
+        ->assertInertiaFlash('similar.reason.kind', 'mandate')
+        ->assertInertiaFlash('similar.kind', 'expense')
+        ->assertInertiaFlash('similar.min', 30)
+        ->assertInertiaFlash('similar.max', 50)
+        ->assertInertiaFlash('similar.from', '2026-11-02')
+        ->assertInertiaFlash('similar.to', '2026-11-03');
+});
+
+it('says the words when there is no mandate', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.reason.kind', 'words');
+});
+
+it('carries at most twenty rows and the real count when there are more than twenty others', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect(range(1, 24))->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-10-'.str_pad((string) $day, 2, '0', STR_PAD_LEFT), ['counterparty' => 'Bar Rossi']));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertInertiaFlash('similar.count', 23);
+
+    expect(session('inertia.flash_data.similar')['rows'])->toHaveCount(20);
+});
+
+it('the draft of a planned item has no excluded words without a movement, and the words of the movement with one', function (): void {
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce']);
+    $row = bankGroupsRow('ADDEBITO DIRETTO EDISON ENERGIA', '-72.00', '2026-11-01');
+
+    $alone = BankFilterDraft::fromPlanned($planned);
+    $with = BankFilterDraft::fromPlanned($planned, $row);
+
+    expect($alone->excludes)->toBe([])->and($alone->contains)->toBe([])->and($alone->name)->toBe('Luce')
+        ->and($alone->action)->toBe(BankFilterAction::Pay)->and($alone->plannedExpenseId)->toBe($planned->id)
+        ->and($with->excludes)->toBe(['COMMISSIONI'])->and($with->contains)->toBe(BankText::words($row->text))
+        ->and($with->accountId)->toBe($row->financial_account_id);
 });

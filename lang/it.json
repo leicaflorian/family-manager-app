@@ -3021,5 +3021,15 @@
     "Maybe it is a transfer to :title": "Forse è un trasferimento a :title",
     "Yes: :title": "Sì: :title",
     "No: :title": "No: :title",
-    "Something went wrong, try again.": "Qualcosa è andato storto, riprova."
+    "Something went wrong, try again.": "Qualcosa è andato storto, riprova.",
+    "I found one more movement like this": "Ho trovato un altro movimento come questo",
+    "I found :count more movements like this": "Ho trovato altri :count movimenti come questo",
+    "With a filter they are all sorted, and the ones that arrive next too.": "Con un filtro si sistemano tutti, anche i prossimi.",
+    "{1} The other movement|[2,*] The other :count movements": "{1} L'altro movimento|[2,*] Gli altri :count movimenti",
+    "Show the other :count": "Mostra gli altri :count",
+    "What the filter does": "Cosa fa il filtro",
+    "The filter opens already filled with what you have just chosen: you check it and save it. Nothing is linked before that.": "Il filtro si apre già riempito con quello che hai appena scelto: lo controlli e lo salvi. Prima non si collega niente.",
+    "No, leave it so": "No, lascia così",
+    "They are of the same mandate :name.": "Sono dello stesso mandato :name.",
+    "They have the same words: :words.": "Hanno le stesse parole: :words."
 }

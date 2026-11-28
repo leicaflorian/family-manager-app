@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { bankInitials, dayOf, lastReadText, readTimes } from './banks';
+import {
+    bankInitials,
+    dayOf,
+    lastReadText,
+    readTimes,
+    similarOf,
+} from './banks';
 
 describe('bankInitials', () => {
     it('takes the first letter of the first two words', () => {
@@ -68,5 +74,26 @@ describe('dayOf', () => {
 
     it('is empty without any day', () => {
         expect(dayOf({ booked_on: null, value_on: null }, now)).toBe('');
+    });
+});
+
+describe('similarOf', () => {
+    const flash = {
+        count: 3,
+        rows: [],
+        action: 'create',
+        url: '/budget/bank/filters/create?from=2',
+    };
+
+    it('takes the flash `similar` the server sent', () => {
+        expect(similarOf({ similar: flash })).toEqual(flash);
+    });
+
+    it('gives null without it, or when it has not the shape', () => {
+        expect(similarOf(undefined)).toBeNull();
+        expect(similarOf({})).toBeNull();
+        expect(similarOf({ similar: { ...flash, count: 0 } })).toBeNull();
+        expect(similarOf({ similar: { ...flash, action: 'x' } })).toBeNull();
+        expect(similarOf({ similar: { ...flash, url: 5 } })).toBeNull();
     });
 });

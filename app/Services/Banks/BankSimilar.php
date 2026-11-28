@@ -9,6 +9,7 @@ use App\Enums\BankFilterAction;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankFilterDraft;
+use App\Support\Banks\BankText;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -19,8 +20,8 @@ use Inertia\Inertia;
  */
 final readonly class BankSimilar
 {
-    /** How many of the other movements the flash carries as rows; the page shows the count of all. */
-    private const int ROWS = 5;
+    /** How many of the other movements the flash carries as rows (the sheet shows five and the rest on tap); it says the count of all. */
+    private const int ROWS = 20;
 
     /**
      * @param  BankGroups  $groups  the groups of the movements still to sort
@@ -28,8 +29,8 @@ final readonly class BankSimilar
     public function __construct(private BankGroups $groups) {}
 
     /**
-     * Flashes `similar` for the movement just sorted: `count` of the others like it, the first five as `rows`, the
-     * `action` the filter would do (`pay`, `create` or `transfer`) and the `url` of the form of the new filter.
+     * Flashes `similar` for the movement just sorted: `count` of the others like it, the first twenty as `rows`, the
+     * `action` the filter would do (`pay`, `create` or `transfer`), the filter itself as data (`filter`), why they are alike (`reason`: the mandate or the words), their amounts (`min`, `max`), days (`from`, `to`) and `kind`, and the `url` of the form of the new filter.
      *
      * @param  BankTransaction  $transaction  the movement just sorted
      */
@@ -53,8 +54,20 @@ final readonly class BankSimilar
             return;
         }
 
+        $amounts = $siblings->map(static fn (BankTransaction $row): float => round(abs((float) $row->amount), 2));
+        $days = $siblings->map(static fn (BankTransaction $row): string => (string) ($row->booked_on ?? $row->value_on)?->toDateString());
+
         Inertia::flash('similar', [
             'count' => $siblings->count(),
+            'kind' => $transaction->kind(),
+            'filter' => $draft->toData()->toArray(),
+            'reason' => BankText::mandate($transaction->text) === null
+                ? ['kind' => 'words', 'name' => implode(' ', $draft->contains)]
+                : ['kind' => 'mandate', 'name' => $draft->name],
+            'min' => (float) $amounts->min(),
+            'max' => (float) $amounts->max(),
+            'from' => (string) $days->min(),
+            'to' => (string) $days->max(),
             'rows' => $siblings->take(self::ROWS)->map(static fn (BankTransaction $row): BankTransactionData => BankTransactionData::fromTransaction($row))->values()->all(),
             'action' => $draft->action->value,
             'url' => route('budget.bank.filters.create', ['from' => $transaction->id], absolute: false),

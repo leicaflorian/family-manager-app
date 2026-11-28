@@ -17,7 +17,7 @@
  * paid and the row goes. A transaction whose text came back three months in a row also offers *It comes back every
  * month: create a planned expense?*, the form of a new planned item that starts from it.
  */
-import { Head, router, WhenVisible } from '@inertiajs/vue3';
+import { Head, router, usePage, WhenVisible } from '@inertiajs/vue3';
 import {
     ChevronDown,
     ChevronRight,
@@ -29,7 +29,7 @@ import {
 } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -49,14 +49,16 @@ import BankLoneRow from '@/components/budget/BankLoneRow.vue';
 import BankProposalLine from '@/components/budget/BankProposalLine.vue';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
 import BankFeeSheet from '@/components/budget/BankFeeSheet.vue';
+import BankSimilarSheet from '@/components/budget/BankSimilarSheet.vue';
 import BankTransferSheet from '@/components/budget/BankTransferSheet.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { undoWords } from '@/lib/bankUndo';
-import { lastReadText, readTimes } from '@/lib/banks';
+import { lastReadText, readTimes, similarOf } from '@/lib/banks';
 import { splitAround } from '@/lib/text';
 import { cn } from '@/lib/utils';
+import type { FlashSimilar } from '@/types/ui';
 import {
     assign,
     fee as feeRoute,
@@ -460,6 +462,35 @@ function rejectProposal(row: App.Data.BankTransactionData): void {
     });
 }
 
+/** What the server said about the movements like the one just sorted by hand; the sheet is open while it is there. */
+const similar = ref<FlashSimilar | null>(null);
+
+/** The sheet *I found… more movements like this* is open. */
+const similarOpen = computed({
+    get: () => similar.value !== null,
+    set: (value: boolean) => {
+        if (!value) {
+            similar.value = null;
+        }
+    },
+});
+
+/**
+ * Opens the sheet when a visit brings the flash `similar` (after a movement is linked or marked as a transfer here).
+ *
+ * @param flash - the flash of the visit
+ */
+function offerSimilar(flash: unknown): void {
+    const found: FlashSimilar | null = similarOf(flash);
+
+    if (found !== null) {
+        similar.value = found;
+    }
+}
+
+// The expense made from the form of a movement lands here with the flash: it arrives once, so *Back* does not reopen it
+onMounted(() => offerSimilar(usePage().flash));
+
 /** The transaction the panel *It belongs to a planned expense* is open for, null while it is closed. */
 const assigning = ref<App.Data.BankTransactionData | null>(null);
 
@@ -503,6 +534,7 @@ function assignTo(choice: BankAssignChoice): void {
 
     router.post(assign(row.id).url, choice, {
         preserveScroll: true,
+        onFlash: offerSimilar,
         onStart: () => {
             assignError.value = null;
             assignProcessing.value = true;
@@ -570,6 +602,7 @@ function markTransfer(accountId: number): void {
         { account_id: accountId },
         {
             preserveScroll: true,
+            onFlash: offerSimilar,
             onStart: () => {
                 transferError.value = null;
                 transferProcessing.value = true;
@@ -1177,6 +1210,11 @@ const { title, head } = usePageMeta({
             :error="transferError"
             :processing="transferProcessing"
             @choose="markTransfer"
+        />
+        <BankSimilarSheet
+            v-if="similar"
+            v-model:open="similarOpen"
+            :similar="similar"
         />
     </div>
 </template>

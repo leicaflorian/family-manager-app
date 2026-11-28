@@ -4,7 +4,7 @@ import { formatDayMonth, formatMoney } from '@/lib/format';
 import { create as createFilter } from '@/routes/budget/bank/filters';
 
 /** The fields of a group the words below read. */
-type Group = Pick<
+export type Group = Pick<
     App.Data.BankGroupData,
     | 'key'
     | 'kind'
