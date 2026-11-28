@@ -159,6 +159,40 @@ test('a commission that arrives after its debit is attached at the next read', f
     });
 });
 
+test('a filter that pays with no commission keeps the planned fee once, whenever the commission arrives', function (bool $sameRead): void {
+    insideBianchi(function () use ($sameRead): void {
+        $this->travelTo(CarbonImmutable::parse('2026-11-25 10:00', 'Europe/Rome'));
+        $connection = BankConnection::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id]);
+        $connection->writeSession('session-'.$connection->id, CarbonImmutable::now()->addDays(100));
+        $account = FinancialAccount::factory()->create(['family_id' => $connection->family_id, 'bank_connection_id' => $connection->id, 'bank_account_uid' => 'uid-1']);
+        $satispay = PlannedExpense::factory()->create([
+            'family_id' => $connection->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0,
+            'fee_amount' => 0.40, 'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => $account->id,
+        ]);
+        BankFilter::factory()->pays($satispay)->create(['family_id' => $connection->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::None]);
+        $debit = new BankEntry('debit-1', CarbonImmutable::parse('2026-11-24'), CarbonImmutable::parse('2026-11-24'), -10.0, 'EUR', attachBankFeeText(), null, true);
+        $fee = new BankEntry('fee-1', CarbonImmutable::parse('2026-11-25'), CarbonImmutable::parse('2026-11-25'), -0.40, 'EUR', attachBankFeeText(true), null, true);
+
+        if (! $sameRead) {
+            $this->feed->gives([$debit]);
+            resolve(SyncBankConnection::class)->handle($connection->refresh());
+        }
+
+        $this->feed->gives([$debit, $fee]);
+        resolve(SyncBankConnection::class)->handle($connection->refresh());
+        // A second read changes nothing
+        $this->travelTo(CarbonImmutable::parse('2026-11-26 10:00', 'Europe/Rome'));
+        resolve(SyncBankConnection::class)->handle($connection->refresh());
+
+        // The payment is what the debit says, with the planned fee inside it (`SettleFromBank::pay()`): the
+        // commission of the bank is not added on top, and stays to sort
+        $expense = Expense::query()->sole();
+        expect((float) $expense->amount)->toBe(10.0)
+            ->and((float) $expense->fee_amount)->toBe(0.4)
+            ->and(BankTransaction::query()->where('provider_id', 'fee-1')->sole()->expense_id)->toBeNull();
+    });
+})->with(['same read' => [true], 'later read' => [false]]);
+
 test('a commission that arrives before its debit waits and is attached when the debit is linked', function (): void {
     insideBianchi(function (): void {
         $fee = attachBankFeeRow('2026-11-25', '-0.40', true);

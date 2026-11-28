@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Banks;
 
+use App\Enums\BankFilterFee;
 use App\Enums\BankMatchSource;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
@@ -98,7 +99,7 @@ final readonly class AttachBankFee
 
     /**
      * Joins the new commissions of a read to the expense of their debit when it is already linked: a commission of
-     * the mandate kind to its debit (`debitOf()`), otherwise any new transaction that the commission words of the
+     * the mandate kind to its debit (`debitOf()`) when the filter of the debit finds it by itself, otherwise any new transaction that the commission words of the
      * filter of a linked debit take (`debitByWords()`). A failure is reported and the others go on: the read of the
      * bank never fails for it.
      *
@@ -109,6 +110,9 @@ final readonly class AttachBankFee
         foreach ($new as $transaction) {
             try {
                 $debit = BankText::isFee($transaction->text) ? $this->fees->debitOf($transaction, includeSorted: true) : null;
+                // The filter of the debit decides, as in `forDebit()`: one with no commission takes none, one with
+                // words takes only what its words take (`debitByWords()` below)
+                $debit = $debit instanceof BankTransaction && $this->findsByItself($debit) ? $debit : null;
                 $expense = $this->expenseOf($debit);
 
                 if (! $expense instanceof Expense) {
@@ -123,6 +127,17 @@ final readonly class AttachBankFee
                 report($failure);
             }
         }
+    }
+
+    /**
+     * Whether the commission of a debit is found by itself (the same mandate and creditor): the debit has no filter,
+     * or its filter says `auto`.
+     *
+     * @param  BankTransaction  $debit  the debit
+     */
+    private function findsByItself(BankTransaction $debit): bool
+    {
+        return $debit->bank_filter_id === null || ($debit->bankFilter->fee_mode ?? BankFilterFee::Auto) === BankFilterFee::Auto;
     }
 
     /**
