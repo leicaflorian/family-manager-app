@@ -28,6 +28,7 @@ use App\Http\Requests\Banks\AttachBankFeeRequest;
 use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Http\Requests\Banks\BankProposalRequest;
+use App\Http\Requests\Banks\LeaveBankGroupRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
 use App\Models\BankFilter;
@@ -58,6 +59,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -383,6 +385,20 @@ final class BankTransactionController extends Controller
         });
 
         return back(fallback: route('budget.bank.index'));
+    }
+
+    /**
+     * *It is not of this group*: the movement leaves its group and never comes back to it (`group:<key>` among its
+     * rejected proposals); it is a lone movement to sort from now on. The form of a filter asks it as JSON and gets no
+     * body; the page of the groups comes back to where it was.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction is not of the family
+     */
+    public function leave(LeaveBankGroupRequest $request, RejectBankProposal $reject): RedirectResponse|HttpResponse
+    {
+        $reject->handle($request->transaction(), 'group:'.$request->groupKey());
+
+        return $request->expectsJson() ? response()->noContent() : back(fallback: route('budget.bank.index'));
     }
 
     /**

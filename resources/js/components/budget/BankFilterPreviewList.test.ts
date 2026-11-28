@@ -115,4 +115,29 @@ describe('BankFilterPreviewList', () => {
             screen.getByText('No movement of the last 90 days matches.'),
         ).toBeInTheDocument();
     });
+
+    it('with droppable each movement has It is not of this group, which says which one', async () => {
+        const view = renderPage(BankFilterPreviewList, {
+            preview: bankFilterPreview,
+            feeMode: 'auto',
+            droppable: true,
+        });
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'It is not of this group' }),
+        );
+
+        expect(view.emitted().drop).toEqual([[row.transaction]]);
+    });
+
+    it('without droppable there is no It is not of this group', () => {
+        renderPage(BankFilterPreviewList, {
+            preview: bankFilterPreview,
+            feeMode: 'auto',
+        });
+
+        expect(
+            screen.queryByRole('button', { name: 'It is not of this group' }),
+        ).toBeNull();
+    });
 });

@@ -1289,6 +1289,53 @@ describe('Budget, From the bank, the groups', () => {
         ).toHaveLength(6);
     });
 
+    it('It is not of this group takes the movement out of the open group, and the panel drops it', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        const post = vi
+            .spyOn(router, 'post')
+            .mockImplementation((_url, _data, options) => {
+                options?.onSuccess?.({ props: {} } as never);
+            });
+        renderPage(BankTransactions, groupProps());
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        const panel = await screen.findByRole('dialog', {
+            name: 'Satispay Europe',
+        });
+        const first = bankGroupRows[0]!.transaction;
+
+        await userEvent.click(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            })[0]!,
+        );
+
+        expect(post).toHaveBeenCalledWith(
+            `/budget/bank/${first.id}/leave`,
+            { group: '3f9a1c2b7d4e' },
+            expect.objectContaining({ preserveScroll: true }),
+        );
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(6);
+        await userEvent.click(
+            within(panel).getByRole('button', { name: /Show/ }),
+        );
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(bankGroupRows.length - 1);
+    });
+
     it('two groups opened quickly show the rows of the last one, whatever order the answers come in', async () => {
         screenWidth(true);
         const answers: Array<() => void> = [];

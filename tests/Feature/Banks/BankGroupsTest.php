@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Contracts\DocumentReader;
 use App\Enums\BankFilterAction;
 use App\Enums\BankTransactionStatus;
 use App\Enums\Role;
@@ -21,6 +22,7 @@ use App\Support\Banks\BankGroup;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-27 10:00', 'Europe/Rome'));
@@ -348,4 +350,94 @@ it('paying a due date with no filter leads to the new filter form and offers not
     $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
         ->assertRedirect(route('budget.bank.filters.create', ['planned' => 'expense:'.$planned->id, 'from' => $rows[0]->id]))
         ->assertInertiaFlashMissing('similar');
+});
+
+/**
+ * The group *Eni (POS)* of the boards on the account of Marco: three refuels and the car wash.
+ *
+ * @return array{0: list<BankTransaction>, 1: BankTransaction}
+ */
+function bankGroupsEni(): array
+{
+    $keep = [
+        bankGroupsRow('PAGAMENTO POS ENI STATION VIA EMILIA LEVANTE BOLOGNA CARTA *1234', '-45.00', '2026-11-22', ['counterparty' => 'Eni']),
+        bankGroupsRow('PAGAMENTO POS ENI STATION VIA STALINGRADO BOLOGNA CARTA *1234', '-38.50', '2026-11-02', ['counterparty' => 'Eni']),
+        bankGroupsRow('PAGAMENTO POS ENI STATION VIA EMILIA LEVANTE BOLOGNA CARTA *1234', '-60.00', '2026-10-21', ['counterparty' => 'Eni']),
+    ];
+
+    return [$keep, bankGroupsRow('PAGAMENTO POS ENI LAVAGGIO SELF MODENA CARTA *1234', '-12.00', '2026-11-15', ['counterparty' => 'Eni'])];
+}
+
+it('a movement that left a group is not in it any more', function (): void {
+    $member = bankGroupsSimilarOn(member: true);
+    [$keep, $wash] = bankGroupsEni();
+    $key = resolve(BankGroups::class)->keyOf($wash);
+
+    // The form of the filter of the group knows the group, to take a movement out of it
+    $this->get(route('budget.bank.filters.create', ['group' => $key]))
+        ->assertInertia(fn ($page) => $page->where('group', ['key' => $key, 'name' => 'Eni']));
+    $this->get(route('budget.bank.filters.create'))->assertInertia(fn ($page) => $page->where('group', null));
+
+    // Who sorts the movements may take one out, and the key of its group must be the right one
+    $this->postJson(route('budget.bank.leave', $wash), ['group' => 'abc'])->assertUnprocessable()->assertJsonValidationErrors('group');
+    $this->post(route('budget.bank.leave', $wash), ['group' => $key])->assertRedirect();
+
+    $groups = resolve(BankGroups::class)->all();
+
+    expect($wash->refresh()->rejected_proposals)->toBe(['group:'.$key])
+        ->and($groups)->toHaveCount(1)
+        ->and($groups[0]->transactions->pluck('id')->all())->toEqualCanonicalizing(array_map(fn (BankTransaction $row): int => $row->id, $keep))
+        ->and(resolve(BankGroups::class)->lone()->pluck('id')->all())->toBe([$wash->id]);
+
+    // Twice is the same as once; the answer to the form is empty
+    $this->postJson(route('budget.bank.leave', $wash), ['group' => $key])->assertNoContent();
+    expect($wash->refresh()->rejected_proposals)->toBe(['group:'.$key]);
+
+    // A movement of another family is 404, and so is the whole thing while the link to the bank is off
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): BankTransaction => BankTransaction::factory()->create(['family_id' => $rossi->family_id]));
+    $this->actingAs($member);
+    $this->post(route('budget.bank.leave', $theirs), ['group' => $key])->assertNotFound();
+    $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();
+    $this->post(route('budget.bank.leave', $keep[0]), ['group' => $key])->assertNotFound();
+});
+
+it('the preview with drop gives the refined criteria', function (): void {
+    bankGroupsSimilarOn();
+    [$keep, $wash] = bankGroupsEni();
+    $fields = [
+        'name' => 'Eni (POS)', 'contains' => ['ENI', 'POS'], 'direction' => 'expense', 'financial_account_id' => $this->account->id,
+        'fee_mode' => 'none', 'action' => 'create', 'title' => 'Carburante',
+    ];
+
+    $answer = $this->postJson(route('budget.bank.filters.preview'), [...$fields, 'drop' => $wash->id])->assertOk();
+
+    // The car wash alone has LAVAGGIO: the list is already the one of the changed filter
+    expect($answer->json('refined'))->toBe([
+        'contains' => ['ENI', 'POS'], 'excludes' => ['LAVAGGIO'], 'amount_min' => null, 'amount_max' => null,
+        'change' => 'excludes', 'value' => 'LAVAGGIO',
+    ])
+        ->and($answer->json('ai'))->toBeFalse()
+        ->and(collect($answer->json('rows'))->pluck('transaction.id')->all())->toEqualCanonicalizing(array_map(fn (BankTransaction $row): int => $row->id, $keep));
+
+    // Without drop nothing changes and nothing is refined
+    $plain = $this->postJson(route('budget.bank.filters.preview'), $fields)->assertOk();
+    expect($plain->json('refined'))->toBeNull()
+        ->and($plain->json('rows'))->toHaveCount(4);
+
+    // A movement like the others gives nothing: the AI is offered only when it can read
+    $twin = bankGroupsRow('PAGAMENTO POS ENI STATION VIA EMILIA LEVANTE BOLOGNA CARTA *1234', '-50.00', '2026-11-12', ['counterparty' => 'Eni']);
+    $none = $this->postJson(route('budget.bank.filters.preview'), [...$fields, 'drop' => $twin->id])->assertOk();
+    expect($none->json('refined'))->toBeNull()
+        ->and($none->json('ai'))->toBeFalse()
+        ->and($none->json('rows'))->toHaveCount(5);
+
+    app()->instance(DocumentReader::class, new FakeDocumentReader);
+    expect($this->postJson(route('budget.bank.filters.preview'), [...$fields, 'drop' => $twin->id])->json('ai'))->toBeTrue();
+
+    // A movement of another family is 404
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): BankTransaction => BankTransaction::factory()->create(['family_id' => $rossi->family_id]));
+    $this->actingAs($this->marco);
+    $this->postJson(route('budget.bank.filters.preview'), [...$fields, 'drop' => $theirs->id])->assertNotFound();
 });

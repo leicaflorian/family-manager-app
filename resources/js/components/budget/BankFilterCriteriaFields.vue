@@ -4,6 +4,7 @@
  * must contain and the ones it must not (tags: Enter adds one), the direction, the account the filter reads (or all of
  * them) and the amounts from and up to. An advanced filter, made from the rule of a planned item, has its expression
  * instead of the words, and it changes only as text. The slot, after the amounts, holds the AI buttons of the words.
+ * After *It is not of this group* the field that got a word says so under it (`added`).
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -18,6 +19,7 @@ const {
     options,
     problems = {},
     wordsLocked = false,
+    added = null,
 } = defineProps<{
     /** The choices of the form: the accounts the bank reads. */
     options: BankFilterFormOptions;
@@ -25,6 +27,8 @@ const {
     problems?: Record<string, string>;
     /** The words cannot change now (the AI is writing them). */
     wordsLocked?: boolean;
+    /** The field *It is not of this group* just added a word to, with the line that says why. */
+    added?: { field: 'contains' | 'excludes'; help: string } | null;
 }>();
 
 /** The fields of the form, changed in place. */
@@ -73,9 +77,11 @@ const accounts = computed(() => [
                 :label="$t('Contains the words')"
                 name="contains"
                 :help="
-                    $t(
-                        'All of them, in any order. Between quotes the exact phrase counts.',
-                    )
+                    added?.field === 'contains'
+                        ? added.help
+                        : $t(
+                              'All of them, in any order. Between quotes the exact phrase counts.',
+                          )
                 "
                 :errors="errors(problems.contains)"
             />
@@ -86,6 +92,7 @@ const accounts = computed(() => [
                 :label="$t('Does not contain')"
                 name="excludes"
                 optional
+                :help="added?.field === 'excludes' ? added.help : undefined"
                 :errors="errors(problems.excludes)"
             />
         </template>

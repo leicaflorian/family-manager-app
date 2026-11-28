@@ -6,13 +6,15 @@ namespace App\Http\Requests\Banks;
 
 use App\Http\Requests\Concerns\ReadsBankFilter;
 use App\Models\BankFilter;
+use App\Models\BankTransaction;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * The preview of a bank filter while it is written (`POST budget/bank/filters/preview`): the same fields as its form,
- * none required, and `filter`, the id of the filter being changed. Everyone of the family may ask it; the ids named
+ * none required, `filter`, the id of the filter being changed, and `drop`, the movement *It is not of this group*
+ * takes out. Everyone of the family may ask it; the ids named
  * are looked for in the family first (404 for one of another family).
  */
 final class BankFilterPreviewRequest extends FormRequest
@@ -21,6 +23,9 @@ final class BankFilterPreviewRequest extends FormRequest
 
     /** The filter being changed, read once. */
     private ?BankFilter $filter = null;
+
+    /** The movement taken out, read once. */
+    private ?BankTransaction $drop = null;
 
     /**
      * Everyone of the family.
@@ -36,6 +41,12 @@ final class BankFilterPreviewRequest extends FormRequest
             $this->filter = BankFilter::query()->findOrFail((int) $id);
         }
 
+        $drop = $this->input('drop');
+
+        if (is_int($drop) || (is_string($drop) && ctype_digit($drop))) {
+            $this->drop = BankTransaction::query()->findOrFail((int) $drop);
+        }
+
         return (bool) $this->user()?->can('viewAny', BankFilter::class);
     }
 
@@ -48,6 +59,7 @@ final class BankFilterPreviewRequest extends FormRequest
     {
         return [
             'filter' => ['nullable', 'integer'],
+            'drop' => ['nullable', 'integer'],
             'name' => ['nullable', 'string', 'max:100'],
             'contains' => ['nullable', 'array', 'max:20'],
             'contains.*' => ['nullable', 'string', 'max:100'],
@@ -77,5 +89,13 @@ final class BankFilterPreviewRequest extends FormRequest
     public function changing(): ?int
     {
         return $this->filter?->id;
+    }
+
+    /**
+     * The movement *It is not of this group* takes out, null when none.
+     */
+    public function dropped(): ?BankTransaction
+    {
+        return $this->drop;
     }
 }

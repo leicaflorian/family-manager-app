@@ -6,11 +6,13 @@
  * phone) and *Show the other…* for the rest.
  * Each movement has its day, its text with the words found highlighted, the commission found (or none), the amount
  * and what the filter will do to it; one another filter already takes says which, since two filters on the same
- * movement cannot be saved.
+ * movement cannot be saved. With `droppable` each movement has *It is not of this group* (`drop`), as the board
+ * *Dalla-banca-filtro-escludi* draws it: the form changes the filter to leave it out.
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
-import { TriangleAlert } from '@lucide/vue';
+import { CircleMinus, TriangleAlert } from '@lucide/vue';
+import FmButton from '@/components/fm/FmButton.vue';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { willTag } from '@/lib/bankFilters';
@@ -24,6 +26,7 @@ const {
     feeMode,
     error = null,
     loading = false,
+    droppable = false,
 } = defineProps<{
     /** The movements the filter takes and what saving it would do, as the server answers. */
     preview: App.Data.BankFilterPreviewData;
@@ -33,6 +36,13 @@ const {
     error?: string | null;
     /** A new list is on its way. */
     loading?: boolean;
+    /** Each movement has *It is not of this group*: who writes can change the filter. */
+    droppable?: boolean;
+}>();
+
+const emit = defineEmits<{
+    /** *It is not of this group* was tapped on a movement. */
+    drop: [row: App.Data.BankTransactionData];
 }>();
 
 const wide = useWideLayout();
@@ -252,6 +262,16 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                     <span :class="tagClass(willTag(row).tone)">{{
                         willTag(row).text
                     }}</span>
+                    <FmButton
+                        v-if="droppable"
+                        variant="text"
+                        row-action
+                        :icon="CircleMinus"
+                        class="ml-auto"
+                        :disabled="loading"
+                        @click="emit('drop', row.transaction)"
+                        >{{ $t('It is not of this group') }}</FmButton
+                    >
                 </div>
             </li>
             <li v-if="!all && preview.rows.length > first" class="flex">

@@ -49,6 +49,17 @@ final class BankText
     }
 
     /**
+     * Whether a word is one of those every direct debit, transfer or card payment has, which tell nothing about who it
+     * is for (`DOMICILIAZIONE`, `SEPA`, `POS`…).
+     *
+     * @param  string  $word  a word, normalised
+     */
+    public static function isCommon(string $word): bool
+    {
+        return in_array($word, self::COMMON, true);
+    }
+
+    /**
      * The words proposed for a filter of this text: `MAN.<mandate>` when there is a mandate, else `CID.<creditor>`,
      * else the words of its signature without the common ones, at most four.
      *
@@ -67,7 +78,7 @@ final class BankText
 
         $words = array_filter(
             explode(' ', BankMatch::signature($text)),
-            static fn (string $word): bool => $word !== '' && ! in_array($word, self::COMMON, true),
+            static fn (string $word): bool => $word !== '' && ! self::isCommon($word),
         );
 
         return array_slice(array_values($words), 0, self::WORDS);

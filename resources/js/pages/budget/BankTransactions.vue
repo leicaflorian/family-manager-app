@@ -60,6 +60,7 @@ import {
     fee as feeRoute,
     ignore,
     index as bankIndex,
+    leave,
     restore,
     sync,
     transfer,
@@ -306,6 +307,36 @@ function openGroup(group: App.Data.BankGroupData): void {
             }
         },
     });
+}
+
+/**
+ * *It is not of this group* in the panel of a group: the movement leaves the group for good and becomes a lone
+ * movement. The panel drops it at once (its rows come from the request of the group, which the visit does not
+ * repeat); the groups, the numbers and the lone movements come back from the server.
+ *
+ * @param row - the movement
+ */
+function leaveGroup(row: App.Data.BankTransactionData): void {
+    const key = openKey.value;
+
+    if (key === null) {
+        return;
+    }
+
+    router.post(
+        leave(row.id).url,
+        { group: key },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (openKey.value === key && openedRows.value !== null) {
+                    openedRows.value = openedRows.value.filter(
+                        (other) => other.transaction.id !== row.id,
+                    );
+                }
+            },
+        },
+    );
 }
 
 /** Closes the group open. */
@@ -942,6 +973,7 @@ const { title, head } = usePageMeta({
                         :group="openedGroup"
                         :rows="openedRows"
                         @close="closeGroup"
+                        @not-of-group="leaveGroup"
                     />
                 </div>
 
@@ -1014,6 +1046,7 @@ const { title, head } = usePageMeta({
                 :group="openedGroup"
                 :rows="openedRows"
                 @close="closeGroup"
+                @not-of-group="leaveGroup"
             />
         </template>
 

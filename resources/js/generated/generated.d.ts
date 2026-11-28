@@ -165,6 +165,8 @@ transfer: number,
 ignore: number,
 },
 readonly conflicts: number,
+readonly refined: App.Data.BankFilterRefinementData | null,
+readonly ai: boolean,
 };
 export type BankFilterPreviewRowData = {
 readonly transaction: App.Data.BankTransactionData,
@@ -174,6 +176,14 @@ readonly will: string,
 readonly will_title: string | null,
 readonly taken_by: string | null,
 readonly will_on: string | null,
+};
+export type BankFilterRefinementData = {
+readonly contains: string[],
+readonly excludes: string[],
+readonly amount_min: string | null,
+readonly amount_max: string | null,
+readonly change: string,
+readonly value: string,
 };
 export type BankGroupData = {
 readonly key: string,

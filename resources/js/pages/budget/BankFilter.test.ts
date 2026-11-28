@@ -594,4 +594,286 @@ describe('The form of a bank filter', () => {
             await pause();
         });
     });
+
+    describe('It is not of this group', () => {
+        const base = bankFilterPreview.rows[0]!;
+
+        /**
+         * A row of the preview of the filter *Eni (POS)*.
+         *
+         * @param id - the id of the movement
+         * @param text - its text
+         * @param amount - its amount
+         */
+        function eni(
+            id: number,
+            text: string,
+            amount: number,
+        ): App.Data.BankFilterPreviewRowData {
+            return {
+                ...base,
+                transaction: {
+                    ...base.transaction,
+                    id,
+                    text,
+                    amount,
+                    counterparty: 'Eni',
+                    booked_on: '2026-11-15',
+                    value_on: '2026-11-15',
+                },
+                hits: ['ENI', 'POS'],
+                fee: null,
+                will: 'create',
+                will_title: null,
+                will_on: null,
+            };
+        }
+
+        const kept = [
+            eni(21, 'PAGAMENTO POS ENI STATION VIA EMILIA BOLOGNA', -45),
+            eni(22, 'PAGAMENTO POS ENI STATION VIA STALINGRADO BOLOGNA', -38.5),
+        ];
+        const wash = eni(23, 'PAGAMENTO POS ENI LAVAGGIO SELF MODENA', -12);
+        const before: App.Data.BankFilterPreviewData = {
+            ...bankFilterPreview,
+            rows: [...kept, wash],
+            summary: { pay: 0, create: 3, link: 0, transfer: 0, ignore: 0 },
+            conflicts: 0,
+        };
+        const draft = {
+            ...satispay,
+            id: null,
+            name: 'Eni (POS)',
+            contains: ['ENI', 'POS'],
+            excludes: [],
+            fee_mode: 'none',
+        };
+        const refined: App.Data.BankFilterRefinementData = {
+            contains: ['ENI', 'POS'],
+            excludes: ['LAVAGGIO'],
+            amount_min: null,
+            amount_max: null,
+            change: 'excludes',
+            value: 'LAVAGGIO',
+        };
+
+        /**
+         * The fake server: the preview with `drop` answers `dropAnswer`, the AI answers the words, every other call ok.
+         *
+         * @param dropAnswer - what the preview with drop gives
+         */
+        function server(
+            dropAnswer: Partial<App.Data.BankFilterPreviewData>,
+        ): void {
+            request.mockImplementation((config) => {
+                const data = (config.data ?? {}) as Record<string, unknown>;
+                let body: unknown = {};
+
+                if (config.url === '/budget/bank/filters/preview') {
+                    body =
+                        data.drop === 23
+                            ? { ...before, ...dropAnswer }
+                            : { ...before, rows: kept };
+                } else if (config.url === '/budget/bank/filters/suggest') {
+                    body = {
+                        contains: ['ENI', 'STATION'],
+                        excludes: [],
+                        title: null,
+                        category: null,
+                        category_id: null,
+                        organization: null,
+                        organization_id: null,
+                        organization_is_new: false,
+                        explanation: 'Takes the refuels only.',
+                    };
+                }
+
+                return Promise.resolve({
+                    status: config.url.endsWith('/leave') ? 204 : 200,
+                    headers: {},
+                    data: JSON.stringify(body),
+                });
+            });
+        }
+
+        /** Renders the form of the filter of the group *Eni (POS)*. */
+        function renderEni(changes: Record<string, unknown> = {}): void {
+            renderPage(
+                BankFilter,
+                props({
+                    filter: null,
+                    draft,
+                    preview: before,
+                    group: { key: 'abc', name: 'Eni (POS)' },
+                    ...changes,
+                }),
+            );
+        }
+
+        /** Taps *It is not of this group* on the car wash. */
+        async function dropWash(): Promise<void> {
+            const list = screen.getByRole('region', {
+                name: 'The movements it takes · 3',
+            });
+            const row = within(list)
+                .getAllByRole('listitem')
+                .find((item) => item.textContent?.includes('LAVAGGIO'))!;
+
+            await userEvent.click(
+                within(row).getByRole('button', {
+                    name: 'It is not of this group',
+                }),
+            );
+        }
+
+        /** The calls made to an address so far. */
+        function calls(url: string): Config[] {
+            return request.mock.calls
+                .map(([config]) => config)
+                .filter((config) => config.url === url);
+        }
+
+        /** The field of the words the text must not have. */
+        function excludesField(): HTMLElement {
+            return screen
+                .getAllByRole('combobox', { name: /^Does not contain/ })
+                .find((input) => input.getAttribute('name') === 'excludes')!
+                .closest<HTMLElement>('[data-type]')!;
+        }
+
+        it('after It is not of this group the form says what it changed and how many it takes now', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni();
+
+            await dropWash();
+
+            const status = await screen.findByText(
+                (_, element) =>
+                    element?.textContent ===
+                    'I changed the filter: LAVAGGIO in Does not contain.',
+            );
+            expect(status).toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    'Now it takes 2 movements, all those of the group but the one taken out.',
+                ),
+            ).toBeInTheDocument();
+            expect(
+                within(excludesField()).getByText('LAVAGGIO'),
+            ).toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    'Added now: only the movement taken out has this word.',
+                ),
+            ).toBeInTheDocument();
+            expect(calls('/budget/bank/filters/preview')[0]).toEqual(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        drop: 23,
+                        contains: ['ENI', 'POS'],
+                    }),
+                }),
+            );
+            // The movement leaves the group for good
+            expect(calls('/budget/bank/23/leave')).toEqual([
+                expect.objectContaining({ data: { group: 'abc' } }),
+            ]);
+            expect(calls('/budget/bank/filters/suggest')).toHaveLength(0);
+            await pause();
+        });
+
+        it('Undo the change puts the criteria back', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni();
+            await dropWash();
+            await screen.findByText(
+                'Now it takes 2 movements, all those of the group but the one taken out.',
+            );
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'Undo the change' }),
+            );
+            await settle();
+
+            expect(within(excludesField()).queryByText('LAVAGGIO')).toBeNull();
+            expect(
+                screen.queryByText(
+                    'Now it takes 2 movements, all those of the group but the one taken out.',
+                ),
+            ).toBeNull();
+            await pause();
+        });
+
+        it('the box asks what the dropped movement is', async () => {
+            server({ rows: kept, refined, ai: false });
+            renderEni();
+            await dropWash();
+
+            const box = await screen.findByRole('region', {
+                name: 'Movement taken out',
+            });
+            expect(
+                within(box).getByText('Taken out of the group Eni (POS)'),
+            ).toBeInTheDocument();
+            expect(
+                within(box).getByText('It does not come back'),
+            ).toBeInTheDocument();
+            expect(
+                within(box).getByText('What is this movement?'),
+            ).toBeInTheDocument();
+            expect(
+                within(box).getByRole('button', {
+                    name: 'It belongs to an expense',
+                }),
+            ).toBeInTheDocument();
+            expect(
+                within(box).getByRole('link', { name: 'Create the expense' }),
+            ).toHaveAttribute('href', '/budget/movements/create?bank=23');
+            expect(
+                within(box).getByRole('button', { name: 'It is a transfer' }),
+            ).toBeInTheDocument();
+
+            await userEvent.click(
+                within(box).getByRole('button', { name: 'Ignore' }),
+            );
+
+            expect(
+                await within(box).findByText('Done: the movement is sorted.'),
+            ).toBeInTheDocument();
+            expect(calls('/budget/bank/23/ignore')).toHaveLength(1);
+            await pause();
+        });
+
+        it('after It is not of this group the AI is asked only when nothing was found', async () => {
+            server({ refined: null, ai: true });
+            renderEni({ ai: true });
+
+            await dropWash();
+
+            expect(
+                await screen.findByText('Takes the refuels only.'),
+            ).toBeInTheDocument();
+            expect(calls('/budget/bank/filters/suggest')).toEqual([
+                expect.objectContaining({
+                    data: { keep: [21, 22], drop: [23], mode: 'words' },
+                }),
+            ]);
+            await pause();
+        });
+
+        it('without the AI it says nothing was found', async () => {
+            server({ refined: null, ai: false });
+            renderEni();
+
+            await dropWash();
+
+            expect(
+                await screen.findByText(
+                    'I found no way to leave it out: change the words yourself.',
+                ),
+            ).toBeInTheDocument();
+            expect(calls('/budget/bank/filters/suggest')).toHaveLength(0);
+            await pause();
+        });
+    });
 });

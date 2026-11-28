@@ -8,6 +8,8 @@ use App\Actions\Banks\SaveBankFilter;
 use App\Actions\Banks\SuggestBankFilter;
 use App\Contracts\DocumentReader;
 use App\Data\BankFilterData;
+use App\Data\BankFilterPreviewData;
+use App\Data\BankFilterRefinementData;
 use App\Data\Banks\BankFilterSuggestionData;
 use App\Enums\BankFilterAction;
 use App\Exceptions\Reading\ReadingFailed;
@@ -19,6 +21,7 @@ use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
 use App\Services\Banks\BankFilterPreview;
+use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankGroupProposals;
 use App\Services\Banks\BankGroups;
 use App\Services\Banks\BankRows;
@@ -26,6 +29,7 @@ use App\Services\BudgetFormOptions;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankText;
+use App\Support\Banks\RefineBankFilter;
 use App\Support\PlannedKind;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +52,9 @@ final class BankFilterController extends Controller
     /** @var list<int> The movements a new filter starts from (the movement or the group of the address), read while the proposal is made. */
     private array $exampleIds = [];
 
+    /** @var array{key: string, name: string}|null The group a new filter starts from, whose movements *It is not of this group* takes out. */
+    private ?array $group = null;
+
     /**
      * The form of a new filter, filled when it comes from somewhere: `?planned=expense:12` pays that planned item
      * (only for who may create a filter that pays), `?from=<movement>` takes the words, the direction and the account
@@ -59,6 +66,9 @@ final class BankFilterController extends Controller
     public function create(Request $request, BankFilterPreview $preview, BankRows $rows): Response
     {
         Gate::authorize('viewAny', BankFilter::class);
+        // The route keeps one controller for every request (tests, a long-running server): nothing of the last form stays
+        $this->exampleIds = [];
+        $this->group = null;
 
         return $this->form(null, $this->draft($request), $preview, $rows, $request->query('ai') === '1');
     }
@@ -81,6 +91,8 @@ final class BankFilterController extends Controller
     public function edit(BankFilter $filter, BankFilterPreview $preview, BankRows $rows): Response
     {
         Gate::authorize('view', $filter);
+        $this->exampleIds = [];
+        $this->group = null;
 
         return $this->form($filter, null, $preview, $rows);
     }
@@ -112,13 +124,35 @@ final class BankFilterController extends Controller
     }
 
     /**
-     * The movements a filter being written takes and what saving it would do. Writes nothing.
+     * The movements a filter being written takes and what saving it would do. Writes nothing. With `drop` (*It is not
+     * of this group*) the criteria first change to leave that movement out and take all the others (`RefineBankFilter`):
+     * the answer says how (`refined`) and lists what the changed filter takes; when nothing is found the list stays and
+     * `ai` says whether the AI can be asked.
      *
      * @throws NotFoundHttpException while the link to the bank is off, or when an id named is not of the family
      */
-    public function preview(BankFilterPreviewRequest $request, BankFilterPreview $preview): JsonResponse
+    public function preview(BankFilterPreviewRequest $request, BankFilterPreview $preview, BankFilters $filters): JsonResponse
     {
-        return response()->json($preview->for($request->criteria(), $request->filterColumns(), $request->changing()));
+        $criteria = $request->criteria();
+        $drop = $request->dropped();
+
+        if (! $drop instanceof BankTransaction) {
+            return response()->json($preview->for($criteria, $request->filterColumns(), $request->changing()));
+        }
+
+        $keep = $filters->taken($criteria, config()->integer('bank_feed.first_days'))
+            ->reject(static fn (BankTransaction $row): bool => $row->id === $drop->id)
+            ->values();
+        $refined = RefineBankFilter::without($criteria, new Collection($keep->all()), $drop);
+        $data = $preview->for($refined['criteria'] ?? $criteria, $request->filterColumns(), $request->changing());
+
+        return response()->json(new BankFilterPreviewData(
+            $data->rows,
+            $data->summary,
+            $data->conflicts,
+            $refined === null ? null : BankFilterRefinementData::fromRefined($refined),
+            $refined === null && resolve(DocumentReader::class)->isActive(),
+        ));
     }
 
     /**
@@ -182,6 +216,8 @@ final class BankFilterController extends Controller
             // The movements the buttons of the AI read when the filter takes none yet, and whether to ask once now
             'example_ids' => $this->exampleIds,
             'ask_ai' => $asked && $draft instanceof BankFilterDraft && ! $draft->action instanceof BankFilterAction,
+            // The group of the address: a movement taken out of the list leaves it too
+            'group' => $this->group,
         ]);
     }
 
@@ -249,6 +285,7 @@ final class BankFilterController extends Controller
         $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
         $proposal = resolve(BankGroupProposals::class)->visibleFor(new Collection([$group]))[$group->key];
         $this->exampleIds = array_values($group->transactions->map(static fn (BankTransaction $transaction): int => $transaction->id)->all());
+        $this->group = ['key' => $group->key, 'name' => $group->name];
 
         return BankFilterDraft::fromGroup($group, $proposal);
     }

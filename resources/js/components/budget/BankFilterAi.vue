@@ -9,6 +9,8 @@
  * family does not have is only named: the filter saves without it and the organization is added later. Hidden without
  * the AI and on an advanced filter (an expression, not words). `busy` tells the form to lock the words while a call
  * is on its way; `filled` says the automatic fill ended, so the form takes the filled values as its start.
+ * *Improve the filter* also sends the movements taken out with *It is not of this group* (`drop`), and the form asks
+ * it by itself (`improve()`) when it found no way to leave one out without the AI.
  */
 import { LoaderCircle, Sparkles, Undo2, WandSparkles } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
@@ -21,6 +23,7 @@ const {
     ai = false,
     keep,
     auto = false,
+    drop = [],
 } = defineProps<{
     /** Whether the AI can read: without it nothing is shown. */
     ai?: boolean;
@@ -28,6 +31,8 @@ const {
     keep: number[];
     /** Asks the AI once, in the fill mode, when the form opens: a group without a proposal. */
     auto?: boolean;
+    /** The ids of the movements taken out with *It is not of this group*, which the filter must leave. */
+    drop?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -73,8 +78,14 @@ const canAsk = computed(
  * Asks the AI and writes its proposal in the form, keeping what it replaced.
  *
  * @param mode - `words` for the words only, `fill` for the title, category and organization too
+ * @param opening - the automatic fill of a form just opened
+ * @param leave - the movements the filter must leave (*Improve the filter*)
  */
-async function ask(mode: 'words' | 'fill', opening = false): Promise<void> {
+async function ask(
+    mode: 'words' | 'fill',
+    opening = false,
+    leave: number[] = [],
+): Promise<void> {
     if (!canAsk.value) {
         return;
     }
@@ -83,7 +94,11 @@ async function ask(mode: 'words' | 'fill', opening = false): Promise<void> {
     failure.value = null;
 
     try {
-        const suggestion = await suggestFilter(movements.value, [], mode);
+        const suggestion = await suggestFilter(
+            movements.value,
+            leave.slice(0, 50),
+            mode,
+        );
         const snapshot: Before = {
             contains: [...values.value.contains],
             excludes: [...values.value.excludes],
@@ -152,6 +167,17 @@ function undo(): void {
     newOrganization.value = null;
 }
 
+/**
+ * *Improve the filter*: the words, with the movements taken out that the filter must leave.
+ *
+ * @returns done when the proposal is written (or the failure said)
+ */
+function improve(): Promise<void> {
+    return ask('words', false, drop);
+}
+
+defineExpose({ improve });
+
 watch(busy, (call) => emit('busy', call !== null));
 
 onMounted(() => {
@@ -181,7 +207,7 @@ onMounted(() => {
                 row-action
                 :icon="WandSparkles"
                 :disabled="!canAsk"
-                @click="ask('words')"
+                @click="improve"
                 >{{ $t('Improve the filter') }}</FmButton
             >
         </div>

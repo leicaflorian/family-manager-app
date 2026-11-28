@@ -55,7 +55,12 @@ function answers(data: App.Data.Banks.BankFilterSuggestionData): void {
 
 /** Renders the buttons over the form values of the filter *Satispay*. */
 function show(
-    props: { ai?: boolean; keep?: number[]; auto?: boolean } = {},
+    props: {
+        ai?: boolean;
+        keep?: number[];
+        auto?: boolean;
+        drop?: number[];
+    } = {},
 ): BankFilterFormValues {
     const values = formValues(bankFilters[1]!);
 
@@ -144,6 +149,25 @@ describe('BankFilterAi', () => {
         expect(
             screen.queryByRole('button', { name: 'Undo the change' }),
         ).toBeNull();
+    });
+
+    it('Improve the filter sends the movements taken out, Write it does not', async () => {
+        answers(words);
+        show({ drop: [23] });
+
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Improve the filter' }),
+        );
+        await screen.findByText('Takes the bills of Enel.');
+        await fireEvent.click(
+            screen.getByRole('button', { name: 'Write it with the AI' }),
+        );
+        await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+
+        expect(request.mock.calls.map(([config]) => config.data)).toEqual([
+            { keep: [9, 10], drop: [23], mode: 'words' },
+            { keep: [9, 10], drop: [], mode: 'words' },
+        ]);
     });
 
     it('on a group without a proposal Create the filter asks the AI and fills title, category and organization', async () => {

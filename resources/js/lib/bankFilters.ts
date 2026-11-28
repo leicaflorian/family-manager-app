@@ -11,6 +11,7 @@ import { formatAmount, parseAmount } from '@/lib/forms';
 import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
 import { splitAround } from '@/lib/text';
 import type { MovementFormOptions } from '@/lib/budget';
+import { leave } from '@/routes/budget/bank';
 import { preview, suggest } from '@/routes/budget/bank/filters';
 
 /** One piece of the line *Matches*: words (drawn as tags), an expression, or a plain text. */
@@ -236,7 +237,10 @@ function quoted(name: string | null | undefined): string | null {
  * @param max - the largest amount, or null
  * @returns the text, or null
  */
-function amountText(min: number | null, max: number | null): string | null {
+export function amountText(
+    min: number | null,
+    max: number | null,
+): string | null {
     if (min !== null && max !== null) {
         return trans('from :min to :max', {
             min: formatEuro(min),
@@ -588,6 +592,8 @@ export class BankFilterPreviewError extends Error {
  * @param values - the fields of the form, as the save sends them
  * @param changing - the id of the filter being changed (it never conflicts with itself), null for a new one
  * @param signal - stops the request when its answer is not wanted any more
+ * @param drop - the movement *It is not of this group* takes out: the server first changes the words or the amounts
+ *   to leave it out (`refined`), or says the AI can be asked (`ai`)
  * @returns the rows, the summary and how many rows another filter takes
  * @throws BankFilterPreviewError when the server says no or does not answer
  */
@@ -595,12 +601,17 @@ export async function previewFilter(
     values: BankFilterPayload,
     changing: number | null,
     signal?: AbortSignal,
+    drop: number | null = null,
 ): Promise<App.Data.BankFilterPreviewData> {
     try {
         const response = await http.getClient().request({
             method: 'post',
             url: preview.url(),
-            data: { ...values, filter: changing },
+            data: {
+                ...values,
+                filter: changing,
+                ...(drop === null ? {} : { drop }),
+            },
             headers: { Accept: 'application/json' },
             signal,
         });
@@ -619,6 +630,11 @@ export async function previewFilter(
                 ...(body.summary as Partial<BankFilterSummary> | undefined),
             },
             conflicts: typeof body.conflicts === 'number' ? body.conflicts : 0,
+            refined:
+                body.refined !== null && typeof body.refined === 'object'
+                    ? (body.refined as App.Data.BankFilterRefinementData)
+                    : null,
+            ai: body.ai === true,
         };
     } catch (error) {
         const { status, body } = failedAnswer(error);
@@ -685,4 +701,63 @@ export async function suggestFilter(
                           : trans('This did not work. Try again in a while.'))),
         );
     }
+}
+
+/** A movement could not be sorted, or could not leave its group: the message to show. */
+export class BankSortError extends Error {}
+
+/**
+ * Sends an action on a movement of the bank from the form of a filter, without leaving the form: *It is not of this
+ * group*, *It belongs to an expense*, *It is a transfer*, *Ignore*. The server answers as it does for the page of the
+ * movements; only whether it worked counts here.
+ *
+ * @param url - the address of the action
+ * @param data - the body
+ * @throws BankSortError with the first message of the server, or a general one
+ */
+export async function sendBankAction(
+    url: string,
+    data: Record<string, unknown> = {},
+): Promise<void> {
+    try {
+        await http.getClient().request({
+            method: 'post',
+            url,
+            data,
+            headers: { Accept: 'application/json' },
+        });
+    } catch (error) {
+        const { status, body } = failedAnswer(error);
+        const fields = body?.errors;
+        const first =
+            fields !== null && typeof fields === 'object'
+                ? (Object.values(fields as Record<string, unknown>)
+                      .flat()
+                      .find((message) => typeof message === 'string') as
+                      | string
+                      | undefined)
+                : undefined;
+
+        throw new BankSortError(
+            first ??
+                serverMessage(body) ??
+                (status === 0
+                    ? trans('There is no network: try again in a while.')
+                    : trans('This did not work. Try again in a while.')),
+        );
+    }
+}
+
+/**
+ * *It is not of this group* from the form of the filter of a group: the movement leaves the group for good.
+ *
+ * @param transactionId - the movement
+ * @param group - the key of the group
+ * @throws BankSortError when the server says no or does not answer
+ */
+export function leaveGroup(
+    transactionId: number,
+    group: string,
+): Promise<void> {
+    return sendBankAction(leave.url(transactionId), { group });
 }

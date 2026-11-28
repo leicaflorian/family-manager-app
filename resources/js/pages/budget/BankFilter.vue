@@ -7,10 +7,14 @@
  * change (the last answer wins). Under the list the sentence that says what saving does, *Delete*, *Cancel* and
  * *Save the filter*, which stays off while a movement is taken by another filter. A new filter can start from a
  * proposal (`draft`): from a movement, from a group or from a planned item; the AI buttons of the words sit under
- * the amounts (`BankFilterAi`).
+ * the amounts (`BankFilterAi`). Each movement of the list has *It is not of this group*, as the board
+ * *Dalla-banca-filtro-escludi* draws it: the server changes the words or the amounts so that the filter leaves it out
+ * and takes all the others, the box at the top says what changed and how many it takes now, with *Undo the change*;
+ * when nothing is found the AI is asked (if it can read). A movement of the group of the address leaves the group for
+ * good, and the box *Movement taken out* asks what it is.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { TriangleAlert, X } from '@lucide/vue';
+import { Funnel, TriangleAlert, Undo2, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import {
     computed,
@@ -23,6 +27,7 @@ import {
 import BankFilterAi from '@/components/budget/BankFilterAi.vue';
 import BankFilterActionFields from '@/components/budget/BankFilterActionFields.vue';
 import BankFilterCriteriaFields from '@/components/budget/BankFilterCriteriaFields.vue';
+import BankFilterDropped from '@/components/budget/BankFilterDropped.vue';
 import BankFilterFeeFields from '@/components/budget/BankFilterFeeFields.vue';
 import BankFilterPreviewList from '@/components/budget/BankFilterPreviewList.vue';
 import FmButton from '@/components/fm/FmButton.vue';
@@ -31,17 +36,22 @@ import FmTitle from '@/components/fm/FmTitle.vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import { useSaveShortcut } from '@/composables/useSaveShortcut';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
+import { useWideLayout } from '@/composables/useWideLayout';
 import type {
     BankFilterFormOptions,
+    BankFilterFormValues,
     BankFilterPayload,
 } from '@/lib/bankFilters';
 import {
+    amountText,
     BankFilterPreviewError,
     formPayload,
     formValues,
+    leaveGroup,
     previewFilter,
     summaryLine,
 } from '@/lib/bankFilters';
+import { splitAround } from '@/lib/text';
 import { errors } from '@/lib/errors';
 import { index as bankIndex } from '@/routes/budget/bank';
 import { destroy, store, update } from '@/routes/budget/bank/filters';
@@ -63,6 +73,8 @@ const props = defineProps<{
     example_ids?: number[];
     /** The address asked the AI to fill this new filter (`ai=1`): once, and the address loses it at once. */
     ask_ai?: boolean;
+    /** The group of the address: a movement taken out of the list leaves it for good. */
+    group?: { key: string; name: string } | null;
 }>();
 
 /** How long to wait after the last change before asking the preview, in milliseconds. */
@@ -89,9 +101,17 @@ const previewLoading = ref(false);
 /** The address of the tab *Filters*, where *Cancel*, *Close* and the trail lead. */
 const filtersUrl = bankIndex({ query: { show: 'filters' } }).url;
 
-/** The movements the AI reads: the ones the filter written so far takes (the first fifty are read). */
+/** The movements taken out with *It is not of this group*, the last one last. */
+const dropped = ref<App.Data.BankTransactionData[]>([]);
+
+/** Their ids, which the filter must leave and the AI reads as such. */
+const droppedIds = computed((): number[] => dropped.value.map((row) => row.id));
+
+/** The movements the AI reads: the ones the filter written so far takes, but those taken out (the first fifty are read). */
 const aiKeep = computed((): number[] => {
-    const taken = shownPreview.value.rows.map((row) => row.transaction.id);
+    const taken = shownPreview.value.rows
+        .map((row) => row.transaction.id)
+        .filter((id) => !droppedIds.value.includes(id));
 
     // Without a word the filter takes nothing: the example it started from is what the AI reads
     return taken.length > 0 ? taken : (props.example_ids ?? []);
@@ -161,6 +181,194 @@ async function loadPreview(body: BankFilterPayload): Promise<void> {
             previewLoading.value = false;
         }
     }
+}
+
+/** The words and amounts a change of *It is not of this group* replaced. */
+type Criteria = Pick<
+    BankFilterFormValues,
+    'contains' | 'excludes' | 'amount_min' | 'amount_max'
+>;
+
+/** The last change of *It is not of this group*: what changed, how many the filter took then and what it replaced. */
+const change = ref<{
+    refined: App.Data.BankFilterRefinementData;
+    count: number;
+    before: Criteria;
+} | null>(null);
+
+/** Nothing was found to leave the movement out, and the AI cannot read. */
+const notFound = ref(false);
+
+/** The AI buttons, to ask *Improve the filter* when nothing was found. */
+const aiButtons = ref<{ improve: () => Promise<void> } | null>(null);
+
+const wide = useWideLayout();
+
+/**
+ * The first line of the box of the change, cut around the word (drawn as a chip) or the amounts.
+ *
+ * @returns the text before, the word or the amounts, the text after
+ */
+const changeWords = computed((): [string, string, string] | null => {
+    const refined = change.value?.refined;
+
+    if (!refined) {
+        return null;
+    }
+
+    if (refined.change === 'amount') {
+        const range =
+            amountText(
+                refined.amount_min === null ? null : Number(refined.amount_min),
+                refined.amount_max === null ? null : Number(refined.amount_max),
+            ) ?? '';
+        const [head, tail] = splitAround(
+            'I changed the filter: amount :range.',
+            'range',
+        );
+
+        return [head, range, tail];
+    }
+
+    const [head, tail] = splitAround(
+        refined.change === 'excludes'
+            ? 'I changed the filter: :word in Does not contain.'
+            : 'I changed the filter: :word in Contains the words.',
+        'word',
+    );
+
+    return [head, refined.value, tail];
+});
+
+/** The second line of the box of the change: how many the filter takes now. */
+const changeCount = computed((): string =>
+    transChoice(
+        props.group
+            ? '{1} Now it takes :count movement, all those of the group but the one taken out.|[2,*] Now it takes :count movements, all those of the group but the one taken out.'
+            : '{1} Now it takes :count movement, all of them but the one taken out.|[2,*] Now it takes :count movements, all of them but the one taken out.',
+        change.value?.count ?? 0,
+    ),
+);
+
+/** The help under the field the change added a word to. */
+const added = computed(
+    (): { field: 'contains' | 'excludes'; help: string } | null => {
+        const refined = change.value?.refined;
+
+        if (refined?.change === 'excludes') {
+            return {
+                field: 'excludes',
+                help: trans(
+                    'Added now: only the movement taken out has this word.',
+                ),
+            };
+        }
+
+        return refined?.change === 'contains'
+            ? {
+                  field: 'contains',
+                  help: trans(
+                      'Added now: all the others have this word, the movement taken out does not.',
+                  ),
+              }
+            : null;
+    },
+);
+
+/**
+ * *It is not of this group*: the movement leaves the group of the address, and the server changes the filter to leave
+ * it out (or says the AI can be asked). The list is the one of the changed filter at once.
+ *
+ * @param row - the movement taken out
+ */
+async function drop(row: App.Data.BankTransactionData): Promise<void> {
+    cancelPreview();
+    const mine = ++latest;
+    const current = new AbortController();
+
+    controller = current;
+    previewLoading.value = true;
+    notFound.value = false;
+    dropped.value = [
+        ...dropped.value.filter((other) => other.id !== row.id),
+        row,
+    ];
+
+    if (props.group) {
+        leaveGroup(row.id, props.group.key).catch((failure: unknown) => {
+            previewError.value =
+                failure instanceof Error
+                    ? failure.message
+                    : trans('This did not work. Try again in a while.');
+        });
+    }
+
+    try {
+        const answer = await previewFilter(
+            formPayload(values),
+            props.filter?.id ?? null,
+            current.signal,
+            row.id,
+        );
+
+        if (mine !== latest) {
+            return;
+        }
+
+        shownPreview.value = answer;
+        previewError.value = null;
+
+        if (answer.refined) {
+            change.value = {
+                refined: answer.refined,
+                count: answer.rows.length,
+                before: {
+                    contains: [...values.contains],
+                    excludes: [...values.excludes],
+                    amount_min: values.amount_min,
+                    amount_max: values.amount_max,
+                },
+            };
+            Object.assign(values, {
+                contains: [...answer.refined.contains],
+                excludes: [...answer.refined.excludes],
+                amount_min: answer.refined.amount_min ?? '',
+                amount_max: answer.refined.amount_max ?? '',
+            });
+        } else if (answer.ai && aiButtons.value) {
+            change.value = null;
+            void aiButtons.value.improve();
+        } else {
+            change.value = null;
+            notFound.value = true;
+        }
+    } catch (failure) {
+        if (mine === latest && !current.signal.aborted) {
+            previewError.value =
+                failure instanceof BankFilterPreviewError
+                    ? failure.message
+                    : trans('This did not work. Try again in a while.');
+        }
+    } finally {
+        if (mine === latest) {
+            previewLoading.value = false;
+        }
+    }
+}
+
+/** *Undo the change*: the words and the amounts go back to what they were; the movement stays out of its group. */
+function undoChange(): void {
+    if (change.value === null) {
+        return;
+    }
+
+    Object.assign(values, {
+        contains: [...change.value.before.contains],
+        excludes: [...change.value.before.excludes],
+        amount_min: change.value.before.amount_min,
+        amount_max: change.value.before.amount_max,
+    });
+    change.value = null;
 }
 
 // The planned items, the categories and the cards are of one direction: another direction starts without them
@@ -309,6 +517,49 @@ const { title, head } = usePageMeta({
         </FmTitle>
 
         <div
+            v-if="change && changeWords"
+            role="status"
+            class="flex flex-wrap items-center gap-3 rounded-lg bg-action-soft px-3.5 py-3 text-action-dark"
+        >
+            <Funnel aria-hidden="true" class="size-5 shrink-0" />
+            <span class="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5">
+                <span class="text-label"
+                    >{{ changeWords[0]
+                    }}<span class="rounded-[6px] bg-card px-1.5">{{
+                        changeWords[1]
+                    }}</span
+                    >{{ changeWords[2] }}</span
+                >
+                <span class="text-body-sm text-ink">{{ changeCount }}</span>
+            </span>
+            <FmButton variant="neutral" :icon="Undo2" @click="undoChange">{{
+                $t('Undo the change')
+            }}</FmButton>
+        </div>
+        <p
+            v-else-if="notFound"
+            role="status"
+            class="m-0 rounded-lg bg-warning-soft px-3.5 py-3 text-body-sm text-ink"
+        >
+            {{
+                $t('I found no way to leave it out: change the words yourself.')
+            }}
+        </p>
+
+        <BankFilterDropped
+            v-if="!wide && dropped.length > 0"
+            :key="dropped[dropped.length - 1]!.id"
+            :transaction="dropped[dropped.length - 1]!"
+            :group="group?.name ?? null"
+            :word="
+                change?.refined.change === 'excludes'
+                    ? change.refined.value
+                    : null
+            "
+            :accounts="options.transfer_accounts"
+        />
+
+        <div
             class="flex flex-col gap-4 wide:grid wide:grid-cols-[minmax(0,520px)_minmax(0,1fr)] wide:items-start wide:gap-6"
         >
             <form
@@ -334,11 +585,14 @@ const { title, head } = usePageMeta({
                         :options="options"
                         :problems="problems"
                         :words-locked="aiBusy"
+                        :added="added"
                     >
                         <BankFilterAi
+                            ref="aiButtons"
                             v-model="values"
                             :ai="ai"
                             :keep="aiKeep"
+                            :drop="droppedIds"
                             :auto="askAtOpen"
                             @busy="aiBusy = $event"
                             @filled="changes.reset()"
@@ -361,11 +615,25 @@ const { title, head } = usePageMeta({
             <div
                 class="flex min-w-0 flex-col gap-4 wide:sticky wide:top-[calc(var(--app-header,0px)+--spacing(6))]"
             >
+                <BankFilterDropped
+                    v-if="wide && dropped.length > 0"
+                    :key="dropped[dropped.length - 1]!.id"
+                    :transaction="dropped[dropped.length - 1]!"
+                    :group="group?.name ?? null"
+                    :word="
+                        change?.refined.change === 'excludes'
+                            ? change.refined.value
+                            : null
+                    "
+                    :accounts="options.transfer_accounts"
+                />
                 <BankFilterPreviewList
                     :preview="shownPreview"
                     :fee-mode="values.fee_mode"
                     :error="previewError"
                     :loading="previewLoading"
+                    :droppable="canSave"
+                    @drop="drop"
                 />
                 <div
                     class="flex flex-col gap-3.5 rounded-card bg-card px-4 py-4 shadow-card wide:flex-row wide:flex-wrap wide:items-center wide:px-5"

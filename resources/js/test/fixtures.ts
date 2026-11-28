@@ -2708,6 +2708,8 @@ export const bankFilterPreview: App.Data.BankFilterPreviewData = {
     ],
     summary: { pay: 0, create: 0, link: 1, transfer: 0, ignore: 0 },
     conflicts: 0,
+    refined: null,
+    ai: false,
 };
 
 /** The choices of the form of a bank filter, as `BankFilterController` sends them: the accounts the bank reads and the open ones for a transfer. */

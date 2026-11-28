@@ -4,8 +4,8 @@
  * gruppo* draw it: the name, the account and the direction, how many movements with their amounts and days, what the
  * system proposes and what saving the filter would do, *Create the filter*, and the movements of the group, six at
  * first and *Show … more* for the rest, each with its day, its text, its commission, its amount and what the proposal
- * would do with it. Each movement has *It is not of this group* (`notOfGroup`): taking it out of the group is Task 19,
- * here the panel only says which movement was tapped. On the phone it is a bottom sheet; wide, a panel at the right of
+ * would do with it. Each movement has *It is not of this group* (`notOfGroup`): the page takes it out of the group
+ * and drops it from `rows`. On the phone it is a bottom sheet; wide, a panel at the right of
  * the list of groups (the page puts it in its column). While the page asks the movements (`rows` null) the list waits.
  *
  * @group panels
@@ -44,7 +44,7 @@ const { group, rows } = defineProps<{
 const emit = defineEmits<{
     /** The panel was closed. */
     close: [];
-    /** *It is not of this group* was tapped on a movement (the action comes with Task 19). */
+    /** *It is not of this group* was tapped on a movement: the page takes it out of the group. */
     notOfGroup: [row: App.Data.BankTransactionData];
 }>();
 
