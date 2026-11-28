@@ -128,6 +128,47 @@ test('sends only normalised texts and the names of categories, organizations and
         ->and($suggestion->explanation)->toBe('Prende i cashback di ScontiPoste.');
 });
 
+test('the texts reach the model without IBAN, amounts and the names of the family', function (): void {
+    Http::preventStrayRequests();
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/ai/gemini-bank-filter.json')), true, flags: JSON_THROW_ON_ERROR))]);
+    config([
+        'document_reader.provider' => 'gemini',
+        'document_reader.model' => 'gemini-3.8-flash',
+        'ai.providers.gemini.key' => 'gemini-test-key',
+    ]);
+    $family = Family::factory()->create();
+    $this->actingAs(User::factory()->for($family)->create(['name' => 'Giuseppina Rossetti']));
+    Person::factory()->for($family)->create(['first_name' => 'Ottavio', 'last_name' => 'Bellandi']);
+    $kept = suggestBankFilterTransaction($family, 'Bonifico a Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Netflix Rossetti');
+
+    $suggestion = suggestBankFilterRun($family, [$kept]);
+
+    Http::assertSent(function (Request $request): bool {
+        $body = $request->body();
+
+        return str_contains($body, 'BONIFICO A PERSONA PERSONA IBAN IMPORTO NETFLIX PERSONA')
+            && ! str_contains($body, 'IT60X0542811101000000123456')
+            && ! str_contains($body, '42,00')
+            && ! str_contains($body, 'OTTAVIO')
+            && ! str_contains($body, 'BELLANDI')
+            && ! str_contains($body, 'ROSSETTI');
+    });
+    // the fallback still reads the text as the bank gave it
+    expect($suggestion->contains)->toBe(['OTTAVIO', 'BELLANDI', 'EUR', 'NETFLIX']);
+});
+
+test('an organization of the family is found even when it was not among the names sent', function (): void {
+    [$family] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL'], [], null, 'zeta energia'));
+    Organization::factory()->for($family)->count(200)->sequence(fn ($sequence): array => ['name' => sprintf('Aaa %03d', $sequence->index)])->create();
+    $zeta = Organization::factory()->for($family)->create(['name' => 'Zeta Energia']);
+
+    $suggestion = suggestBankFilterRun($family, [suggestBankFilterTransaction($family, 'Addebito Enel Energia')], [], 'fill');
+
+    expect($suggestion->organizationId)->toBe($zeta->id)
+        ->and($suggestion->organization)->toBe('Zeta Energia')
+        ->and($suggestion->organizationIsNew())->toBeFalse();
+});
+
 test('the words mode sends no names and gives only the words', function (): void {
     [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL'], [], 'Casa', 'Enel'));
     ExpenseCategory::factory()->for($family)->create(['name' => 'Casa']);

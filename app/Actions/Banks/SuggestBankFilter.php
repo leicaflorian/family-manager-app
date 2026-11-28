@@ -16,6 +16,7 @@ use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankText;
+use App\Support\Banks\BankTextMask;
 use App\Support\Reading\BankFilterSuggestion;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -70,16 +71,15 @@ final readonly class SuggestBankFilter
         $this->availability->ensure($locale, 'keep');
 
         $fill = $mode === self::FILL;
-        $categories = $fill ? $this->categories() : new Collection;
-        $organizations = $fill ? $this->organizations() : new Collection;
         $names = [
-            'categories' => $this->distinct($categories),
-            'organizations' => $this->distinct($organizations),
+            'categories' => $fill ? $this->names(ExpenseCategory::class) : [],
+            'organizations' => $fill ? $this->names(Organization::class) : [],
             'planned' => $fill ? $this->planned() : [],
         ];
+        $people = BankTextMask::familyNames();
 
         try {
-            $suggestion = $this->reader->bankFilter($this->texts($keep), $this->texts($drop), $names, $locale);
+            $suggestion = $this->reader->bankFilter($this->texts($keep, $people), $this->texts($drop, $people), $names, $locale);
         } catch (ReadingFailed $failed) {
             // the answer came (and was paid for) but cannot be used: a new call would pay twice
             return $failed->paid ? $this->fallback($keep[0], null, $locale) : throw $failed;
@@ -92,18 +92,18 @@ final readonly class SuggestBankFilter
             return new BankFilterSuggestion($words->contains, $words->excludes, null, null, null, $words->explanation);
         }
 
-        $categoryId = $this->find($categories, $suggestion->category);
-        $organizationId = $this->find($organizations, $suggestion->organization);
+        $category = $this->find(ExpenseCategory::class, $suggestion->category);
+        $organization = $this->find(Organization::class, $suggestion->organization);
 
         return new BankFilterSuggestion(
             contains: $words->contains,
             excludes: $words->excludes,
             title: $suggestion->title,
-            category: $categoryId === null ? null : $categories->get($categoryId),
-            organization: $organizationId === null ? $suggestion->organization : $organizations->get($organizationId),
+            category: $category?->name,
+            organization: $organization->name ?? $suggestion->organization,
             explanation: $words->explanation,
-            categoryId: $categoryId,
-            organizationId: $organizationId,
+            categoryId: $category?->id,
+            organizationId: $organization?->id,
         );
     }
 
@@ -156,38 +156,32 @@ final readonly class SuggestBankFilter
     }
 
     /**
-     * The normalised texts of the transactions, without the empty ones, at most `MAX_TEXTS`.
+     * The normalised texts of the transactions as they may go to the model (IBANs, amounts and the names of the
+     * family masked), without the empty ones, at most `MAX_TEXTS`.
      *
      * @param  list<BankTransaction>  $transactions  the transactions
+     * @param  list<string>  $people  the names of the people of the family
      * @return list<string>
      */
-    private function texts(array $transactions): array
+    private function texts(array $transactions, array $people): array
     {
-        $texts = array_filter(array_map(static fn (BankTransaction $transaction): string => BankMatch::normalize($transaction->text), $transactions), static fn (string $text): bool => $text !== '');
+        $texts = array_filter(array_map(static fn (BankTransaction $transaction): string => BankTextMask::forModel(BankMatch::normalize($transaction->text), $people), $transactions), static fn (string $text): bool => $text !== '');
 
         return array_slice(array_values($texts), 0, self::MAX_TEXTS);
     }
 
     /**
-     * The categories of the family, by id.
+     * The names of the categories or organizations of the family, without repeats, at most `MAX_NAMES`.
      *
-     * @return Collection<int, string>
+     * @param  class-string<ExpenseCategory|Organization>  $model  the model
+     * @return list<string>
      */
-    private function categories(): Collection
+    private function names(string $model): array
     {
-        /** @var Collection<int, string> */
-        return ExpenseCategory::query()->orderBy('name')->orderBy('id')->limit(self::MAX_NAMES)->pluck('name', 'id');
-    }
+        /** @var Collection<int, string> $names */
+        $names = $model::query()->orderBy('name')->orderBy('id')->limit(self::MAX_NAMES)->pluck('name');
 
-    /**
-     * The organizations of the family, by id.
-     *
-     * @return Collection<int, string>
-     */
-    private function organizations(): Collection
-    {
-        /** @var Collection<int, string> */
-        return Organization::query()->orderBy('name')->orderBy('id')->limit(self::MAX_NAMES)->pluck('name', 'id');
+        return $this->distinct($names);
     }
 
     /**
@@ -215,20 +209,18 @@ final readonly class SuggestBankFilter
     }
 
     /**
-     * The id of the name of the family that the model wrote, whatever the case; null when the family has none.
+     * The category or organization of the family with the name the model wrote, whatever the case, among all of them
+     * (not only the names sent); null when the family has none.
      *
-     * @param  Collection<int, string>  $names  the names of the family, by id
+     * @param  class-string<ExpenseCategory|Organization>  $model  the model
      * @param  string|null  $name  what the model wrote
      */
-    private function find(Collection $names, ?string $name): ?int
+    private function find(string $model, ?string $name): ExpenseCategory|Organization|null
     {
         if ($name === null) {
             return null;
         }
 
-        $wanted = mb_strtolower(trim($name));
-        $id = $names->search(static fn (string $candidate): bool => mb_strtolower(trim($candidate)) === $wanted);
-
-        return is_int($id) ? $id : null;
+        return $model::query()->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($name))])->orderBy('id')->first();
     }
 }

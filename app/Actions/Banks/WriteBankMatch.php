@@ -9,6 +9,7 @@ use App\Data\Banks\BankRuleSuggestion;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Services\Reading\ReadingAvailability;
 use App\Support\Banks\BankMatch;
+use App\Support\Banks\BankTextMask;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -24,7 +25,8 @@ final readonly class WriteBankMatch
     public function __construct(private DocumentReader $reader, private ReadingAvailability $availability) {}
 
     /**
-     * The rule for the examples. Only their normalised texts go to the model: no amount, no name.
+     * The rule for the examples. Only their normalised texts go to the model, with IBANs, amounts and the names of the
+     * family masked (`BankTextMask`); the rule is checked on the texts as the bank gave them.
      *
      * @param  list<string>  $examples  the texts of the transactions, as the bank gave them
      * @param  string  $locale  the language of the explanation (`it` or `en`)
@@ -45,7 +47,8 @@ final readonly class WriteBankMatch
         }
 
         try {
-            $suggestion = $this->reader->bankRule($texts, $locale);
+            $people = BankTextMask::familyNames();
+            $suggestion = $this->reader->bankRule(array_map(static fn (string $text): string => BankTextMask::forModel($text, $people), $texts), $locale);
         } catch (ReadingFailed $failed) {
             // the answer came (and was paid for) but cannot be used: a new call would pay twice
             return $failed->paid ? $fallback : throw $failed;
