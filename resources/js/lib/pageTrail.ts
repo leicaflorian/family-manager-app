@@ -52,3 +52,19 @@ export const SECTION_PAGES: readonly string[] = SECTIONS.flatMap(
 export function isSectionPage(component: string): boolean {
     return SECTION_PAGES.includes(component);
 }
+
+/** The pages under a section in the sidebar: they show their trail, and the tools of a section page beside the title. */
+export const SUBPAGES: readonly string[] = SECTIONS.flatMap(
+    (entry) => entry.subpages ?? [],
+);
+
+/**
+ * Tells whether a page keeps the search and the bell beside its title on the phone: the section pages and the pages
+ * under a section in the sidebar.
+ *
+ * @param component - the Inertia component name, such as `budget/BankTransactions`
+ * @returns true when the title has the tools
+ */
+export function hasTitleTools(component: string): boolean {
+    return isSectionPage(component) || SUBPAGES.includes(component);
+}

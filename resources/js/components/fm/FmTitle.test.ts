@@ -133,6 +133,16 @@ describe('FmTitle', () => {
             ).toBeInTheDocument();
         });
 
+        it('are beside the title of From the bank on the phone, which has its trail', () => {
+            state.component = 'budget/BankTransactions';
+            state.mode = 'phone';
+            render(FmTitle, { props: { title: 'From the bank' } });
+
+            expect(
+                screen.getByRole('link', { name: 'Search in Fameja.app' }),
+            ).toBeInTheDocument();
+        });
+
         it('are not on an inner page', () => {
             state.component = 'cards/Card';
             state.mode = 'phone';
