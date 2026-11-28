@@ -15,6 +15,7 @@ use App\Models\PlannedExpense;
 use App\Models\ReceivedMail;
 use App\Models\Reminder;
 use App\Models\ReminderNotice;
+use App\Support\ListJoin;
 use App\Support\PaymentTitle;
 use App\Support\Reminders\DueText;
 use Carbon\CarbonImmutable;
@@ -275,9 +276,8 @@ final readonly class NoticeList
         }
 
         $titles = array_map(static fn (Expense $expense): string => (string) $expense->plannedExpense?->displayTitle(), $payments);
-        $last = array_pop($titles);
 
-        return PaymentTitle::for(__(':first and :second', ['first' => implode(', ', $titles), 'second' => $last]), $earliest->occurrence_date);
+        return PaymentTitle::for(ListJoin::of($titles), $earliest->occurrence_date);
     }
 
     /**

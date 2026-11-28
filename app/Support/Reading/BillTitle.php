@@ -7,6 +7,7 @@ namespace App\Support\Reading;
 use App\Data\Reading\Extraction;
 use App\Enums\UtilityType;
 use App\Models\Vehicle;
+use App\Support\ListJoin;
 use Carbon\CarbonImmutable;
 
 /**
@@ -83,10 +84,7 @@ final class BillTitle
      */
     public static function typesText(array $types, string $locale): string
     {
-        $names = array_map(static fn (string $type): string => mb_strtolower(self::typeLabel($type, $locale)), $types);
-        $last = array_pop($names);
-
-        return $names === [] ? (string) $last : __(':first and :second', ['first' => implode(', ', $names), 'second' => $last], $locale);
+        return ListJoin::of(array_map(static fn (string $type): string => mb_strtolower(self::typeLabel($type, $locale)), $types), $locale);
     }
 
     /**
