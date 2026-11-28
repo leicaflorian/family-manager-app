@@ -28,8 +28,14 @@ describe('BankFilterCriteriaFields', () => {
             'All the accounts',
             'Conto BancoPosta ·· 3307',
         ]);
-        expect(screen.getByLabelText(/^Amount from/)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^Amount up to/)).toBeInTheDocument();
+        const amount = screen.getByRole('group', { name: /^Amount/ });
+        expect(amount).toHaveTextContent('Amount (optional)');
+        expect(
+            within(amount).getByRole('textbox', { name: 'Amount from' }),
+        ).toHaveAttribute('placeholder', 'from €');
+        expect(
+            within(amount).getByRole('textbox', { name: 'Amount up to' }),
+        ).toHaveAttribute('placeholder', 'to €');
 
         await userEvent.type(
             screen.getByRole('combobox', { name: 'Contains the words' }),

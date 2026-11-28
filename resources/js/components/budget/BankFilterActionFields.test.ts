@@ -25,6 +25,34 @@ describe('BankFilterActionFields', () => {
         expect(
             screen.queryByRole('combobox', { name: /^Category/ }),
         ).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Mark an income received, Create the income, It is a transfer or Ignore.',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('says the actions under What it does, without the one a member cannot choose', () => {
+        const first = renderPage(BankFilterActionFields, {
+            modelValue: formValues(bankFilters[1]!),
+            options: bankFilterOptions,
+            canPay: true,
+        });
+        expect(
+            screen.getByText(
+                'Pay a due date, Create the expense, It is a transfer or Ignore.',
+            ),
+        ).toBeInTheDocument();
+        first.unmount();
+
+        renderPage(BankFilterActionFields, {
+            modelValue: formValues(bankFilters[1]!),
+            options: bankFilterOptions,
+            canPay: false,
+        });
+        expect(
+            screen.getByText('Create the expense, It is a transfer or Ignore.'),
+        ).toBeInTheDocument();
     });
 
     it('a transfer asks the other account, not the one the filter reads', async () => {

@@ -90,7 +90,7 @@ describe('The form of a bank filter', () => {
         expect(state.pieces.value).toEqual([
             { label: 'Budget', href: '/budget' },
             { label: 'From the bank', href: '/budget/bank?show=filters' },
-            { label: 'Edit the filter Satispay' },
+            { label: 'Filter Satispay' },
         ]);
         expect(
             screen.getByRole('heading', {
@@ -298,5 +298,94 @@ describe('The form of a bank filter', () => {
         await settle();
 
         expect(hasChanges()).toBe(true);
+    });
+
+    it('a change of direction clears what belongs to the other direction', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(
+            BankFilter,
+            props({ filter: { ...satispay, planned_expense_id: 7 } }),
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Coming in' }),
+        );
+        await settle();
+        await pause();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        );
+
+        const body = put.mock.calls[0]![1] as Record<string, unknown>;
+        expect(body).toMatchObject({
+            direction: 'income',
+            planned_id: null,
+            category_id: null,
+            card: null,
+        });
+        expect(request.mock.calls.at(-1)![0].data).toMatchObject({
+            planned_id: null,
+            category_id: null,
+        });
+    });
+
+    it('an income filter has no commission section and sends none', async () => {
+        const put = vi.spyOn(router, 'put').mockImplementation(() => {});
+        renderPage(BankFilter, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Coming in' }),
+        );
+        await settle();
+
+        expect(
+            screen.queryByRole('group', { name: /^Commission/ }),
+        ).not.toBeInTheDocument();
+        await pause();
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        );
+        expect(put.mock.calls[0]![1]).toMatchObject({ fee_mode: 'none' });
+    });
+
+    it('Save waits while the preview of a change is on its way', async () => {
+        renderPage(BankFilter, props());
+
+        await fireEvent.update(screen.getByLabelText('Filter name'), 'Nuovo');
+        await settle();
+        expect(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        ).toBeDisabled();
+
+        await pause();
+        expect(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        ).toBeEnabled();
+    });
+
+    it('shows the conflict the server finds on save, also for an advanced filter', async () => {
+        const message =
+            'A movement to sort is already taken by the filter «Satispay ricariche»: change one of the two.';
+        vi.spyOn(router, 'put').mockImplementation((_url, _data, options) => {
+            options?.onError?.({ contains: message });
+        });
+        const first = renderPage(BankFilter, props());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        );
+        expect(await screen.findByText(message)).toBeInTheDocument();
+        first.unmount();
+
+        renderPage(
+            BankFilter,
+            props({
+                filter: { ...satispay, pattern: 'SATISPAY.*', contains: [] },
+            }),
+        );
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Save the filter' }),
+        );
+        expect(await screen.findByText(message)).toBeInTheDocument();
     });
 });

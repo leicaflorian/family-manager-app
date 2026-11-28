@@ -1,8 +1,8 @@
 import { screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vite-plus/test';
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { bankFilterPreview } from '@/test/fixtures';
-import { renderPage } from '@/test/page';
+import { renderPage, screenWidth } from '@/test/page';
 import BankFilterPreviewList from './BankFilterPreviewList.vue';
 
 const row = bankFilterPreview.rows[0]!;
@@ -28,8 +28,13 @@ const twelve: App.Data.BankFilterPreviewData = {
     }),
 };
 
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
+
 describe('BankFilterPreviewList', () => {
-    it('says how many, the days and the amounts, and shows ten then the others', async () => {
+    it('says how many, the days and the amounts, and on the phone shows five then the others', async () => {
+        screenWidth(false);
         renderPage(BankFilterPreviewList, { preview: twelve, feeMode: 'auto' });
 
         expect(
@@ -42,16 +47,42 @@ describe('BankFilterPreviewList', () => {
                 'Last 90 days, from 13/11 to 24/11, from 10,00 € to 21,00 €',
             ),
         ).toBeInTheDocument();
-        expect(screen.getAllByText('Create the expense')).toHaveLength(10);
-        expect(screen.getAllByText('no commission')).toHaveLength(10);
+        expect(screen.getAllByText('Create the expense')).toHaveLength(5);
+        expect(screen.getAllByText('no commission')).toHaveLength(5);
 
         await userEvent.click(
             screen.getByRole('button', {
-                name: 'Show the other 2 (from 13/11)',
+                name: 'Show the other 7 (from 13/11)',
             }),
         );
 
         expect(screen.getAllByText('Create the expense')).toHaveLength(12);
+    });
+
+    it('shows eight when wide, and the amounts in the currency of the movements', () => {
+        screenWidth(true);
+        renderPage(BankFilterPreviewList, {
+            preview: {
+                ...twelve,
+                rows: twelve.rows.map((item) => ({
+                    ...item,
+                    transaction: { ...item.transaction, currency: 'CHF' },
+                })),
+            },
+            feeMode: 'auto',
+        });
+
+        expect(screen.getAllByText('Create the expense')).toHaveLength(8);
+        expect(
+            screen.getByRole('button', {
+                name: 'Show the other 4 (from 13/11)',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                /^Last 90 days, from 13\/11 to 24\/11, from .*CHF/,
+            ),
+        ).toBeInTheDocument();
     });
 
     it('says what each movement becomes and when the list is empty', () => {

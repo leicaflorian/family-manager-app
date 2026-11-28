@@ -2,7 +2,8 @@
 /**
  * *The movements it takes*, beside the form of a bank filter (under it on the phone), as the board
  * *Dalla-banca-filtro* draws it: how many movements of the last 90 days the filter written so far takes, from which
- * day to which and from which amount to which, and the whole list, ten at first and *Show the other…* for the rest.
+ * day to which and from which amount to which, and the whole list, eight at first beside the form (five on the
+ * phone) and *Show the other…* for the rest.
  * Each movement has its day, its text with the words found highlighted, the commission found (or none), the amount
  * and what the filter will do to it; one another filter already takes says which, since two filters on the same
  * movement cannot be saved.
@@ -11,9 +12,11 @@ import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import { TriangleAlert } from '@lucide/vue';
 import { useFormat } from '@/composables/useFormat';
+import { useWideLayout } from '@/composables/useWideLayout';
 import { willTag } from '@/lib/bankFilters';
 import { formatDayMonth } from '@/lib/format';
 import { highlightParts } from '@/lib/highlight';
+import { splitAround } from '@/lib/text';
 import { cn } from '@/lib/utils';
 
 const {
@@ -32,8 +35,10 @@ const {
     loading?: boolean;
 }>();
 
-/** How many movements show before *Show the other…*. */
-const FIRST = 10;
+const wide = useWideLayout();
+
+/** How many movements show before *Show the other…*: eight beside the form, five on the phone, as the boards. */
+const first = computed((): number => (wide.value ? 8 : 5));
 
 const { money } = useFormat();
 
@@ -42,21 +47,16 @@ const all = ref(false);
 
 /** The rows shown now. */
 const rows = computed(() =>
-    all.value ? preview.rows : preview.rows.slice(0, FIRST),
+    all.value ? preview.rows : preview.rows.slice(0, first.value),
 );
 
-/** Marks where the name of the other filter goes, to draw it strong. */
-const NAME = '\u0000';
-
-/** The words around the name in the note of a movement another filter takes. */
-const takenWords = computed((): [string, string] => {
-    const [before = '', after = ''] = trans(
+/** The words around the name in the note of a movement another filter takes, to draw the name strong. */
+const takenWords = computed((): [string, string] =>
+    splitAround(
         'The filter :name already takes it. Two filters on the same movement cannot be saved: change one of the two.',
-        { name: NAME },
-    ).split(NAME);
-
-    return [before, after];
-});
+        'name',
+    ),
+);
 
 /** The line under the heading: the days and the amounts of the movements taken. */
 const range = computed((): string | null => {
@@ -66,6 +66,7 @@ const range = computed((): string | null => {
         .filter((day): day is string => day !== null)
         .sort();
     const amounts = list.map((row) => Math.abs(row.amount));
+    const currency = list[0]?.currency ?? 'EUR';
 
     if (days.length === 0) {
         return null;
@@ -80,19 +81,19 @@ const range = computed((): string | null => {
         ? trans('Last 90 days, from :from to :to, :amount', {
               from,
               to,
-              amount: money(min, 'EUR'),
+              amount: money(min, currency),
           })
         : trans('Last 90 days, from :from to :to, from :min to :max', {
               from,
               to,
-              min: money(min, 'EUR'),
-              max: money(max, 'EUR'),
+              min: money(min, currency),
+              max: money(max, currency),
           });
 });
 
 /** The text of *Show the other…*: how many and from which day. */
 const moreText = computed((): string => {
-    const hidden = preview.rows.slice(FIRST);
+    const hidden = preview.rows.slice(first.value);
     const days = hidden
         .map((row) => row.transaction.booked_on ?? row.transaction.value_on)
         .filter((day): day is string => day !== null)
@@ -253,10 +254,10 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                     }}</span>
                 </div>
             </li>
-            <li v-if="!all && preview.rows.length > FIRST" class="flex">
+            <li v-if="!all && preview.rows.length > first" class="flex">
                 <button
                     type="button"
-                    class="h-12 grow cursor-pointer border-0 bg-transparent text-row text-action hover:text-action-dark"
+                    class="h-touch grow cursor-pointer border-0 bg-transparent text-row text-action hover:text-action-dark"
                     @click="all = true"
                 >
                     {{ moreText }}

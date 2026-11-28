@@ -9,6 +9,7 @@ import { trans, transChoice } from 'laravel-vue-i18n';
 import { formatDayMonth, formatEuro } from '@/lib/format';
 import { formatAmount, parseAmount } from '@/lib/forms';
 import { failedAnswer, jsonBody, serverMessage } from '@/lib/httpAnswer';
+import { splitAround } from '@/lib/text';
 import type { MovementFormOptions } from '@/lib/budget';
 import { preview } from '@/routes/budget/bank/filters';
 
@@ -141,6 +142,8 @@ export function formValues(
  * @returns the body of the request
  */
 export function formPayload(values: BankFilterFormValues): BankFilterPayload {
+    const income = values.direction === 'income';
+
     return {
         name: values.name,
         contains: values.contains,
@@ -150,9 +153,10 @@ export function formPayload(values: BankFilterFormValues): BankFilterPayload {
         amount_min: parseAmount(values.amount_min),
         amount_max: parseAmount(values.amount_max),
         pattern: values.pattern,
-        fee_mode: values.fee_mode,
-        fee_contains: values.fee_contains,
-        fee_excludes: values.fee_excludes,
+        // Commissions belong to the money going out: an income filter has none
+        fee_mode: income ? 'none' : values.fee_mode,
+        fee_contains: income ? [] : values.fee_contains,
+        fee_excludes: income ? [] : values.fee_excludes,
         action: values.action,
         planned_id: idOf(values.planned_id),
         title: values.title === '' ? null : values.title,
@@ -166,11 +170,36 @@ export function formPayload(values: BankFilterFormValues): BankFilterPayload {
     };
 }
 
-/** Marks where the name goes in a sentence, to cut it around the name. */
-const NAME = '\u0000';
+/**
+ * The props every field of words of the form shares (*Contains the words*, *Does not contain*, in the matches and in
+ * the commission): a taglist where Enter adds what is written.
+ *
+ * @returns the props, to bind on the `FormKit` of type `taglist`
+ */
+export function wordsFieldProps(): Record<string, unknown> {
+    return {
+        type: 'taglist',
+        options: [],
+        allowNewValues: true,
+        showEmptyMessage: true,
+        emptyMessage: trans('Press Enter to add the word'),
+        placeholder: trans('Add a word'),
+    };
+}
+
+/** The sentences of the line *Action* without a name, for a filter whose name is missing. */
+const WITHOUT_NAME: Record<string, string> = {
+    'creates the expense :name': 'creates the expense',
+    'creates the income :name': 'creates the income',
+    'pays the due date of :name': 'pays a due date',
+    'marks the planned income :name received':
+        'marks a planned income received',
+    'is a transfer from :name': 'is a transfer',
+    'is a transfer to :name': 'is a transfer',
+};
 
 /**
- * Cuts a translated sentence around its `:name`.
+ * Cuts a translated sentence around its `:name`; without a name, the same sentence without it.
  *
  * @param key - the sentence, with `:name`
  * @param name - the name, already in «»
@@ -179,13 +208,13 @@ const NAME = '\u0000';
 function around(key: string, name: string | null): ActionPieces {
     if (name === null) {
         return {
-            before: trans(key.replace(' :name', '')),
+            before: trans(WITHOUT_NAME[key] ?? key),
             name: null,
             after: '',
         };
     }
 
-    const [before = '', after = ''] = trans(key, { name: NAME }).split(NAME);
+    const [before, after] = splitAround(key, 'name');
 
     return { before, name, after };
 }

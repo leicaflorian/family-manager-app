@@ -2879,7 +2879,7 @@
     "For texts without a mandate or with a different one.": "Per i testi senza mandato o con un mandato diverso.",
     "Going out": "Uscita",
     "It changes only as text.": "Si cambia solo come testo.",
-    "It comes from the rule of a planned item: it changes only as text.": "Viene dalla regola di una spesa fissa: si cambia solo come testo.",
+    "It comes from the rule of a planned item: it changes only as text.": "Viene dalla regola di una spesa o entrata fissa: si cambia solo come testo.",
     "It comes from the rule of the planned expense :name: it changes only as text.": "Viene dalla regola della spesa fissa :name: si cambia solo come testo.",
     "It comes from the rule of the planned income :name: it changes only as text.": "Viene dalla regola dell'entrata fissa :name: si cambia solo come testo.",
     "It goes into the expense of the movement, included in the amount.": "Entra nella spesa del movimento, compresa nell'importo.",
@@ -2947,5 +2947,17 @@
     "{1} links 1 income already recorded|[2,*] links :count incomes already recorded": "{1} collega 1 entrata già registrata|[2,*] collega :count entrate già registrate",
     "{1} marks 1 income received|[2,*] marks :count incomes received": "{1} segna arrivata 1 entrata|[2,*] segna arrivate :count entrate",
     "{1} marks 1 transfer|[2,*] marks :count transfers": "{1} segna 1 trasferimento|[2,*] segna :count trasferimenti",
-    "{1} pays 1 due date|[2,*] pays :count due dates": "{1} paga 1 scadenza|[2,*] paga :count scadenze"
+    "{1} pays 1 due date|[2,*] pays :count due dates": "{1} paga 1 scadenza|[2,*] paga :count scadenze",
+    "from €": "da €",
+    "to €": "a €",
+    "Filter :name": "Filtro :name",
+    "creates the expense": "crea la spesa",
+    "creates the income": "crea l'entrata",
+    "pays a due date": "paga una scadenza",
+    "marks a planned income received": "segna arrivata un'entrata fissa",
+    "is a transfer": "è un trasferimento",
+    "Pay a due date, Create the expense, It is a transfer or Ignore.": "Paga la scadenza, Crea la spesa, È un trasferimento o Ignora.",
+    "Create the expense, It is a transfer or Ignore.": "Crea la spesa, È un trasferimento o Ignora.",
+    "Mark an income received, Create the income, It is a transfer or Ignore.": "Segna arrivata un'entrata fissa, Crea l'entrata, È un trasferimento o Ignora.",
+    "Create the income, It is a transfer or Ignore.": "Crea l'entrata, È un trasferimento o Ignora."
 }

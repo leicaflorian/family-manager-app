@@ -8,6 +8,7 @@
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import type { BankFilterFormValues } from '@/lib/bankFilters';
+import { wordsFieldProps } from '@/lib/bankFilters';
 import { errors } from '@/lib/errors';
 
 const { problems = {} } = defineProps<{
@@ -17,6 +18,9 @@ const { problems = {} } = defineProps<{
 
 /** The fields of the form, changed in place. */
 const values = defineModel<BankFilterFormValues>({ required: true });
+
+/** The props the two fields of words share. */
+const words = wordsFieldProps();
 
 /** The three ways of finding the commission, each with what it means. */
 const choices = computed(() => [
@@ -48,49 +52,90 @@ const choices = computed(() => [
                 )
             }}</span>
         </legend>
-        <FormKit
-            v-model="values.fee_mode"
-            type="radio"
-            name="fee_mode"
-            :options="choices"
-            :errors="errors(problems.fee_mode)"
-        />
         <div
-            v-if="values.fee_mode === 'words'"
-            class="flex flex-col rounded-lg bg-action-soft px-3.5 pt-3.5 pb-3"
+            role="radiogroup"
+            :aria-label="$t('Commission')"
+            class="flex flex-col divide-y divide-divider overflow-hidden rounded-xl border border-edge-soft bg-card"
         >
-            <FormKit
-                v-model="values.fee_contains"
-                type="taglist"
-                :label="$t('Contains the words')"
-                name="fee_contains"
-                :options="[]"
-                allow-new-values
-                show-empty-message
-                :empty-message="$t('Press Enter to add the word')"
-                :placeholder="$t('Add a word')"
-                :errors="errors(problems.fee_contains)"
-            />
-            <FormKit
-                v-model="values.fee_excludes"
-                type="taglist"
-                :label="$t('Does not contain')"
-                name="fee_excludes"
-                optional
-                :options="[]"
-                allow-new-values
-                show-empty-message
-                :empty-message="$t('Press Enter to add the word')"
-                :placeholder="$t('Add a word')"
-                :errors="errors(problems.fee_excludes)"
-            />
-            <p class="m-0 text-meta text-ink-soft">
-                {{
-                    $t(
-                        'On the same account, within 5 days of the movement, with a smaller amount.',
-                    )
-                }}
-            </p>
+            <div
+                v-for="choice in choices"
+                :key="choice.value"
+                :class="
+                    values.fee_mode === choice.value
+                        ? 'flex flex-col bg-action-soft'
+                        : 'flex flex-col'
+                "
+            >
+                <label
+                    class="flex cursor-pointer items-start gap-3 px-3.5 py-3"
+                >
+                    <input
+                        v-model="values.fee_mode"
+                        type="radio"
+                        name="fee_mode"
+                        :value="choice.value"
+                        class="peer sr-only"
+                    />
+                    <span
+                        aria-hidden="true"
+                        :class="
+                            values.fee_mode === choice.value
+                                ? 'mt-px size-[22px] shrink-0 rounded-full border-7 border-action bg-card'
+                                : 'mt-px size-[22px] shrink-0 rounded-full border-[1.5px] border-edge bg-card'
+                        "
+                        class="peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-action"
+                    />
+                    <span class="flex flex-col gap-0.5">
+                        <span
+                            :class="
+                                values.fee_mode === choice.value
+                                    ? 'text-body-strong text-ink'
+                                    : 'text-body text-ink'
+                            "
+                            >{{ choice.label }}</span
+                        >
+                        <span class="text-meta text-ink-soft">{{
+                            choice.help
+                        }}</span>
+                    </span>
+                </label>
+                <div
+                    v-if="
+                        choice.value === 'words' && values.fee_mode === 'words'
+                    "
+                    class="flex flex-col pr-3.5 pb-3.5 pl-12"
+                >
+                    <FormKit
+                        v-bind="words"
+                        v-model="values.fee_contains"
+                        :label="$t('Contains the words')"
+                        name="fee_contains"
+                        :errors="errors(problems.fee_contains)"
+                    />
+                    <FormKit
+                        v-bind="words"
+                        v-model="values.fee_excludes"
+                        :label="$t('Does not contain')"
+                        name="fee_excludes"
+                        optional
+                        :errors="errors(problems.fee_excludes)"
+                    />
+                    <p class="m-0 text-meta text-ink-soft">
+                        {{
+                            $t(
+                                'On the same account, within 5 days of the movement, with a smaller amount.',
+                            )
+                        }}
+                    </p>
+                </div>
+            </div>
         </div>
+        <p
+            v-if="problems.fee_mode"
+            role="alert"
+            class="m-0 mt-1.5 text-meta text-overdue"
+        >
+            {{ problems.fee_mode }}
+        </p>
     </fieldset>
 </template>

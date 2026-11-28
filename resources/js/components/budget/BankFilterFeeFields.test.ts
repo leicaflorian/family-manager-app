@@ -31,8 +31,24 @@ describe('BankFilterFeeFields', () => {
         await settle();
 
         expect(values.fee_mode).toBe('words');
+        const words = screen.getByRole('combobox', {
+            name: 'Contains the words',
+        });
+        // The words sit right under their choice, before *No commission*
+        const wordsChoice = screen.getByRole('radio', {
+            name: /Recognise it with these words/,
+        });
+        const none = screen.getByRole('radio', { name: /No commission/ });
         expect(
-            screen.getByRole('combobox', { name: 'Contains the words' }),
+            wordsChoice.compareDocumentPosition(words) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            words.compareDocumentPosition(none) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(
+            screen.getByRole('radiogroup', { name: 'Commission' }),
         ).toBeInTheDocument();
         expect(
             screen.getByText(

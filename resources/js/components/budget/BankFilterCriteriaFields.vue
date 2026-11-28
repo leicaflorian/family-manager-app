@@ -11,6 +11,7 @@ import type {
     BankFilterFormOptions,
     BankFilterFormValues,
 } from '@/lib/bankFilters';
+import { wordsFieldProps } from '@/lib/bankFilters';
 import { errors } from '@/lib/errors';
 
 const { options, problems = {} } = defineProps<{
@@ -22,6 +23,9 @@ const { options, problems = {} } = defineProps<{
 
 /** The fields of the form, changed in place. */
 const values = defineModel<BankFilterFormValues>({ required: true });
+
+/** The props the two fields of words share. */
+const words = wordsFieldProps();
 
 /** The accounts the filter can read, with *All the accounts* first. */
 const accounts = computed(() => [
@@ -53,19 +57,14 @@ const accounts = computed(() => [
                     'It comes from the rule of a planned item: it changes only as text.',
                 )
             "
-            :errors="errors(problems.pattern)"
+            :errors="errors(problems.pattern ?? problems.contains)"
         />
         <template v-else>
             <FormKit
+                v-bind="words"
                 v-model="values.contains"
-                type="taglist"
                 :label="$t('Contains the words')"
                 name="contains"
-                :options="[]"
-                allow-new-values
-                show-empty-message
-                :empty-message="$t('Press Enter to add the word')"
-                :placeholder="$t('Add a word')"
                 :help="
                     $t(
                         'All of them, in any order. Between quotes the exact phrase counts.',
@@ -74,16 +73,11 @@ const accounts = computed(() => [
                 :errors="errors(problems.contains)"
             />
             <FormKit
+                v-bind="words"
                 v-model="values.excludes"
-                type="taglist"
                 :label="$t('Does not contain')"
                 name="excludes"
                 optional
-                :options="[]"
-                allow-new-values
-                show-empty-message
-                :empty-message="$t('Press Enter to add the word')"
-                :placeholder="$t('Add a word')"
                 :errors="errors(problems.excludes)"
             />
         </template>
@@ -107,23 +101,35 @@ const accounts = computed(() => [
             :options="accounts"
             :errors="errors(problems.financial_account_id)"
         />
-        <div class="grid grid-cols-2 gap-3">
-            <FormKit
-                v-model="values.amount_min"
-                type="currency"
-                :label="$t('Amount from')"
-                optional
-                name="amount_min"
-                :errors="errors(problems.amount_min)"
-            />
-            <FormKit
-                v-model="values.amount_max"
-                type="currency"
-                :label="$t('Amount up to')"
-                optional
-                name="amount_max"
-                :errors="errors(problems.amount_max)"
-            />
+        <div
+            role="group"
+            aria-labelledby="bank-filter-amount"
+            class="mb-3.5 flex flex-col gap-1.5"
+        >
+            <span id="bank-filter-amount" class="text-label text-ink"
+                >{{ $t('Amount') }}
+                <span class="text-body-sm text-ink-soft">{{
+                    $t('(optional)')
+                }}</span></span
+            >
+            <div class="grid grid-cols-2 gap-3">
+                <FormKit
+                    v-model="values.amount_min"
+                    type="currency"
+                    name="amount_min"
+                    :aria-label="$t('Amount from')"
+                    :placeholder="$t('from €')"
+                    :errors="errors(problems.amount_min)"
+                />
+                <FormKit
+                    v-model="values.amount_max"
+                    type="currency"
+                    name="amount_max"
+                    :aria-label="$t('Amount up to')"
+                    :placeholder="$t('to €')"
+                    :errors="errors(problems.amount_max)"
+                />
+            </div>
         </div>
     </fieldset>
 </template>

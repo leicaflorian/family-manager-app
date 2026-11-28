@@ -241,3 +241,18 @@ describe('the form values', () => {
         });
     });
 });
+
+describe('the body of an income filter', () => {
+    it('has no commission: commissions belong to the money going out', () => {
+        expect(
+            formPayload({
+                ...formValues(satispay),
+                direction: 'income',
+            }),
+        ).toMatchObject({
+            fee_mode: 'none',
+            fee_contains: [],
+            fee_excludes: [],
+        });
+    });
+});

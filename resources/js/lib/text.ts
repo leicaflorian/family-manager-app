@@ -1,3 +1,30 @@
+import { trans } from 'laravel-vue-i18n';
+
+/** Marks where the piece drawn apart goes in a translated sentence. */
+const MARK = '\u0000';
+
+/**
+ * Cuts a translated sentence around one of its placeholders, so the page can draw that piece apart (a name in bold,
+ * the name of a button in italics) without composing the sentence by hand.
+ *
+ * @param key - the English sentence, with the placeholder (`:name`)
+ * @param placeholder - the name of the placeholder, without the colon
+ * @param replacements - the other placeholders of the sentence
+ * @returns the text before the placeholder and the text after it
+ */
+export function splitAround(
+    key: string,
+    placeholder: string,
+    replacements: Record<string, string> = {},
+): [string, string] {
+    const [before = '', after = ''] = trans(key, {
+        ...replacements,
+        [placeholder]: MARK,
+    }).split(MARK);
+
+    return [before, after];
+}
+
 /**
  * Splits a text in two, the last characters apart: shown in two pieces, the
  * first cut with an ellipsis where room is short and the second always

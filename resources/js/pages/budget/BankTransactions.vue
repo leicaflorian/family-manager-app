@@ -57,6 +57,7 @@ import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { undoWords } from '@/lib/bankUndo';
 import { dayOf, lastReadText, readTimes } from '@/lib/banks';
+import { splitAround } from '@/lib/text';
 import { cn } from '@/lib/utils';
 import {
     assign,
@@ -487,18 +488,13 @@ function attachFee(expenseId: number): void {
     );
 }
 
-/** Marks where *It was not this one* goes in the line under the filters, to draw it in italics. */
-const UNDO = '\u0000';
-
-/** The line under the filters, cut around *It was not this one*. */
-const filtersFooter = computed((): [string, string] => {
-    const [before = '', after = ''] = trans(
+/** The line under the filters, cut around *It was not this one*, to draw it in italics. */
+const filtersFooter = computed((): [string, string] =>
+    splitAround(
         'Filters work on the new movements and, when you save them, on the ones still to sort. An expense created by a filter goes away with :undo.',
-        { undo: UNDO },
-    ).split(UNDO);
-
-    return [before, after];
-});
+        'undo',
+    ),
+);
 
 /** The tab *All*: the filters in use, none when the server did not send them. */
 const allFilters = computed(

@@ -133,11 +133,27 @@ async function loadPreview(body: BankFilterPayload): Promise<void> {
     }
 }
 
-// Every change asks the preview again, half a second after the last one
+// The planned items, the categories and the cards are of one direction: another direction starts without them
+watch(
+    () => values.direction,
+    (direction) => {
+        values.planned_id = '';
+
+        if (direction === 'income') {
+            values.category_id = '';
+            values.card = null;
+        }
+    },
+);
+
+// Every change asks the preview again, half a second after the last one; meanwhile the list waits and Save is off
 watch(
     () => JSON.stringify(formPayload(values)),
     (body) => {
         cancelPreview();
+        // An answer still on its way is for fields that changed since: it no longer counts
+        latest++;
+        previewLoading.value = true;
         timer = setTimeout(() => {
             timer = null;
             void loadPreview(JSON.parse(body) as BankFilterPayload);
@@ -173,9 +189,12 @@ const conflictLine = computed((): string | null =>
         : null,
 );
 
-/** Save stays off while a movement is taken by another filter. */
+/** Save stays off while the form is sent, while the preview of a change is awaited and while a movement is taken by another filter. */
 const saveOff = computed(
-    (): boolean => processing.value || shownPreview.value.conflicts > 0,
+    (): boolean =>
+        processing.value ||
+        previewLoading.value ||
+        shownPreview.value.conflicts > 0,
 );
 
 /** Sends the filter: the server saves it and sorts the movements it takes. */
@@ -215,6 +234,11 @@ const { title, head } = usePageMeta({
     title: () =>
         props.filter
             ? trans('Edit the filter :name', { name: props.filter.name })
+            : trans('New filter'),
+    // The trail names the filter, as the board *Dalla-banca-filtro-pc*: «Filter Satispay»
+    crumb: () =>
+        props.filter
+            ? trans('Filter :name', { name: props.filter.name })
             : trans('New filter'),
     parent: () => [
         'budget',
@@ -265,6 +289,7 @@ const { title, head } = usePageMeta({
                         :problems="problems"
                     />
                     <BankFilterFeeFields
+                        v-if="values.direction !== 'income'"
                         v-model="values"
                         :problems="problems"
                     />

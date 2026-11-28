@@ -57,6 +57,25 @@ const actions = computed(() => [
     { value: 'ignore', label: trans('Ignore') },
 ]);
 
+/** The line under *What it does*: the actions there are, in the words of the direction. */
+const actionsHelp = computed((): string => {
+    const pay = canPay || values.value.action === 'pay';
+
+    if (income.value) {
+        return pay
+            ? trans(
+                  'Mark an income received, Create the income, It is a transfer or Ignore.',
+              )
+            : trans('Create the income, It is a transfer or Ignore.');
+    }
+
+    return pay
+        ? trans(
+              'Pay a due date, Create the expense, It is a transfer or Ignore.',
+          )
+        : trans('Create the expense, It is a transfer or Ignore.');
+});
+
 /** The planned items of the direction the filter takes. */
 const planned = computed(() =>
     withNone(
@@ -110,6 +129,7 @@ const monthExample = computed((): string => {
             type="dropdown"
             :label="$t('What it does')"
             name="action"
+            :help="actionsHelp"
             :options="actions"
             :errors="errors(problems.action)"
         />
