@@ -159,16 +159,16 @@ final readonly class BankGroups
             $key = $this->keyOf($row);
 
             if (! $this->rejects($row, $key)) {
-                $byKey[$key][] = $row;
+                // The key travels with its rows: a key of digits only would become an integer array key
+                $byKey[$key] ??= ['key' => $key, 'rows' => []];
+                $byKey[$key]['rows'][] = $row;
             }
         }
 
         $groups = [];
 
-        foreach ($byKey as $key => $rows) {
+        foreach ($byKey as ['key' => $key, 'rows' => $rows]) {
             $first = $rows[0];
-            // A key of digits only becomes an integer array key in PHP
-            $key = (string) $key;
             $groups[$key] = new BankGroup($key, $this->name($first), $first->kind(), $first->financial_account_id, new Collection($rows));
         }
 

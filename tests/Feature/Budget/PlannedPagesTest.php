@@ -388,7 +388,7 @@ it('saving that planned expense pays nothing by itself, its filter pays the thre
         ->assertRedirect();
 
     $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Netflix International')->sole());
-    $payments = fn () => insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
+    $payments = fn (): mixed => insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
 
     // The form has no rule any more and pays nothing: the bank filters do the paying
     expect($values)->not->toHaveKey('bank_match')

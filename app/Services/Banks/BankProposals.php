@@ -427,7 +427,7 @@ final readonly class BankProposals
             $points = ($half instanceof BankTransaction ? 4 : 0) + ($named ? 2 : 0) + ($giro ? 1 : 0);
 
             // A word of the transfers alone says nothing about which account, unless there is only one
-            if (! $half instanceof BankTransaction && ! $named && ! ($giro && $others->count() === 1)) {
+            if (! $half instanceof BankTransaction && ! $named && (! $giro || $others->count() !== 1)) {
                 continue;
             }
 
