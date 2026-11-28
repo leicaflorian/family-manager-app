@@ -84,3 +84,40 @@ test('a creditor id after ID CREDITORE stays', function (): void {
 
     expect(BankTextMask::forModel($text, []))->toBe($text);
 });
+
+test('a card number in groups becomes CARTA', function (string $text): void {
+    expect(BankTextMask::forModel($text, []))->toBe('PAGAMENTO CARTA AMAZON');
+})->with([
+    'spaces' => ['PAGAMENTO 4532 0151 1283 0366 AMAZON'],
+    'dashes' => ['PAGAMENTO 4532-0151-1283-0366 AMAZON'],
+    'short last group' => ['PAGAMENTO 4532 0151 1283 0366 123 AMAZON'],
+]);
+
+test('an amount with spaced thousands next to a currency becomes IMPORTO whole', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'EUR after' => ['BONIFICO 12 345 EUR CASA', 'BONIFICO IMPORTO CASA'],
+    'EUR before' => ['BONIFICO EUR 12 345,50 CASA', 'BONIFICO IMPORTO CASA'],
+    'after a year' => ['FATT 2026 12 345 EUR', 'FATT 2026 IMPORTO'],
+]);
+
+test('an IBAN with a space after the country code becomes IBAN', function (): void {
+    expect(BankTextMask::forModel('BONIFICO DA IT 60 X054 2811 1010 0000 0123 456 AFFITTO', []))->toBe('BONIFICO DA IBAN AFFITTO');
+});
+
+test('words of four letters after a short number are not an IBAN', function (): void {
+    expect(BankTextMask::forModel('RATA IL 15 MESE CASA LUCE ACQUA', []))->toBe('RATA IL 15 MESE CASA LUCE ACQUA');
+});
+
+test('an italian phone number split in two becomes NUMERO', function (string $text, string $masked): void {
+    expect(BankTextMask::forModel($text, []))->toBe($masked);
+})->with([
+    'mobile' => ['RICARICA 333 1234567 TIM', 'RICARICA NUMERO TIM'],
+    'mobile six digits' => ['RICARICA 347 123456 TIM', 'RICARICA NUMERO TIM'],
+    'landline' => ['TELEFONO 02 12345678 STUDIO', 'TELEFONO NUMERO STUDIO'],
+    'landline four' => ['TELEFONO 0471 123456 STUDIO', 'TELEFONO NUMERO STUDIO'],
+]);
+
+test('a short invoice number starting with zero or three stays', function (): void {
+    expect(BankTextMask::forModel('FATTURA 0012345 RATA 3456789', []))->toBe('FATTURA 0012345 RATA 3456789');
+});

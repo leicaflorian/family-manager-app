@@ -37,23 +37,27 @@ final class BankTextMask
     /** The codes kept as they are, set aside before masking: the mandate, the creditor and the creditor id. */
     private const string KEPT_PATTERN = '/(?<![A-Z0-9])(?:MAN\.|CID\.|ID CREDITORE:? ?)\S+/';
 
-    /** A number, with thousands separators and up to two decimals. */
-    private const string NUMBER_PART = '\d+(?:[.,]\d{3})*(?:[.,]\d{1,2})?';
+    /** A number, with thousands separated by a dot, a comma or a space, and up to two decimals. */
+    private const string NUMBER_PART = '\d+(?:[., ]\d{3})*(?:[.,]\d{1,2})?';
 
     /**
-     * What is masked, in order, with what it becomes: IBANs (whole or in groups of four), then card numbers and their
-     * tails, then amounts (next to a currency, or with two decimals), then any other run of nine digits or more. A
-     * placeholder glued to a letter is set apart by a space.
+     * What is masked, in order, with what it becomes: IBANs (whole, in groups of four, or with a space after the country
+     * code, where every group must have a digit so plain words are not taken), then card numbers (in groups or not) and
+     * their tails, then amounts (next to a currency, or with two decimals), then Italian phone numbers split in two,
+     * then any other run of nine digits or more. A placeholder glued to a letter is set apart by a space.
      *
      * @var list<array{string, string}>
      */
     private const array MASKS = [
         ['/(?<![A-Z0-9])[A-Z]{2}\d{2}[A-Z0-9]{11,30}(?![A-Z0-9])/', self::IBAN],
         ['/(?<![A-Z0-9])[A-Z]{2}\d{2}(?: [A-Z0-9]{4}){3,7}(?: [A-Z0-9]{1,3})?(?![A-Z0-9])/', self::IBAN],
+        ['/(?<![A-Z0-9])[A-Z]{2} \d{2}(?: (?=[A-Z]{0,3}\d)[A-Z0-9]{4}){3,7}(?: [A-Z0-9]{1,3})?(?![A-Z0-9])/', self::IBAN],
+        ['/(?<!\d)\d{4}(?:[ -]\d{4}){2,4}(?:[ -]\d{1,4})?(?!\d)/', self::CARD],
         ['/(?<![A-Z0-9*])(?:\*+|X{2,})\d{3,4}(?!\d)/', self::CARD],
         ['/(?<!\d)\d{13,19}(?!\d)/', self::CARD],
         ['/(?<![\d.,])(?:EURO? ?'.self::NUMBER_PART.'|'.self::NUMBER_PART.' ?EURO?(?![A-Z]))(?![\d.,]*\d)/', self::AMOUNT],
         ['/(?<![\d.,])\d{1,3}(?:[.,]?\d{3})*[.,]\d{2}(?![\d.,]*\d)/', self::AMOUNT],
+        ['/(?<!\d)(?:3\d{2} \d{6,7}|0\d{1,3} \d{5,8})(?!\d)/', self::NUMBER],
         ['/(?<!\d)\d{9,}(?!\d)/', self::NUMBER],
     ];
 
