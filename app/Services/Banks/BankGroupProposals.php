@@ -14,6 +14,7 @@ use App\Models\PlannedIncome;
 use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankGroup;
 use App\Support\Banks\BankMatch;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -230,9 +231,9 @@ final class BankGroupProposals
      */
     private function everyAmountIs(BankGroup $group, mixed $amount): bool
     {
-        $cents = $this->cents($amount);
+        $cents = Money::absCents($amount);
 
-        return $group->transactions->every(fn (BankTransaction $row): bool => $this->cents($row->amount) === $cents);
+        return $group->transactions->every(fn (BankTransaction $row): bool => Money::absCents($row->amount) === $cents);
     }
 
     /**
@@ -249,7 +250,7 @@ final class BankGroupProposals
             $booked = $row->booked_on ?? $row->value_on;
 
             return $booked !== null
-                && $this->cents($row->amount) === $this->cents($expense->amount)
+                && Money::absCents($row->amount) === Money::absCents($expense->amount)
                 && abs($day->diffInDays(CarbonImmutable::parse($booked->toDateString(), 'UTC'))) <= self::DAYS;
         });
     }
@@ -275,15 +276,5 @@ final class BankGroupProposals
         $stripped = trim((string) preg_replace('/\s+(?:'.implode('|', array_unique(array_filter($names))).')(?:\s+\d{4})?$/iu', '', $title));
 
         return $stripped === '' || $stripped === $title ? [$title, false] : [$stripped, true];
-    }
-
-    /**
-     * An amount in cents, without the sign.
-     *
-     * @param  numeric  $amount  the amount
-     */
-    private function cents(mixed $amount): int
-    {
-        return (int) round(abs((float) $amount) * 100);
     }
 }

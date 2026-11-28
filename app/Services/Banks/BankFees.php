@@ -12,6 +12,7 @@ use App\Models\BankTransaction;
 use App\Support\Banks\BankFilterCriteria;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -128,7 +129,7 @@ final class BankFees
         ]);
 
         return abs($this->index($fee) - $this->index($debit)) <= self::DAYS
-            && $this->cents($fee) < $this->cents($debit)
+            && Money::absCents($fee->amount) < Money::absCents($debit->amount)
             && BankFilterMatch::matches($criteria, $fee);
     }
 
@@ -144,7 +145,7 @@ final class BankFees
     {
         $fee = $this->feeOf($debit, $filter);
 
-        return [$this->cents($debit) + ($fee instanceof BankTransaction ? $this->cents($fee) : 0)];
+        return [Money::absCents($debit->amount) + ($fee instanceof BankTransaction ? Money::absCents($fee->amount) : 0)];
     }
 
     /**
@@ -393,7 +394,7 @@ final class BankFees
             foreach ($fees as $fee) {
                 $days = abs($this->index($debit) - $this->index($fee));
 
-                if ($this->key($debit) === $this->key($fee) && $days <= self::DAYS && $this->cents($fee) < $this->cents($debit)) {
+                if ($this->key($debit) === $this->key($fee) && $days <= self::DAYS && Money::absCents($fee->amount) < Money::absCents($debit->amount)) {
                     $edges[] = [$days, $debit->id, $fee->id, $debit, $fee];
                 }
             }
@@ -453,16 +454,6 @@ final class BankFees
     private function index(BankTransaction $transaction): int
     {
         return intdiv($this->day($transaction)->getTimestamp(), 86400);
-    }
-
-    /**
-     * The amount in cents, without the sign.
-     *
-     * @param  BankTransaction  $transaction  the transaction
-     */
-    private function cents(BankTransaction $transaction): int
-    {
-        return (int) round(abs((float) $transaction->amount) * 100);
     }
 
     /**

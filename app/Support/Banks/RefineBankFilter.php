@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Banks;
 
 use App\Models\BankTransaction;
+use App\Support\Money;
 use Illuminate\Support\Collection;
 
 /**
@@ -73,19 +74,19 @@ final class RefineBankFilter
      */
     private static function amount(BankFilterCriteria $criteria, Collection $keep, BankTransaction $drop): ?array
     {
-        $cents = $keep->map(static fn (BankTransaction $row): int => self::cents($row));
-        $dropped = self::cents($drop);
+        $cents = $keep->map(static fn (BankTransaction $row): int => Money::absCents($row->amount));
+        $dropped = Money::absCents($drop->amount);
         $min = (int) $cents->min();
         $max = (int) $cents->max();
 
         if ($dropped < $min) {
-            $limit = self::money($min);
+            $limit = Money::decimal($min);
 
             return self::checked(self::with($criteria, amountMin: $limit), 'amount', $limit, $keep, $drop);
         }
 
         if ($dropped > $max) {
-            $limit = self::money($max);
+            $limit = Money::decimal($max);
 
             return self::checked(self::with($criteria, amountMax: $limit), 'amount', $limit, $keep, $drop);
         }
@@ -163,26 +164,5 @@ final class RefineBankFilter
         );
 
         return array_values(array_unique($words));
-    }
-
-    /**
-     * The amount of a movement in cents, without sign.
-     *
-     * @param  BankTransaction  $row  the movement
-     */
-    private static function cents(BankTransaction $row): int
-    {
-        return (int) round(abs((float) $row->amount) * 100);
-    }
-
-    /**
-     * Cents as an amount with two decimals and no sign, as the criteria keep it.
-     *
-     * @param  int  $cents  the amount in cents
-     * @return numeric-string
-     */
-    private static function money(int $cents): string
-    {
-        return number_format($cents / 100, 2, '.', '');
     }
 }

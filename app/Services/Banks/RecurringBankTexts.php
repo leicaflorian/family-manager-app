@@ -8,6 +8,7 @@ use App\Enums\BankTransactionStatus;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankText;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Config;
 
@@ -204,19 +205,9 @@ final class RecurringBankTexts
      */
     private function near(BankTransaction $first, BankTransaction $other): bool
     {
-        $base = $this->cents($first);
+        $base = Money::absCents($first->amount);
 
-        return abs($this->cents($other) - $base) * self::TOLERANCE_DIVISOR <= $base;
-    }
-
-    /**
-     * The amount in cents, without the sign.
-     *
-     * @param  BankTransaction  $transaction  The transaction.
-     */
-    private function cents(BankTransaction $transaction): int
-    {
-        return (int) round(abs((float) $transaction->amount) * 100);
+        return abs(Money::absCents($other->amount) - $base) * self::TOLERANCE_DIVISOR <= $base;
     }
 
     /**

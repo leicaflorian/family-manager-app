@@ -18,6 +18,7 @@ use App\Services\Deadlines;
 use App\Support\Banks\BankMatch;
 use App\Support\Banks\BankText;
 use App\Support\Deadline;
+use App\Support\Money;
 use App\Support\PaymentTitle;
 use App\Support\Schedule;
 use Carbon\CarbonImmutable;
@@ -108,7 +109,7 @@ final readonly class BankProposals
 
         foreach ($rows as $row) {
             $fee = $fees[$row->id] ?? null;
-            $amounts[$row->id] = $this->cents($row->amount) + ($fee instanceof BankTransaction ? $this->cents($fee->amount) : 0);
+            $amounts[$row->id] = Money::absCents($row->amount) + ($fee instanceof BankTransaction ? Money::absCents($fee->amount) : 0);
         }
 
         $context = $this->context($rows, $amounts);
@@ -178,7 +179,7 @@ final readonly class BankProposals
         $last = CarbonImmutable::parse((string) $days->last());
         $cents = array_values(array_unique($amounts));
         // The movements with their own sign, for the opposite halves of the transfers
-        $signed = array_values(array_unique($rows->map(fn (BankTransaction $row): int => -$this->signedCents($row->amount))->all()));
+        $signed = array_values(array_unique($rows->map(fn (BankTransaction $row): int => -Money::cents($row->amount))->all()));
         $window = [$first->subDays(self::RECORDED_DAYS)->toDateString(), $last->addDays(self::RECORDED_DAYS)->toDateString()];
 
         // Free to link: `BankDuplicates::isFree()` in batch form, one subquery for the whole block instead of one query per candidate
@@ -261,7 +262,7 @@ final readonly class BankProposals
         foreach ($movements as $movement) {
             $date = $movement->date;
 
-            if (! $date instanceof CarbonImmutable || $this->cents((float) $movement->amount) !== $cents
+            if (! $date instanceof CarbonImmutable || Money::absCents((float) $movement->amount) !== $cents
                 || ($movement->financial_account_id !== null && $movement->financial_account_id !== $row->financial_account_id)) {
                 continue;
             }
@@ -411,14 +412,14 @@ final readonly class BankProposals
     {
         $others = $context['accounts']->filter(static fn (FinancialAccount $account): bool => $account->id !== $row->financial_account_id)->values();
         $giro = array_any(self::TRANSFER_WORDS, static fn (string $word): bool => preg_match('/(?:^| )'.$word.'(?: |$)/', $text) === 1);
-        $cents = $this->signedCents($row->amount);
+        $cents = Money::cents($row->amount);
         $found = [];
 
         foreach ($others as $account) {
             $half = $context['halves']
                 ->filter(fn (BankTransaction $other): bool => $other->financial_account_id === $account->id
                     && $other->id !== $row->id
-                    && $this->signedCents($other->amount) === -$cents
+                    && Money::cents($other->amount) === -$cents
                     && $other->booked_on instanceof CarbonImmutable
                     && $this->days($row, $other->booked_on) <= self::TRANSFER_DAYS)
                 ->sortBy(fn (BankTransaction $other): int => $other->booked_on instanceof CarbonImmutable ? $this->days($row, $other->booked_on) : PHP_INT_MAX)
@@ -596,25 +597,5 @@ final readonly class BankProposals
     private function plannedKey(PlannedExpense|PlannedIncome $planned): string
     {
         return ($planned instanceof PlannedExpense ? 'expense:' : 'income:').$planned->id;
-    }
-
-    /**
-     * An amount in cents, without the sign.
-     *
-     * @param  numeric  $amount  the amount
-     */
-    private function cents(mixed $amount): int
-    {
-        return (int) round(abs((float) $amount) * 100);
-    }
-
-    /**
-     * An amount in cents, with the sign.
-     *
-     * @param  numeric  $amount  the amount
-     */
-    private function signedCents(mixed $amount): int
-    {
-        return (int) round((float) $amount * 100);
     }
 }
