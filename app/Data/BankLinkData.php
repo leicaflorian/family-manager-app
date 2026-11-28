@@ -8,7 +8,7 @@ use App\Enums\BankMatchSource;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
-use Illuminate\Support\Facades\Gate;
+use App\Support\Banks\BankUndo;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -24,7 +24,7 @@ final class BankLinkData extends Data
      * @param  string  $title  its title
      * @param  string  $url  the address of its page
      * @param  string  $how  how the link came (a `BankMatchSource` value)
-     * @param  int|null  $filter_id  the filter that made the link, once filters exist
+     * @param  int|null  $filter_id  the filter that made the link
      * @param  string|null  $filter_name  the name of that filter
      * @param  string|null  $undo  what taking the link back does: `delete` (the movement goes) or `detach`; null when it cannot be undone from here
      * @param  string|null  $undo_url  where *It was not this one* goes, only when `undo` is given
@@ -43,9 +43,10 @@ final class BankLinkData extends Data
 
     /**
      * The link of a transaction to its movement, or null for a transaction that is not linked. The undo is offered for
-     * the payments the bank recorded, to whoever can delete the movement.
+     * the payments the bank recorded (to whoever can delete the movement) and for a link to a movement that was already
+     * there (to whoever can change the transaction): see `BankUndo`.
      *
-     * @param  BankTransaction  $transaction  the transaction, with `expense` and `income` (and its `organization`) loaded
+     * @param  BankTransaction  $transaction  the transaction, with `expense` and `income` (and its `organization`) and `bankFilter` loaded
      */
     public static function fromTransaction(BankTransaction $transaction): ?self
     {
@@ -56,8 +57,7 @@ final class BankLinkData extends Data
         }
 
         $kind = $movement instanceof Expense ? 'expense' : 'income';
-        $recorded = in_array($transaction->matched_by, [BankMatchSource::Rule, BankMatchSource::Assigned], true);
-        $undo = $recorded && Gate::allows('delete', $movement);
+        $undo = BankUndo::of($transaction, $movement);
 
         return new self(
             $kind,
@@ -65,10 +65,10 @@ final class BankLinkData extends Data
             $movement->label(),
             route('budget.movements.show', ['kind' => $kind, 'id' => $movement->id], absolute: false),
             $transaction->matched_by->value ?? BankMatchSource::Duplicate->value,
-            null,
-            null,
-            $undo ? 'delete' : null,
-            $undo ? route('budget.bank.undo', ['transaction' => $transaction->id], absolute: false) : null,
+            $transaction->bank_filter_id,
+            $transaction->bankFilter?->name,
+            $undo,
+            $undo !== null ? route('budget.bank.undo', ['transaction' => $transaction->id], absolute: false) : null,
         );
     }
 }

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { fireEvent, screen } from '@testing-library/vue';
+import { cleanup, fireEvent, screen, within } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
 import {
     afterEach,
@@ -681,5 +681,112 @@ describe('FmMovementPanel', () => {
         expect(leaveQuestion.open).toBe(false);
         expect(hasChanges()).toBe(false);
         expect(panel.emitted()).toHaveProperty('close');
+    });
+
+    describe('the box «Registrata dalla banca»', () => {
+        const bank: App.Data.MovementBankData = {
+            booked_on: '2026-11-05',
+            text: 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA',
+            account: 'Conto BancoPosta ·· 3307',
+            undo_url: '/budget/bank/9/payment',
+            how: 'rule',
+            fee: { id: 10, amount: -0.4, booked_on: '2026-11-06' },
+            filter: { id: 3, name: 'Luce', url: '/budget/bank/filters/3' },
+            url: '/budget/bank?show=all&q=ADDEBITO',
+            undo: 'delete',
+        };
+
+        it('shows the commission, the filter with its link, how it was linked and See the bank movement', () => {
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: { ...danceMovement, bank },
+            });
+
+            expect(
+                screen.getByText('+ 0,40 € commission, 06/11'),
+            ).toBeInTheDocument();
+            expect(screen.getByText('Luce')).toBeInTheDocument();
+            expect(screen.getByText(/From the filter/)).toBeInTheDocument();
+            expect(
+                screen.getByRole('link', { name: 'Open the filter' }),
+            ).toHaveAttribute('href', '/budget/bank/filters/3');
+            expect(
+                screen.getByRole('link', { name: 'See the bank movement' }),
+            ).toHaveAttribute('href', '/budget/bank?show=all&q=ADDEBITO');
+        });
+
+        it('says how it was linked when no filter took it, and has no link to a filter without a page', () => {
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: {
+                        ...bank,
+                        how: 'duplicate',
+                        fee: null,
+                        filter: null,
+                        undo: 'detach',
+                    },
+                },
+            });
+
+            expect(
+                screen.getByText('Already recorded, now linked'),
+            ).toBeInTheDocument();
+            expect(screen.queryByText(/commission/)).not.toBeInTheDocument();
+
+            cleanup();
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: {
+                        ...bank,
+                        filter: { id: 3, name: 'Luce', url: null },
+                    },
+                },
+            });
+
+            expect(screen.getByText('Luce')).toBeInTheDocument();
+            expect(
+                screen.queryByRole('link', { name: 'Open the filter' }),
+            ).not.toBeInTheDocument();
+        });
+
+        it('says a proposal the person accepted in its own words', () => {
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, how: 'proposed', filter: null },
+                },
+            });
+
+            expect(screen.getByText('Proposal accepted')).toBeInTheDocument();
+        });
+
+        it('It was not this one says it only unlinks when the expense was already there', async () => {
+            renderPage(FmMovementPanel, {
+                ...props,
+                movement: {
+                    ...danceMovement,
+                    bank: { ...bank, how: 'duplicate', undo: 'detach' },
+                },
+            });
+
+            await userEvent.click(
+                screen.getByRole('button', { name: 'It was not this one' }),
+            );
+            const dialog = await screen.findByRole('dialog');
+
+            expect(
+                within(dialog).getByText('Take off this link?'),
+            ).toBeInTheDocument();
+            expect(
+                within(dialog).getByText(
+                    'The expense stays as it is. The movement goes back to be sorted.',
+                ),
+            ).toBeInTheDocument();
+        });
     });
 });

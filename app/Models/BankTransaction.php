@@ -39,11 +39,13 @@ use Illuminate\Support\Facades\Config;
  * @property int|null $bank_filter_id
  * @property int|null $transfer_account_id The account on the other side, when the transaction is a transfer between the family's own accounts
  * @property int|null $transfer_pair_id The other half of the transfer, when both accounts are read from the bank
- * @property array<string, mixed>|null $rejected_proposals
+ * @property array<array-key, mixed>|null $rejected_proposals The proposals the person said no to: list values (`expense:<id>`, `income:<id>` for a link taken off) and keys (`group:<key>` => true for a group); read values with strict `in_array` and keys with `array_key_exists`
+ * @property numeric|null $fee_before Of a commission already in the amount of its expense: the fee the expense had before it joined
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read BankFilter|null $bankFilter
  * @property-read BankConnection|null $connection
  * @property-read Expense|null $expense
  * @property-read Family $family
@@ -62,7 +64,7 @@ use Illuminate\Support\Facades\Config;
  *
  * @mixin \Eloquent
  */
-#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at', 'bank_filter_id', 'transfer_account_id', 'transfer_pair_id', 'rejected_proposals'])]
+#[Fillable(['bank_connection_id', 'financial_account_id', 'provider_id', 'booked_on', 'value_on', 'amount', 'currency', 'text', 'counterparty', 'status', 'expense_id', 'income_id', 'matched_by', 'ignored_at', 'declined_at', 'bank_filter_id', 'transfer_account_id', 'transfer_pair_id', 'rejected_proposals', 'fee_before'])]
 final class BankTransaction extends FamilyModel
 {
     /** @use HasFactory<BankTransactionFactory> */
@@ -159,6 +161,16 @@ final class BankTransaction extends FamilyModel
     }
 
     /**
+     * The filter that took the transaction, when one did.
+     *
+     * @return BelongsTo<BankFilter, $this>
+     */
+    public function bankFilter(): BelongsTo
+    {
+        return $this->belongsTo(BankFilter::class);
+    }
+
+    /**
      * The connection it was read through.
      *
      * @return BelongsTo<BankConnection, $this>
@@ -229,6 +241,7 @@ final class BankTransaction extends FamilyModel
             'booked_on' => 'immutable_date',
             'value_on' => 'immutable_date',
             'amount' => 'decimal:2',
+            'fee_before' => 'decimal:2',
             'status' => BankTransactionStatus::class,
             'matched_by' => BankMatchSource::class,
             'ignored_at' => 'immutable_datetime',

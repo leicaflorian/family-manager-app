@@ -192,6 +192,7 @@ return [
         'mail_file' => 'Allegato della posta',
         'crop' => 'Ritaglio',
         'bank_rule' => 'Regola della banca',
+        'bank_filter' => 'Filtro della banca',
         'consumption' => 'Consumo',
     ],
     'reading_status' => [

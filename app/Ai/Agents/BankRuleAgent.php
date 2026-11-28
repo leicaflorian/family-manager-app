@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
+use App\Ai\Agents\Concerns\DecodesAnswer;
 use App\Ai\Agents\Concerns\HasReaderOptions;
 use App\Data\Banks\BankRuleSuggestion;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,7 +14,6 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
-use Throwable;
 
 /**
  * The model that writes the rule of a bank payment (*Come compare in banca*) from the texts of some of its
@@ -23,6 +23,7 @@ use Throwable;
 #[Timeout(30)]
 final class BankRuleAgent implements Agent, HasProviderOptions, HasStructuredOutput
 {
+    use DecodesAnswer;
     use HasReaderOptions;
     use Promptable;
 
@@ -34,6 +35,7 @@ The rule is a short regular expression in PCRE syntax, without delimiters and wi
 
 Rules:
 - Keep the words that stay the same from one payment to the next: who gets the money and the kind of operation.
+- IBAN, IMPORTO, CARTA, NUMERO and PERSONA in the texts stand for hidden data (an account number, an amount, a card number, another long number, a person's name): never use them.
 - Leave out invoice numbers, dates, amounts, codes and card numbers.
 - Join the words with .* and write them in upper case.
 - Do not use ^ or $.
@@ -90,15 +92,7 @@ TXT;
      */
     public static function parse(array|string|null $answer): ?BankRuleSuggestion
     {
-        if (is_string($answer)) {
-            try {
-                $decoded = json_decode($answer, true, flags: JSON_THROW_ON_ERROR);
-            } catch (Throwable) {
-                return null;
-            }
-
-            $answer = is_array($decoded) ? $decoded : null;
-        }
+        $answer = self::decodeAnswer($answer);
 
         $pattern = $answer['pattern'] ?? null;
 

@@ -2821,5 +2821,18 @@
     "This movement is not a commission to sort.": "Questo movimento non è una commissione da sistemare.",
     "This proposal is not valid any more: look at the movement again.": "Questa proposta non vale più: guarda di nuovo il movimento.",
     "Paid: :title · from now on it pays itself": "Pagata: :title · d'ora in poi si paga da sola",
-    "Arrived: :title · from now on it is recorded by itself": "Arrivata: :title · d'ora in poi si segna da sola"
+    "Arrived: :title · from now on it is recorded by itself": "Arrivata: :title · d'ora in poi si segna da sola",
+    "The movement is unlinked and is to sort again.": "Il movimento non è più collegato ed è di nuovo da sistemare.",
+    "From the filter :name": "Dal filtro :name",
+    "Open the filter": "Apri il filtro",
+    "See the bank movement": "Vedi il movimento della banca",
+    "From a rule": "Da una regola",
+    "Chosen by hand": "Scelta da te",
+    "Created from here": "Creata da qui",
+    "Already recorded, now linked": "Già registrata, collegata",
+    "Take off this link?": "Togliere questo collegamento?",
+    "The expense stays as it is. The movement goes back to be sorted.": "La spesa resta com'è. Il movimento torna da sistemare.",
+    "The income stays as it is. The movement goes back to be sorted.": "L'entrata resta com'è. Il movimento torna da sistemare.",
+    "Proposal accepted": "Proposta accettata",
+    "proposal accepted": "proposta accettata"
 }

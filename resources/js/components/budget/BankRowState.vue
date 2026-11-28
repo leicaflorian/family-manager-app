@@ -16,6 +16,7 @@ import { Link } from '@inertiajs/vue3';
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 import BankStatusTag from '@/components/budget/BankStatusTag.vue';
+import { originWords } from '@/lib/bankOrigin';
 import { index as bankIndex } from '@/routes/budget/bank';
 
 const { row } = defineProps<{
@@ -31,18 +32,7 @@ const how = computed((): string => {
         return '';
     }
 
-    switch (link.how) {
-        case 'rule':
-            return link.filter_name
-                ? trans('from the filter :name', { name: link.filter_name })
-                : trans('from a rule');
-        case 'assigned':
-            return trans('chosen by hand');
-        case 'created':
-            return trans('created from here');
-        default:
-            return trans('already recorded, now linked');
-    }
+    return originWords(link.how, link.filter_name, true);
 });
 
 /** Marks where the account goes in the words of a transfer, to draw it apart from the rest. */

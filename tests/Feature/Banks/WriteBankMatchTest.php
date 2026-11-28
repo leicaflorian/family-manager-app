@@ -138,6 +138,34 @@ test('nothing but the example texts is sent', function (): void {
     expect($suggestion->pattern)->toBe('ADDEBITO.*ENEL ENERGIA')->and($suggestion->explanation)->toBe('Riconosce gli addebiti di Enel Energia.');
 });
 
+test('the examples reach the model without IBAN, amounts and the names of the family', function (): void {
+    Http::preventStrayRequests();
+    Http::fake(['generativelanguage.googleapis.com/*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/ai/gemini-bank-rule.json')), true, flags: JSON_THROW_ON_ERROR))]);
+    config([
+        'document_reader.provider' => 'gemini',
+        'document_reader.model' => 'gemini-3.8-flash',
+        'ai.providers.gemini.key' => 'gemini-test-key',
+    ]);
+    $family = Family::factory()->create();
+    $this->actingAs(User::factory()->for($family)->create(['name' => 'Giuseppina Rossetti']));
+    Person::factory()->for($family)->create(['first_name' => 'Ottavio', 'last_name' => 'Bellandi']);
+
+    bankWriteRun($family, ['Addebito Enel Energia Ottavio Bellandi IT60X0542811101000000123456 42,00 EUR Rossetti carta ****1234 spese 42 EUR']);
+
+    Http::assertSent(function (Request $request): bool {
+        $body = $request->body();
+
+        return str_contains($body, 'ADDEBITO ENEL ENERGIA PERSONA PERSONA IBAN IMPORTO PERSONA CARTA CARTA SPESE IMPORTO')
+            && ! str_contains($body, '1234')
+            && ! str_contains($body, '42 EUR')
+            && ! str_contains($body, 'IT60X0542811101000000123456')
+            && ! str_contains($body, '42,00')
+            && ! str_contains($body, 'OTTAVIO')
+            && ! str_contains($body, 'BELLANDI')
+            && ! str_contains($body, 'ROSSETTI');
+    });
+});
+
 test('a rule that matches the first example but not the second falls back too', function (): void {
     [$family] = bankWriteSetup('ENEL');
 

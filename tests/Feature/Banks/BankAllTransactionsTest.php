@@ -187,23 +187,25 @@ it('a reset search with a new filter replaces the rows', function (): void {
         ->and($response->json('mergeProps'))->toBeNull();
 });
 
-it('the undo address is given only to who can delete the payment', function (): void {
+it('the undo address is given to who can delete the payment, or can unlink a link to one that was already there', function (): void {
     $connection = bankAllTransactionsConnection($this->marco);
     $row = bankAllTransactionsLinked($connection, BankMatchSource::Assigned);
-    bankAllTransactionsLinked($connection, BankMatchSource::Duplicate, ['booked_on' => '2026-01-01']);
+    $duplicate = bankAllTransactionsLinked($connection, BankMatchSource::Duplicate, ['booked_on' => '2026-01-01']);
     $undo = route('budget.bank.undo', ['transaction' => $row->id], absolute: false);
+    $unlink = route('budget.bank.undo', ['transaction' => $duplicate->id], absolute: false);
 
     $this->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('rows.0.link.undo', 'delete')
         ->where('rows.0.link.undo_url', $undo)
-        ->where('rows.1.link.undo', null)
-        ->where('rows.1.link.undo_url', null));
+        ->where('rows.1.link.undo', 'detach')
+        ->where('rows.1.link.undo_url', $unlink));
 
     $member = User::factory()->for($this->marco->family)->create(['role' => Role::Member]);
     $this->actingAs($member)->get(route('budget.bank.index', ['show' => 'all']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
         ->where('rows.0.link.how', 'assigned')
         ->where('rows.0.link.undo', null)
-        ->where('rows.0.link.undo_url', null));
+        ->where('rows.0.link.undo_url', null)
+        ->where('rows.1.link.undo', 'detach'));
 });
 
 it('never shows another family\'s transactions', function (): void {

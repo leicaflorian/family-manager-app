@@ -54,6 +54,7 @@ import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
 import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
+import { undoWords } from '@/lib/bankUndo';
 import { dayOf, lastReadText, readTimes } from '@/lib/banks';
 import { cn } from '@/lib/utils';
 import {
@@ -511,6 +512,11 @@ const rawRow = computed(
 /** The transaction whose link *It was not this one* is asking to take back. */
 const undoing = ref<App.Data.BankTransactionData | null>(null);
 
+/** The words of the question to take the link back, for what the undo does. */
+const undoText = computed(() =>
+    undoWords(undoing.value?.link?.kind, undoing.value?.link?.undo),
+);
+
 /** The question to take a link back is open. */
 const undoOpen = computed({
     get: () => undoing.value !== null,
@@ -707,16 +713,8 @@ const { title, head } = usePageMeta({
             />
             <FmConfirm
                 v-model:open="undoOpen"
-                :question="$t('Take back this payment?')"
-                :text="
-                    undoing?.link?.kind === 'income'
-                        ? $t(
-                              'The income is removed and the due date is to be paid again.',
-                          )
-                        : $t(
-                              'The expense is removed and the due date is to be paid again.',
-                          )
-                "
+                :question="undoText.question"
+                :text="undoText.text"
                 :confirm-label="$t('It was not this one')"
                 @confirm="takeLinkBack"
             />

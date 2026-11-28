@@ -156,7 +156,7 @@ final class MovementController extends Controller
     public function show(Request $request, string $kind, string $id, #[CurrentUser] User $user): Response
     {
         $movement = Movements::find($kind, $id);
-        $data = MovementData::fromMovement($movement, $user, bank: $this->movements->bank($movement, $user));
+        $data = MovementData::fromMovement($movement, $user, bank: $this->movements->bank($movement));
 
         return Inertia::render('budget/Movement', [
             'movement' => $data,

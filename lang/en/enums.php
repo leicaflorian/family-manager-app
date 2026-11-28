@@ -192,6 +192,7 @@ return [
         'mail_file' => 'Mail attachment',
         'crop' => 'Crop',
         'bank_rule' => 'Bank rule',
+        'bank_filter' => 'Bank filter',
         'consumption' => 'Consumption',
     ],
     'reading_status' => [
