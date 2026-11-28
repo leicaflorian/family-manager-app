@@ -311,47 +311,9 @@ final class BankFees
             ->where('currency', 'EUR')
             ->where('amount', '<', 0)
             ->whereBetween('booked_on', [$days->min()?->subDays(self::DAYS)->toDateString(), $days->max()?->addDays(self::DAYS)->toDateString()])
-            ->where($this->feeText(...))
+            ->where(fn (Builder $query) => $query->where('text', 'like', 'COMMISSIONI%')->orWhere('text', 'like', 'COMMISSIONE%'))
             ->whereNotIn('id', $rows->pluck('id')->all())
             ->get();
-    }
-
-    /**
-     * Locks the commissions that may join the expense of a debit, before the expense or the planned item is locked:
-     * bank rows first, as `AttachBankFee` and the commission route lock them (commission, then expense), so a
-     * settling and a commission that arrives at the same moment wait for each other instead of locking each other. A
-     * locking read only (the commission texts of the account, in the direction of the debit, at most five days away),
-     * so no snapshot is fixed before the locks that follow. To call right after the debit is locked.
-     *
-     * @param  BankTransaction  $debit  the debit, locked
-     */
-    public function lockFeesNear(BankTransaction $debit): void
-    {
-        if (($debit->booked_on ?? $debit->value_on) === null || BankText::isFee($debit->text)) {
-            return;
-        }
-
-        $day = $this->day($debit);
-
-        BankTransaction::query()
-            ->whereKeyNot($debit->id)
-            ->where('financial_account_id', $debit->financial_account_id)
-            ->where('amount', $debit->kind() === 'expense' ? '<' : '>', 0)
-            ->whereBetween('booked_on', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
-            ->where($this->feeText(...))
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->pluck('id');
-    }
-
-    /**
-     * The texts of a commission, in a query: they start with `COMMISSIONI` or `COMMISSIONE` (`BankText::isFee()`).
-     *
-     * @param  Builder<BankTransaction>  $query  the query
-     */
-    private function feeText(Builder $query): void
-    {
-        $query->where('text', 'like', 'COMMISSIONI%')->orWhere('text', 'like', 'COMMISSIONE%');
     }
 
     /**

@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Actions\Banks\AcceptBankProposal;
 use App\Actions\Banks\AttachBankFee;
 use App\Actions\Banks\DetachBankFee;
 use App\Actions\Banks\LinkRecordedMovement;
-use App\Actions\Banks\MatchBankTransactions;
 use App\Actions\Banks\SyncBankConnection;
 use App\Contracts\BankFeed;
 use App\Enums\BankFilterAction;
@@ -19,12 +17,10 @@ use App\Models\Expense;
 use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\PlannedExpense;
-use App\Models\User;
 use App\Services\Banks\FakeBankFeed;
 use App\Support\Banks\BankEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-24 07:00', 'Europe/Rome'));
@@ -308,60 +304,3 @@ test('a later commission is not joined to a debit whose filter does not recognis
             ->and((float) $expense->refresh()->amount)->toBe(10.0);
     });
 });
-
-/**
- * The queries a piece of work runs, from the first lock of a bank row on.
- *
- * @param  Closure(): mixed  $work  the work
- * @return list<string>
- */
-function attachBankFeeLocks(Closure $work): array
-{
-    DB::flushQueryLog();
-    DB::enableQueryLog();
-    $work();
-    $queries = array_column(DB::getQueryLog(), 'query');
-    DB::disableQueryLog();
-    $start = array_find_key($queries, static fn (string $sql): bool => str_contains($sql, 'from `bank_transactions`') && str_contains($sql, 'for update'));
-
-    return array_values(array_slice($queries, (int) $start));
-}
-
-/**
- * Where the first query that locks a table comes in a list of queries, the commission rows (`like`) apart.
- *
- * @param  list<string>  $queries  the queries
- * @param  string  $table  `fees`, `expenses` or `planned_expenses`
- */
-function attachBankFeeLockAt(array $queries, string $table): ?int
-{
-    return array_find_key($queries, static fn (string $sql): bool => str_contains($sql, 'for update') && match ($table) {
-        'fees' => str_contains($sql, 'from `bank_transactions`') && str_contains($sql, 'like'),
-        default => str_contains($sql, 'from `'.$table.'`'),
-    });
-}
-
-test('linking a recorded expense, paying by a filter or saying yes lock the commission before the expense or the planned item', function (string $path): void {
-    insideBianchi(function () use ($path): void {
-        $debit = attachBankFeeRow('2026-11-24', '-10.00');
-        attachBankFeeRow('2026-11-25', '-0.40', true);
-        $planned = PlannedExpense::factory()->create([
-            'family_id' => $debit->family_id, 'title' => 'Ricarica Satispay', 'amount' => 10.0, 'fee_amount' => null,
-            'is_estimated' => false, 'start_date' => '2026-01-24', 'financial_account_id' => null,
-        ]);
-        BankFilter::factory()->pays($planned)->create(['family_id' => $debit->family_id, 'contains' => ['MAN.SAT0023101207360112900'], 'fee_mode' => BankFilterFee::Auto]);
-        // Recorded by hand as the bank charged it, so a yes proposes it
-        $expense = Expense::factory()->create(['family_id' => $debit->family_id, 'amount' => 10.40, 'fee_amount' => null, 'date' => '2026-11-24']);
-        $marco = User::query()->where('email', 'marco@example.com')->sole();
-
-        $queries = attachBankFeeLocks(fn (): mixed => match ($path) {
-            'link' => resolve(LinkRecordedMovement::class)->handle($debit, $expense),
-            'filter' => resolve(MatchBankTransactions::class)->handle([$debit]),
-            'yes' => resolve(AcceptBankProposal::class)->handle($debit, 'expense:'.$expense->id, $marco),
-        });
-        $target = attachBankFeeLockAt($queries, $path === 'filter' ? 'planned_expenses' : 'expenses');
-        expect(attachBankFeeLockAt($queries, 'fees'))->not->toBeNull()
-            ->and($target)->not->toBeNull()
-            ->and(attachBankFeeLockAt($queries, 'fees'))->toBeLessThan($target);
-    });
-})->with(['link', 'filter', 'yes']);
