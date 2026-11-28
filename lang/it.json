@@ -2070,7 +2070,6 @@
     "They arrive by themselves :times": "Arrivano da soli :times",
     "Pending": "In attesa",
     "It is sorted when the bank books it": "Si sistema quando la banca lo contabilizza",
-    "No movement to sort": "Nessun movimento da sistemare",
     "No ignored movement": "Nessun movimento ignorato",
     "The movements that pay a fixed expense are recorded by themselves. The others arrive here, to create or to ignore.": "I movimenti che pagano una spesa fissa si registrano da soli. Qui arrivano gli altri, da creare o da ignorare.",
     "Only the movements that no fixed expense recognises stay here. The recognised ones are marked paid by themselves.": "Qui restano i movimenti che nessuna spesa fissa riconosce. Quelli riconosciuti si segnano pagati da soli.",
@@ -2456,7 +2455,6 @@
     "Add creates a new planned expense or income.": "Aggiungi crea una spesa o un'entrata fissa nuova.",
     "The search and the filters find one by title, amount or due date.": "La ricerca e i filtri ne trovano una per titolo, importo o scadenza.",
     "The ones that ended stay folded at the bottom.": "Quelle finite restano raccolte in fondo.",
-    "With a linked bank, the rule How it shows in the bank pays the due date by itself.": "Con una banca collegata, la regola Come compare in banca paga la scadenza da sola.",
     "One planned expense or income: its next due dates, its exceptions and the payments year by year.": "Una spesa o un'entrata fissa: le prossime scadenze, le eccezioni e i pagamenti anno per anno.",
     "Tap an open due date to change it, or to say that you paid it.": "Tocca una scadenza aperta per cambiarla, o per dire che l'hai pagata.",
     "A paid due date leads to its movement.": "Una scadenza pagata porta al suo movimento.",
@@ -3034,5 +3032,6 @@
     "Outflow": "Uscita",
     "Inflow": "Entrata",
     "Find it on its own": "Trovala da sola",
-    "Create the filter :name": "Crea il filtro :name"
+    "Create the filter :name": "Crea il filtro :name",
+    "With a linked bank, a filter that pays the due date records the payment by itself.": "Con una banca collegata, un filtro che paga la scadenza registra il pagamento da solo."
 }

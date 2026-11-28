@@ -382,7 +382,7 @@ const ENTRIES: Record<PageInfoKey, () => Entry> = {
             only(
                 'bank_feed',
                 trans(
-                    'With a linked bank, the rule How it shows in the bank pays the due date by itself.',
+                    'With a linked bank, a filter that pays the due date records the payment by itself.',
                 ),
             ),
         ],
