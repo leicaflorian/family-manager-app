@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Budget;
 
 use App\Actions\Banks\SaveBankFilter;
+use App\Actions\Banks\SuggestBankFilter;
 use App\Contracts\DocumentReader;
 use App\Data\BankFilterData;
+use App\Data\Banks\BankFilterSuggestionData;
 use App\Enums\BankFilterAction;
+use App\Exceptions\Reading\ReadingFailed;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Banks\BankFilterPreviewRequest;
 use App\Http\Requests\Banks\SaveBankFilterRequest;
+use App\Http\Requests\Banks\SuggestBankFilterRequest;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\PlannedExpense;
@@ -29,6 +33,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -40,6 +45,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class BankFilterController extends Controller
 {
+    /** @var list<int> The movements a new filter starts from (the movement or the group of the address), read while the proposal is made. */
+    private array $exampleIds = [];
+
     /**
      * The form of a new filter, filled when it comes from somewhere: `?planned=expense:12` pays that planned item
      * (only for who may create a filter that pays), `?from=<movement>` takes the words, the direction and the account
@@ -52,7 +60,7 @@ final class BankFilterController extends Controller
     {
         Gate::authorize('viewAny', BankFilter::class);
 
-        return $this->form(null, $this->draft($request), $preview, $rows);
+        return $this->form(null, $this->draft($request), $preview, $rows, $request->query('ai') === '1');
     }
 
     /**
@@ -114,12 +122,34 @@ final class BankFilterController extends Controller
     }
 
     /**
+     * The words, and in the fill mode the title, category and organization, the AI proposes for the movements the
+     * filter must take and leave. Asked only by a button; writes nothing. A reading that is off, used up or without an
+     * answer is a 422 with its message under `keep`.
+     *
+     * @throws NotFoundHttpException while the link to the bank is off, or when a movement is not of the family
+     * @throws ValidationException when the reading is off, used up or gives no answer
+     */
+    public function suggest(SuggestBankFilterRequest $request, SuggestBankFilter $suggest): JsonResponse
+    {
+        try {
+            $suggestion = $suggest->handle($request->keep(), $request->drop(), $request->mode(), app()->getLocale());
+        } catch (ReadingFailed $failure) {
+            report($failure);
+
+            throw ValidationException::withMessages(['keep' => $failure->getMessage()]);
+        }
+
+        return response()->json(BankFilterSuggestionData::fromSuggestion($suggestion));
+    }
+
+    /**
      * The page of the form: the filter or the proposal, the preview of what it takes, the choices of its fields.
      *
      * @param  BankFilter|null  $filter  the filter being changed
      * @param  BankFilterDraft|null  $draft  the proposal of a new filter
+     * @param  bool  $asked  whether the address carries `ai=1`, the person's request for the AI to fill a proposal that has no action
      */
-    private function form(?BankFilter $filter, ?BankFilterDraft $draft, BankFilterPreview $preview, BankRows $rows): Response
+    private function form(?BankFilter $filter, ?BankFilterDraft $draft, BankFilterPreview $preview, BankRows $rows, bool $asked = false): Response
     {
         $canPay = Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]);
         $columns = $filter?->only($filter->getFillable()) ?? $draft?->toArray() ?? [];
@@ -149,6 +179,9 @@ final class BankFilterController extends Controller
             ],
             'can_pay' => $canPay,
             'ai' => resolve(DocumentReader::class)->isActive(),
+            // The movements the buttons of the AI read when the filter takes none yet, and whether to ask once now
+            'example_ids' => $this->exampleIds,
+            'ask_ai' => $asked && $draft instanceof BankFilterDraft && ! $draft->action instanceof BankFilterAction,
         ]);
     }
 
@@ -179,6 +212,7 @@ final class BankFilterController extends Controller
 
         if (is_string($fromId) && ctype_digit($fromId)) {
             $from = BankTransaction::query()->findOrFail((int) $fromId);
+            $this->exampleIds = [$from->id];
         }
 
         if ($planned === null && ! $from instanceof BankTransaction) {
@@ -214,6 +248,7 @@ final class BankFilterController extends Controller
     {
         $group = resolve(BankGroups::class)->find($key) ?? throw new NotFoundHttpException;
         $proposal = resolve(BankGroupProposals::class)->visibleFor(new Collection([$group]))[$group->key];
+        $this->exampleIds = array_values($group->transactions->map(static fn (BankTransaction $transaction): int => $transaction->id)->all());
 
         return BankFilterDraft::fromGroup($group, $proposal);
     }

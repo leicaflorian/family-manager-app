@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Banks\SuggestBankFilter;
 use App\Contracts\DocumentReader;
 use App\Enums\ReadingPurpose;
+use App\Enums\Role;
 use App\Exceptions\Reading\ReadingFailed;
 use App\Models\AiReading;
 use App\Models\BankTransaction;
@@ -316,3 +317,122 @@ test('refused while the reading is off or the month is used up', function (strin
     'off' => ['off', 'La lettura automatica non è attiva.'],
     'month used up' => ['used', 'Hai usato tutte le letture automatiche di'],
 ]);
+
+/**
+ * Turns the bank link on for the family and signs in an administrator of it.
+ *
+ * @param  Family  $family  the family
+ */
+function suggestBankFilterFeedOn(Family $family): void
+{
+    config(['bank_feed.provider' => 'fake']);
+    $family->forceFill(['bank_feed_enabled' => true])->save();
+    test()->actingAs(User::factory()->for($family)->create(['role' => Role::Admin]));
+}
+
+test('the route answers the suggestion as JSON with the checked names', function (): void {
+    [$family] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL'], [], 'Bollette', 'Enel Energia'));
+    suggestBankFilterFeedOn($family);
+    $category = ExpenseCategory::factory()->for($family)->create(['name' => 'Bollette']);
+    $keep = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $drop = suggestBankFilterTransaction($family, 'Bonifico a Mario');
+
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$keep->id], 'drop' => [$drop->id], 'mode' => 'fill'])
+        ->assertOk()
+        ->assertJsonPath('contains', ['ENEL'])
+        ->assertJsonPath('excludes', [])
+        ->assertJsonPath('title', 'Bolletta luce')
+        ->assertJsonPath('category', 'Bollette')
+        ->assertJsonPath('category_id', $category->id)
+        ->assertJsonPath('organization', 'Enel Energia')
+        ->assertJsonPath('organization_id', null)
+        ->assertJsonPath('organization_is_new', true)
+        ->assertJsonPath('explanation', 'Prende le bollette della luce.');
+});
+
+test('the words mode gives no title, category or organization', function (): void {
+    [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL'], [], 'Bollette', 'Enel Energia'));
+    suggestBankFilterFeedOn($family);
+    $keep = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$keep->id], 'mode' => 'words'])
+        ->assertOk()
+        ->assertJsonPath('title', null)
+        ->assertJsonPath('category', null)
+        ->assertJsonPath('organization_is_new', false);
+
+    expect($reader->filters())->toBe(1);
+});
+
+test('a movement of another family answers 404, in keep or in drop, and nothing is asked', function (): void {
+    [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $foreign = BankTransaction::factory()->for(Family::factory()->create())->create(['text' => 'Altrui']);
+
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id, $foreign->id], 'mode' => 'words'])->assertNotFound();
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id], 'drop' => [$foreign->id], 'mode' => 'words'])->assertNotFound();
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [999999], 'mode' => 'words'])->assertNotFound();
+
+    expect($reader->filters())->toBe(0);
+});
+
+test('an empty keep, a wrong mode or too many ids answer 422', function (): void {
+    [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [], 'mode' => 'words'])->assertUnprocessable()->assertJsonValidationErrors('keep');
+    $this->postJson(route('budget.bank.filters.suggest'), ['mode' => 'words'])->assertUnprocessable()->assertJsonValidationErrors('keep');
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id], 'mode' => 'everything'])->assertUnprocessable()->assertJsonValidationErrors('mode');
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => [$mine->id], 'mode' => 'words'])->assertOk();
+    $this->postJson(route('budget.bank.filters.suggest'), ['keep' => range(1, 51), 'mode' => 'words'])->assertUnprocessable()->assertJsonValidationErrors('keep');
+
+    expect($reader->filters())->toBe(1);
+});
+
+test('a member may ask it too, and it is 404 while the feed is off', function (): void {
+    [$family] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $body = ['keep' => [$mine->id], 'mode' => 'words'];
+
+    // The request writes nothing and names no action: a member who may create a filter that does not pay asks it
+    $this->actingAs(User::factory()->for($family)->create(['role' => Role::Member]))
+        ->postJson(route('budget.bank.filters.suggest'), $body)->assertOk();
+
+    $this->actingAs(User::factory()->for($family)->create(['role' => Role::Admin]));
+    $family->forceFill(['bank_feed_enabled' => false])->save();
+    $this->postJson(route('budget.bank.filters.suggest'), $body)->assertNotFound();
+});
+
+test('a reading that is off, used up or without an answer is a 422 under keep, never a 500', function (): void {
+    [$family, $reader] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $body = ['keep' => [$mine->id], 'mode' => 'words'];
+
+    $reader->off();
+    $this->postJson(route('budget.bank.filters.suggest'), $body)
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.keep.0', 'Automatic reading is not on.');
+
+    app()->instance(DocumentReader::class, (new FakeDocumentReader)->suggestsFilter(suggestBankFilterAnswer(['ENEL']))->fails(ReadingFailed::busy(new RuntimeException('busy'))));
+    $this->postJson(route('budget.bank.filters.suggest'), $body)
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.keep.0', 'The AI service is busy, try again in a while.');
+});
+
+test('the route has its own throttle counter', function (): void {
+    [$family] = suggestBankFilterSetup(suggestBankFilterAnswer(['ENEL']));
+    suggestBankFilterFeedOn($family);
+    $mine = suggestBankFilterTransaction($family, 'Addebito Enel Energia');
+    $body = ['keep' => [$mine->id], 'mode' => 'words'];
+
+    foreach (range(1, 20) as $attempt) {
+        $this->postJson(route('budget.bank.filters.suggest'), $body)->assertOk();
+    }
+
+    $this->postJson(route('budget.bank.filters.suggest'), $body)->assertStatus(429);
+    $this->postJson(route('budget.bank.filters.preview'), [])->assertOk();
+});

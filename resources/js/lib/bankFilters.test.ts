@@ -2,6 +2,7 @@ import { http } from '@inertiajs/vue3';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { bankFilterPreview, bankFilters, bankGroupRows } from '@/test/fixtures';
 import {
+    BankFilterSuggestError,
     actionLine,
     actionPieces,
     criteriaLine,
@@ -9,6 +10,7 @@ import {
     formPayload,
     formValues,
     previewFilter,
+    suggestFilter,
     summaryLine,
     willTag,
 } from './bankFilters';
@@ -200,6 +202,84 @@ describe('previewFilter', () => {
                 url: '/budget/bank/filters/preview',
                 data: { name: 'Satispay', filter: 1 },
             }),
+        );
+    });
+});
+
+describe('suggestFilter', () => {
+    const suggestion = {
+        contains: ['ENEL'],
+        excludes: [],
+        title: null,
+        category: null,
+        category_id: null,
+        organization: null,
+        organization_id: null,
+        organization_is_new: false,
+        explanation: 'Takes Enel.',
+    };
+
+    /** Runs the call with a fake client that answers or fails like this. */
+    async function run(
+        answer: () => Promise<unknown>,
+    ): Promise<{ result: unknown; request: ReturnType<typeof vi.fn> }> {
+        const real = http.getClient();
+        const request = vi.fn(answer);
+        http.setClient({ request } as unknown as Client);
+
+        try {
+            return {
+                result: await suggestFilter([4, 5], [6], 'fill'),
+                request,
+            };
+        } catch (error) {
+            return { result: error, request };
+        } finally {
+            http.setClient(real);
+        }
+    }
+
+    it('posts the ids and the mode and gives the proposal', async () => {
+        const { result, request } = await run(() =>
+            Promise.resolve({
+                status: 200,
+                headers: {},
+                data: JSON.stringify(suggestion),
+            }),
+        );
+
+        expect(result).toEqual(suggestion);
+        expect(request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                method: 'post',
+                url: '/budget/bank/filters/suggest',
+                data: { keep: [4, 5], drop: [6], mode: 'fill' },
+            }),
+        );
+    });
+
+    it('says the message of the server when the reading is off or used up', async () => {
+        const { result } = await run(() =>
+            Promise.reject({
+                response: {
+                    status: 422,
+                    data: JSON.stringify({
+                        message: 'Automatic reading is not on.',
+                        errors: { keep: ['Automatic reading is not on.'] },
+                    }),
+                },
+            }),
+        );
+
+        expect(result).toBeInstanceOf(BankFilterSuggestError);
+        expect((result as Error).message).toBe('Automatic reading is not on.');
+    });
+
+    it('says there is no network when nothing answers', async () => {
+        const { result } = await run(() => Promise.reject(new Error('down')));
+
+        expect((result as Error).message).toBe(
+            'There is no network: try again in a while.',
         );
     });
 });

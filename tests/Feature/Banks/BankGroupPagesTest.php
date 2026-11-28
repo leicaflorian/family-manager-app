@@ -156,6 +156,15 @@ it('a new filter from a group starts from its words and proposal', function (): 
         ->where('draft.fee_mode', 'auto'));
 });
 
+it('the form of a group gives its movements as the examples', function (): void {
+    bankGroupPagesSeed();
+    $group = collect(resolve(BankGroups::class)->all())->firstWhere('name', 'Eni Station');
+
+    $this->get(route('budget.bank.filters.create', ['group' => $group->key]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('example_ids', $group->transactions->pluck('id')->values()->all()));
+});
+
 it('an unknown group gives 404', function (): void {
     bankGroupPagesSeed();
 

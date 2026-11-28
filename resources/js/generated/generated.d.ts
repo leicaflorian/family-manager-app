@@ -1057,8 +1057,15 @@ count: number,
 readonly can_delete_many: boolean,
 };
 namespace Banks {
-export type BankRuleSuggestion = {
-readonly pattern: string,
+export type BankFilterSuggestionData = {
+readonly contains: string[],
+readonly excludes: string[],
+readonly title: string | null,
+readonly category: string | null,
+readonly category_id: number | null,
+readonly organization: string | null,
+readonly organization_id: number | null,
+readonly organization_is_new: boolean,
 readonly explanation: string,
 };
 }

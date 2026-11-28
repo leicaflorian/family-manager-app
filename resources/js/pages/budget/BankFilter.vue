@@ -6,12 +6,21 @@
  * them the movements of the last 90 days the filter written so far takes, asked again half a second after the last
  * change (the last answer wins). Under the list the sentence that says what saving does, *Delete*, *Cancel* and
  * *Save the filter*, which stays off while a movement is taken by another filter. A new filter can start from a
- * proposal (`draft`): from a movement or from a planned item.
+ * proposal (`draft`): from a movement, from a group or from a planned item; the AI buttons of the words sit under
+ * the amounts (`BankFilterAi`).
  */
 import { Head, router } from '@inertiajs/vue3';
 import { TriangleAlert, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import {
+    computed,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
+import BankFilterAi from '@/components/budget/BankFilterAi.vue';
 import BankFilterActionFields from '@/components/budget/BankFilterActionFields.vue';
 import BankFilterCriteriaFields from '@/components/budget/BankFilterCriteriaFields.vue';
 import BankFilterFeeFields from '@/components/budget/BankFilterFeeFields.vue';
@@ -48,8 +57,12 @@ const props = defineProps<{
     options: BankFilterFormOptions;
     /** Whether who writes can make a filter that pays a due date (an administrator). */
     can_pay: boolean;
-    /** Whether the AI can read: the AI buttons of the words (a later step). */
+    /** Whether the AI can read: without it the AI buttons of the words are hidden. */
     ai?: boolean;
+    /** The movements a new filter starts from (the movement or the group), which the AI reads while the filter takes none. */
+    example_ids?: number[];
+    /** The address asked the AI to fill this new filter (`ai=1`): once, and the address loses it at once. */
+    ask_ai?: boolean;
 }>();
 
 /** How long to wait after the last change before asking the preview, in milliseconds. */
@@ -75,6 +88,23 @@ const previewLoading = ref(false);
 
 /** The address of the tab *Filters*, where *Cancel*, *Close* and the trail lead. */
 const filtersUrl = bankIndex({ query: { show: 'filters' } }).url;
+
+/** The movements the AI reads: the ones the filter written so far takes (the first fifty are read). */
+const aiKeep = computed((): number[] => {
+    const taken = shownPreview.value.rows.map((row) => row.transaction.id);
+
+    // Without a word the filter takes nothing: the example it started from is what the AI reads
+    return taken.length > 0 ? taken : (props.example_ids ?? []);
+});
+
+/** The AI is writing: the words cannot change meanwhile. */
+const aiBusy = ref(false);
+
+/**
+ * The address asked the AI (`ai=1`, from *Create the filter* on a group without a proposal): it fills the title,
+ * category and organization once. Read at the start, so what follows never asks again.
+ */
+const askAtOpen = props.ask_ai === true && props.filter === null;
 
 /** Who looks can change this filter: always for a new one. */
 const canSave = computed(
@@ -164,6 +194,22 @@ watch(
 onBeforeUnmount(() => {
     cancelPreview();
     latest++;
+});
+
+// The request of the AI comes once: the address loses `ai=1` at once, so a reload or Back never asks (and pays) again
+onMounted(() => {
+    if (!askAtOpen) {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ai');
+    router.replace({
+        url: `${url.pathname}${url.search}${url.hash}`,
+        props: (current) => ({ ...current, ask_ai: false }),
+        preserveState: true,
+        preserveScroll: true,
+    });
 });
 
 /** While the form has changes not saved, leaving the page asks first. */
@@ -287,7 +333,17 @@ const { title, head } = usePageMeta({
                         v-model="values"
                         :options="options"
                         :problems="problems"
-                    />
+                        :words-locked="aiBusy"
+                    >
+                        <BankFilterAi
+                            v-model="values"
+                            :ai="ai"
+                            :keep="aiKeep"
+                            :auto="askAtOpen"
+                            @busy="aiBusy = $event"
+                            @filled="changes.reset()"
+                        />
+                    </BankFilterCriteriaFields>
                     <BankFilterFeeFields
                         v-if="values.direction !== 'income'"
                         v-model="values"

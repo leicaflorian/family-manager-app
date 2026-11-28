@@ -2989,5 +2989,12 @@
     ":first, and :rest": ":first, e :rest",
     "Edit the filter": "Modifica il filtro",
     "The filter is made after saving.": "Il filtro si crea dopo aver salvato.",
-    "When a movement the filter takes arrives, the due date is marked as paid by itself.": "Quando arriva un movimento che il filtro prende, la scadenza si segna pagata da sola."
+    "When a movement the filter takes arrives, the due date is marked as paid by itself.": "Quando arriva un movimento che il filtro prende, la scadenza si segna pagata da sola.",
+    "Improve the filter": "Migliora il filtro",
+    "The AI reads only the text of the movements, never the amounts.": "L'AI legge solo il testo dei movimenti, mai gli importi.",
+    "The filter takes no movement yet, so the AI has nothing to read.": "Il filtro non prende ancora nessun movimento, quindi l'AI non ha niente da leggere.",
+    "The AI is writing…": "L'AI sta scrivendo…",
+    "Undo the change": "Annulla la modifica",
+    "I changed the filter.": "Ho cambiato il filtro.",
+    "The AI suggests a new organization: :name. You can save the filter without it and add the organization later.": "L'AI propone un ente nuovo: :name. Puoi salvare il filtro senza e aggiungere l'ente dopo."
 }

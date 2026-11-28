@@ -3,7 +3,7 @@
  * The section *Matches* of the form of a bank filter, as the board *Dalla-banca-filtro* draws it: the words the text
  * must contain and the ones it must not (tags: Enter adds one), the direction, the account the filter reads (or all of
  * them) and the amounts from and up to. An advanced filter, made from the rule of a planned item, has its expression
- * instead of the words, and it changes only as text.
+ * instead of the words, and it changes only as text. The slot, after the amounts, holds the AI buttons of the words.
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -14,11 +14,17 @@ import type {
 import { wordsFieldProps } from '@/lib/bankFilters';
 import { errors } from '@/lib/errors';
 
-const { options, problems = {} } = defineProps<{
+const {
+    options,
+    problems = {},
+    wordsLocked = false,
+} = defineProps<{
     /** The choices of the form: the accounts the bank reads. */
     options: BankFilterFormOptions;
     /** The messages of the server, by field. */
     problems?: Record<string, string>;
+    /** The words cannot change now (the AI is writing them). */
+    wordsLocked?: boolean;
 }>();
 
 /** The fields of the form, changed in place. */
@@ -63,6 +69,7 @@ const accounts = computed(() => [
             <FormKit
                 v-bind="words"
                 v-model="values.contains"
+                :disabled="wordsLocked"
                 :label="$t('Contains the words')"
                 name="contains"
                 :help="
@@ -75,6 +82,7 @@ const accounts = computed(() => [
             <FormKit
                 v-bind="words"
                 v-model="values.excludes"
+                :disabled="wordsLocked"
                 :label="$t('Does not contain')"
                 name="excludes"
                 optional
@@ -131,5 +139,6 @@ const accounts = computed(() => [
                 />
             </div>
         </div>
+        <slot />
     </fieldset>
 </template>

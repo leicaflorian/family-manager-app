@@ -203,6 +203,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 Route::get('budget/bank/filters/create', [BankFilterController::class, 'create'])->name('budget.bank.filters.create');
                 Route::post('budget/bank/filters', [BankFilterController::class, 'store'])->name('budget.bank.filters.store');
                 Route::post('budget/bank/filters/preview', [BankFilterController::class, 'preview'])->middleware('throttle:60,1,bank-filter-preview')->name('budget.bank.filters.preview');
+                Route::post('budget/bank/filters/suggest', [BankFilterController::class, 'suggest'])->middleware('throttle:20,1,bank-filter-ai')->name('budget.bank.filters.suggest');
                 Route::get('budget/bank/filters/{filter}/edit', [BankFilterController::class, 'edit'])->name('budget.bank.filters.edit')->whereNumber('filter');
                 Route::put('budget/bank/filters/{filter}', [BankFilterController::class, 'update'])->name('budget.bank.filters.update')->whereNumber('filter');
                 Route::delete('budget/bank/filters/{filter}', [BankFilterController::class, 'destroy'])->name('budget.bank.filters.destroy')->whereNumber('filter');
