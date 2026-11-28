@@ -16,6 +16,7 @@ use App\Actions\Banks\UndoBankPayment;
 use App\Data\BankFilterData;
 use App\Data\BankTransactionData;
 use App\Enums\BankConnectionStatus;
+use App\Enums\BankFilterAction;
 use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
 use App\Http\Controllers\Controller;
@@ -38,6 +39,7 @@ use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankLinkSearch;
 use App\Services\Banks\BankProposals;
 use App\Services\Banks\BankRows;
+use App\Services\Banks\BankSimilar;
 use App\Services\Banks\RecurringBankTexts;
 use App\Support\Banks\BankText;
 use App\Support\Banks\BankVisitor;
@@ -165,13 +167,13 @@ final class BankTransactionController extends Controller
     /**
      * *It belongs to an expense*: the person says which planned item the transaction pays, or which expense or income
      * already recorded it is. Of a planned item, the due date chosen is paid, or else the closest open one, as a rule
-     * would pay it. An admin who can change the planned item and finds it without a rule
-     * goes on to its form, with the sheet that writes the rule open from this transaction; everyone else stays here.
+     * would pay it. Whoever may make a filter that pays and finds the planned item without one goes on to the
+     * form of the new filter (`?planned=` and `?from=`), filled from this transaction; everyone else stays here.
      *
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the planned item is not of the family
      * @throws ValidationException (`planned_id`) when the planned item has no due date to pay; (`movement_id`) when the recorded movement cannot be linked
      */
-    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle, LinkRecordedMovement $link): RedirectResponse
+    public function assign(AssignBankTransactionRequest $request, SettleFromBank $settle, LinkRecordedMovement $link, BankSimilar $similar): RedirectResponse
     {
         $transaction = $request->transaction();
         $movement = $request->movement();
@@ -179,6 +181,7 @@ final class BankTransactionController extends Controller
         if ($movement instanceof Expense || $movement instanceof Income) {
             $linked = $link->handle($transaction, $movement);
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Linked: :title', ['title' => $linked instanceof Expense ? $linked->title : $linked->label()])]);
+            $similar->offer($transaction);
 
             return to_route('budget.bank.index');
         }
@@ -206,9 +209,13 @@ final class BankTransactionController extends Controller
         };
         Inertia::flash('toast', ['type' => 'success', 'message' => __($message, ['title' => $title])]);
 
-        if (blank($planned->bank_match) && Gate::allows('update', $planned)) {
-            return to_route('budget.planned.edit', ['kind' => $planned instanceof PlannedExpense ? 'expense' : 'income', 'id' => $planned->id, 'rule_from' => $transaction->id]);
+        // Without a filter that pays it, whoever may make one is led to the form of the new filter, filled from here
+        if (Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]) && ! BankFilter::existsPayingFor($planned)) {
+            return to_route('budget.bank.filters.create', ['planned' => ($planned instanceof PlannedExpense ? 'expense:' : 'income:').$planned->id, 'from' => $transaction->id]);
         }
+
+        // The form of the new filter already takes the similar movements, so the page has nothing more to offer
+        $similar->offer($transaction);
 
         return to_route('budget.bank.index');
     }
@@ -358,10 +365,12 @@ final class BankTransactionController extends Controller
      * @throws NotFoundHttpException while the link to the bank is off for the family, or when the transaction or the account is not of the family
      * @throws ValidationException (`account_id`) when the account is the one of the movement
      */
-    public function transfer(MarkBankTransferRequest $request, MarkBankTransfer $mark): RedirectResponse
+    public function transfer(MarkBankTransferRequest $request, MarkBankTransfer $mark, BankSimilar $similar): RedirectResponse
     {
-        $mark->handle($request->transaction(), $request->account());
+        $transaction = $request->transaction();
+        $mark->handle($transaction, $request->account());
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
+        $similar->offer($transaction);
 
         return to_route('budget.bank.index');
     }

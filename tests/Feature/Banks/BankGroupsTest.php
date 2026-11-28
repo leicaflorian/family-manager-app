@@ -2,12 +2,21 @@
 
 declare(strict_types=1);
 
+use App\Enums\BankFilterAction;
 use App\Enums\BankTransactionStatus;
+use App\Enums\Role;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
+use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
+use App\Models\Organization;
+use App\Models\Person;
+use App\Models\PlannedExpense;
+use App\Models\User;
 use App\Services\Banks\BankGroups;
 use App\Services\Banks\FakeBankFeed;
+use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankGroup;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -202,4 +211,141 @@ it('finds the groups and the lone movements of the fake bank', function (): void
         ->and($names)->toContain('inps', 'eni')
         ->and(collect($names)->contains(fn (string $name): bool => str_contains($name, 'cashback')))->toBeTrue()
         ->and($service->lone()->count())->toBeGreaterThanOrEqual(8);
+});
+
+/**
+ * Turns the link to the bank on for the family of Marco, with the fake bank, and signs in as him or as a member.
+ */
+function bankGroupsSimilarOn(bool $member = false): User
+{
+    config(['bank_feed.provider' => 'fake']);
+    test()->marco->family->forceFill(['bank_feed_enabled' => true])->save();
+    $user = $member ? User::factory()->create(['family_id' => test()->marco->family_id, 'role' => Role::Member]) : test()->marco;
+    test()->actingAs($user);
+
+    return $user;
+}
+
+/**
+ * The body of a new expense made from a bank transaction, as the form sends it.
+ */
+function bankGroupsExpenseBody(BankTransaction $row): array
+{
+    return [
+        'kind' => 'expense', 'title' => 'Bar Rossi', 'amount' => 10, 'date' => '2026-11-05',
+        'financial_account_id' => $row->financial_account_id, 'bank_transaction_id' => $row->id,
+    ];
+}
+
+it('after creating an expense from a movement of a group the page says how many others are like it', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect(range(1, 8))->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($rows[0]))
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 7)
+        ->assertInertiaFlash('similar.action', 'create')
+        ->assertInertiaFlash('similar.url', route('budget.bank.filters.create', ['from' => $rows[0]->id], absolute: false));
+
+    $flash = session('inertia.flash_data.similar');
+
+    expect($flash['rows'])->toHaveCount(5)
+        ->and(collect($flash['rows'])->pluck('id')->all())->each->not->toBe($rows[0]->id);
+});
+
+it('says nothing for a lone movement', function (): void {
+    bankGroupsSimilarOn();
+    $row = bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-01', ['counterparty' => 'Bar Rossi']);
+
+    $this->post(route('budget.movements.store'), bankGroupsExpenseBody($row))
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlashMissing('similar');
+});
+
+it('says the same after the account of a transfer is chosen', function (): void {
+    bankGroupsSimilarOn();
+    $savings = FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('GIROCONTO RISPARMIO', '-100.00', '2026-11-0'.$day));
+
+    $this->post(route('budget.bank.transfer', $rows[0]), ['account_id' => $savings->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.action', 'transfer');
+});
+
+it('the draft carries the fields of the expense just created', function (): void {
+    bankGroupsSimilarOn();
+    $category = ExpenseCategory::factory()->create(['family_id' => $this->marco->family_id]);
+    $organization = Organization::factory()->create(['family_id' => $this->marco->family_id]);
+    $person = Person::factory()->create(['family_id' => $this->marco->family_id]);
+    $row = bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-01', ['counterparty' => 'Bar Rossi']);
+    $expense = Expense::factory()->create([
+        'family_id' => $this->marco->family_id, 'title' => 'Colazione', 'category_id' => $category->id,
+        'organization_id' => $organization->id, 'person_id' => $person->id, 'planned_expense_id' => null,
+    ]);
+    $row->forceFill(['expense_id' => $expense->id])->save();
+
+    $draft = BankFilterDraft::fromLink($row->refresh());
+
+    expect($draft->action)->toBe(BankFilterAction::Create)
+        ->and($draft->title)->toBe('Colazione')
+        ->and($draft->titleWithMonth)->toBeFalse()
+        ->and($draft->categoryId)->toBe($category->id)
+        ->and($draft->organizationId)->toBe($organization->id)
+        ->and($draft->personId)->toBe($person->id)
+        ->and($draft->contains)->toContain('BAR', 'ROSSI')
+        ->and($draft->excludes)->toBe(['COMMISSIONI'])
+        ->and($draft->direction)->toBe('expense')
+        ->and($draft->accountId)->toBe($this->account->id);
+});
+
+it('the draft carries the planned item just paid', function (): void {
+    bankGroupsSimilarOn();
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce']);
+    $row = bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-01');
+    $expense = Expense::factory()->create(['family_id' => $this->marco->family_id, 'planned_expense_id' => $planned->id]);
+    $row->forceFill(['expense_id' => $expense->id])->save();
+
+    $draft = BankFilterDraft::fromLink($row->refresh());
+    $member = BankFilterDraft::fromLink($row, mayPay: false);
+
+    expect($draft->action)->toBe(BankFilterAction::Pay)
+        ->and($draft->plannedExpenseId)->toBe($planned->id)
+        ->and($draft->name)->toBe('Luce')
+        ->and($member->action)->toBeNull()
+        ->and($member->plannedExpenseId)->toBeNull();
+});
+
+it('the draft carries the account of the transfer', function (): void {
+    $savings = FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]);
+    $row = bankGroupsRow('GIROCONTO RISPARMIO', '-100.00', '2026-11-01', ['transfer_account_id' => $savings->id]);
+
+    $draft = BankFilterDraft::fromLink($row);
+
+    expect($draft->action)->toBe(BankFilterAction::Transfer)
+        ->and($draft->transferAccountId)->toBe($savings->id);
+});
+
+it('the new filter form from a movement uses the draft of the link, and a movement of another family is 404', function (): void {
+    bankGroupsSimilarOn();
+    $savings = FinancialAccount::factory()->create(['family_id' => $this->marco->family_id]);
+    $row = bankGroupsRow('GIROCONTO RISPARMIO', '-100.00', '2026-11-01', ['transfer_account_id' => $savings->id]);
+    $rossi = registerFamily('Rossi', 'rossi@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): BankTransaction => BankTransaction::factory()->create(['family_id' => $rossi->family_id]));
+    $this->actingAs($this->marco);
+
+    $this->get(route('budget.bank.filters.create', ['from' => $row->id]))
+        ->assertInertia(fn ($page) => $page->where('draft.action', 'transfer')->where('draft.transfer_account_id', $savings->id));
+    $this->get(route('budget.bank.filters.create', ['from' => $theirs->id]))->assertNotFound();
+    $this->get(route('budget.bank.filters.create', ['from' => 999999]))->assertNotFound();
+});
+
+it('paying a due date with no filter leads to the new filter form and offers nothing more', function (): void {
+    bankGroupsSimilarOn();
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce', 'start_date' => '2026-01-05', 'financial_account_id' => null, 'bank_match' => null]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-0'.$day, ['counterparty' => 'Edison']));
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
+        ->assertRedirect(route('budget.bank.filters.create', ['planned' => 'expense:'.$planned->id, 'from' => $rows[0]->id]))
+        ->assertInertiaFlashMissing('similar');
 });

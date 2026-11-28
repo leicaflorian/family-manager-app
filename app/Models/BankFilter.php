@@ -117,6 +117,37 @@ final class BankFilter extends FamilyModel
     }
 
     /**
+     * The filter that pays the due dates of a planned item, as the pages read it (the oldest when there are several).
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     */
+    public static function payingFor(PlannedExpense|PlannedIncome $planned): ?self
+    {
+        return self::queryPaying($planned)->forPage()->oldest('id')->first();
+    }
+
+    /**
+     * Whether a filter pays the due dates of a planned item.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     */
+    public static function existsPayingFor(PlannedExpense|PlannedIncome $planned): bool
+    {
+        return self::queryPaying($planned)->exists();
+    }
+
+    /**
+     * The filters that point at a planned item.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item
+     * @return Builder<self>
+     */
+    private static function queryPaying(PlannedExpense|PlannedIncome $planned): Builder
+    {
+        return self::query()->where($planned instanceof PlannedExpense ? 'planned_expense_id' : 'planned_income_id', $planned->id);
+    }
+
+    /**
      * Loads on one filter what `forPage()` loads on a query.
      */
     public function loadForPage(): self

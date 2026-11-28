@@ -19,7 +19,6 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\Subscription;
 use App\Models\Utility;
-use App\Support\Banks\BankMatch;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -55,7 +54,6 @@ final class PlannedPreset
             'organization_id' => null,
             'financial_account_id' => null,
             'person_id' => null,
-            'bank_match' => null,
             ...$kind === 'expense' ? ['fee_amount' => null, 'category_id' => null, 'card' => null, 'deadline_field' => null] : ['type' => 'salary', 'employment_id' => null],
         ];
     }
@@ -81,7 +79,6 @@ final class PlannedPreset
             'organization_id' => $planned->organization_id,
             'financial_account_id' => $planned->financial_account_id,
             'person_id' => $planned->person_id,
-            'bank_match' => $planned->bank_match,
         ];
 
         if ($planned instanceof PlannedIncome) {
@@ -200,7 +197,6 @@ final class PlannedPreset
             'interval' => 1,
             'interval_unit' => 'month',
             'financial_account_id' => $transaction->financial_account_id,
-            'bank_match' => BankMatch::fromText($transaction->text),
         ]);
     }
 

@@ -175,17 +175,20 @@ final class BankFilterController extends Controller
             return null;
         }
 
-        $counterparty = trim((string) $from?->counterparty);
+        // From a movement alone the draft is what happened to the movement (a due date paid, an expense, a transfer)
+        if ($planned === null) {
+            return BankFilterDraft::fromLink($from, Gate::allows('create', [BankFilter::class, BankFilterAction::Pay]));
+        }
 
         return new BankFilterDraft(
-            name: $planned?->displayTitle() ?? mb_substr($counterparty, 0, 100),
+            name: $planned->displayTitle(),
             contains: $from instanceof BankTransaction ? BankText::words($from->text) : [],
             excludes: $from instanceof BankTransaction ? ['COMMISSIONI'] : [],
-            direction: $planned === null ? $from->kind() : ($planned instanceof PlannedExpense ? 'expense' : 'income'),
+            direction: $planned instanceof PlannedExpense ? 'expense' : 'income',
             accountId: $from?->financial_account_id,
-            action: $planned === null ? null : BankFilterAction::Pay,
+            action: BankFilterAction::Pay,
             plannedExpenseId: $planned instanceof PlannedExpense ? $planned->id : null,
-            plannedIncomeId: $planned !== null && ! $planned instanceof PlannedExpense ? $planned->id : null,
+            plannedIncomeId: $planned instanceof PlannedExpense ? null : $planned->id,
         );
     }
 
