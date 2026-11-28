@@ -12,9 +12,11 @@ import { ChevronDown, ListFilter, Sparkles } from '@lucide/vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import BankFeeLine from '@/components/budget/BankFeeLine.vue';
-import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import BankPanelFrame from '@/components/budget/BankPanelFrame.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import { useFormat } from '@/composables/useFormat';
+import { actionLine } from '@/lib/bankFilters';
+import { groupAmounts, groupDays } from '@/lib/bankGroups';
 import { dayOf } from '@/lib/banks';
 import type { FlashSimilar } from '@/types/ui';
 
@@ -61,43 +63,50 @@ const title = computed((): string =>
           }),
 );
 
-/** The heading of the list: the other movements, with the account when they share one. */
-const accountLine = computed((): string => {
-    const accounts = new Set(similar.rows.map((row) => row.account ?? ''));
+/** The account, the amounts and the days of the other movements, as the board writes them under the heading. */
+const accountLine = computed((): string =>
+    [
+        similar.rows[0]?.account,
+        groupAmounts(group.value),
+        groupDays(group.value),
+    ]
+        .filter(Boolean)
+        .join(' · '),
+);
 
-    return accounts.size === 1 ? [...accounts][0]! : '';
-});
+/** The fields `lib/bankGroups` reads, from the flash. */
+const group = computed(() => ({
+    key: '',
+    kind: similar.kind,
+    count: similar.count,
+    min: similar.min,
+    max: similar.max,
+    from: similar.from,
+    to: similar.to,
+    proposal_action: null,
+    proposal_title: null,
+    proposal_detail: null,
+}));
 
-/** Money that came in: the filter creates an income. */
-const income = computed((): boolean => (similar.rows[0]?.amount ?? 0) > 0);
+/** Why they are alike: the mandate they share, or the words. */
+const reason = computed((): string =>
+    similar.reason.kind === 'mandate'
+        ? trans('They are of the same mandate :name.', {
+              name: similar.reason.name,
+          })
+        : trans('They have the same words: :words.', {
+              words: similar.reason.name,
+          }),
+);
 
-/** What the filter would do, in words. */
-const will = computed((): string => {
-    if (similar.action === 'pay') {
-        return trans(
-            'Pays the due date of the one you have just sorted, every time a movement like this arrives.',
-        );
-    }
-
-    if (similar.action === 'transfer') {
-        return trans(
-            'Marks them as transfers, like the one you have just sorted.',
-        );
-    }
-
-    return income.value
-        ? trans(
-              'Creates an income like the one you have just made, with the same title, category and organization.',
-          )
-        : trans(
-              'Creates an expense like the one you have just made, with the same title, category and organization.',
-          );
-});
+/** What the filter would do, as the line *Action* of the filter writes it. */
+const will = computed((): string => actionLine(similar.filter));
 </script>
 
 <template>
-    <FmBottomSheet v-model:open="open" :title="title">
+    <BankPanelFrame v-model:open="open" :title="title">
         <p class="m-0 text-body-sm text-ink">
+            {{ reason }}
             {{
                 $t(
                     'With a filter they are all sorted, and the ones that arrive next too.',
@@ -114,9 +123,7 @@ const will = computed((): string => {
                     )
                 }}
             </h3>
-            <span v-if="accountLine" class="text-meta text-ink-soft">{{
-                accountLine
-            }}</span>
+            <span class="text-meta text-ink-soft">{{ accountLine }}</span>
         </div>
         <div
             class="flex flex-col overflow-hidden rounded-card border border-edge-soft"
@@ -170,7 +177,7 @@ const will = computed((): string => {
             class="flex items-start gap-2 rounded-card bg-action-soft px-3 py-2.5 text-label text-action-dark"
         >
             <Sparkles aria-hidden="true" class="mt-0.5 size-4 shrink-0" />
-            <span class="min-w-0">{{ will }}</span>
+            <span class="min-w-0 first-letter:uppercase">{{ will }}</span>
         </span>
         <p class="m-0 text-meta text-ink-soft">
             {{
@@ -188,5 +195,5 @@ const will = computed((): string => {
                 $t('Create the filter')
             }}</FmButton>
         </div>
-    </FmBottomSheet>
+    </BankPanelFrame>
 </template>

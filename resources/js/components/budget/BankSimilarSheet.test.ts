@@ -3,11 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { screen } from '@testing-library/vue';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { FlashSimilar } from '@/types/ui';
-import { bankTransactions } from '@/test/fixtures';
-import { renderPage, settle } from '@/test/page';
+import { bankFilters, bankTransactions } from '@/test/fixtures';
+import { renderPage, screenWidth, settle } from '@/test/page';
 import BankSimilarSheet from './BankSimilarSheet.vue';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+});
 
 /** One movement of the group: a Satispay top-up with its commission, on its own day. */
 function row(id: number, day: number): App.Data.BankTransactionData {
@@ -22,15 +25,36 @@ function row(id: number, day: number): App.Data.BankTransactionData {
     };
 }
 
+/** The filter the flash carries: creates the expense «Ricarica Satispay», with the commission. */
+const satispay = bankFilters.find((filter) => filter.action === 'create')!;
+
 /** What the server flashes: `count` movements, all of them carried (up to 20). */
 function similar(
     count: number,
     action: FlashSimilar['action'] = 'create',
 ): FlashSimilar {
+    const filter =
+        action === 'create'
+            ? satispay
+            : action === 'pay'
+              ? bankFilters.find((one) => one.action === 'pay')!
+              : {
+                    ...satispay,
+                    action: 'transfer',
+                    transfer_account: 'Libretto postale',
+                };
+
     return {
         count,
+        kind: 'expense',
         rows: Array.from({ length: count }, (_, i) => row(50 + i, i + 1)),
         action,
+        filter,
+        reason: { kind: 'mandate', name: 'Satispay' },
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-17',
         url: '/budget/bank/filters/create?from=9',
     };
 }
@@ -85,29 +109,59 @@ describe('BankSimilarSheet', () => {
         ).toBeNull();
     });
 
-    it('says what the filter would do for each action', async () => {
-        const view = await open(similar(3, 'create'));
+    it('says what the filter would do, as the line Action of a filter', async () => {
+        await open(similar(3, 'create'));
+
+        expect(
+            screen.getByText(/creates the expense «Ricarica Satispay»/),
+        ).toBeInTheDocument();
+        expect(screen.getByText(/with the commission/)).toBeInTheDocument();
+    });
+
+    it('says what a filter that pays does', async () => {
+        await open(similar(3, 'pay'));
+
+        expect(
+            screen.getByText(/pays the due date of «Luce»/),
+        ).toBeInTheDocument();
+    });
+
+    it('says why they are alike, with the account, the amounts and the days under the heading', async () => {
+        await open(similar(10));
+
+        expect(
+            screen.getByText(/They are of the same mandate Satispay\./),
+        ).toBeInTheDocument();
+        expect(screen.getByText('The other 10 movements')).toBeInTheDocument();
         expect(
             screen.getByText(
-                /Creates an expense like the one you have just made/,
+                /Conto BancoPosta ·· 3307 · 10 movements · from 10,00.€ to 50,00.€ · between 02\/09 and 17\/11/,
             ),
         ).toBeInTheDocument();
+    });
+
+    it('says the words when there is no mandate', async () => {
+        await open({
+            ...similar(3),
+            reason: { kind: 'words', name: 'BAR ROSSI' },
+        });
+
+        expect(
+            screen.getByText(/They have the same words: BAR ROSSI\./),
+        ).toBeInTheDocument();
+    });
+
+    it('is a panel at the side when wide, a sheet on the phone', async () => {
+        screenWidth(true);
+        const view = await open(similar(3));
+
+        expect(screen.getByRole('dialog').tagName).toBe('ASIDE');
         view.unmount();
 
-        const pay = await open(similar(3, 'pay'));
-        expect(
-            screen.getByText(
-                /Pays the due date of the one you have just sorted/,
-            ),
-        ).toBeInTheDocument();
-        pay.unmount();
+        screenWidth(false);
+        await open(similar(3));
 
-        await open(similar(3, 'transfer'));
-        expect(
-            screen.getByText(
-                /Marks them as transfers, like the one you have just sorted/,
-            ),
-        ).toBeInTheDocument();
+        expect(screen.getByRole('dialog').tagName).not.toBe('ASIDE');
     });
 
     it('«Create the filter» leads to the new filter', async () => {

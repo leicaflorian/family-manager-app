@@ -356,7 +356,11 @@ const similarOpen = computed({
  * @param flash - the flash of the visit
  */
 function offerSimilar(flash: unknown): void {
-    similar.value = similarOf(flash) ?? similar.value;
+    const found: FlashSimilar | null = similarOf(flash);
+
+    if (found !== null) {
+        similar.value = found;
+    }
 }
 
 // The expense made from the form of a movement lands here with the flash: it arrives once, so *Back* does not reopen it

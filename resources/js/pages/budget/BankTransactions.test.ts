@@ -1418,6 +1418,13 @@ describe('Budget, From the bank, the groups', () => {
 function similarFlash(): FlashSimilar {
     return {
         count: 3,
+        kind: 'expense',
+        filter: bankFilters.find((filter) => filter.action === 'create')!,
+        reason: { kind: 'mandate', name: 'Satispay' },
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-17',
         rows: [4, 5, 6].map((id) => ({
             ...bankTransactions[1]!,
             id,
@@ -1483,6 +1490,22 @@ describe('Budget, From the bank, the filter for the others', () => {
         expect(
             await screen.findByRole('link', { name: 'Create the filter' }),
         ).toHaveAttribute('href', '/budget/bank/filters/create?from=2');
+    });
+
+    it('does not open again after it was dismissed, when the page gets new props', async () => {
+        shared.flash = { similar: similarFlash() };
+        const view = renderPage(BankTransactions, props());
+
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'No, leave it so' }),
+        );
+        shared.flash = {};
+        await view.rerender(structuredClone(props()));
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
     });
 
     it('offers nothing without the flash', async () => {
