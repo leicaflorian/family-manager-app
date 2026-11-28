@@ -22,7 +22,9 @@ describe('BankGroupPanel', () => {
         screenWidth(true);
         renderPage(BankGroupPanel, { group, rows: bankGroupRows });
 
-        const panel = screen.getByRole('dialog', { name: 'Satispay Europe' });
+        const panel = screen.getByRole('complementary', {
+            name: 'Satispay Europe',
+        });
         expect(
             within(panel).getByText('Conto BancoPosta ·· 3307 · money out'),
         ).toBeInTheDocument();
@@ -136,7 +138,10 @@ describe('BankGroupPanel', () => {
 
         screenWidth(true);
         const wide = renderPage(BankGroupPanel, { group, rows: bankGroupRows });
-        expect(wide.container.querySelector('[role="dialog"]')).not.toBeNull();
+        expect(
+            screen.getByRole('complementary', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(
             screen.getByRole('heading', { name: 'Satispay Europe' }),
         ).toHaveClass('text-stat');

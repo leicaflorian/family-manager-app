@@ -299,7 +299,10 @@ const beside = computed(
  * @param group - the group
  */
 function openGroup(group: App.Data.BankGroupData): void {
+    // One panel beside the list at a time
+    similar.value = null;
     openKey.value = group.key;
+    lastKey = group.key;
     openedRows.value = null;
     router.reload({
         data: { group: group.key },
@@ -344,6 +347,45 @@ function leaveGroup(row: App.Data.BankTransactionData): void {
                 }
             },
         },
+    );
+}
+
+/** The key of the group opened last, kept after it closes to give the focus back to its card. */
+let lastKey: string | null = null;
+
+/** The page, where the cards of the groups and the tabs are looked for when a panel gives the focus back. */
+const pageRoot = ref<HTMLElement | null>(null);
+
+/**
+ * The button of the card of the group opened last: where the focus goes back when the group closes, as the card that
+ * opened it leaves the page while the group is open (the groups become a list beside it).
+ *
+ * @returns the button, null when the group is not in the page any more
+ */
+function groupCard(): HTMLElement | null {
+    const card = Array.from(
+        pageRoot.value?.querySelectorAll<HTMLElement>('[data-group-key]') ?? [],
+    ).find((element) => element.dataset.groupKey === lastKey);
+
+    if (card === undefined) {
+        return null;
+    }
+
+    return card.matches('button')
+        ? card
+        : card.querySelector<HTMLElement>('button');
+}
+
+/**
+ * The tab open: where the focus goes back when the sheet of the similar movements closes, as what opened it (a
+ * button of a panel, the row sorted) is gone.
+ *
+ * @returns the link of the tab open
+ */
+function currentTab(): HTMLElement | null {
+    return (
+        pageRoot.value?.querySelector<HTMLElement>('[aria-current="page"]') ??
+        null
     );
 }
 
@@ -475,17 +517,25 @@ const similarOpen = computed({
     },
 });
 
+/** The last flash `similar` offered: the same one brought again (the page opened with it, then its visit) is not offered twice. */
+let lastOffered: FlashSimilar | null = null;
+
 /**
- * Opens the sheet when a visit brings the flash `similar` (after a movement is linked or marked as a transfer here).
+ * Opens the sheet when a visit brings the flash `similar` (after a movement is linked or marked as a transfer here),
+ * closing the group open: one panel beside the list at a time.
  *
  * @param flash - the flash of the visit
  */
 function offerSimilar(flash: unknown): void {
     const found: FlashSimilar | null = similarOf(flash);
 
-    if (found !== null) {
-        similar.value = found;
+    if (found === null || found === lastOffered) {
+        return;
     }
+
+    lastOffered = found;
+    closeGroup();
+    similar.value = found;
 }
 
 // The expense made from the form of a movement lands here with the flash: it arrives once, so *Back* does not reopen it
@@ -798,393 +848,422 @@ const { title, head } = usePageMeta({
 <template>
     <Head :title="head" />
 
-    <div class="flex max-w-[1120px] flex-col gap-4">
+    <div ref="pageRoot" class="flex max-w-[1120px] flex-col gap-4">
         <FmTitle :title="title" />
 
-        <FmNotice
-            v-for="bank in banks_to_reconnect"
-            :key="bank"
-            tone="warning"
-            :title="$t(':bank needs to be connected again', { bank })"
-        >
-            {{
-                can_change_banks
-                    ? $t('Its movements do not arrive any more.')
-                    : $t(
-                          'Only who manages the family connects and disconnects the banks.',
-                      )
-            }}
-            <template v-if="can_change_banks" #action>
-                <FmButton
-                    variant="outline"
-                    :icon="RefreshCw"
-                    :href="banksIndex().url"
-                    >{{ $t('Reconnect') }}</FmButton
+        <div class="flex items-start gap-5">
+            <div class="flex min-w-0 flex-1 flex-col gap-4">
+                <FmNotice
+                    v-for="bank in banks_to_reconnect"
+                    :key="bank"
+                    tone="warning"
+                    :title="$t(':bank needs to be connected again', { bank })"
                 >
-            </template>
-        </FmNotice>
+                    {{
+                        can_change_banks
+                            ? $t('Its movements do not arrive any more.')
+                            : $t(
+                                  'Only who manages the family connects and disconnects the banks.',
+                              )
+                    }}
+                    <template v-if="can_change_banks" #action>
+                        <FmButton
+                            variant="outline"
+                            :icon="RefreshCw"
+                            :href="banksIndex().url"
+                            >{{ $t('Reconnect') }}</FmButton
+                        >
+                    </template>
+                </FmNotice>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-            <FmTabs
-                variant="pill"
-                :tabs="filters"
-                :label="$t('Movements from the bank')"
-                class="min-w-fit flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
-            />
-            <FmButton
-                variant="neutral"
-                :icon="RefreshCw"
-                :disabled="updating"
-                @click="update"
-                >{{ $t('Update') }}</FmButton
-            >
-            <span class="basis-full text-meta text-ink-soft">{{
-                readLine
-            }}</span>
-        </div>
-
-        <template v-if="show === 'filters'">
-            <FmEmpty
-                v-if="(bank_filters ?? []).length === 0"
-                :icon="Funnel"
-                :title="$t('No filter yet')"
-                :text="
-                    $t(
-                        'A filter sorts by itself the movements that look alike, the ones that arrive and the ones already here.',
-                    )
-                "
-            >
-                <FmButton :icon="Plus" :href="createFilter().url">{{
-                    $t('New filter')
-                }}</FmButton>
-            </FmEmpty>
-            <template v-else>
-                <div
-                    class="flex flex-col gap-4 wide:flex-row wide:flex-wrap wide:items-center wide:justify-between"
-                >
-                    <p
-                        class="m-0 px-1 text-body-sm text-ink-soft wide:max-w-160 wide:px-0"
-                    >
-                        {{
-                            $t(
-                                'Filters recognise the movements of the bank and sort them by themselves, at every read. A movement is taken by one filter only.',
-                            )
-                        }}
-                    </p>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <FmTabs
+                        variant="pill"
+                        :tabs="filters"
+                        :label="$t('Movements from the bank')"
+                        class="min-w-fit flex-1 basis-50 wide:w-75 wide:max-w-full wide:flex-none"
+                    />
                     <FmButton
-                        :icon="Plus"
-                        :href="createFilter().url"
-                        :wide="!wide"
-                        >{{ $t('New filter') }}</FmButton
+                        variant="neutral"
+                        :icon="RefreshCw"
+                        :disabled="updating"
+                        @click="update"
+                        >{{ $t('Update') }}</FmButton
                     >
+                    <span class="basis-full text-meta text-ink-soft">{{
+                        readLine
+                    }}</span>
                 </div>
-                <BankFiltersList :filters="bank_filters ?? []" />
-                <p class="m-0 px-1 text-meta text-ink-soft">
-                    {{ filtersFooter[0]
-                    }}<em>{{ $t('It was not this one') }}</em
-                    >{{ filtersFooter[1] }}
-                </p>
-            </template>
-        </template>
 
-        <template v-else-if="show === 'all'">
-            <BankAllFilters
-                :filters="allFilters"
-                :accounts="accounts ?? []"
-                :total="total ?? { count: shown.length, sum: 0 }"
-            />
-            <div
-                :class="
-                    wide && rawRow
-                        ? 'grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5'
-                        : 'flex flex-col'
-                "
-            >
-                <div class="flex min-w-0 flex-col gap-4">
-                    <BankAllList
-                        v-if="shown.length > 0"
-                        :rows="shown"
-                        :can-sort="can_sort"
-                        :selected="rawRow?.id ?? null"
-                        @open="(row) => (rawId = row.id)"
-                        @undo="(row) => (undoing = row)"
-                        @restore="restoreRow"
-                    />
+                <template v-if="show === 'filters'">
                     <FmEmpty
-                        v-else
-                        :icon="Landmark"
-                        :title="
-                            filterOn
-                                ? $t('No movement matches the filters')
-                                : $t('No movement yet')
-                        "
+                        v-if="(bank_filters ?? []).length === 0"
+                        :icon="Funnel"
+                        :title="$t('No filter yet')"
                         :text="
-                            filterOn
-                                ? $t('Remove a filter or change the search.')
-                                : $t(
-                                      'The movements the bank gives you appear here.',
-                                  )
+                            $t(
+                                'A filter sorts by itself the movements that look alike, the ones that arrive and the ones already here.',
+                            )
                         "
+                    >
+                        <FmButton :icon="Plus" :href="createFilter().url">{{
+                            $t('New filter')
+                        }}</FmButton>
+                    </FmEmpty>
+                    <template v-else>
+                        <div
+                            class="flex flex-col gap-4 wide:flex-row wide:flex-wrap wide:items-center wide:justify-between"
+                        >
+                            <p
+                                class="m-0 px-1 text-body-sm text-ink-soft wide:max-w-160 wide:px-0"
+                            >
+                                {{
+                                    $t(
+                                        'Filters recognise the movements of the bank and sort them by themselves, at every read. A movement is taken by one filter only.',
+                                    )
+                                }}
+                            </p>
+                            <FmButton
+                                :icon="Plus"
+                                :href="createFilter().url"
+                                :wide="!wide"
+                                >{{ $t('New filter') }}</FmButton
+                            >
+                        </div>
+                        <BankFiltersList :filters="bank_filters ?? []" />
+                        <p class="m-0 px-1 text-meta text-ink-soft">
+                            {{ filtersFooter[0]
+                            }}<em>{{ $t('It was not this one') }}</em
+                            >{{ filtersFooter[1] }}
+                        </p>
+                    </template>
+                </template>
+
+                <template v-else-if="show === 'all'">
+                    <BankAllFilters
+                        :filters="allFilters"
+                        :accounts="accounts ?? []"
+                        :total="total ?? { count: shown.length, sum: 0 }"
                     />
-                    <WhenVisible
-                        v-if="next"
-                        :key="next"
-                        always
-                        :params="{
-                            data: nextData,
-                            only: ['rows', 'next'],
-                            preserveUrl: true,
-                        }"
-                    />
-                </div>
-                <div
-                    v-if="wide && rawRow"
-                    class="sticky top-[calc(var(--app-header,0px)+--spacing(4))]"
-                >
+                    <div
+                        :class="
+                            wide && rawRow
+                                ? 'grid grid-cols-[minmax(0,1fr)_380px] items-start gap-5'
+                                : 'flex flex-col'
+                        "
+                    >
+                        <div class="flex min-w-0 flex-col gap-4">
+                            <BankAllList
+                                v-if="shown.length > 0"
+                                :rows="shown"
+                                :can-sort="can_sort"
+                                :selected="rawRow?.id ?? null"
+                                @open="(row) => (rawId = row.id)"
+                                @undo="(row) => (undoing = row)"
+                                @restore="restoreRow"
+                            />
+                            <FmEmpty
+                                v-else
+                                :icon="Landmark"
+                                :title="
+                                    filterOn
+                                        ? $t('No movement matches the filters')
+                                        : $t('No movement yet')
+                                "
+                                :text="
+                                    filterOn
+                                        ? $t(
+                                              'Remove a filter or change the search.',
+                                          )
+                                        : $t(
+                                              'The movements the bank gives you appear here.',
+                                          )
+                                "
+                            />
+                            <WhenVisible
+                                v-if="next"
+                                :key="next"
+                                always
+                                :params="{
+                                    data: nextData,
+                                    only: ['rows', 'next'],
+                                    preserveUrl: true,
+                                }"
+                            />
+                        </div>
+                        <div
+                            v-if="wide && rawRow"
+                            class="sticky top-[calc(var(--app-header,0px)+--spacing(4))]"
+                        >
+                            <BankRawPanel
+                                :row="rawRow"
+                                :can-sort="can_sort"
+                                @close="rawId = null"
+                                @undo="(row) => (undoing = row)"
+                            />
+                        </div>
+                    </div>
                     <BankRawPanel
+                        v-if="!wide && rawRow"
                         :row="rawRow"
                         :can-sort="can_sort"
                         @close="rawId = null"
                         @undo="(row) => (undoing = row)"
                     />
-                </div>
-            </div>
-            <BankRawPanel
-                v-if="!wide && rawRow"
-                :row="rawRow"
-                :can-sort="can_sort"
-                @close="rawId = null"
-                @undo="(row) => (undoing = row)"
-            />
-            <FmConfirm
-                v-model:open="undoOpen"
-                :question="undoText.question"
-                :text="undoText.text"
-                :confirm-label="$t('It was not this one')"
-                @confirm="takeLinkBack"
-            />
-        </template>
+                    <FmConfirm
+                        v-model:open="undoOpen"
+                        :question="undoText.question"
+                        :text="undoText.text"
+                        :confirm-label="$t('It was not this one')"
+                        @confirm="takeLinkBack"
+                    />
+                </template>
 
-        <FmEmpty
-            v-else-if="shown.length === 0 && groups.length === 0"
-            :icon="Landmark"
-            :title="$t('Nothing left to sort')"
-            :text="
-                $t(
-                    'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
-                )
-            "
-        >
-            <FmButton
-                variant="outline"
-                :icon="List"
-                :href="bankIndex({ query: { show: 'all' } }).url"
-                >{{ $t('All the movements') }}</FmButton
-            >
-            <FmButton
-                variant="outline"
-                :icon="Funnel"
-                :href="bankIndex({ query: { show: 'filters' } }).url"
-                >{{ $t('Your filters') }}</FmButton
-            >
-        </FmEmpty>
-
-        <template v-else>
-            <div
-                :class="
-                    beside
-                        ? 'grid grid-cols-[360px_minmax(0,1fr)] items-start gap-6 computer:grid-cols-[400px_minmax(0,1fr)]'
-                        : 'flex flex-col gap-6'
-                "
-            >
-                <section
-                    v-if="groups.length > 0"
-                    :aria-label="$t('Groups')"
-                    class="flex min-w-0 flex-col gap-3"
+                <FmEmpty
+                    v-else-if="shown.length === 0 && groups.length === 0"
+                    :icon="Landmark"
+                    :title="$t('Nothing left to sort')"
+                    :text="
+                        $t(
+                            'The filters and the fixed expenses with the rule sort by themselves the movements that arrive. Here you find only the ones nobody recognises.',
+                        )
+                    "
                 >
-                    <div class="flex flex-col gap-0.5 px-1">
-                        <h2 class="m-0 text-section text-ink">
-                            {{ groupsHead }}
-                        </h2>
-                        <span v-if="!beside" class="text-meta text-ink-soft">{{
-                            $t(
-                                'Movements that look alike stay together: create the filter of a group and they are all sorted, the ones to come too.',
-                            )
-                        }}</span>
-                    </div>
-                    <nav
-                        v-if="beside"
-                        v-auto-animate
-                        :aria-label="$t('Groups')"
-                        class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
+                    <FmButton
+                        variant="outline"
+                        :icon="List"
+                        :href="bankIndex({ query: { show: 'all' } }).url"
+                        >{{ $t('All the movements') }}</FmButton
                     >
-                        <BankGroupCard
-                            v-for="group in shownGroups"
-                            :key="group.key"
-                            :group="group"
-                            variant="row"
-                            :selected="group.key === openKey"
-                            @open="openGroup(group)"
-                        />
-                        <button
-                            v-if="hiddenGroups > 0"
-                            type="button"
-                            :class="moreClass"
-                            @click="allGroups = true"
+                    <FmButton
+                        variant="outline"
+                        :icon="Funnel"
+                        :href="bankIndex({ query: { show: 'filters' } }).url"
+                        >{{ $t('Your filters') }}</FmButton
+                    >
+                </FmEmpty>
+
+                <template v-else>
+                    <div
+                        :class="
+                            beside
+                                ? 'grid grid-cols-[360px_minmax(0,1fr)] items-start gap-6 computer:grid-cols-[400px_minmax(0,1fr)]'
+                                : 'flex flex-col gap-6'
+                        "
+                    >
+                        <section
+                            v-if="groups.length > 0"
+                            :aria-label="$t('Groups')"
+                            class="flex min-w-0 flex-col gap-3"
                         >
-                            {{ moreGroupsText
-                            }}<ChevronDown
-                                aria-hidden="true"
-                                class="size-[18px]"
-                            />
-                        </button>
-                    </nav>
-                    <template v-else>
+                            <div class="flex flex-col gap-0.5 px-1">
+                                <h2 class="m-0 text-section text-ink">
+                                    {{ groupsHead }}
+                                </h2>
+                                <span
+                                    v-if="!beside"
+                                    class="text-meta text-ink-soft"
+                                    >{{
+                                        $t(
+                                            'Movements that look alike stay together: create the filter of a group and they are all sorted, the ones to come too.',
+                                        )
+                                    }}</span
+                                >
+                            </div>
+                            <nav
+                                v-if="beside"
+                                v-auto-animate
+                                :aria-label="$t('Groups')"
+                                class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
+                            >
+                                <BankGroupCard
+                                    v-for="group in shownGroups"
+                                    :key="group.key"
+                                    :group="group"
+                                    variant="row"
+                                    :data-group-key="group.key"
+                                    :selected="group.key === openKey"
+                                    @open="openGroup(group)"
+                                />
+                                <button
+                                    v-if="hiddenGroups > 0"
+                                    type="button"
+                                    :class="moreClass"
+                                    @click="allGroups = true"
+                                >
+                                    {{ moreGroupsText
+                                    }}<ChevronDown
+                                        aria-hidden="true"
+                                        class="size-[18px]"
+                                    />
+                                </button>
+                            </nav>
+                            <template v-else>
+                                <div
+                                    v-auto-animate
+                                    class="grid grid-cols-1 gap-3 wide:grid-cols-2"
+                                >
+                                    <BankGroupCard
+                                        v-for="group in shownGroups"
+                                        :key="group.key"
+                                        :group="group"
+                                        :data-group-key="group.key"
+                                        @open="openGroup(group)"
+                                    />
+                                </div>
+                                <button
+                                    v-if="hiddenGroups > 0"
+                                    type="button"
+                                    :class="
+                                        cn(
+                                            moreClass,
+                                            'rounded-card bg-card shadow-card',
+                                        )
+                                    "
+                                    @click="allGroups = true"
+                                >
+                                    {{ moreGroupsText
+                                    }}<ChevronDown
+                                        aria-hidden="true"
+                                        class="size-[18px]"
+                                    />
+                                </button>
+                            </template>
+                            <button
+                                v-if="beside && loneCount > 0"
+                                type="button"
+                                class="flex cursor-pointer items-center gap-3 rounded-card border-0 bg-card px-4 py-3.5 text-left text-ink shadow-card"
+                                @click="closeGroup"
+                            >
+                                <span class="flex grow flex-col gap-0.5">
+                                    <span class="text-body-strong">{{
+                                        $t('Lone movements · :count', {
+                                            count: String(loneCount),
+                                        })
+                                    }}</span>
+                                    <span class="text-meta text-ink-soft">{{
+                                        $t('The ones that are in no group')
+                                    }}</span>
+                                </span>
+                                <ChevronRight
+                                    aria-hidden="true"
+                                    class="size-5 shrink-0 text-ink-soft"
+                                />
+                            </button>
+                        </section>
+
                         <div
-                            v-auto-animate
-                            class="grid grid-cols-1 gap-3 wide:grid-cols-2"
+                            v-if="beside && openedGroup"
+                            class="sticky top-[calc(var(--app-header,0px)+--spacing(4))] min-w-0"
                         >
-                            <BankGroupCard
-                                v-for="group in shownGroups"
-                                :key="group.key"
-                                :group="group"
-                                @open="openGroup(group)"
+                            <BankGroupPanel
+                                :group="openedGroup"
+                                :rows="openedRows"
+                                :return-focus="groupCard"
+                                @close="closeGroup"
+                                @not-of-group="leaveGroup"
                             />
                         </div>
-                        <button
-                            v-if="hiddenGroups > 0"
-                            type="button"
-                            :class="
-                                cn(
-                                    moreClass,
-                                    'rounded-card bg-card shadow-card',
-                                )
-                            "
-                            @click="allGroups = true"
-                        >
-                            {{ moreGroupsText
-                            }}<ChevronDown
-                                aria-hidden="true"
-                                class="size-[18px]"
-                            />
-                        </button>
-                    </template>
-                    <button
-                        v-if="beside && loneCount > 0"
-                        type="button"
-                        class="flex cursor-pointer items-center gap-3 rounded-card border-0 bg-card px-4 py-3.5 text-left text-ink shadow-card"
-                        @click="closeGroup"
-                    >
-                        <span class="flex grow flex-col gap-0.5">
-                            <span class="text-body-strong">{{
-                                $t('Lone movements · :count', {
-                                    count: String(loneCount),
-                                })
-                            }}</span>
-                            <span class="text-meta text-ink-soft">{{
-                                $t('The ones that are in no group')
-                            }}</span>
-                        </span>
-                        <ChevronRight
-                            aria-hidden="true"
-                            class="size-5 shrink-0 text-ink-soft"
-                        />
-                    </button>
-                </section>
 
-                <div
-                    v-if="beside && openedGroup"
-                    class="sticky top-[calc(var(--app-header,0px)+--spacing(4))] min-w-0"
-                >
+                        <section
+                            v-if="!beside && shown.length > 0"
+                            :aria-label="$t('Lone movements')"
+                            class="flex flex-col gap-3"
+                        >
+                            <div class="flex flex-col gap-0.5 px-1">
+                                <h2 class="m-0 text-section text-ink">
+                                    {{
+                                        $t('Lone movements · :count', {
+                                            count: String(loneCount),
+                                        })
+                                    }}
+                                </h2>
+                                <span class="text-meta text-ink-soft">{{
+                                    $t(
+                                        'The ones that are in no group. Where it finds an expense that fits, it proposes it to you.',
+                                    )
+                                }}</span>
+                            </div>
+                            <div
+                                class="flex flex-col overflow-hidden rounded-card bg-card shadow-card"
+                            >
+                                <ul
+                                    v-auto-animate
+                                    class="m-0 flex list-none flex-col divide-y divide-divider p-0"
+                                >
+                                    <BankLoneRow
+                                        v-for="row in shown"
+                                        :key="row.id"
+                                        :row="row"
+                                        :can-sort="can_sort"
+                                        :can-plan="can_plan"
+                                        @assign="openAssign"
+                                        @transfer="openTransfer"
+                                        @fee="openFee"
+                                        @ignore="toggleIgnored"
+                                    >
+                                        <template
+                                            v-if="proposes(row)"
+                                            #proposal
+                                        >
+                                            <BankProposalLine
+                                                :row="row"
+                                                :busy="proposing !== null"
+                                                @yes="acceptProposal"
+                                                @no="rejectProposal"
+                                            />
+                                        </template>
+                                    </BankLoneRow>
+                                </ul>
+                                <button
+                                    v-if="next && moreLone > 0"
+                                    type="button"
+                                    :class="
+                                        cn(moreClass, 'border-t border-divider')
+                                    "
+                                    @click="loadMore"
+                                >
+                                    {{
+                                        $tChoice(
+                                            '{1} Show one more movement|[2,*] Show :count more movements',
+                                            moreLone,
+                                        )
+                                    }}<ChevronDown
+                                        aria-hidden="true"
+                                        class="size-[18px]"
+                                    />
+                                </button>
+                            </div>
+                            <p class="m-0 px-1 text-meta text-ink-soft">
+                                {{
+                                    $t(
+                                        'Only the movements no filter takes stay here. The ones a filter takes, or a fixed expense with the rule, are sorted by themselves.',
+                                    )
+                                }}
+                            </p>
+                        </section>
+                    </div>
                     <BankGroupPanel
+                        v-if="!wide && openedGroup"
                         :group="openedGroup"
                         :rows="openedRows"
                         @close="closeGroup"
                         @not-of-group="leaveGroup"
                     />
-                </div>
-
-                <section
-                    v-if="!beside && shown.length > 0"
-                    :aria-label="$t('Lone movements')"
-                    class="flex flex-col gap-3"
-                >
-                    <div class="flex flex-col gap-0.5 px-1">
-                        <h2 class="m-0 text-section text-ink">
-                            {{
-                                $t('Lone movements · :count', {
-                                    count: String(loneCount),
-                                })
-                            }}
-                        </h2>
-                        <span class="text-meta text-ink-soft">{{
-                            $t(
-                                'The ones that are in no group. Where it finds an expense that fits, it proposes it to you.',
-                            )
-                        }}</span>
-                    </div>
-                    <div
-                        class="flex flex-col overflow-hidden rounded-card bg-card shadow-card"
-                    >
-                        <ul
-                            v-auto-animate
-                            class="m-0 flex list-none flex-col divide-y divide-divider p-0"
-                        >
-                            <BankLoneRow
-                                v-for="row in shown"
-                                :key="row.id"
-                                :row="row"
-                                :can-sort="can_sort"
-                                :can-plan="can_plan"
-                                @assign="openAssign"
-                                @transfer="openTransfer"
-                                @fee="openFee"
-                                @ignore="toggleIgnored"
-                            >
-                                <template v-if="proposes(row)" #proposal>
-                                    <BankProposalLine
-                                        :row="row"
-                                        :busy="proposing !== null"
-                                        @yes="acceptProposal"
-                                        @no="rejectProposal"
-                                    />
-                                </template>
-                            </BankLoneRow>
-                        </ul>
-                        <button
-                            v-if="next && moreLone > 0"
-                            type="button"
-                            :class="cn(moreClass, 'border-t border-divider')"
-                            @click="loadMore"
-                        >
-                            {{
-                                $tChoice(
-                                    '{1} Show one more movement|[2,*] Show :count more movements',
-                                    moreLone,
-                                )
-                            }}<ChevronDown
-                                aria-hidden="true"
-                                class="size-[18px]"
-                            />
-                        </button>
-                    </div>
-                    <p class="m-0 px-1 text-meta text-ink-soft">
-                        {{
-                            $t(
-                                'Only the movements no filter takes stay here. The ones a filter takes, or a fixed expense with the rule, are sorted by themselves.',
-                            )
-                        }}
-                    </p>
-                </section>
+                </template>
             </div>
-            <BankGroupPanel
-                v-if="!wide && openedGroup"
-                :group="openedGroup"
-                :rows="openedRows"
-                @close="closeGroup"
-                @not-of-group="leaveGroup"
-            />
-        </template>
+
+            <div
+                v-if="wide && similar"
+                class="sticky top-[calc(var(--app-header,0px)+--spacing(4))] w-[400px] shrink-0"
+            >
+                <BankSimilarSheet
+                    v-model:open="similarOpen"
+                    :similar="similar"
+                    :return-focus="currentTab"
+                />
+            </div>
+        </div>
 
         <BankAssignSheet
             v-if="assigning"
@@ -1212,7 +1291,7 @@ const { title, head } = usePageMeta({
             @choose="markTransfer"
         />
         <BankSimilarSheet
-            v-if="similar"
+            v-if="!wide && similar"
             v-model:open="similarOpen"
             :similar="similar"
         />

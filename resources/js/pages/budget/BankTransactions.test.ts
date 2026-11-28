@@ -1287,7 +1287,7 @@ describe('Budget, From the bank, the groups', () => {
                 preserveUrl: true,
             }),
         );
-        const panel = await screen.findByRole('dialog', {
+        const panel = await screen.findByRole('complementary', {
             name: 'Satispay Europe',
         });
         expect(
@@ -1295,6 +1295,33 @@ describe('Budget, From the bank, the groups', () => {
                 name: 'It is not of this group',
             }),
         ).toHaveLength(6);
+    });
+
+    it('when wide, closing the group with Escape gives the focus back to its card', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+        await settle();
+        expect(
+            screen.getByRole('heading', { name: 'Satispay Europe' }),
+        ).toHaveFocus();
+
+        await userEvent.keyboard('{Escape}');
+        await settle();
+
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+        const section = screen.getByRole('region', { name: 'Groups' });
+        expect(
+            within(section).getByRole('button', { name: /Satispay Europe/ }),
+        ).toHaveFocus();
     });
 
     it('It is not of this group takes the movement out of the open group, and the panel drops it', async () => {
@@ -1313,7 +1340,7 @@ describe('Budget, From the bank, the groups', () => {
         await userEvent.click(
             screen.getByRole('button', { name: /Satispay Europe/ }),
         );
-        const panel = await screen.findByRole('dialog', {
+        const panel = await screen.findByRole('complementary', {
             name: 'Satispay Europe',
         });
         const first = bankGroupRows[0]!.transaction;
@@ -1379,7 +1406,7 @@ describe('Budget, From the bank, the groups', () => {
         answers[0]();
         await nextTick();
 
-        const panel = screen.getByRole('dialog', {
+        const panel = screen.getByRole('complementary', {
             name: 'INPS · Assegno Unico',
         });
         expect(
@@ -1410,7 +1437,7 @@ describe('Budget, From the bank, the groups', () => {
         await userEvent.click(
             screen.getByRole('button', { name: /Lone movements · 42/ }),
         );
-        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(screen.queryByRole('complementary')).toBeNull();
         expect(
             screen.getByRole('region', { name: 'Lone movements' }),
         ).toBeInTheDocument();
@@ -1691,6 +1718,102 @@ describe('Budget, From the bank, the filter for the others', () => {
         expect(
             screen.queryByRole('link', { name: 'Create the filter' }),
         ).not.toBeInTheDocument();
+    });
+
+    it('when wide, it is a column beside the list, and opening a group closes it', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({
+                props: { group_rows: structuredClone(bankGroupRows) },
+            } as never);
+        });
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, groupProps());
+        await settle();
+
+        expect(
+            screen.getByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        // In the flow of the page: the list stays there to read and to use
+        expect(
+            screen.getByRole('region', { name: 'Lone movements' }),
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(
+            screen.queryByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).not.toBeInTheDocument();
+        expect(
+            screen.getByRole('complementary', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+    });
+
+    it('the same flash brought again after it was dismissed does not open it again, a new one does', async () => {
+        const flash = { similar: similarFlash() };
+        let answer: { similar: FlashSimilar } = flash;
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onFlash?.(answer as never);
+            options?.onSuccess?.({} as never);
+        });
+        shared.flash = flash;
+        renderPage(
+            BankTransactions,
+            props({
+                rows: [
+                    ...bankTransactions,
+                    {
+                        ...bankTransactions[1]!,
+                        id: 901,
+                        text: 'ADDEBITO DIRETTO SDD ENEL ENERGIA',
+                    },
+                ],
+                accounts_all: [
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'No, leave it so' }),
+        );
+        await settle();
+
+        /** Marks a row as a transfer, the visit that brings `answer` as its flash. */
+        async function transfer(text: RegExp): Promise<void> {
+            const row = screen.getByText(text).closest('li')!;
+
+            await userEvent.click(
+                within(row).getByRole('button', { name: 'More actions' }),
+            );
+            await userEvent.click(
+                screen.getByRole('menuitem', { name: 'It is a transfer' }),
+            );
+            await userEvent.click(
+                await screen.findByRole('button', {
+                    name: 'Mark as a transfer',
+                }),
+            );
+            await settle();
+        }
+
+        await transfer(/EDISON ENERGIA/);
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
+
+        answer = { similar: similarFlash() };
+        await transfer(/ENEL/);
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toBeInTheDocument();
     });
 
     it('offers nothing without the flash', async () => {

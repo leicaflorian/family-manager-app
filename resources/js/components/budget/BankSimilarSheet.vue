@@ -4,7 +4,8 @@
  * questo* draw it: «I found 10 more movements like this», the first five of them with their commission, *Show the
  * other 5* for the rest of the ones the server carried, what the filter for them would do (`pay`, `create` or
  * `transfer`), *No, leave it so* (closes) and *Create the filter* (the form of the new filter, filled with what was
- * just chosen). It only shows what the flash `similar` says; the page opens it and closes it.
+ * just chosen). It only shows what the flash `similar` says; the page opens it and closes it. On the phone a bottom
+ * sheet, wide a panel beside the list (`BankPanelFrame`).
  *
  * @group panels
  */
@@ -23,9 +24,11 @@ import type { FlashSimilar } from '@/types/ui';
 /** How many of the movements show before *Show the other…*. */
 const FIRST = 5;
 
-const { similar } = defineProps<{
+const { similar, returnFocus } = defineProps<{
     /** What the server flashed: how many others, the movements it carried, the action and the filter form. */
     similar: FlashSimilar;
+    /** Where the focus goes at the closing when what opened it is gone (wide only). */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 /** The sheet is open. */
@@ -88,15 +91,29 @@ const group = computed(() => ({
     proposal_detail: null,
 }));
 
-/** Why they are alike: the mandate they share, or the words. */
-const reason = computed((): string =>
-    similar.reason.kind === 'mandate'
-        ? trans('They are of the same mandate :name.', {
-              name: similar.reason.name,
-          })
-        : trans('They have the same words: :words.', {
-              words: similar.reason.name,
-          }),
+/** Why they are alike: the mandate they share, or the words; null when the server has no name or words for it. */
+const reason = computed((): string | null => {
+    const name = similar.reason?.name.trim() ?? '';
+
+    if (similar.reason === null || name === '') {
+        return null;
+    }
+
+    return similar.reason.kind === 'mandate'
+        ? trans('They are of the same mandate :name.', { name })
+        : trans('They have the same words: :words.', { words: name });
+});
+
+/** The opening lines: why they are alike, when the server says it, and what a filter would do for them. */
+const intro = computed((): string =>
+    [
+        reason.value,
+        trans(
+            'With a filter they are all sorted, and the ones that arrive next too.',
+        ),
+    ]
+        .filter((line): line is string => line !== null)
+        .join(' '),
 );
 
 /** What the filter would do, as the line *Action* of the filter writes it. */
@@ -104,15 +121,12 @@ const will = computed((): string => actionLine(similar.filter));
 </script>
 
 <template>
-    <BankPanelFrame v-model:open="open" :title="title">
-        <p class="m-0 text-body-sm text-ink">
-            {{ reason }}
-            {{
-                $t(
-                    'With a filter they are all sorted, and the ones that arrive next too.',
-                )
-            }}
-        </p>
+    <BankPanelFrame
+        v-model:open="open"
+        :title="title"
+        :return-focus="returnFocus"
+    >
+        <p class="m-0 text-body-sm text-ink">{{ intro }}</p>
 
         <div class="flex flex-col gap-0.5">
             <h3 class="m-0 mt-1 text-row text-ink">

@@ -6,7 +6,7 @@
  * first and *Show … more* for the rest, each with its day, its text, its commission, its amount and what the proposal
  * would do with it. Each movement has *It is not of this group* (`notOfGroup`): the page takes it out of the group
  * and drops it from `rows`. On the phone it is a bottom sheet; wide, a panel at the right of
- * the list of groups (the page puts it in its column). While the page asks the movements (`rows` null) the list waits.
+ * the list of groups (the page puts it in its column), in the frame of `BankPanelFrame`. While the page asks the movements (`rows` null) the list waits.
  *
  * @group panels
  */
@@ -16,17 +16,15 @@ import {
     ListFilter,
     Plus,
     Split,
-    X,
 } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 import BankFeeLine from '@/components/budget/BankFeeLine.vue';
 import BankGroupProposal from '@/components/budget/BankGroupProposal.vue';
-import FmBottomSheet from '@/components/fm/FmBottomSheet.vue';
+import BankPanelFrame from '@/components/budget/BankPanelFrame.vue';
 import FmButton from '@/components/fm/FmButton.vue';
 import { useFormat } from '@/composables/useFormat';
-import { useWideLayout } from '@/composables/useWideLayout';
 import { willTag } from '@/lib/bankFilters';
 import { groupAmounts, groupDays, groupFilterUrl } from '@/lib/bankGroups';
 import { dayOf } from '@/lib/banks';
@@ -34,11 +32,13 @@ import { formatDayMonth } from '@/lib/format';
 import { listNames } from '@/lib/names';
 import { cn } from '@/lib/utils';
 
-const { group, rows } = defineProps<{
+const { group, rows, returnFocus } = defineProps<{
     /** The group, as the server sends it in `groups`. */
     group: App.Data.BankGroupData;
     /** Its movements, as `group_rows` brings them; null while the page asks them. */
     rows: App.Data.BankGroupRowData[] | null;
+    /** Where the focus goes at the closing when what opened it is gone (wide only). */
+    returnFocus?: () => HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -48,7 +48,6 @@ const emit = defineEmits<{
     notOfGroup: [row: App.Data.BankTransactionData];
 }>();
 
-const wide = useWideLayout();
 const { money } = useFormat();
 
 /** How many movements show before *Show … more*, as the boards. */
@@ -214,34 +213,13 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
 </script>
 
 <template>
-    <component
-        :is="wide ? 'aside' : FmBottomSheet"
-        v-bind="
-            wide
-                ? {
-                      role: 'dialog',
-                      'aria-label': group.name,
-                      class: 'flex min-w-0 flex-col gap-3.5 rounded-card bg-card p-6 shadow-card',
-                  }
-                : {
-                      open: true,
-                      title: group.name,
-                      'onUpdate:open': (open: boolean) =>
-                          !open && emit('close'),
-                  }
-        "
+    <BankPanelFrame
+        look="card"
+        :open="true"
+        :title="group.name"
+        :return-focus="returnFocus"
+        @update:open="(open: boolean) => !open && emit('close')"
     >
-        <div v-if="wide" class="flex items-center justify-between gap-3">
-            <h2 class="m-0 text-stat text-ink">{{ group.name }}</h2>
-            <button
-                type="button"
-                :aria-label="$t('Close')"
-                class="-mr-2.5 flex size-11 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-ink-soft"
-                @click="emit('close')"
-            >
-                <X aria-hidden="true" :size="20" />
-            </button>
-        </div>
         <div class="flex flex-col gap-0.5">
             <span class="text-meta text-ink-soft">{{ accountLine }}</span>
             <span class="text-meta text-ink-soft">{{ amountsLine }}</span>
@@ -350,5 +328,5 @@ function tagClass(tone: 'paid' | 'action' | 'muted'): string {
                 <ChevronDown aria-hidden="true" class="size-[18px]" />
             </button>
         </div>
-    </component>
+    </BankPanelFrame>
 </template>

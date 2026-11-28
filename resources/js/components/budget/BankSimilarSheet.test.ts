@@ -151,17 +151,47 @@ describe('BankSimilarSheet', () => {
         ).toBeInTheDocument();
     });
 
+    it('leaves out why they are alike when the server has no name or words for it', async () => {
+        for (const reason of [
+            null,
+            { kind: 'mandate', name: '' },
+            { kind: 'words', name: '  ' },
+        ] as const) {
+            const view = await open({ ...similar(3), reason });
+
+            expect(
+                screen.queryByText(/same mandate|same words/),
+            ).not.toBeInTheDocument();
+            expect(
+                screen.getByText(
+                    'With a filter they are all sorted, and the ones that arrive next too.',
+                ),
+            ).toBeInTheDocument();
+            view.unmount();
+        }
+    });
+
     it('is a panel at the side when wide, a sheet on the phone', async () => {
         screenWidth(true);
         const view = await open(similar(3));
 
-        expect(screen.getByRole('dialog').tagName).toBe('ASIDE');
+        expect(
+            screen.getByRole('complementary', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         view.unmount();
 
         screenWidth(false);
         await open(similar(3));
 
-        expect(screen.getByRole('dialog').tagName).not.toBe('ASIDE');
+        expect(
+            screen.getByRole('dialog', {
+                name: 'I found 3 more movements like this',
+            }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     });
 
     it('«Create the filter» leads to the new filter', async () => {

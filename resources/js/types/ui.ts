@@ -18,7 +18,7 @@ export type FlashSimilar = {
     rows: App.Data.BankTransactionData[];
     action: 'pay' | 'create' | 'transfer';
     filter: App.Data.BankFilterData;
-    reason: { kind: 'mandate' | 'words'; name: string };
+    reason: { kind: 'mandate' | 'words'; name: string } | null;
     min: number;
     max: number;
     from: string;
