@@ -7,7 +7,9 @@ namespace App\Data;
 use App\Enums\BankFilterAction;
 use App\Enums\FinancialAccountStatus;
 use App\Models\BankFilter;
+use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
+use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Support\Banks\BankFilterCriteria;
@@ -51,9 +53,12 @@ final class BankFilterData extends Data
      * @param  int|null  $transfer_account_id  the account on the other side of a transfer
      * @param  string|null  $account  the account it reads, as «Account name ·· 1234»; null for all of them
      * @param  array{kind: string, id: int, title: string}|null  $planned  the planned item a filter that pays settles
-     * @param  int  $taken  how many movements it settled
+     * @param  int  $taken  how many movements it settled that were booked in the last 90 days (the window of the preview)
      * @param  string|null  $missing  what it lacks to work (the planned item ended, the account of the transfer is gone), null when nothing
      * @param  array{update: bool, delete: bool}  $can  what the person may do with it
+     * @param  string|null  $category  the name of the category of the expense
+     * @param  string|null  $organization  the name of the organization of the movement
+     * @param  string|null  $transfer_account  the account on the other side of a transfer, as «Account name ·· 1234»
      */
     public function __construct(
         public readonly ?int $id,
@@ -84,12 +89,15 @@ final class BankFilterData extends Data
         public readonly int $taken,
         public readonly ?string $missing,
         public readonly array $can,
+        public readonly ?string $category = null,
+        public readonly ?string $organization = null,
+        public readonly ?string $transfer_account = null,
     ) {}
 
     /**
      * The data of a saved filter of the current family.
      *
-     * @param  BankFilter  $filter  the filter, with `financialAccount`, `plannedExpense`, `plannedIncome` and `transferAccount` loaded, and `transactions_count` when it is known
+     * @param  BankFilter  $filter  the filter, as `BankFilter::forPage()` or `loadForPage()` reads it
      */
     public static function fromFilter(BankFilter $filter): self
     {
@@ -121,9 +129,12 @@ final class BankFilterData extends Data
             transfer_account_id: $filter->transfer_account_id,
             account: $filter->financialAccount?->bankLabel(),
             planned: self::planned($planned),
-            taken: (int) ($filter->transactions_count ?? $filter->transactions()->count()),
+            taken: (int) $filter->taken_count,
             missing: self::missing($filter, $planned),
             can: ['update' => Gate::allows('update', $filter), 'delete' => Gate::allows('delete', $filter)],
+            category: $filter->category?->name,
+            organization: $filter->organization?->name,
+            transfer_account: $filter->transferAccount?->bankLabel(),
         );
     }
 
@@ -170,6 +181,9 @@ final class BankFilterData extends Data
             taken: 0,
             missing: null,
             can: ['update' => false, 'delete' => false],
+            category: $draft->categoryId === null ? null : ExpenseCategory::query()->find($draft->categoryId)?->name,
+            organization: $draft->organizationId === null ? null : Organization::query()->find($draft->organizationId)?->name,
+            transfer_account: $draft->transferAccountId === null ? null : FinancialAccount::query()->find($draft->transferAccountId)?->bankLabel(),
         );
     }
 

@@ -8,6 +8,7 @@ use App\Actions\Budget\SaveMovement;
 use App\Enums\BankFilterAction;
 use App\Enums\BankFilterOutcome;
 use App\Enums\BankMatchSource;
+use App\Enums\FinancialAccountStatus;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
@@ -87,29 +88,32 @@ final readonly class ApplyBankFilter
 
     /**
      * What `handle()` would do with the transaction, without locks and without writing anything: the preview of a
-     * filter, saved or not, asks it for each transaction to sort that the filter takes. The same checks and the same
-     * steps as `handle()`: a filter that pays finds the payment to link or the due date to pay as `SettleFromBank`
-     * would; one that creates links an expense already recorded and free, else creates; a transfer needs its account,
-     * another than the one of the transaction. Whether the transaction is still to sort, and whether another filter
-     * takes it too, is for the caller to ask.
+     * filter, saved or not, asks it for each transaction to sort that the filter takes, oldest first as the save
+     * applies them, passing what the earlier ones would take (`$used`). The same checks and the same steps as
+     * `handle()`: a filter that pays finds the payment to link or the due date to pay as `SettleFromBank` would; one
+     * that creates links an expense already recorded and free, else creates; a transfer needs its account, open and
+     * another than the one of the transaction. The planned item and the account of the transfer are read through the
+     * relations of the filter, so once per filter instance. Whether the transaction is still to sort, and whether
+     * another filter takes it too, is for the caller to ask.
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  BankFilter  $filter  The filter, saved or not.
-     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string} what it would do, the title of the movement it would pay, create or link (or the account of the transfer) and the day of the payment it would link or of the due date it would pay (`yyyy-mm-dd`)
+     * @param  list<string>  $used  what earlier transactions would take: `expense:<id>`, `income:<id>` of a payment linked, `due:<yyyy-mm-dd>` of a due date paid
+     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string, used: ?string} what it would do, the title of the movement it would pay, create or link (or the account of the transfer), the day of the payment it would link or of the due date it would pay (`yyyy-mm-dd`), and what it takes for the next ones (as in `$used`)
      */
-    public function foresee(BankTransaction $transaction, BankFilter $filter): array
+    public function foresee(BankTransaction $transaction, BankFilter $filter, array $used = []): array
     {
         if (! $transaction->booked_on instanceof CarbonImmutable || BankText::isFee($transaction->text)) {
-            return ['outcome' => BankFilterOutcome::None, 'title' => null, 'on' => null];
+            return $this->nothing();
         }
 
         return match ($filter->action) {
-            BankFilterAction::Pay => $this->foreseePay($transaction, $filter),
-            BankFilterAction::Create => $this->foreseeCreate($transaction, $filter),
+            BankFilterAction::Pay => $this->foreseePay($transaction, $filter, $used),
+            BankFilterAction::Create => $this->foreseeCreate($transaction, $filter, $used),
             BankFilterAction::Transfer => ($other = $this->transferAccount($transaction, $filter)) instanceof FinancialAccount
-                ? ['outcome' => BankFilterOutcome::Transferred, 'title' => $other->name, 'on' => null]
-                : ['outcome' => BankFilterOutcome::None, 'title' => null, 'on' => null],
-            BankFilterAction::Ignore => ['outcome' => BankFilterOutcome::Ignored, 'title' => null, 'on' => null],
+                ? ['outcome' => BankFilterOutcome::Transferred, 'title' => $other->name, 'on' => null, 'used' => null]
+                : $this->nothing(),
+            BankFilterAction::Ignore => ['outcome' => BankFilterOutcome::Ignored, 'title' => null, 'on' => null, 'used' => null],
         };
     }
 
@@ -118,21 +122,21 @@ final readonly class ApplyBankFilter
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  BankFilter  $filter  The filter.
-     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string}
+     * @param  list<string>  $used  what earlier transactions would take
+     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string, used: ?string}
      */
-    private function foreseePay(BankTransaction $transaction, BankFilter $filter): array
+    private function foreseePay(BankTransaction $transaction, BankFilter $filter, array $used): array
     {
-        $planned = match (true) {
-            $filter->planned_expense_id !== null => PlannedExpense::query()->find($filter->planned_expense_id),
-            $filter->planned_income_id !== null => PlannedIncome::query()->find($filter->planned_income_id),
-            default => null,
-        };
-        $found = $planned !== null && $this->payable($planned, $transaction) ? $this->settle->foresee($transaction, $planned, $filter) : null;
+        $planned = $filter->plannedExpense ?? $filter->plannedIncome;
+        $found = $planned !== null && $this->payable($planned, $transaction) ? $this->settle->foresee($transaction, $planned, $filter, $used) : null;
 
         return match (true) {
-            $found instanceof Deadline => ['outcome' => BankFilterOutcome::Paid, 'title' => $found->title, 'on' => $found->occurrence->date->toDateString()],
-            $found instanceof Expense, $found instanceof Income => ['outcome' => BankFilterOutcome::Linked, 'title' => $found->label(), 'on' => $found->date?->toDateString()],
-            default => ['outcome' => BankFilterOutcome::None, 'title' => null, 'on' => null],
+            $found instanceof Deadline => [
+                'outcome' => BankFilterOutcome::Paid, 'title' => $found->title, 'on' => $found->occurrence->date->toDateString(),
+                'used' => 'due:'.$found->occurrence->originalDate->toDateString(),
+            ],
+            $found instanceof Expense, $found instanceof Income => $this->linked($found),
+            default => $this->nothing(),
         };
     }
 
@@ -142,17 +146,42 @@ final readonly class ApplyBankFilter
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  BankFilter  $filter  The filter.
-     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string}
+     * @param  list<string>  $used  what earlier transactions would take
+     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string, used: ?string}
      */
-    private function foreseeCreate(BankTransaction $transaction, BankFilter $filter): array
+    private function foreseeCreate(BankTransaction $transaction, BankFilter $filter, array $used): array
     {
-        $recorded = $this->duplicates->findAny($transaction, null, $filter);
+        $recorded = $this->duplicates->findAny($transaction, null, $filter, BankDuplicates::idsOf($used, $transaction->kind()));
 
         if ($recorded !== null && $this->duplicates->isFree($recorded, $transaction)) {
-            return ['outcome' => BankFilterOutcome::Linked, 'title' => $recorded->label(), 'on' => $recorded->date?->toDateString()];
+            return $this->linked($recorded);
         }
 
-        return ['outcome' => BankFilterOutcome::Created, 'title' => $this->title($transaction, $filter), 'on' => null];
+        return ['outcome' => BankFilterOutcome::Created, 'title' => $this->title($transaction, $filter), 'on' => null, 'used' => null];
+    }
+
+    /**
+     * The forecast of a link to a payment already recorded.
+     *
+     * @param  Expense|Income  $payment  The payment.
+     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string, used: ?string}
+     */
+    private function linked(Expense|Income $payment): array
+    {
+        return [
+            'outcome' => BankFilterOutcome::Linked, 'title' => $payment->label(), 'on' => $payment->date?->toDateString(),
+            'used' => ($payment instanceof Expense ? 'expense:' : 'income:').$payment->id,
+        ];
+    }
+
+    /**
+     * The forecast of a transaction that stays to sort.
+     *
+     * @return array{outcome: BankFilterOutcome, title: ?string, on: ?string, used: ?string}
+     */
+    private function nothing(): array
+    {
+        return ['outcome' => BankFilterOutcome::None, 'title' => null, 'on' => null, 'used' => null];
     }
 
     /**
@@ -292,17 +321,17 @@ final readonly class ApplyBankFilter
     }
 
     /**
-     * The account on the other side of the transfer of a filter: null when it is gone or is the account of the
-     * transaction itself.
+     * The account on the other side of the transfer of a filter: null when it is gone, closed (the filter's *Filters*
+     * row says so, and the transaction stays to sort) or the account of the transaction itself.
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  BankFilter  $filter  The filter.
      */
     private function transferAccount(BankTransaction $transaction, BankFilter $filter): ?FinancialAccount
     {
-        $other = $filter->transfer_account_id === null ? null : FinancialAccount::query()->find($filter->transfer_account_id);
+        $other = $filter->transferAccount;
 
-        return $other instanceof FinancialAccount && $other->id !== $transaction->financial_account_id ? $other : null;
+        return $other instanceof FinancialAccount && $other->status === FinancialAccountStatus::Active && $other->id !== $transaction->financial_account_id ? $other : null;
     }
 
     /**

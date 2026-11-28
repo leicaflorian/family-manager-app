@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Banks\ApplyBankFilter;
 use App\Enums\BankFilterAction;
+use App\Enums\BankFilterOutcome;
 use App\Enums\BankMatchSource;
+use App\Enums\FinancialAccountStatus;
 use App\Enums\Role;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
@@ -212,4 +215,23 @@ test('a member sees the preview too', function (): void {
     bankFilterPreviewRow('DOMICILIAZIONE SATISPAY', '-10.00', '2026-11-24');
 
     bankFilterPreviewAsk(['action' => BankFilterAction::Ignore->value])->assertOk()->assertJsonPath('rows.0.will', 'ignore');
+});
+
+test('a transfer to a closed account stays to sort', function (): void {
+    $libretto = insideBianchi(fn (): FinancialAccount => FinancialAccount::factory()->create([
+        'family_id' => $this->marco->family_id, 'name' => 'Libretto postale', 'status' => FinancialAccountStatus::Closed,
+    ]));
+    $row = bankFilterPreviewRow('POSTAGIRO DA LIBRETTO', '50.00', '2026-11-24');
+
+    bankFilterPreviewAsk(['contains' => ['POSTAGIRO'], 'direction' => 'income', 'action' => 'transfer', 'transfer_account_id' => $libretto->id])
+        ->assertOk()
+        ->assertJsonPath('rows.0.will', 'none');
+
+    $filter = insideBianchi(fn (): BankFilter => BankFilter::factory()->create([
+        'family_id' => $this->marco->family_id, 'contains' => ['POSTAGIRO'], 'direction' => 'income',
+        'action' => BankFilterAction::Transfer, 'transfer_account_id' => $libretto->id,
+    ]));
+
+    expect(insideBianchi(fn (): BankFilterOutcome => resolve(ApplyBankFilter::class)->handle($row, $filter)))->toBe(BankFilterOutcome::None)
+        ->and($row->refresh()->transfer_account_id)->toBeNull();
 });

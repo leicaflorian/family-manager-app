@@ -151,6 +151,9 @@ readonly can: {
 update: boolean,
 delete: boolean,
 },
+readonly category: string | null,
+readonly organization: string | null,
+readonly transfer_account: string | null,
 };
 export type BankFilterPreviewData = {
 readonly rows: App.Data.BankFilterPreviewRowData[],

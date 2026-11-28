@@ -133,18 +133,22 @@ final readonly class SettleFromBank
      * filter): the payment already recorded it would link (a free payment of the planned item with the same amount
      * within a few days, or the free payment of the due date it settles when that one is paid), the open due date it
      * would pay, or null when the transaction would stay to sort. The same steps as `handle()`, in the same order.
+     * What earlier transactions of the same preview would take (`$used`) counts as taken: a payment one of them links
+     * is not free, and a due date one of them pays leaves this transaction to sort (the matcher is not asked again).
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it would pay.
      * @param  BankFilter|null  $filter  The filter that would pay it, which says how the commission of a direct debit is found.
+     * @param  list<string>  $used  what earlier transactions would take: `expense:<id>`, `income:<id>`, `due:<yyyy-mm-dd>` (the original date of the due date)
      */
-    public function foresee(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, ?BankFilter $filter = null): Expense|Income|Deadline|null
+    public function foresee(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, ?BankFilter $filter = null, array $used = []): Expense|Income|Deadline|null
     {
         if (! $transaction->booked_on instanceof CarbonImmutable) {
             return null;
         }
 
-        $existing = $this->duplicates->findAny($transaction, $planned, $filter);
+        $skip = BankDuplicates::idsOf($used, $planned instanceof PlannedExpense ? 'expense' : 'income');
+        $existing = $this->duplicates->findAny($transaction, $planned, $filter, $skip);
 
         if ($existing !== null && $this->duplicates->isFree($existing, $transaction)) {
             return $existing;
@@ -152,13 +156,17 @@ final readonly class SettleFromBank
 
         $deadline = $this->matcher->deadline($transaction, $planned);
 
-        if (! $deadline instanceof Deadline || ! $deadline->isPaid()) {
+        if (! $deadline instanceof Deadline || in_array('due:'.$deadline->occurrence->originalDate->toDateString(), $used, true)) {
+            return null;
+        }
+
+        if (! $deadline->isPaid()) {
             return $deadline;
         }
 
         $payment = $deadline->payment;
 
-        return $payment !== null && $this->duplicates->isFree($payment, $transaction) ? $payment : null;
+        return $payment !== null && ! in_array($payment->id, $skip, true) && $this->duplicates->isFree($payment, $transaction) ? $payment : null;
     }
 
     /**

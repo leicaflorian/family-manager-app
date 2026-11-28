@@ -2478,6 +2478,9 @@ export const bankFilters: App.Data.BankFilterData[] = [
         taken: 0,
         missing: 'The planned expense ended on 05/06/2026.',
         can: { update: true, delete: true },
+        category: null,
+        organization: null,
+        transfer_account: null,
     },
     {
         id: 1,
@@ -2508,6 +2511,9 @@ export const bankFilters: App.Data.BankFilterData[] = [
         taken: 2,
         missing: null,
         can: { update: true, delete: true },
+        category: 'Varie',
+        organization: 'Satispay',
+        transfer_account: null,
     },
 ];
 

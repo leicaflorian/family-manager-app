@@ -132,7 +132,7 @@ final class BankFilterController extends Controller
 
         return Inertia::render('budget/BankFilter', [
             'filter' => $filter instanceof BankFilter ? BankFilterData::fromFilter(
-                $filter->load(['financialAccount', 'plannedExpense', 'plannedIncome', 'transferAccount'])->loadCount('transactions'),
+                $filter->loadForPage(),
             ) : null,
             'draft' => $draft?->toData(),
             'preview' => $preview->for($criteria, $columns, $filter?->id),

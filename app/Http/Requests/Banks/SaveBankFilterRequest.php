@@ -34,11 +34,17 @@ final class SaveBankFilterRequest extends FormRequest
     /**
      * Whoever may create a filter with this action, and change the filter of the address.
      *
-     * @throws ModelNotFoundException if an id named is not of the family
+     * @throws ModelNotFoundException if an id or the card named is not of the family
      */
     public function authorize(): bool
     {
         $this->findSentIds();
+        $card = $this->input('card');
+
+        // A card of another family (or one gone) is 404 like the other ids; the one already on the filter stays valid
+        if (is_string($card) && preg_match('/^[a-z_]+:\d+$/', $card) === 1 && $card !== $this->savedCard() && PresetLink::from($card) === null) {
+            throw new ModelNotFoundException;
+        }
 
         $user = $this->user();
         $filter = $this->filter();

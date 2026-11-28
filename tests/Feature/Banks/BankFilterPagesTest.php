@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Budget\RecordPayment;
 use App\Enums\BankFilterAction;
 use App\Enums\BankMatchSource;
 use App\Enums\Role;
@@ -10,8 +11,11 @@ use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialAccount;
+use App\Models\Organization;
 use App\Models\PlannedExpense;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Services\Deadlines;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Testing\TestResponse;
@@ -230,27 +234,39 @@ test('deleting a filter leaves its expenses and unlinks nothing', function (): v
 test('the Filters tab lists the filters with how many movements each took and what is missing', function (): void {
     $luce = bankFilterPagesLuce(['end_date' => '2026-06-05']);
     $pays = bankFilterPagesFilter(['name' => 'Luce', 'contains' => ['EDISON'], 'action' => BankFilterAction::Pay, 'planned_expense_id' => $luce->id, 'financial_account_id' => bankFilterPagesAccount()->id]);
-    $creates = bankFilterPagesFilter(['name' => 'Satispay', 'contains' => ['SATISPAY']]);
+    $category = insideBianchi(fn (): ExpenseCategory => ExpenseCategory::factory()->create(['family_id' => $this->marco->family_id, 'name' => 'Varie']));
+    $organization = insideBianchi(fn (): Organization => Organization::factory()->create(['family_id' => $this->marco->family_id, 'name' => 'Satispay']));
+    $creates = bankFilterPagesFilter(['name' => 'Satispay', 'contains' => ['SATISPAY'], 'category_id' => $category->id, 'organization_id' => $organization->id]);
+    $libretto = insideBianchi(fn (): FinancialAccount => FinancialAccount::factory()->create(['family_id' => $this->marco->family_id, 'name' => 'Libretto postale', 'last_four_digits' => null]));
+    bankFilterPagesFilter(['name' => 'Dal libretto', 'contains' => ['POSTAGIRO'], 'direction' => 'income', 'action' => BankFilterAction::Transfer, 'transfer_account_id' => $libretto->id, 'title' => null]);
     bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-10.00', '2026-11-24', ['ignored_at' => now(), 'bank_filter_id' => $creates->id]);
     bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-20.00', '2026-11-17', ['ignored_at' => now(), 'bank_filter_id' => $creates->id]);
+    // Out of the last 90 days: not counted
+    bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-30.00', '2026-07-01', ['ignored_at' => now(), 'bank_filter_id' => $creates->id]);
 
     $this->get(route('budget.bank.index', ['show' => 'filters']))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('budget/BankTransactions')
             ->where('show', 'filters')
-            ->has('bank_filters', 2)
-            ->where('bank_filters.0.id', $pays->id)
-            ->where('bank_filters.0.name', 'Luce')
-            ->where('bank_filters.0.taken', 0)
-            ->where('bank_filters.0.account', 'Conto BancoPosta ·· 3307')
-            ->where('bank_filters.0.planned', ['kind' => 'expense', 'id' => $luce->id, 'title' => 'Luce'])
-            ->where('bank_filters.0.missing', 'The planned expense ended on 05/06/2026.')
-            ->where('bank_filters.0.can', ['update' => true, 'delete' => true])
-            ->where('bank_filters.1.name', 'Satispay')
-            ->where('bank_filters.1.taken', 2)
-            ->where('bank_filters.1.missing', null)
-            ->where('bank_filters.1.contains', ['SATISPAY']));
+            ->has('bank_filters', 3)
+            ->where('bank_filters.0.name', 'Dal libretto')
+            ->where('bank_filters.0.transfer_account', 'Libretto postale')
+            ->where('bank_filters.0.category', null)
+            ->where('bank_filters.1.id', $pays->id)
+            ->where('bank_filters.1.name', 'Luce')
+            ->where('bank_filters.1.taken', 0)
+            ->where('bank_filters.1.account', 'Conto BancoPosta ·· 3307')
+            ->where('bank_filters.1.planned', ['kind' => 'expense', 'id' => $luce->id, 'title' => 'Luce'])
+            ->where('bank_filters.1.missing', 'The planned expense ended on 05/06/2026.')
+            ->where('bank_filters.1.can', ['update' => true, 'delete' => true])
+            ->where('bank_filters.2.name', 'Satispay')
+            ->where('bank_filters.2.taken', 2)
+            ->where('bank_filters.2.missing', null)
+            ->where('bank_filters.2.category', 'Varie')
+            ->where('bank_filters.2.organization', 'Satispay')
+            ->where('bank_filters.2.transfer_account', null)
+            ->where('bank_filters.2.contains', ['SATISPAY']));
 });
 
 test('the other tabs do not read the filters', function (): void {
@@ -339,6 +355,45 @@ test('another family\'s filter gives 404', function (): void {
 
     expect(insideFamilyOf($rossi, fn (): int => BankFilter::query()->count()))->toBe(1);
 });
+
+test('a card of another family gives 404', function (): void {
+    $rossi = registerFamily('Rossi', 'luca@example.com');
+    $theirs = insideFamilyOf($rossi, fn (): Vehicle => Vehicle::factory()->create(['family_id' => $rossi->family_id]));
+
+    bankFilterPagesStore(['card' => 'vehicle:'.$theirs->id])->assertNotFound();
+
+    expect(insideBianchi(fn (): int => BankFilter::query()->count()))->toBe(0);
+});
+
+test('the preview says what saving does', function (string $case): void {
+    if ($case === 'pay') {
+        $luce = bankFilterPagesLuce();
+        $deadline = insideBianchi(fn () => resolve(Deadlines::class)->find($luce, CarbonImmutable::parse('2026-10-05')));
+        insideBianchi(fn () => resolve(RecordPayment::class)->handle($deadline, CarbonImmutable::parse('2026-10-05'), 72.0, null, null));
+        bankFilterPagesRow('ADDEBITO SDD EDISON ENERGIA', '-72.00', '2026-10-05');
+        bankFilterPagesRow('ADDEBITO SDD EDISON ENERGIA', '-72.00', '2026-11-04');
+        bankFilterPagesRow('ADDEBITO SDD EDISON ENERGIA', '-72.00', '2026-11-06');
+        $form = ['name' => 'Luce', 'contains' => ['EDISON'], 'action' => 'pay', 'planned_id' => $luce->id, 'title' => null];
+    } else {
+        insideBianchi(fn (): Expense => Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Ricarica a mano', 'amount' => '10.00', 'date' => '2026-11-20']));
+        bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-10.00', '2026-11-17');
+        bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-10.00', '2026-11-24');
+        bankFilterPagesRow('DOMICILIAZIONE SATISPAY', '-25.00', '2026-11-10');
+        $form = [];
+    }
+
+    $summary = $this->postJson(route('budget.bank.filters.preview'), bankFilterPagesForm($form))->assertOk()->json('summary');
+    bankFilterPagesStore($form)->assertSessionHasNoErrors();
+
+    $filter = insideBianchi(fn (): BankFilter => BankFilter::query()->sole());
+    $made = insideBianchi(fn (): int => BankTransaction::query()->where('bank_filter_id', $filter->id)->where('matched_by', BankMatchSource::Rule)->count());
+    $linked = insideBianchi(fn (): int => BankTransaction::query()->where('bank_filter_id', $filter->id)->where('matched_by', BankMatchSource::Duplicate)->count());
+
+    expect($summary['pay'] + $summary['create'])->toBe($made)
+        ->and($summary['link'])->toBe($linked)
+        ->and($summary['link'])->toBeGreaterThan(0)
+        ->and($made)->toBeGreaterThan(0);
+})->with(['pay', 'create']);
 
 test('the pages are 404 while the feed is off', function (): void {
     $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();

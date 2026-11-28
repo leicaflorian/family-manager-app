@@ -108,10 +108,9 @@ final class BankTransactionController extends Controller
             'total' => fn (): ?array => $show === 'all' ? $all->total($filters) : null,
             'filters' => fn (): ?array => $show === 'all' ? $filters->chosen() : null,
             'accounts' => fn (): array => $show === 'all' ? $all->accounts() : [],
-            // The tab *Filters*: every filter of the family by name, with how many movements it settled and what it lacks
+            // The tab *Filters*: every filter of the family by name, with how many movements of the last 90 days it settled and what it lacks
             'bank_filters' => fn (): array => $show === 'filters' ? array_values(BankFilter::query()
-                ->with(['financialAccount', 'plannedExpense', 'plannedIncome', 'transferAccount'])
-                ->withCount('transactions')
+                ->forPage()
                 ->orderBy('name')
                 ->orderBy('id')
                 ->get()

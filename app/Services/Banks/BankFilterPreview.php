@@ -39,20 +39,21 @@ final readonly class BankFilterPreview
      *
      * @param  BankFilterCriteria  $criteria  what the filter takes
      * @param  array<string, mixed>  $settings  the other columns of the filter (`SaveBankFilter::columns()`): the action and what it needs, the commission
-     * @param  int|null  $except  the id of the filter being changed, which never conflicts with itself
+     * @param  int|null  $exceptFilter  the id of the filter being changed, which never conflicts with itself
      */
-    public function for(BankFilterCriteria $criteria, array $settings, ?int $except = null): BankFilterPreviewData
+    public function for(BankFilterCriteria $criteria, array $settings, ?int $exceptFilter = null): BankFilterPreviewData
     {
         $filter = $this->filter($criteria, $settings);
         $rows = new Collection($this->filters->taken($criteria, config()->integer('bank_feed.first_days'))->all());
         $rows->load(['transferAccount', 'expense', 'income.organization']);
+        $forecasts = $this->forecasts($rows, $filter);
         $summary = ['pay' => 0, 'create' => 0, 'link' => 0, 'transfer' => 0, 'ignore' => 0];
         $conflicts = 0;
         $list = [];
 
         foreach ($rows as $row) {
-            $forecast = $this->forecast($row, $filter);
-            $takenBy = $this->filters->otherTaking($row, $except)?->name;
+            $forecast = $forecasts[$row->id];
+            $takenBy = $this->filters->otherTaking($row, $exceptFilter)?->name;
             $fee = $this->fees->feeOf($row, $filter);
 
             if (array_key_exists($forecast['will'], $summary)) {
@@ -78,26 +79,59 @@ final readonly class BankFilterPreview
     }
 
     /**
+     * What saving would do with each movement, by its id. The movements are asked oldest first, as the save applies
+     * them (`MatchBankTransactions::forFilter()`), each knowing what the earlier ones would take: the same recorded
+     * expense or the same due date is never counted twice. The filter is one instance for the whole call, so its
+     * planned item and the account of its transfer are read once.
+     *
+     * @param  Collection<int, BankTransaction>  $rows  the movements, newest first
+     * @param  BankFilter  $filter  the filter, not saved
+     * @return array<int, array{will: string, title: ?string, on: ?string}>
+     */
+    private function forecasts(Collection $rows, BankFilter $filter): array
+    {
+        $used = [];
+        $forecasts = [];
+        $oldestFirst = $rows->sortBy([
+            static fn (BankTransaction $a, BankTransaction $b): int => $a->booked_on?->toDateString() <=> $b->booked_on?->toDateString(),
+            static fn (BankTransaction $a, BankTransaction $b): int => $a->id <=> $b->id,
+        ]);
+
+        foreach ($oldestFirst as $row) {
+            $forecast = $this->forecast($row, $filter, $used);
+
+            if ($forecast['used'] !== null) {
+                $used[] = $forecast['used'];
+            }
+
+            $forecasts[$row->id] = ['will' => $forecast['will'], 'title' => $forecast['title'], 'on' => $forecast['on']];
+        }
+
+        return $forecasts;
+    }
+
+    /**
      * What saving would do with one movement, as the preview words it.
      *
      * @param  BankTransaction  $row  the movement
      * @param  BankFilter  $filter  the filter, not saved
-     * @return array{will: string, title: ?string, on: ?string}
+     * @param  list<string>  $used  what the earlier movements would take (`ApplyBankFilter::foresee()`)
+     * @return array{will: string, title: ?string, on: ?string, used: ?string}
      */
-    private function forecast(BankTransaction $row, BankFilter $filter): array
+    private function forecast(BankTransaction $row, BankFilter $filter, array $used): array
     {
         if (! BankFilters::toSort($row)) {
             $sorted = $row->declined_at === null && ! BankText::isFee($row->text);
 
-            return ['will' => $sorted ? 'linked' : 'none', 'title' => null, 'on' => null];
+            return ['will' => $sorted ? 'linked' : 'none', 'title' => null, 'on' => null, 'used' => null];
         }
 
         // A proposal may have no action yet: nothing would happen
         if (! $filter->getAttribute('action') instanceof BankFilterAction) {
-            return ['will' => 'none', 'title' => null, 'on' => null];
+            return ['will' => 'none', 'title' => null, 'on' => null, 'used' => null];
         }
 
-        $foreseen = $this->apply->foresee($row, $filter);
+        $foreseen = $this->apply->foresee($row, $filter, $used);
 
         $will = match ($foreseen['outcome']) {
             BankFilterOutcome::Paid => 'pay',
@@ -108,7 +142,7 @@ final readonly class BankFilterPreview
             BankFilterOutcome::None => 'none',
         };
 
-        return ['will' => $will, 'title' => $foreseen['title'], 'on' => $foreseen['on']];
+        return ['will' => $will, 'title' => $foreseen['title'], 'on' => $foreseen['on'], 'used' => $foreseen['used']];
     }
 
     /**
