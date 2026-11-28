@@ -1,6 +1,7 @@
 import { trans } from 'laravel-vue-i18n';
 import { formatDate, formatDayMonth, todayInRome } from '@/lib/format';
 import { listNames } from '@/lib/names';
+import type { FlashSimilar } from '@/types/ui';
 
 /**
  * The letters of the tile of a bank without a logo: the first of the first two words, or of the first two humps
@@ -77,4 +78,27 @@ export function dayOf(
     return day.slice(0, 4) === todayInRome(now).slice(0, 4)
         ? formatDayMonth(day)
         : formatDate(day);
+}
+
+/**
+ * The flash `similar` of a visit, if it is there and has the shape the server gives it.
+ *
+ * @param flash - the flash of the page (or of a visit)
+ * @returns what the server flashed after a movement of a group was sorted by hand, null without it
+ */
+export function similarOf(flash: unknown): FlashSimilar | null {
+    const value = (flash as { similar?: Partial<FlashSimilar> } | null)
+        ?.similar;
+
+    return value !== undefined &&
+        value !== null &&
+        typeof value.count === 'number' &&
+        value.count > 0 &&
+        Array.isArray(value.rows) &&
+        (value.action === 'pay' ||
+            value.action === 'create' ||
+            value.action === 'transfer') &&
+        typeof value.url === 'string'
+        ? (value as FlashSimilar)
+        : null;
 }

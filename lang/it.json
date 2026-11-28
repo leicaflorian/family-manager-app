@@ -2997,5 +2997,17 @@
     "Undo the change": "Annulla la modifica",
     "I changed the filter.": "Ho cambiato il filtro.",
     "The AI suggests a new organization: :name. You can save the filter without it and add the organization later.": "L'AI propone un ente nuovo: :name. Puoi salvare il filtro senza e aggiungere l'ente dopo.",
-    "Write it with the AI": "Scrivila con l'AI"
+    "Write it with the AI": "Scrivila con l'AI",
+    "I found one more movement like this": "Ho trovato un altro movimento come questo",
+    "I found :count more movements like this": "Ho trovato altri :count movimenti come questo",
+    "With a filter they are all sorted, and the ones that arrive next too.": "Con un filtro si sistemano tutti, anche i prossimi.",
+    "{1} The other movement|[2,*] The other :count movements": "{1} L'altro movimento|[2,*] Gli altri :count movimenti",
+    "Show the other :count": "Mostra gli altri :count",
+    "Pays the due date of the one you have just sorted, every time a movement like this arrives.": "Paga la scadenza di quello che hai appena sistemato, ogni volta che arriva un movimento come questo.",
+    "Marks them as transfers, like the one you have just sorted.": "Li segna come trasferimenti, come quello che hai appena sistemato.",
+    "Creates an income like the one you have just made, with the same title, category and organization.": "Crea un'entrata come quella che hai appena fatto, con lo stesso titolo, la stessa categoria e lo stesso ente.",
+    "Creates an expense like the one you have just made, with the same title, category and organization.": "Crea una spesa come quella che hai appena fatto, con lo stesso titolo, la stessa categoria e lo stesso ente.",
+    "What the filter does": "Cosa fa il filtro",
+    "The filter opens already filled with what you have just chosen: you check it and save it. Nothing is linked before that.": "Il filtro si apre già riempito con quello che hai appena scelto: lo controlli e lo salvi. Prima non si collega niente.",
+    "No, leave it so": "No, lascia così"
 }

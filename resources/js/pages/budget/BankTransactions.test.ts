@@ -16,11 +16,13 @@ import {
     bankGroups,
     bankTransactions,
 } from '@/test/fixtures';
-import { renderPage, screenWidth, withTrail } from '@/test/page';
+import { renderPage, screenWidth, settle, withTrail } from '@/test/page';
+import type { FlashSimilar } from '@/types/ui';
 import BankTransactions from './BankTransactions.vue';
 
 const shared = vi.hoisted(() => ({
     bank_feed: { unsorted: 6 } as { unsorted: number } | null,
+    flash: {} as Record<string, unknown>,
 }));
 
 vi.mock('@inertiajs/vue3', async (original) => ({
@@ -28,7 +30,8 @@ vi.mock('@inertiajs/vue3', async (original) => ({
     Head: { render: () => null },
     usePage: () => ({
         url: '/budget/bank',
-        props: { name: 'Fameja.app', ...shared },
+        props: { name: 'Fameja.app', bank_feed: shared.bank_feed },
+        flash: shared.flash,
     }),
 }));
 
@@ -42,6 +45,7 @@ afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     shared.bank_feed = { unsorted: 6 };
+    shared.flash = {};
 });
 
 /**
@@ -1407,5 +1411,86 @@ describe('Budget, From the bank, the groups', () => {
                 hidden: true,
             }),
         ).toBeInTheDocument();
+    });
+});
+
+/** What the server flashes after a movement of a group is sorted: 3 others, the carried rows, and the filter form. */
+function similarFlash(): FlashSimilar {
+    return {
+        count: 3,
+        rows: [4, 5, 6].map((id) => ({
+            ...bankTransactions[1]!,
+            id,
+            text: 'SATISPAY EUROPE',
+        })),
+        action: 'create',
+        url: '/budget/bank/filters/create?from=2',
+    };
+}
+
+describe('Budget, From the bank, the filter for the others', () => {
+    it('offers the filter for the others after the movement is marked as a transfer', async () => {
+        vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
+            options?.onFlash?.({ similar: similarFlash() } as never);
+            options?.onSuccess?.({} as never);
+        });
+        renderPage(
+            BankTransactions,
+            props({
+                accounts_all: [
+                    {
+                        id: 4,
+                        name: 'Conto BancoPosta ·· 3307',
+                        connected: true,
+                    },
+                    { id: 6, name: 'Buddy Bank ·· 5521', connected: true },
+                ],
+            }),
+        );
+        const row = screen
+            .getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            )
+            .closest('li')!;
+
+        await userEvent.click(
+            within(row).getByRole('button', { name: 'More actions' }),
+        );
+        await userEvent.click(
+            screen.getByRole('menuitem', { name: 'It is a transfer' }),
+        );
+        await userEvent.click(
+            await screen.findByRole('button', { name: 'Mark as a transfer' }),
+        );
+
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create?from=2');
+        await userEvent.click(
+            screen.getByRole('button', { name: 'No, leave it so' }),
+        );
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
+    });
+
+    it('offers it when the page opens with the flash (the expense created from the form of a movement)', async () => {
+        shared.flash = { similar: similarFlash() };
+        renderPage(BankTransactions, props());
+
+        expect(
+            await screen.findByRole('link', { name: 'Create the filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create?from=2');
+    });
+
+    it('offers nothing without the flash', async () => {
+        renderPage(BankTransactions, props());
+        await settle();
+
+        expect(
+            screen.queryByRole('link', { name: 'Create the filter' }),
+        ).not.toBeInTheDocument();
     });
 });
