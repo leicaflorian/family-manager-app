@@ -32,7 +32,7 @@ const {
     planned,
     values,
     options,
-    bank = { on: false, ai: false },
+    bank = { on: false, ai: false, filter: null, create_url: null },
     rule_example: ruleExample = null,
 } = defineProps<{
     /** `expense` or `income`. */
@@ -44,7 +44,12 @@ const {
     /** The choices of the menus. */
     options: PlannedFormOptions;
     /** The link to the bank is on (the field *How it shows in the bank* is there) and the reading is on (the AI writes the rule). */
-    bank?: { on: boolean; ai: boolean };
+    bank?: {
+        on: boolean;
+        ai?: boolean;
+        filter?: App.Data.BankFilterData | null;
+        create_url?: string | null;
+    };
     /** The movement of *From the bank* `?rule_from=` points to: the panel that writes the rule opens with it chosen. */
     rule_example?: App.Data.BankTransactionData | null;
 }>();
@@ -359,7 +364,7 @@ onMounted(() => {
                     v-model="form.bank_match"
                     :kind="income ? 'income' : 'expense'"
                     :account-id="accountId"
-                    :ai="bank.ai"
+                    :ai="bank.ai ?? false"
                     :example="startExample"
                     :error="form.errors.bank_match"
                 />

@@ -12,7 +12,6 @@ use App\Enums\IntervalUnit;
 use App\Http\Requests\Concerns\ReadsCard;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
-use App\Rules\BankMatchRule;
 use App\Rules\OfFamily;
 use App\Support\PlannedKind;
 use App\Support\PresetLink;
@@ -94,7 +93,6 @@ final class SavePlannedRequest extends FormRequest
             'organization_id' => ['nullable', new OfFamily('organizations')],
             'financial_account_id' => ['nullable', new OfFamily('financial_accounts')],
             'person_id' => ['nullable', new OfFamily('people')],
-            'bank_match' => ['nullable', 'string', 'max:200', new BankMatchRule],
             ...$expense
                 ? [
                     'fee_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
@@ -110,7 +108,8 @@ final class SavePlannedRequest extends FormRequest
     }
 
     /**
-     * The columns to write: the validated fields, and for an expense the card of *Refers to* as the pair
+     * The columns to write (a `bank_match` that comes is not a field any more and is dropped: the bank filters recognise
+     * the payments): the validated fields, and for an expense the card of *Refers to* as the pair
      * `card_type`, `card_id` (both empty without one).
      *
      * @return array<string, mixed>

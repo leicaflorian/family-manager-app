@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Contracts\DocumentReader;
 use App\Enums\BankMatchSource;
 use App\Enums\BankTransactionStatus;
 use App\Enums\ExceptionType;
 use App\Enums\Role;
+use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Family;
@@ -16,7 +16,6 @@ use App\Models\PlannedExpense;
 use App\Models\PlannedExpenseException;
 use App\Models\PlannedIncome;
 use App\Models\User;
-use App\Support\Banks\BankMatch;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
@@ -24,7 +23,6 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Pest\Expectation;
-use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
     Date::setTestNow(CarbonImmutable::parse('2026-11-05 07:00', 'Europe/Rome'));
@@ -429,19 +427,21 @@ test('assigning answers 404 while the feed is off', function (): void {
     $this->actingAs($this->marco)->post(route('budget.bank.assign', $transaction), ['kind' => 'expense', 'planned_id' => $luce->id])->assertNotFound();
 });
 
-test('an admin lands on the planned form with the rule sheet ready when there is no rule yet, a member stays on the list', function (): void {
+test('assigning to a planned item without a filter leads an admin to the new filter and a member back to the list', function (): void {
     $luce = bankSortPlanned('Luce');
-    $withRule = bankSortPlanned('Gas', '2026-01-05', ['bank_match' => 'ENEL']);
+    $withFilter = bankSortPlanned('Gas', '2026-01-05');
+    insideBianchi(fn (): BankFilter => BankFilter::factory()->pays($withFilter)->create(['family_id' => $withFilter->family_id]));
     $first = bankSortOne(['amount' => '-72.40']);
     $second = bankSortOne(['amount' => '-72.40']);
     $third = bankSortOne(['amount' => '-72.40']);
 
     $this->actingAs($this->marco)->post(route('budget.bank.assign', $first), ['kind' => 'expense', 'planned_id' => $luce->id])
-        ->assertRedirect(route('budget.planned.edit', ['kind' => 'expense', 'id' => $luce->id, 'rule_from' => $first->id]));
+        ->assertRedirect(route('budget.bank.filters.create', ['planned' => 'expense:'.$luce->id, 'from' => $first->id]));
 
-    $this->post(route('budget.bank.assign', $second), ['kind' => 'expense', 'planned_id' => $withRule->id])->assertRedirect(route('budget.bank.index'));
+    // The old rule text does not count any more: only a filter does
+    $this->post(route('budget.bank.assign', $second), ['kind' => 'expense', 'planned_id' => $withFilter->id])->assertRedirect(route('budget.bank.index'));
 
-    // Another due date for a member: the planned item has no rule, but she cannot change it
+    // The same planned item for a member: she cannot make a filter that pays
     $other = bankSortPlanned('Acqua', '2026-01-05');
     $this->actingAs($this->laura)->post(route('budget.bank.assign', $third), ['kind' => 'expense', 'planned_id' => $other->id])->assertRedirect(route('budget.bank.index'));
 });
@@ -476,18 +476,6 @@ test('the page no longer sends the planned items of the sheet, which asks the se
     $this->getJson(route('budget.bank.candidates', ['transaction' => $transaction->id]))
         ->assertOk()
         ->assertJsonPath('planned.0.title', 'Luce');
-});
-
-test('the planned form starts from the text of the transaction when the reading is off', function (): void {
-    $transaction = bankSortOne(['text' => 'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789']);
-    app()->instance(DocumentReader::class, (new FakeDocumentReader)->off());
-
-    $this->actingAs($this->marco)->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('values.bank_match', BankMatch::fromText($transaction->text)));
-
-    app()->instance(DocumentReader::class, new FakeDocumentReader);
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $transaction->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('values.bank_match', null));
 });
 
 test('a new movement from the bank finds and locks its planned item before reading anything of it', function (): void {

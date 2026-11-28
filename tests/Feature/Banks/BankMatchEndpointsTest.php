@@ -14,7 +14,6 @@ use App\Models\Family;
 use App\Models\FinancialAccount;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Inertia\Testing\AssertableInertia;
 use Tests\Support\FakeDocumentReader;
 
 beforeEach(function (): void {
@@ -184,31 +183,4 @@ test('each bank route counts its own requests', function (): void {
     $this->getJson(route('budget.bank.matches', ['pattern' => 'SCUOLA', 'kind' => 'expense']))->assertStatus(429);
     $this->postJson(route('budget.bank.rule'), ['examples' => ['SCUOLA'], 'kind' => 'expense'])->assertOk();
     $this->post(route('budget.bank.sync'))->assertRedirect();
-});
-
-test('the form of a planned expense carries the state of the bank and the example of rule_from', function (): void {
-    $example = bankMatchEndpointsRow($this->marco, 5);
-    $foreign = BankTransaction::factory()->create(['family_id' => Family::factory()->create()->id]);
-
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $example->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->component('budget/EditPlanned')
-        ->where('bank', ['on' => true, 'ai' => true])
-        ->where('rule_example.id', $example->id)
-        ->where('rule_example.text', 'PAGAMENTO CARTA SCUOLA PASSO A DUE'));
-
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $foreign->id]))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('rule_example', null));
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => 'abc']))->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('rule_example', null));
-    $this->get(route('budget.planned.create', ['kind' => 'income']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('rule_example', null));
-
-    app()->instance(DocumentReader::class, (new FakeDocumentReader)->off());
-    $this->get(route('budget.planned.create', ['kind' => 'expense']))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('bank', ['on' => true, 'ai' => false]));
-
-    $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();
-    $this->get(route('budget.planned.create', ['kind' => 'expense', 'rule_from' => $example->id]))->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        ->where('bank', ['on' => false, 'ai' => false])
-        ->where('rule_example', null));
 });

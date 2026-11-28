@@ -18,7 +18,6 @@ use App\Models\PlannedIncome;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Utility;
-use App\Support\Banks\BankMatch;
 use App\Support\CurrentFamily;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BianchiFamilySeeder;
@@ -346,7 +345,7 @@ it('the planned form starts from the bank transaction with a rule that matches i
             ->where('values.interval', 1)
             ->where('values.interval_unit', 'month')
             ->where('values.financial_account_id', (string) $first->financial_account_id)
-            ->where('values.bank_match', BankMatch::fromText($last->text)));
+            ->missing('values.bank_match'));
 
     // The same amount every month: not estimated, and the title is the text when there is no counterparty
     foreach (insideBianchi(fn () => BankTransaction::query()->get()) as $row) {
@@ -367,12 +366,12 @@ it('the planned form of a transaction that does not come back every month is emp
 
     foreach ([$alone->id, $foreign->id, 'abc', '999999'] as $id) {
         $this->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $id]))->assertOk()
-            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', '')->where('values.bank_match', null));
+            ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', ''));
     }
 
     // An outgoing payment does not start a planned income
     $this->get(route('budget.planned.create', ['kind' => 'income', 'bank' => $last->id]))->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', '')->where('values.bank_match', null));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.title', ''));
 
     $first->family->forceFill(['bank_feed_enabled' => false])->save();
     $this->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $last->id]))->assertOk()
@@ -385,21 +384,59 @@ it('saving that planned expense pays nothing by itself, its filter pays the thre
         ->get(route('budget.planned.create', ['kind' => 'expense', 'bank' => $rows[2]->id]))
         ->viewData('page')['props']['values'];
 
-    $this->post('/budget/planned/expense', Arr::only($values, ['title', 'amount', 'is_estimated', 'start_date', 'is_recurring', 'interval', 'interval_unit', 'financial_account_id', 'bank_match']))
+    $this->post('/budget/planned/expense', Arr::only($values, ['title', 'amount', 'is_estimated', 'start_date', 'is_recurring', 'interval', 'interval_unit', 'financial_account_id']))
         ->assertRedirect();
 
     $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::query()->where('title', 'Netflix International')->sole());
     $payments = fn () => insideBianchi(fn () => Expense::query()->where('planned_expense_id', $planned->id)->oldest('occurrence_date')->get());
 
-    // The rule of the form is kept but pays nothing any more: the bank filters do the paying
-    expect($planned->bank_match)->toBe($values['bank_match'])
+    // The form has no rule any more and pays nothing: the bank filters do the paying
+    expect($values)->not->toHaveKey('bank_match')
         ->and($payments())->toHaveCount(0);
 
     insideBianchi(fn (): int => resolve(MatchBankTransactions::class)->forFilter(
-        BankFilter::factory()->pays($planned)->create(['family_id' => $planned->family_id, 'contains' => [], 'pattern' => $planned->bank_match]),
+        BankFilter::factory()->pays($planned)->create(['family_id' => $planned->family_id, 'contains' => [], 'pattern' => 'NETFLIX.*']),
     ));
 
     expect($payments()->map(fn ($payment): ?string => $payment->occurrence_date?->toDateString())->all())->toBe(['2026-08-12', '2026-09-12', '2026-10-12'])
         ->and($payments()->map(fn ($payment): string => (string) $payment->amount)->all())->toBe(['13.99', '13.99', '15.99'])
         ->and(insideBianchi(fn () => BankTransaction::query()->whereKey(array_map(fn (BankTransaction $row): int => $row->id, $rows))->whereNull('expense_id')->count()))->toBe(0);
+});
+
+it('the planned form carries its filter', function (): void {
+    bankPlannedPagesNetflix();
+    $planned = insideBianchi(fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => Family::query()->where('name', 'Bianchi')->sole()->id, 'title' => 'Netflix']));
+    $filter = insideBianchi(fn (): BankFilter => BankFilter::factory()->pays($planned)->create(['family_id' => $planned->family_id, 'name' => 'Netflix filter', 'contains' => ['NETFLIX']]));
+    $bare = insideBianchi(fn (): PlannedExpense => PlannedExpense::factory()->create(['family_id' => $planned->family_id, 'title' => 'Palestra']));
+    $filterUrl = route('budget.bank.filters.create', ['planned' => 'expense:'.$bare->id], absolute: false);
+
+    // An admin sees the filter of the saved item, and where to make one for an item without it
+    $this->actingAs($this->marco)->get(route('budget.planned.edit', ['kind' => 'expense', 'id' => $planned->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('bank.on', true)
+            ->where('bank.filter.id', $filter->id)
+            ->where('bank.filter.name', 'Netflix filter')
+            ->where('bank.filter.contains', ['NETFLIX'])
+            ->where('bank.create_url', route('budget.bank.filters.create', ['planned' => 'expense:'.$planned->id], absolute: false))
+            ->missing('values.bank_match')
+            ->missing('planned.bank_match'));
+
+    $this->get(route('budget.planned.edit', ['kind' => 'expense', 'id' => $bare->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('bank.filter', null)
+            ->where('bank.create_url', $filterUrl));
+
+    // A new item has no filter yet and nowhere to make it
+    $this->get(route('budget.planned.create', ['kind' => 'expense']))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('bank.on', true)
+            ->where('bank.filter', null)
+            ->where('bank.create_url', null));
+
+    // Only an admin can open the edit form, and so the link to a filter that pays is always one he may follow
+    // Bank link off: no filter, no link
+    $this->marco->family->forceFill(['bank_feed_enabled' => false])->save();
+    $this->get(route('budget.planned.edit', ['kind' => 'expense', 'id' => $planned->id]))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('bank', ['on' => false, 'filter' => null, 'create_url' => null]));
 });

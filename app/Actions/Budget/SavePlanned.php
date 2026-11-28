@@ -23,8 +23,8 @@ final readonly class SavePlanned
     public function __construct(private FillOccurrenceDates $occurrenceDates) {}
 
     /**
-     * Creates the planned item, or changes the one given. The rule of the bank (`bank_match`) is saved as it comes and
-     * pays nothing: the bank filters do the paying (`MatchBankTransactions`).
+     * Creates the planned item, or changes the one given. The bank filters do the paying (`MatchBankTransactions`),
+     * the columns carry no rule of the bank.
      *
      * @param  string  $kind  `expense` or `income`
      * @param  array<string, mixed>  $columns  the columns to write

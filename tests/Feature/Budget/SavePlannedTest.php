@@ -387,24 +387,19 @@ it('never gives a commission to a planned income', function (): void {
     expect($income->getAttributes())->not->toHaveKey('fee_amount');
 });
 
-it('a planned expense and a planned income save their bank rule', function (): void {
+it('the form no longer has a bank rule: a bank_match that comes is ignored', function (): void {
     $this->actingAs($this->marco);
 
     $this->post('/budget/planned/expense', savePlannedValues(['bank_match' => 'PALESTRA.*SRL']))->assertRedirect();
-    expect(savePlannedOf('Palestra')->bank_match)->toBe('PALESTRA.*SRL');
+    expect(savePlannedOf('Palestra')->bank_match)->toBeNull();
 
-    $this->post('/budget/planned/income', savePlannedValues(['title' => 'Stipendio', 'type' => 'salary', 'bank_match' => 'STIPENDIO']))->assertRedirect();
-    $income = insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Stipendio')->sole());
-    expect($income->bank_match)->toBe('STIPENDIO');
+    // Even a broken rule is not looked at any more
+    $this->post('/budget/planned/income', savePlannedValues(['title' => 'Stipendio', 'type' => 'salary', 'bank_match' => '(a+)+$']))->assertRedirect();
+    expect(insideBianchi(fn (): PlannedIncome => PlannedIncome::query()->where('title', 'Stipendio')->sole())->bank_match)->toBeNull();
 
-    $this->get('/budget/planned/expense/'.savePlannedOf('Palestra')->id.'/edit')
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('values.bank_match', 'PALESTRA.*SRL'));
-});
-
-it('a broken rule is refused with its message', function (): void {
-    $this->actingAs($this->marco)
-        ->post('/budget/planned/expense', savePlannedValues(['bank_match' => '(a+)+$']))
-        ->assertSessionHasErrors(['bank_match' => 'This rule does not work.']);
-
-    expect(insideBianchi(fn (): int => PlannedExpense::query()->where('title', 'Palestra')->count()))->toBe(0);
+    // A rule already saved stays as it is when the form is saved again
+    $palestra = savePlannedOf('Palestra');
+    insideBianchi(fn (): bool => $palestra->forceFill(['bank_match' => 'OLD'])->save());
+    $this->put('/budget/planned/expense/'.$palestra->id, savePlannedValues(['bank_match' => 'NEW']))->assertRedirect();
+    expect(savePlannedOf('Palestra')->bank_match)->toBe('OLD');
 });
