@@ -269,7 +269,7 @@ it('keeps a bill of electricity and gas to read for the gas once the electricity
     $familyId = $this->marco->family_id;
     [$electricity, $gas] = CurrentFamily::using($familyId, static fn (): array => [
         Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 87654321']),
-        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567890']),
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567899']),
     ]);
     $bill = consumptionPageBill($electricity, 'Bolletta luce e gas novembre 2026');
     CurrentFamily::using($familyId, static function () use ($gas, $electricity, $bill, $familyId): void {
@@ -288,7 +288,7 @@ it('puts a shared bill read for the gas to check for the electricity when the el
     $familyId = $this->marco->family_id;
     [$electricity, $gas] = CurrentFamily::using($familyId, static fn (): array => [
         Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Electricity, 'supply_point_code' => 'IT 001 E 87654321']),
-        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567890']),
+        Utility::factory()->create(['family_id' => $familyId, 'type' => UtilityType::Gas, 'supply_point_code' => '00881234567899']),
     ]);
     $bill = consumptionPageBill($gas, 'Bolletta luce e gas novembre 2026');
     CurrentFamily::using($familyId, static function () use ($gas, $electricity, $bill, $familyId): void {

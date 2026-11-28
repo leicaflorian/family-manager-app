@@ -187,6 +187,17 @@ final readonly class ImportChoices
     }
 
     /**
+     * Whether the utility box of a supply is ticked: as the person sent it, otherwise as the proposal suggests it.
+     *
+     * @param  int  $index  the place of the supply in the reading
+     * @param  bool  $suggested  whether the proposal ticks the box
+     */
+    public function supplyRecordTicked(int $index, bool $suggested): bool
+    {
+        return array_key_exists($index, $this->supplies) ? $this->supplies[$index]['record'] : $suggested;
+    }
+
+    /**
      * The choices with the movement picked, as if the person had chosen it in the menu.
      *
      * @param  int  $movementId  the expense or income to link

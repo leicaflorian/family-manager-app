@@ -175,9 +175,11 @@ final readonly class Proposal
             $view = $x->forSupply($index);
             $own = $choices->forSupply($index);
             $record = $this->records->supply($view, $side, $own, $found[$index] ?? null);
-            // The utility of the box, found or picked by hand, is the one of the expense and of the consumption
-            $utility = $record?->existing === null ? null : Utility::query()->find($record->existing['id']);
-            $created = $utility instanceof Utility ? null : $this->createdType($record, $own);
+            // The utility of the box, found or picked by hand and ticked, is the one of the expense and of the
+            // consumption: an unticked box links no utility to the document, so neither refers to it
+            $ticked = $record instanceof RecordDraftData && $choices->supplyRecordTicked($index, $record->suggested);
+            $utility = ! $ticked || $record->existing === null ? null : Utility::query()->find($record->existing['id']);
+            $created = $utility instanceof Utility ? null : $this->createdType($record, $ticked);
 
             $proposals[] = new SupplyProposalData(
                 index: $index,
@@ -262,7 +264,7 @@ final readonly class Proposal
         $draft = collect($records)->first(static fn (RecordDraftData $draft): bool => $draft->kind === RecordKind::Utility && in_array(RecordKind::Utility, $choices->records, true));
         $utility ??= $draft instanceof RecordDraftData && $draft->existing !== null ? Utility::query()->find($draft->existing['id']) : null;
 
-        return $this->consumptionOf($x, $utility, $utility instanceof Utility ? null : $this->createdType($draft, $choices), $choices);
+        return $this->consumptionOf($x, $utility, $utility instanceof Utility ? null : $this->createdType($draft, $draft instanceof RecordDraftData), $choices);
     }
 
     /**
@@ -279,11 +281,11 @@ final readonly class Proposal
      * The type of the utility a ticked box creates with the file; null for a box that links one, or not ticked.
      *
      * @param  RecordDraftData|null  $draft  the box of the utility
-     * @param  ImportChoices  $choices  the choices of the person, or of the supply
+     * @param  bool  $ticked  whether the box is ticked
      */
-    private function createdType(?RecordDraftData $draft, ImportChoices $choices): ?UtilityType
+    private function createdType(?RecordDraftData $draft, bool $ticked): ?UtilityType
     {
-        if (! $draft instanceof RecordDraftData || $draft->existing !== null || ! in_array(RecordKind::Utility, $choices->records, true)) {
+        if (! $draft instanceof RecordDraftData || $draft->existing !== null || ! $ticked) {
             return null;
         }
 

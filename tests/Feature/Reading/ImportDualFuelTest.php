@@ -22,6 +22,7 @@ use Database\Seeders\BianchiFamilySeeder;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Pest\Expectation;
 use Tests\Support\EnelBill;
 
@@ -221,4 +222,55 @@ test('a supply expense picked by hand that is gone is refused under its supply',
         ->postJson(route('import.store'), ['files' => [importDualFuelEntry($file, importDualFuelChoices([1 => ['targets' => ['movement' => 999999, 'record' => 999999]]]))]])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['files.0.also.supplies.1.targets.movement', 'files.0.also.supplies.1.targets.record']);
+});
+
+test('through the page, a gas utility that is not there is created with its box and its corrections, and takes the expense and the consumption', function (): void {
+    $this->utilities['gas']->delete();
+    $file = importDualFuelFile();
+    $choices = importDualFuelChoices([1 => ['overrides' => ['record' => ['activation_date' => '2026-10-01', 'customer_code' => EnelBill::CUSTOMER]]]]);
+
+    $this->actingAs(User::query()->where('email', 'marco.bianchi@example.com')->sole())
+        ->post(route('import.store'), ['files' => [importDualFuelEntry($file, $choices)]])
+        ->assertSessionHasNoErrors()->assertRedirect();
+
+    insideBianchi(function () use ($file): void {
+        $document = Document::query()->where('file_id', $file->id)->sole();
+        $gas = Utility::query()->where('supply_point_code', EnelBill::PDR)->sole();
+        $expense = Expense::query()->where('amount', 69.40)->whereDate('date', '2026-11-21')->sole();
+
+        expect($gas->id)->not->toBe($this->utilities['gas']->id)
+            ->and($gas->activation_date?->toDateString())->toBe('2026-10-01')
+            ->and($gas->customer_code)->toBe(EnelBill::CUSTOMER)
+            ->and(importDualFuelUtilities($document))->toBe([$this->utilities['electricity']->id, $gas->id])
+            ->and([$expense->card_type, $expense->card_id])->toBe(['utility', $gas->id])
+            ->and($expense->documents()->pluck('documents.id')->all())->toBe([$document->id])
+            ->and(UtilityConsumption::query()->where('document_id', $document->id)->where('utility_id', $gas->id)->exists())->toBeTrue();
+    });
+});
+
+test('a consumption ticked with the utility box of its supply unticked is refused, as a bill alone without its utility', function (): void {
+    $file = importDualFuelFile();
+    $choices = importDualFuelChoices([1 => ['record' => false]]);
+
+    $this->actingAs(User::query()->where('email', 'marco.bianchi@example.com')->sole())
+        ->postJson(route('import.store'), ['files' => [importDualFuelEntry($file, $choices)]])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['files.0.also.supplies.1.consumption'])
+        ->assertJsonMissingValidationErrors(['files.0.also.supplies.0.consumption']);
+
+    expect(fn (): Document => importDualFuel($file, $choices))->toThrow(ValidationException::class);
+    insideBianchi(fn (): Expectation => expect(Document::query()->where('file_id', $file->id)->exists())->toBeFalse()
+        ->and(UtilityConsumption::query()->where('utility_id', $this->utilities['gas']->id)->whereDate('period_start', '2026-10-01')->exists())->toBeFalse());
+});
+
+test('with the utility box of a supply unticked its expense does not refer to that utility', function (): void {
+    $document = importDualFuel(importDualFuelFile(), importDualFuelChoices([1 => ['record' => false, 'consumption' => false]]));
+
+    insideBianchi(function () use ($document): void {
+        $expense = Expense::query()->where('amount', 69.40)->whereDate('date', '2026-11-21')->sole();
+
+        expect(importDualFuelUtilities($document))->toBe([$this->utilities['electricity']->id])
+            ->and([$expense->card_type, $expense->card_id])->not->toBe(['utility', $this->utilities['gas']->id])
+            ->and(UtilityConsumption::query()->where('document_id', $document->id)->pluck('utility_id')->all())->toBe([$this->utilities['electricity']->id]);
+    });
 });

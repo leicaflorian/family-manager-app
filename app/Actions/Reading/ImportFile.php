@@ -77,7 +77,8 @@ use Throwable;
  *
  * A bill with more than one supply (a dual-fuel bill) saves one document for all of them: the utility of each supply
  * whose box is ticked is linked or created in step 1, the document is linked to all of them, and steps 3 and 4b are
- * done for each supply with its own choices, its expense referring to its utility.
+ * done for each supply with its own choices, its expense and its consumption only on its utility linked to the
+ * document (a supply whose utility box is unticked has none: its consumption is refused, as for a bill alone).
  *
  * The proposal it starts from is the one the request checked, when the caller passes it and the paper takes no
  * policy from another file (the policies are the only thing the other files change); otherwise it is made here.
@@ -218,7 +219,8 @@ final readonly class ImportFile
     }
 
     /**
-     * Step 1 for a bill with more than one supply: the utility of each supply whose box is ticked, linked or created.
+     * Step 1 for a bill with more than one supply: the utility of each supply whose box is ticked (as sent, otherwise as
+     * proposed), linked or created.
      *
      * @param  ProposalData  $first  the proposal before anything is saved
      * @param  ImportChoices  $choices  what the person confirmed
@@ -233,7 +235,7 @@ final readonly class ImportFile
         $utilities = [];
         foreach ($first->supplies as $supply) {
             $box = $supply->record;
-            $ticked = $box instanceof RecordDraftData && in_array(RecordKind::Utility, $choices->forSupply($supply->index)->records, true);
+            $ticked = $box instanceof RecordDraftData && $choices->supplyRecordTicked($supply->index, $box->suggested);
             $card = $ticked ? $this->records->card($box, $ids) : null;
             $utilities[$supply->index] = $card instanceof Utility ? $card : null;
         }
@@ -259,8 +261,11 @@ final readonly class ImportFile
 
     /**
      * Steps 3 and 4b for each supply of a bill with more than one, with its own choices: its expense (or its due date
-     * to pay) referring to its utility, and its consumption in the row of its utility. The planned expenses the
-     * expenses pay are locked first, by ascending id, as the bank payments lock them.
+     * to pay) referring to its utility, and its consumption in the row of its utility, the one saved with the file
+     * and linked to the document. Every planned expense the supplies touch (the one that leads an expense, the one
+     * whose due date is to pay, the one a receipt pays) is locked first, by ascending id, as the bank payments lock
+     * them: `SaveMovement` and the exception of a due date lock them again later, which in the same transaction does
+     * not wait, so no lock is ever taken in the order of the supplies.
      *
      * @param  Extraction  $x  what the model read
      * @param  File  $file  the file
@@ -279,6 +284,7 @@ final readonly class ImportFile
             if ($own->movement && $supply->movement instanceof MovementProposalData) {
                 $planned[] = $supply->movement->values->lead['id'] ?? null;
                 $planned[] = $supply->movement->due->plan['id'] ?? null;
+                $planned[] = $supply->movement->pays['planned'] ?? null;
             }
         }
         $planned = array_values(array_unique(array_filter($planned, is_int(...))));
@@ -297,7 +303,7 @@ final readonly class ImportFile
             }
 
             if ($supply->consumption instanceof ConsumptionProposalData && ($own->consumption ?? $supply->consumption->suggested)) {
-                $this->consumption($view, $supply->consumption, $document, $utility ?? $this->proposedUtility($supply->consumption));
+                $this->consumption($view, $supply->consumption, $document, $utility);
             }
         }
     }
