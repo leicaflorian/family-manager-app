@@ -484,10 +484,15 @@ export function summaryLine(
  * What a movement of the preview will become, for its tag: «Create the expense», «Link «Ricarica Satispay» of
  * 24/11», «Pay the due date of 05/12»…
  *
- * @param row - the movement of the preview
+ * @param row - the movement of the preview, or of a group of *To sort* (`BankGroupRowData`)
  * @returns the text and its tone: `paid` (green), `action` (blue) or `muted` (grey)
  */
-export function willTag(row: App.Data.BankFilterPreviewRowData): {
+export function willTag(
+    row: Pick<
+        App.Data.BankFilterPreviewRowData,
+        'transaction' | 'will' | 'will_title' | 'will_on'
+    >,
+): {
     text: string;
     tone: 'paid' | 'action' | 'muted';
 } {

@@ -17,28 +17,22 @@
  * paid and the row goes. A transaction whose text came back three months in a row also offers *It comes back every
  * month: create a planned expense?*, the form of a new planned item that starts from it.
  */
-import { Head, Link, router, WhenVisible } from '@inertiajs/vue3';
+import { Head, router, WhenVisible } from '@inertiajs/vue3';
 import {
-    ArrowLeftRight,
+    ChevronDown,
     ChevronRight,
-    EyeOff,
     Funnel,
     Landmark,
-    Link as LinkIcon,
     List,
     Plus,
     RefreshCw,
-    Repeat,
-    RotateCcw,
 } from '@lucide/vue';
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
-import { trans } from 'laravel-vue-i18n';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
-import FmMenu from '@/components/fm/FmMenu.vue';
-import FmMenuItem from '@/components/fm/FmMenuItem.vue';
 import FmNotice from '@/components/fm/FmNotice.vue';
 import type { Tab } from '@/components/fm/FmTabs.vue';
 import FmTabs from '@/components/fm/FmTabs.vue';
@@ -48,15 +42,17 @@ import BankAllList from '@/components/budget/BankAllList.vue';
 import BankFiltersList from '@/components/budget/BankFiltersList.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import type { BankAssignChoice } from '@/lib/bankAssign';
+import BankGroupCard from '@/components/budget/BankGroupCard.vue';
+import BankGroupPanel from '@/components/budget/BankGroupPanel.vue';
+import BankLoneRow from '@/components/budget/BankLoneRow.vue';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
 import BankFeeSheet from '@/components/budget/BankFeeSheet.vue';
 import BankTransferSheet from '@/components/budget/BankTransferSheet.vue';
 import FmConfirm from '@/components/fm/FmConfirm.vue';
 import { useBankFeed } from '@/composables/useBankFeed';
-import { useFormat } from '@/composables/useFormat';
 import { useWideLayout } from '@/composables/useWideLayout';
 import { undoWords } from '@/lib/bankUndo';
-import { dayOf, lastReadText, readTimes } from '@/lib/banks';
+import { lastReadText, readTimes } from '@/lib/banks';
 import { splitAround } from '@/lib/text';
 import { cn } from '@/lib/utils';
 import {
@@ -69,8 +65,6 @@ import {
     transfer,
 } from '@/routes/budget/bank';
 import { create as createFilter } from '@/routes/budget/bank/filters';
-import { create } from '@/routes/budget/movements';
-import { create as createPlanned } from '@/routes/budget/planned';
 import { index as banksIndex } from '@/routes/banks';
 
 const props = defineProps<{
@@ -102,6 +96,12 @@ const props = defineProps<{
     accounts_all?: { id: number; name: string; connected: boolean }[];
     /** The tab *Filters*: the filters of the family, by name. */
     bank_filters?: App.Data.BankFilterData[];
+    /** The tab *To sort*: the groups of movements that look alike, biggest first. */
+    groups?: App.Data.BankGroupData[];
+    /** The movements of the group asked with `?group=`, only when the page asks them. */
+    group_rows?: App.Data.BankGroupRowData[];
+    /** The tab *To sort*: how many to sort, how many groups and how many lone movements (pending and in other currencies too: not a sum). */
+    counts?: { unsorted: number; groups: number; lone: number };
 }>();
 
 /** The filters of the tab *All*, each null while it is not on. */
@@ -114,7 +114,6 @@ interface AllFilters {
 }
 
 const bankFeed = useBankFeed();
-const { money } = useFormat();
 const wide = useWideLayout();
 
 /** An update is running: the button waits, so a double tap does not read the banks twice. */
@@ -201,6 +200,116 @@ const shown = computed(() =>
     props.rows.filter((row) => !gone.value.includes(row.id)),
 );
 
+/** How many groups show before *Show the other groups*, as the boards. */
+const FIRST_GROUPS = 5;
+
+/** The groups of the tab *To sort*, none on the other tabs. */
+const groups = computed((): App.Data.BankGroupData[] => props.groups ?? []);
+
+/** *Show the other groups* was tapped: every group shows. */
+const allGroups = ref(false);
+
+/** The groups shown now. */
+const shownGroups = computed((): App.Data.BankGroupData[] =>
+    allGroups.value ? groups.value : groups.value.slice(0, FIRST_GROUPS),
+);
+
+/** How many groups wait behind *Show the other groups*. */
+const hiddenGroups = computed(
+    (): number => groups.value.length - shownGroups.value.length,
+);
+
+/** The words of *Show the other groups*. */
+const moreGroupsText = computed((): string =>
+    transChoice(
+        '{1} Show the other group|[2,*] Show the other :count groups',
+        hiddenGroups.value,
+    ),
+);
+
+/** The head of the groups: how many to sort and how many groups («268 to sort · 31 groups»). */
+const groupsHead = computed((): string =>
+    transChoice(
+        '{1} :total to sort · :count group|[2,*] :total to sort · :count groups',
+        props.counts?.groups ?? groups.value.length,
+        { total: String(props.counts?.unsorted ?? unsorted.value) },
+    ),
+);
+
+/** How many lone movements there are, without the ones that went from the page. */
+const loneCount = computed((): number =>
+    Math.max(0, (props.counts?.lone ?? props.rows.length) - gone.value.length),
+);
+
+/** How many lone movements are not loaded yet. */
+const moreLone = computed((): number =>
+    Math.max(0, (props.counts?.lone ?? props.rows.length) - props.rows.length),
+);
+
+/** The look of the *Show…* buttons at the end of a list. */
+const moreClass = cn(
+    'flex min-h-13 w-full cursor-pointer items-center justify-center gap-2 border-0 bg-transparent text-label text-action hover:text-action-dark',
+);
+
+/** Loads the next block of lone movements. */
+function loadMore(): void {
+    router.reload({
+        data: nextData.value,
+        only: ['rows', 'next'],
+        preserveUrl: true,
+    });
+}
+
+/** The key of the group open, null while none is. */
+const openKey = ref<string | null>(null);
+
+/** The key of the group whose movements `group_rows` holds now, null until they arrive. */
+const rowsKey = ref<string | null>(null);
+
+/** The group open, null while none is (or it went from the list). */
+const openedGroup = computed(
+    (): App.Data.BankGroupData | null =>
+        groups.value.find((group) => group.key === openKey.value) ?? null,
+);
+
+/** The movements of the group open, null while the page asks them. */
+const openedRows = computed((): App.Data.BankGroupRowData[] | null =>
+    rowsKey.value !== null && rowsKey.value === openKey.value
+        ? (props.group_rows ?? [])
+        : null,
+);
+
+/** Wide with a group open: the groups become a list and the group goes beside it, as the boards *Dalla banca, il gruppo*. */
+const beside = computed(
+    (): boolean => wide.value && openedGroup.value !== null,
+);
+
+/**
+ * Opens a group and asks the server for its movements.
+ *
+ * @param group - the group
+ */
+function openGroup(group: App.Data.BankGroupData): void {
+    openKey.value = group.key;
+    rowsKey.value = null;
+    router.reload({
+        data: { group: group.key },
+        only: ['group_rows'],
+        preserveUrl: true,
+        onSuccess: () => {
+            // A group opened in the meantime waits for its own movements
+            if (openKey.value === group.key) {
+                rowsKey.value = group.key;
+            }
+        },
+    });
+}
+
+/** Closes the group open. */
+function closeGroup(): void {
+    openKey.value = null;
+}
+
 /**
  * Hides a transaction (*Ignore*) or brings it back (*Put back*), without leaving the page: the row goes when the
  * server has written it.
@@ -240,78 +349,6 @@ const assignError = ref<string | null>(null);
 
 /** The planned item is being sent. */
 const assignProcessing = ref(false);
-
-/**
- * Whether the row can be sorted here: booked, in euros, not put aside, and the person may sort.
- *
- * @param row - the transaction
- */
-function sortable(row: App.Data.BankTransactionData): boolean {
-    return (
-        props.can_sort && !row.ignored && !row.pending && row.currency === 'EUR'
-    );
-}
-
-/**
- * Whether the row offers «it comes back every month»: its text does, it can be sorted and the person can plan.
- *
- * @param row - the transaction
- */
-function recurs(row: App.Data.BankTransactionData): boolean {
-    return row.recurring && props.can_plan && sortable(row);
-}
-
-/** The look of the offer to create a planned expense, as the boards draw it. */
-const recurClass = cn(
-    'flex items-center gap-2 rounded-md bg-action-soft px-3 py-2 text-label text-action-dark',
-);
-
-/** The tag *Commission* of a commission left alone, grey on the white of the board. */
-const orphanTagClass = cn(
-    'inline-flex self-start rounded-tag bg-card-sunken px-2 py-[3px] text-meta-strong whitespace-nowrap text-ink-soft',
-);
-
-/**
- * The words of the offer for a payment or a credit.
- *
- * @param row - the transaction
- */
-function recurLabel(row: App.Data.BankTransactionData): string {
-    return row.amount > 0
-        ? trans('It comes back every month: create a planned income?')
-        : trans('It comes back every month: create a planned expense?');
-}
-
-/**
- * The form of a new planned expense (or income) that starts from the transaction and the months before it.
- *
- * @param row - the transaction
- */
-function recurUrl(row: App.Data.BankTransactionData): string {
-    return createPlanned.url(row.amount > 0 ? 'income' : 'expense', {
-        query: { bank: row.id },
-    });
-}
-
-/**
- * The label of the button that opens the panel of the expenses or incomes it can belong to.
- *
- * @param row - the transaction
- */
-function assignLabel(row: App.Data.BankTransactionData): string {
-    return row.amount > 0
-        ? trans('It belongs to an income')
-        : trans('It belongs to an expense');
-}
-
-/**
- * The form of a new expense or income that starts from the transaction.
- *
- * @param row - the transaction
- */
-function createUrl(row: App.Data.BankTransactionData): string {
-    return create.url({ query: { bank: row.id } });
-}
 
 /**
  * Opens the panel for a transaction; the panel asks the server for what it can belong to.
@@ -767,7 +804,7 @@ const { title, head } = usePageMeta({
         </template>
 
         <FmEmpty
-            v-else-if="shown.length === 0"
+            v-else-if="shown.length === 0 && groups.length === 0"
             :icon="Landmark"
             :title="$t('Nothing left to sort')"
             :text="
@@ -791,305 +828,188 @@ const { title, head } = usePageMeta({
         </FmEmpty>
 
         <template v-else>
-            <ul
-                v-auto-animate
-                class="m-0 flex list-none flex-col divide-y divide-divider overflow-hidden rounded-card bg-card p-0 shadow-card"
+            <div
+                :class="
+                    beside
+                        ? 'grid grid-cols-[360px_minmax(0,1fr)] items-start gap-6 computer:grid-cols-[400px_minmax(0,1fr)]'
+                        : 'flex flex-col gap-6'
+                "
             >
-                <li
-                    v-for="row in shown"
-                    :key="row.id"
-                    :data-wide="wide ? '' : undefined"
-                    :class="
-                        wide
-                            ? 'grid grid-cols-[56px_minmax(0,1fr)_104px_auto] items-center gap-4 px-5 py-3.5'
-                            : 'flex flex-col gap-2.5 px-4 py-3.5'
-                    "
+                <section
+                    v-if="groups.length > 0"
+                    :aria-label="$t('Groups')"
+                    class="flex min-w-0 flex-col gap-3"
                 >
-                    <span v-if="wide" class="text-label text-ink">{{
-                        dayOf(row)
-                    }}</span>
-                    <div :class="wide ? 'contents' : 'flex items-start gap-3'">
-                        <span
+                    <div class="flex flex-col gap-0.5 px-1">
+                        <h2 class="m-0 text-section text-ink">
+                            {{ groupsHead }}
+                        </h2>
+                        <span v-if="!beside" class="text-meta text-ink-soft">{{
+                            $t(
+                                'Movements that look alike stay together: create the filter of a group and they are all sorted, the ones to come too.',
+                            )
+                        }}</span>
+                    </div>
+                    <nav
+                        v-if="beside"
+                        :aria-label="$t('Groups')"
+                        class="flex flex-col divide-y divide-divider overflow-hidden rounded-card bg-card shadow-card"
+                    >
+                        <BankGroupCard
+                            v-for="group in shownGroups"
+                            :key="group.key"
+                            :group="group"
+                            variant="row"
+                            :selected="group.key === openKey"
+                            @open="openGroup(group)"
+                        />
+                        <button
+                            v-if="hiddenGroups > 0"
+                            type="button"
+                            :class="moreClass"
+                            @click="allGroups = true"
+                        >
+                            {{ moreGroupsText
+                            }}<ChevronDown
+                                aria-hidden="true"
+                                class="size-[18px]"
+                            />
+                        </button>
+                    </nav>
+                    <template v-else>
+                        <div
+                            v-auto-animate
+                            class="grid grid-cols-1 gap-3 wide:grid-cols-2"
+                        >
+                            <BankGroupCard
+                                v-for="group in shownGroups"
+                                :key="group.key"
+                                :group="group"
+                                @open="openGroup(group)"
+                            />
+                        </div>
+                        <button
+                            v-if="hiddenGroups > 0"
+                            type="button"
                             :class="
                                 cn(
-                                    'flex min-w-0 grow flex-col',
-                                    wide ? 'gap-1' : 'gap-0.5',
+                                    moreClass,
+                                    'rounded-card bg-card shadow-card',
                                 )
                             "
+                            @click="allGroups = true"
                         >
-                            <span class="text-body-sm wrap-anywhere text-ink">{{
-                                row.text
+                            {{ moreGroupsText
+                            }}<ChevronDown
+                                aria-hidden="true"
+                                class="size-[18px]"
+                            />
+                        </button>
+                    </template>
+                    <button
+                        v-if="beside && loneCount > 0"
+                        type="button"
+                        class="flex cursor-pointer items-center gap-3 rounded-card border-0 bg-card px-4 py-3.5 text-left text-ink shadow-card"
+                        @click="closeGroup"
+                    >
+                        <span class="flex grow flex-col gap-0.5">
+                            <span class="text-body-strong">{{
+                                $t('Lone movements · :count', {
+                                    count: String(loneCount),
+                                })
                             }}</span>
                             <span class="text-meta text-ink-soft">{{
-                                wide
-                                    ? row.account
-                                    : `${dayOf(row)} ${row.account ? `· ${row.account}` : ''}`
+                                $t('The ones that are in no group')
                             }}</span>
-                            <span
-                                v-if="row.fee"
-                                class="text-meta text-ink-soft"
-                                >{{
-                                    $t('+ :fee commission, :day', {
-                                        fee: money(
-                                            Math.abs(row.fee.amount),
-                                            row.currency,
-                                        ),
-                                        day: dayOf({
-                                            booked_on: row.fee.booked_on,
-                                            value_on: null,
-                                        }),
-                                    })
-                                }}</span
-                            >
-                            <Link
-                                v-if="wide && recurs(row)"
-                                :href="recurUrl(row)"
-                                :class="cn(recurClass, 'min-h-9 self-start')"
-                            >
-                                <Repeat
-                                    aria-hidden="true"
-                                    class="size-[18px]"
-                                />
-                                {{ recurLabel(row) }}
-                                <ChevronRight
-                                    aria-hidden="true"
-                                    class="size-[18px]"
-                                />
-                            </Link>
-                            <span
-                                v-if="wide && row.orphan_fee"
-                                class="flex flex-wrap items-center gap-2"
-                            >
-                                <span :class="orphanTagClass">{{
-                                    $t('Commission')
-                                }}</span>
-                                <span class="text-meta text-ink-soft">{{
-                                    $t('Left without its direct debit')
-                                }}</span>
-                            </span>
-                            <span
-                                v-if="wide && row.pending"
-                                class="flex flex-wrap items-center gap-2"
-                            >
-                                <span
-                                    class="inline-flex self-start rounded-tag bg-warning-soft px-2 py-[3px] text-meta-strong whitespace-nowrap text-warning"
-                                    >{{ $t('Pending') }}</span
-                                >
-                                <span class="text-meta text-ink-soft">{{
-                                    $t('It is sorted when the bank books it')
-                                }}</span>
-                            </span>
                         </span>
-                        <span class="flex shrink-0 flex-col items-end">
-                            <span
-                                :class="
-                                    cn(
-                                        'shrink-0 text-amount whitespace-nowrap',
-                                        wide && 'text-right',
-                                        row.pending && 'text-ink-soft',
-                                        row.amount > 0 && 'text-paid',
-                                    )
-                                "
-                                >{{ money(row.amount, row.currency) }}</span
-                            >
-                            <span
-                                v-if="row.fee"
-                                class="text-meta whitespace-nowrap text-ink-soft"
-                                >+
-                                {{
-                                    money(
-                                        Math.abs(row.fee.amount),
-                                        row.currency,
-                                    )
-                                }}</span
-                            >
-                        </span>
-                    </div>
-                    <span v-if="wide" class="flex justify-end">
-                        <template v-if="can_sort">
-                            <FmButton
-                                v-if="row.ignored"
-                                variant="neutral"
-                                :icon="RotateCcw"
-                                @click="toggleIgnored(row)"
-                                >{{
-                                    $t('Put back among the movements')
-                                }}</FmButton
-                            >
-                            <span
-                                v-else
-                                class="flex flex-nowrap items-center gap-2"
-                            >
-                                <FmButton
-                                    v-if="sortable(row) && row.orphan_fee"
-                                    variant="neutral"
-                                    row-action
-                                    :icon="LinkIcon"
-                                    @click="openFee(row)"
-                                    >{{
-                                        $t('It is the commission of…')
-                                    }}</FmButton
-                                >
-                                <template v-else-if="sortable(row)">
-                                    <FmButton
-                                        variant="neutral"
-                                        row-action
-                                        :icon="Plus"
-                                        :href="createUrl(row)"
-                                        >{{
-                                            row.amount > 0
-                                                ? $t('Create the income')
-                                                : $t('Create the expense')
-                                        }}</FmButton
-                                    >
-                                    <FmButton
-                                        variant="neutral"
-                                        row-action
-                                        :icon="Repeat"
-                                        @click="openAssign(row)"
-                                        >{{ assignLabel(row) }}</FmButton
-                                    >
-                                </template>
-                                <span
-                                    v-if="!row.pending"
-                                    class="flex text-ink-soft [&_button]:text-ink-soft"
-                                    ><FmMenu plain>
-                                        <FmMenuItem
-                                            v-if="sortable(row)"
-                                            :icon="ArrowLeftRight"
-                                            @select="openTransfer(row)"
-                                            >{{
-                                                $t('It is a transfer')
-                                            }}</FmMenuItem
-                                        >
-                                        <FmMenuItem
-                                            :icon="EyeOff"
-                                            @select="toggleIgnored(row)"
-                                            >{{ $t('Ignore') }}</FmMenuItem
-                                        >
-                                    </FmMenu></span
-                                >
-                            </span>
-                        </template>
-                    </span>
-                    <Link
-                        v-if="!wide && recurs(row)"
-                        :href="recurUrl(row)"
-                        :class="cn(recurClass, 'min-h-11')"
-                    >
-                        <Repeat
-                            aria-hidden="true"
-                            class="size-[18px] shrink-0"
-                        />
-                        <span class="grow">{{ recurLabel(row) }}</span>
                         <ChevronRight
                             aria-hidden="true"
-                            class="size-[18px] shrink-0"
+                            class="size-5 shrink-0 text-ink-soft"
                         />
-                    </Link>
-                    <div
-                        v-if="
-                            !wide && can_sort && (row.ignored || !row.pending)
-                        "
-                        class="flex flex-wrap items-center gap-2"
-                    >
-                        <FmButton
-                            v-if="row.ignored"
-                            variant="neutral"
-                            :icon="RotateCcw"
-                            @click="toggleIgnored(row)"
-                            >{{ $t('Put back among the movements') }}</FmButton
-                        >
-                        <template v-else>
-                            <FmButton
-                                v-if="sortable(row) && row.orphan_fee"
-                                variant="neutral"
-                                row-action
-                                :icon="LinkIcon"
-                                @click="openFee(row)"
-                                >{{ $t('It is the commission of…') }}</FmButton
-                            >
-                            <template v-else-if="sortable(row)">
-                                <FmButton
-                                    variant="neutral"
-                                    row-action
-                                    :href="createUrl(row)"
-                                    >{{
-                                        row.amount > 0
-                                            ? $t('Create the income')
-                                            : $t('Create the expense')
-                                    }}</FmButton
-                                >
-                                <FmButton
-                                    variant="neutral"
-                                    row-action
-                                    @click="openAssign(row)"
-                                    >{{ assignLabel(row) }}</FmButton
-                                >
-                            </template>
-                            <span
-                                v-if="!row.pending"
-                                class="ml-auto flex text-ink-soft [&_button]:text-ink-soft"
-                                ><FmMenu plain>
-                                    <FmMenuItem
-                                        v-if="sortable(row)"
-                                        :icon="ArrowLeftRight"
-                                        @select="openTransfer(row)"
-                                        >{{
-                                            $t('It is a transfer')
-                                        }}</FmMenuItem
-                                    >
-                                    <FmMenuItem
-                                        :icon="EyeOff"
-                                        @select="toggleIgnored(row)"
-                                        >{{ $t('Ignore') }}</FmMenuItem
-                                    >
-                                </FmMenu></span
-                            >
-                        </template>
-                    </div>
-                    <div
-                        v-if="!wide && row.orphan_fee"
-                        class="flex flex-wrap items-center gap-2"
-                    >
-                        <span :class="orphanTagClass">{{
-                            $t('Commission')
-                        }}</span>
+                    </button>
+                </section>
+
+                <div
+                    v-if="beside && openedGroup"
+                    class="sticky top-[calc(var(--app-header,0px)+--spacing(4))] min-w-0"
+                >
+                    <BankGroupPanel
+                        :group="openedGroup"
+                        :rows="openedRows"
+                        @close="closeGroup"
+                    />
+                </div>
+
+                <section
+                    v-if="!beside && shown.length > 0"
+                    :aria-label="$t('Lone movements')"
+                    class="flex flex-col gap-3"
+                >
+                    <div class="flex flex-col gap-0.5 px-1">
+                        <h2 class="m-0 text-section text-ink">
+                            {{
+                                $t('Lone movements · :count', {
+                                    count: String(loneCount),
+                                })
+                            }}
+                        </h2>
                         <span class="text-meta text-ink-soft">{{
-                            $t('Left without its direct debit')
+                            $t(
+                                'The ones that are in no group. Where it finds an expense that fits, it proposes it to you.',
+                            )
                         }}</span>
                     </div>
                     <div
-                        v-if="!wide && row.pending"
-                        class="flex flex-wrap items-center gap-2"
+                        class="flex flex-col overflow-hidden rounded-card bg-card shadow-card"
                     >
-                        <span
-                            class="inline-flex self-start rounded-tag bg-warning-soft px-2 py-[3px] text-meta-strong whitespace-nowrap text-warning"
-                            >{{ $t('Pending') }}</span
+                        <ul
+                            v-auto-animate
+                            class="m-0 flex list-none flex-col divide-y divide-divider p-0"
                         >
-                        <span class="text-meta text-ink-soft">{{
-                            $t('It is sorted when the bank books it')
-                        }}</span>
+                            <BankLoneRow
+                                v-for="row in shown"
+                                :key="row.id"
+                                :row="row"
+                                :can-sort="can_sort"
+                                :can-plan="can_plan"
+                                @assign="openAssign"
+                                @transfer="openTransfer"
+                                @fee="openFee"
+                                @ignore="toggleIgnored"
+                            />
+                        </ul>
+                        <button
+                            v-if="next && moreLone > 0"
+                            type="button"
+                            :class="cn(moreClass, 'border-t border-divider')"
+                            @click="loadMore"
+                        >
+                            {{
+                                $tChoice(
+                                    '{1} Show one more movement|[2,*] Show :count more movements',
+                                    moreLone,
+                                )
+                            }}<ChevronDown
+                                aria-hidden="true"
+                                class="size-[18px]"
+                            />
+                        </button>
                     </div>
-                </li>
-            </ul>
-            <WhenVisible
-                v-if="next"
-                :key="next"
-                always
-                :params="{
-                    data: nextData,
-                    only: ['rows', 'next'],
-                    preserveUrl: true,
-                }"
+                    <p class="m-0 px-1 text-meta text-ink-soft">
+                        {{
+                            $t(
+                                'Only the movements no filter takes stay here. The ones a filter takes, or a fixed expense with the rule, are sorted by themselves.',
+                            )
+                        }}
+                    </p>
+                </section>
+            </div>
+            <BankGroupPanel
+                v-if="!wide && openedGroup"
+                :group="openedGroup"
+                :rows="openedRows"
+                @close="closeGroup"
             />
-            <p class="m-0 px-1 text-meta text-ink-soft">
-                {{
-                    $t(
-                        'Only the movements that no fixed expense recognises stay here. The recognised ones are marked paid by themselves.',
-                    )
-                }}
-            </p>
         </template>
 
         <BankAssignSheet

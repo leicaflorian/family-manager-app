@@ -2283,6 +2283,157 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
 ];
 
 /**
+ * The groups of the tab *To sort*, as `BankTransactionController` sends them (`groups`), biggest first: one an
+ * expense recorded before proposes to create, a planned income to mark received, one with no proposal, a credit with
+ * no proposal and one that comes back every month.
+ */
+export const bankGroups: App.Data.BankGroupData[] = [
+    {
+        key: '3f9a1c2b7d4e',
+        name: 'Satispay Europe',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 11,
+        min: 10,
+        max: 50,
+        from: '2026-09-02',
+        to: '2026-11-24',
+        proposal_action: 'create',
+        proposal_title: 'Ricarica Satispay',
+        proposal_detail: 'Varie · Satispay',
+        recurring_url: null,
+    },
+    {
+        key: '8b20d64e1a77',
+        name: 'INPS · Assegno Unico',
+        kind: 'income',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 3,
+        min: 407.6,
+        max: 407.6,
+        from: '2026-09-17',
+        to: '2026-11-17',
+        proposal_action: 'pay',
+        proposal_title: null,
+        proposal_detail: 'Assegno Unico',
+        recurring_url: null,
+    },
+    {
+        key: 'c41e09f3b285',
+        name: 'Eni (POS)',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 7,
+        min: 25,
+        max: 60,
+        from: '2026-09-05',
+        to: '2026-11-20',
+        proposal_action: 'create',
+        proposal_title: 'Carburante',
+        proposal_detail: 'Auto · Eni',
+        recurring_url: null,
+    },
+    {
+        key: '5d7f2a90c3e1',
+        name: 'Cashback ScontiPoste',
+        kind: 'income',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 6,
+        min: 0.04,
+        max: 1.2,
+        from: '2026-09-10',
+        to: '2026-11-10',
+        proposal_action: null,
+        proposal_title: null,
+        proposal_detail: null,
+        recurring_url: null,
+    },
+    {
+        key: 'e6a3b1d84f02',
+        name: 'Virgin Active',
+        kind: 'expense',
+        account: 'Conto BancoPosta ·· 3307',
+        count: 3,
+        min: 49,
+        max: 49,
+        from: '2026-09-01',
+        to: '2026-11-01',
+        proposal_action: null,
+        proposal_title: null,
+        proposal_detail: null,
+        recurring_url: '/budget/planned/expense/create?bank=71',
+    },
+];
+
+/**
+ * A movement of a group, as `group_rows` brings it: the transaction as the list has it (no commission of its own:
+ * the one of the group row goes with it).
+ *
+ * @param id - the id of the transaction
+ * @param day - the day it was booked (`yyyy-mm-dd`)
+ * @param amount - the amount, negative for money out
+ * @returns the transaction
+ */
+function bankGroupTransaction(
+    id: number,
+    day: string,
+    amount: number,
+): App.Data.BankTransactionData {
+    return {
+        id,
+        booked_on: day,
+        value_on: day,
+        text: 'DOMICILIAZIONE (ADDEBITO DIRETTO SEPA) Satispay Europe S.A. CID.LU08HOO0000000000000001642 MAN.SAT0023101207360112900',
+        counterparty: 'Satispay Europe S.A.',
+        amount,
+        currency: 'EUR',
+        account: 'Conto BancoPosta ·· 3307',
+        pending: false,
+        ignored: false,
+        recurring: false,
+        status: 'unsorted',
+        link: null,
+        provider_id: `tx-${id}`,
+        read_at: '2026-11-25T07:00',
+        bank_status: 'booked',
+        fee: null,
+        orphan_fee: false,
+        transfer: null,
+        account_id: 4,
+        proposal: null,
+        two_filters: null,
+    };
+}
+
+/**
+ * The movements of the group *Satispay Europe*, newest first, as `group_rows` brings them when the group opens: the
+ * newest links the expense already recorded, the others create one, each with its commission of the day after.
+ */
+export const bankGroupRows: App.Data.BankGroupRowData[] = [
+    ['2026-11-24', -10, '2026-11-25'],
+    ['2026-11-17', -20, '2026-11-18'],
+    ['2026-11-10', -50, '2026-11-11'],
+    ['2026-11-03', -10, '2026-11-04'],
+    ['2026-10-27', -30, '2026-10-28'],
+    ['2026-10-20', -10, '2026-10-21'],
+    ['2026-10-13', -15, '2026-10-14'],
+    ['2026-10-06', -25, '2026-10-07'],
+    ['2026-09-29', -10, '2026-09-30'],
+    ['2026-09-15', -40, '2026-09-16'],
+    ['2026-09-02', -10, '2026-09-03'],
+].map(([day, amount, feeDay], index) => ({
+    transaction: bankGroupTransaction(
+        60 + index * 2,
+        day as string,
+        amount as number,
+    ),
+    fee: { id: 61 + index * 2, amount: -0.4, booked_on: feeDay as string },
+    will: index === 0 ? 'link' : 'create',
+    will_title: index === 0 ? 'Ricarica Satispay' : null,
+    will_on: index === 0 ? '2026-11-24' : null,
+}));
+
+/**
  * A month of the Consumption page as the server sends it: a whole month covered by one bill, with the same month
  * of the year before.
  *

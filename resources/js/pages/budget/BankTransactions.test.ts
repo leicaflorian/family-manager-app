@@ -9,7 +9,12 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { bankFilters, bankTransactions } from '@/test/fixtures';
+import {
+    bankFilters,
+    bankGroupRows,
+    bankGroups,
+    bankTransactions,
+} from '@/test/fixtures';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import BankTransactions from './BankTransactions.vue';
 
@@ -67,6 +72,8 @@ function props(extra: Record<string, unknown> = {}): Record<string, unknown> {
         can_change_banks: true,
         last_synced_at: '2026-11-20T13:00',
         sync_hours: [7, 13, 19],
+        groups: [],
+        counts: { unsorted: 3, groups: 0, lone: 3 },
         ...extra,
     };
 }
@@ -1150,5 +1157,184 @@ describe('Budget, From the bank, a commission left alone', () => {
         expect(
             screen.queryByText(/COMMISSIONI DOMICILIAZIONE/),
         ).not.toBeInTheDocument();
+    });
+});
+
+/**
+ * The 31 groups of the boards: the five of the fixtures and 26 more, biggest first as the server sorts them.
+ *
+ * @returns the groups
+ */
+function thirtyOneGroups(): App.Data.BankGroupData[] {
+    return [
+        ...bankGroups,
+        ...Array.from({ length: 26 }, (_, index) => ({
+            ...bankGroups[3],
+            key: `group${index}`,
+            name: `Shop ${index + 1}`,
+            count: 2,
+        })),
+    ];
+}
+
+/** The props of the tab *To sort* of the boards: 268 to sort, 31 groups and 42 lone movements. */
+function groupProps(
+    extra: Record<string, unknown> = {},
+): Record<string, unknown> {
+    return props({
+        groups: thirtyOneGroups(),
+        counts: { unsorted: 268, groups: 31, lone: 42 },
+        ...extra,
+    });
+}
+
+describe('Budget, From the bank, the groups', () => {
+    it('the head says «268 da sistemare · 31 gruppi»', () => {
+        renderPage(BankTransactions, groupProps());
+
+        expect(
+            screen.getByRole('heading', { name: '268 to sort · 31 groups' }),
+        ).toBeInTheDocument();
+    });
+
+    it('shows five groups and Show the other 26', async () => {
+        renderPage(BankTransactions, groupProps());
+
+        const section = screen.getByRole('region', { name: 'Groups' });
+        expect(within(section).getAllByRole('article')).toHaveLength(5);
+
+        await userEvent.click(
+            within(section).getByRole('button', {
+                name: 'Show the other 26 groups',
+            }),
+        );
+        expect(within(section).getAllByRole('article')).toHaveLength(31);
+        expect(
+            within(section).queryByRole('button', { name: /Show the other/ }),
+        ).toBeNull();
+    });
+
+    it('the lone movements come under their title with their number', () => {
+        renderPage(BankTransactions, groupProps());
+
+        const section = screen.getByRole('region', { name: 'Lone movements' });
+        expect(
+            within(section).getByRole('heading', {
+                name: 'Lone movements · 42',
+            }),
+        ).toBeInTheDocument();
+        expect(
+            within(section).getByText(
+                'ADDEBITO DIRETTO SDD EDISON ENERGIA SPA FATT. 0123456789',
+            ),
+        ).toBeInTheDocument();
+    });
+
+    it('loads the next lone movements with Show more', async () => {
+        const reload = vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(BankTransactions, groupProps({ next: 2 }));
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Show 39 more movements' }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['rows', 'next'],
+                data: { page: 2 },
+                preserveUrl: true,
+            }),
+        );
+    });
+
+    it('without groups shows only the lone movements', () => {
+        renderPage(BankTransactions, props());
+
+        expect(screen.queryByRole('region', { name: 'Groups' })).toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'Lone movements · 3' }),
+        ).toBeInTheDocument();
+    });
+
+    it('opening a group asks its rows', async () => {
+        screenWidth(true);
+        const reload = vi
+            .spyOn(router, 'reload')
+            .mockImplementation((options) => {
+                options?.onSuccess?.({} as never);
+            });
+        const view = renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(reload).toHaveBeenCalledWith(
+            expect.objectContaining({
+                only: ['group_rows'],
+                data: { group: '3f9a1c2b7d4e' },
+                preserveUrl: true,
+            }),
+        );
+        await view.rerender(
+            groupProps({ group_rows: structuredClone(bankGroupRows) }),
+        );
+
+        const panel = screen.getByRole('dialog', { name: 'Satispay Europe' });
+        expect(
+            within(panel).getAllByRole('button', {
+                name: 'It is not of this group',
+            }),
+        ).toHaveLength(6);
+    });
+
+    it('when wide, the open group puts the groups in a list beside it, and the lone movements bring the page back', async () => {
+        screenWidth(true);
+        vi.spyOn(router, 'reload').mockImplementation((options) => {
+            options?.onSuccess?.({} as never);
+        });
+        const view = renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /INPS · Assegno Unico/ }),
+        );
+        await view.rerender(groupProps({ group_rows: [] }));
+
+        const nav = screen.getByRole('navigation', { name: 'Groups' });
+        expect(
+            within(nav).getByRole('button', { name: /INPS · Assegno Unico/ }),
+        ).toHaveAttribute('aria-current', 'true');
+        expect(
+            screen.queryByRole('region', { name: 'Lone movements' }),
+        ).toBeNull();
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Lone movements · 42/ }),
+        );
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(
+            screen.getByRole('region', { name: 'Lone movements' }),
+        ).toBeInTheDocument();
+    });
+
+    it('on the phone the open group is a sheet over the page', async () => {
+        screenWidth(false);
+        vi.spyOn(router, 'reload').mockImplementation(() => {});
+        renderPage(BankTransactions, groupProps());
+
+        await userEvent.click(
+            screen.getByRole('button', { name: /Satispay Europe/ }),
+        );
+
+        expect(
+            await screen.findByRole('dialog', { name: 'Satispay Europe' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('region', {
+                name: 'Lone movements',
+                // The sheet hides the page under it from screen readers
+                hidden: true,
+            }),
+        ).toBeInTheDocument();
     });
 });
