@@ -17,6 +17,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Services\Banks\BankDuplicates;
+use App\Services\Banks\BankFees;
 use App\Services\Banks\BankFilters;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
@@ -42,13 +43,15 @@ final readonly class ApplyBankFilter
         private SaveMovement $saveMovement,
         private AttachBankFee $attachFee,
         private MarkBankTransfer $transfers,
+        private BankFees $fees,
     ) {}
 
     /**
      * Applies the filter to the transaction, in one transaction. The bank row is locked first and must still be to
      * sort and not declined (*It was not this one*); then the filter is read again with a locking read (it may have
-     * changed or lost its category, organization or account since it was read), then the planned item of a filter
-     * that pays is locked: no plain read comes before these locks, so two calls on the same transaction at once settle
+     * changed or lost its category, organization or account since it was read), then for a filter that pays or creates
+     * the commissions near the transaction (`BankFees::lockFeesNear()`), then the planned item of a filter that pays is
+     * locked: no plain read comes before these locks, so two calls on the same transaction at once settle
      * it once, the second finds it no longer to sort. A commission is never taken by a filter: it joins the expense of
      * its debit by itself (`AttachBankFee`).
      *
@@ -70,6 +73,11 @@ final readonly class ApplyBankFilter
 
             if (! $fresh instanceof BankFilter || ! BankFilterMatch::matches($fresh->criteria(), $current)) {
                 return BankFilterOutcome::None;
+            }
+
+            // Bank rows first: the commission that may join the movement, before the planned item or a recorded expense
+            if (in_array($fresh->action, [BankFilterAction::Pay, BankFilterAction::Create], true)) {
+                $this->fees->lockFeesNear($current);
             }
 
             $outcome = match ($fresh->action) {

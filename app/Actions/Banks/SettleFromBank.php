@@ -43,8 +43,9 @@ final readonly class SettleFromBank
     ) {}
 
     /**
-     * Settles the transaction with the planned item, in one transaction. The bank transaction is locked first and the
-     * planned item right after, before anything is read: in this order everywhere, so two settlings, or a settling and
+     * Settles the transaction with the planned item, in one transaction. The bank transaction is locked first, then the
+     * commissions near it (`BankFees::lockFeesNear()`, a locking read), and the planned item right after, before
+     * anything is read: in this order everywhere, so two settlings, or a settling and
      * *I paid it*, wait for each other instead of locking each other, and every read below sees what they wrote. For
      * the same reason it is not called inside a transaction that has already read something.
      *
@@ -82,6 +83,8 @@ final readonly class SettleFromBank
                 return null;
             }
 
+            // Bank rows first: the commission that may join the payment, then the planned item
+            $this->fees->lockFeesNear($current);
             PlannedKind::lock($planned);
 
             // The person chose the due date: a payment of another one within a few days is not this transaction's

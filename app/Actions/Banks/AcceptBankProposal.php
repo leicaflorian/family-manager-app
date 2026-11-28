@@ -15,6 +15,7 @@ use App\Models\Income;
 use App\Models\PlannedExpense;
 use App\Models\PlannedIncome;
 use App\Models\User;
+use App\Services\Banks\BankFees;
 use App\Services\Banks\BankFilters;
 use App\Services\Banks\BankProposals;
 use App\Support\Banks\BankFilterCriteria;
@@ -42,6 +43,7 @@ final readonly class AcceptBankProposal
         private SettleFromBank $settle,
         private MarkBankTransfer $transfer,
         private BankFilters $filters,
+        private BankFees $fees,
     ) {}
 
     /**
@@ -63,6 +65,8 @@ final readonly class AcceptBankProposal
 
         [$payment, $planned] = DB::transaction(function () use ($transaction, $key, $parsed): array {
             $current = BankTransaction::query()->unsorted()->whereKey($transaction->id)->lockForUpdate()->first() ?? throw $this->stale();
+            // Bank rows first: the commission that may join the expense, then the target
+            $this->fees->lockFeesNear($current);
             $target = $this->lockTarget($parsed);
 
             if (! in_array($key, array_map(static fn (BankProposalData $proposal): string => $proposal->key, $this->proposals->candidates($current)), true)) {

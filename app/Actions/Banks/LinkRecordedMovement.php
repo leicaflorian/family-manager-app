@@ -9,6 +9,7 @@ use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Services\Banks\BankDuplicates;
+use App\Services\Banks\BankFees;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,11 +20,11 @@ use Illuminate\Validation\ValidationException;
  */
 final readonly class LinkRecordedMovement
 {
-    public function __construct(private BankDuplicates $duplicates, private AttachBankFee $attachFee) {}
+    public function __construct(private BankDuplicates $duplicates, private AttachBankFee $attachFee, private BankFees $fees) {}
 
     /**
-     * Links them, in one transaction. The bank transaction is locked first and the movement right after, before
-     * anything else is read, as `SettleFromBank` does, so two links of the same movement wait for each other. The
+     * Links them, in one transaction. The bank transaction is locked first, then the commissions near it
+     * (`BankFees::lockFeesNear()`), and the movement right after, before anything else is read, as `SettleFromBank` does, so two links of the same movement wait for each other. The
      * commission of a direct debit joins the expense too.
      *
      * @param  BankTransaction  $transaction  The transaction of the bank.
@@ -45,6 +46,8 @@ final readonly class LinkRecordedMovement
                 throw ValidationException::withMessages(['movement_id' => __('This movement is not of this kind.')]);
             }
 
+            // Bank rows first: the commission that may join the expense, then the expense
+            $this->fees->lockFeesNear($current);
             $locked = $movement->newQuery()->lockForUpdate()->find($movement->getKey());
 
             if (! $locked instanceof Expense && ! $locked instanceof Income || ! $this->duplicates->isFree($locked, $current)) {
