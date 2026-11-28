@@ -14,18 +14,28 @@ use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
 /**
  * Pairs a direct debit with its commission: BancoPosta writes the commission of each SEPA direct debit as a
  * transaction of its own with the same mandate and creditor. Same account, same direction, a commission that is
  * smaller than the debit, at most five days apart; the pairs are made closest first, so a commission goes to one
- * debit only and each debit takes one commission.
+ * debit only and each debit takes one commission. A filter can recognise the commission with its own words instead
+ * (`words`): those pairs are made one debit at a time, when the debit is linked or the commission arrives, not
+ * closest first over all the debits; a commission already joined to another expense is not taken again.
  */
 final class BankFees
 {
     /** The most days between a debit and its commission. */
     private const int DAYS = 5;
+
+    /**
+     * The filters that recognise the commission with words, loaded on first use.
+     *
+     * @var EloquentCollection<int, BankFilter>|null
+     */
+    private ?EloquentCollection $wordFilters = null;
 
     /**
      * The commission of a direct debit, among the booked transactions of the family (linked or not). The filter that
@@ -38,18 +48,88 @@ final class BankFees
      */
     public function feeOf(BankTransaction $debit, ?BankFilter $filter = null): ?BankTransaction
     {
-        if (BankText::isFee($debit->text)) {
+        $mode = $filter->fee_mode ?? BankFilterFee::Auto;
+
+        if (BankText::isFee($debit->text) || $mode === BankFilterFee::None) {
             return null;
         }
 
-        if ($filter?->fee_mode === BankFilterFee::Words) {
+        if ($filter instanceof BankFilter && $mode === BankFilterFee::Words) {
             return $this->byWords($debit, $filter);
         }
 
-        return match ($filter->fee_mode ?? BankFilterFee::Auto) {
-            BankFilterFee::None, BankFilterFee::Words => null,
-            BankFilterFee::Auto => $this->key($debit) === null ? null : ($this->match($this->around($debit))[$debit->id] ?? null)?->fee,
-        };
+        return $this->key($debit) === null ? null : ($this->match($this->around($debit))[$debit->id] ?? null)?->fee;
+    }
+
+    /**
+     * The debit a commission belongs to by the words of a filter: a debit already linked to an expense (not a
+     * commission itself) by a filter that recognises its commission with words (`words`), whose words take this
+     * commission (`takesAsFee()`), and whose expense has no commission yet; the closest, then the oldest row. This is
+     * how a commission that arrives at a read after its debit joins it.
+     *
+     * @param  BankTransaction  $fee  the commission, just read
+     */
+    public function debitByWords(BankTransaction $fee): ?BankTransaction
+    {
+        $filters = $this->wordFilters();
+
+        if ($filters->isEmpty() || $fee->status !== BankTransactionStatus::Booked || $fee->currency !== 'EUR' || ($fee->booked_on ?? $fee->value_on) === null) {
+            return null;
+        }
+
+        $day = $this->day($fee);
+
+        /** @var Builder<BankTransaction> $query */
+        $query = BankTransaction::query()->withoutFees();
+
+        return $query
+            ->whereKeyNot($fee->id)
+            ->where('financial_account_id', $fee->financial_account_id)
+            ->where('status', BankTransactionStatus::Booked)
+            ->where('currency', 'EUR')
+            ->where('amount', $fee->kind() === 'expense' ? '<' : '>', 0)
+            ->whereBetween('booked_on', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
+            ->whereNotNull('expense_id')
+            ->whereIn('bank_filter_id', $filters->keys()->all())
+            ->whereNotIn('expense_id', BankTransaction::query()->where('matched_by', BankMatchSource::Fee)->whereNotNull('expense_id')->select('expense_id'))
+            ->orderBy('id')
+            ->get()
+            ->filter(function (BankTransaction $debit) use ($filters, $fee): bool {
+                $filter = $filters->get((int) $debit->bank_filter_id);
+
+                return $filter instanceof BankFilter && $this->takesAsFee($filter, $debit, $fee);
+            })
+            ->sortBy(fn (BankTransaction $debit): int => abs($this->index($debit) - $this->index($fee)))
+            ->first();
+    }
+
+    /**
+     * Whether a filter that recognises the commission with words (`words`) takes a transaction as the commission of
+     * a debit: its commission words take it (on the account and in the direction of the debit), it is not the debit
+     * itself, it is at most five days from the debit and smaller than it. The one
+     * rule for both ways: the commission of a debit (`feeOf()`) and the debit of a commission (`debitByWords()`).
+     *
+     * @param  BankFilter  $filter  the filter that took the debit
+     * @param  BankTransaction  $debit  the debit
+     * @param  BankTransaction  $fee  the transaction that may be its commission
+     */
+    public function takesAsFee(BankFilter $filter, BankTransaction $debit, BankTransaction $fee): bool
+    {
+        if ($filter->fee_mode !== BankFilterFee::Words || $fee->is($debit)
+            || ($debit->booked_on ?? $debit->value_on) === null || ($fee->booked_on ?? $fee->value_on) === null) {
+            return false;
+        }
+
+        $criteria = BankFilterCriteria::fromArray([
+            'contains' => $filter->fee_contains,
+            'excludes' => $filter->fee_excludes,
+            'direction' => $debit->kind(),
+            'accountId' => $debit->financial_account_id,
+        ]);
+
+        return abs($this->index($fee) - $this->index($debit)) <= self::DAYS
+            && $this->cents($fee) < $this->cents($debit)
+            && BankFilterMatch::matches($criteria, $fee);
     }
 
     /**
@@ -177,14 +257,7 @@ final class BankFees
      */
     private function byWords(BankTransaction $debit, BankFilter $filter): ?BankTransaction
     {
-        $criteria = BankFilterCriteria::fromArray([
-            'contains' => $filter->fee_contains,
-            'excludes' => $filter->fee_excludes,
-            'direction' => $debit->kind(),
-            'accountId' => $debit->financial_account_id,
-        ]);
-
-        if (! $criteria->isSafe() || ($debit->booked_on ?? $debit->value_on) === null) {
+        if (($debit->booked_on ?? $debit->value_on) === null) {
             return null;
         }
 
@@ -205,9 +278,19 @@ final class BankFees
                     ->where('expense_id', $debit->expense_id)->where('matched_by', BankMatchSource::Fee))))
             ->orderBy('id')
             ->get()
-            ->filter(fn (BankTransaction $row): bool => $this->cents($row) < $this->cents($debit) && BankFilterMatch::matches($criteria, $row))
+            ->filter(fn (BankTransaction $row): bool => $this->takesAsFee($filter, $debit, $row))
             ->sortBy(fn (BankTransaction $row): int => abs($this->index($row) - $this->index($debit)))
             ->first();
+    }
+
+    /**
+     * The filters of the family that recognise the commission with words, by id, read once per instance.
+     *
+     * @return EloquentCollection<int, BankFilter>
+     */
+    private function wordFilters(): EloquentCollection
+    {
+        return $this->wordFilters ??= BankFilter::query()->where('fee_mode', BankFilterFee::Words)->get()->keyBy('id');
     }
 
     /**

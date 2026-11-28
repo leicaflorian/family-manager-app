@@ -87,7 +87,8 @@ final readonly class SettleFromBank
             // The person chose the due date: a payment of another one within a few days is not this transaction's
             $existing = $occurrence instanceof CarbonImmutable ? null : $this->duplicates->findAny($current, $planned, $filter);
 
-            if ($existing !== null) {
+            // Locked and read again before it is taken: another bank row may have taken it by another path meanwhile
+            if ($existing !== null && $this->duplicates->claim($existing, $current)) {
                 return $this->link($current, $existing, BankMatchSource::Duplicate, $filter);
             }
 
@@ -155,7 +156,8 @@ final readonly class SettleFromBank
     }
 
     /**
-     * Links the transaction to the payment of a paid due date, when no other bank transaction has it.
+     * Links the transaction to the payment of a paid due date, when no other bank transaction has it (the payment is
+     * locked and read again, `BankDuplicates::claim()`).
      *
      * @param  BankTransaction  $transaction  The transaction, locked.
      * @param  Deadline  $deadline  The due date, paid.
@@ -166,7 +168,7 @@ final readonly class SettleFromBank
     {
         $payment = $deadline->payment;
 
-        return $payment !== null && $this->duplicates->isFree($payment, $transaction)
+        return $payment !== null && $this->duplicates->claim($payment, $transaction)
             ? $this->link($transaction, $payment, BankMatchSource::Duplicate, $filter)
             : null;
     }

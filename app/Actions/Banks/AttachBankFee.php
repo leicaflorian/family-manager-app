@@ -95,21 +95,24 @@ final readonly class AttachBankFee
     }
 
     /**
-     * Joins the new commissions of a read whose debit is already linked to an expense. A failure is reported and the
-     * others go on: the read of the bank never fails for it.
+     * Joins the new commissions of a read to the expense of their debit when it is already linked: a commission of
+     * the mandate kind to its debit (`debitOf()`), otherwise any new transaction that the commission words of the
+     * filter of a linked debit take (`debitByWords()`). A failure is reported and the others go on: the read of the
+     * bank never fails for it.
      *
      * @param  iterable<BankTransaction>  $new  the transactions just saved
      */
     public function forNew(iterable $new): void
     {
         foreach ($new as $transaction) {
-            if (! BankText::isFee($transaction->text)) {
-                continue;
-            }
-
             try {
-                $debit = $this->fees->debitOf($transaction, includeSorted: true);
-                $expense = $debit?->expense_id !== null && $debit->matched_by !== BankMatchSource::Fee ? Expense::query()->find($debit->expense_id) : null;
+                $debit = BankText::isFee($transaction->text) ? $this->fees->debitOf($transaction, includeSorted: true) : null;
+                $expense = $this->expenseOf($debit);
+
+                if (! $expense instanceof Expense) {
+                    $debit = $this->fees->debitByWords($transaction);
+                    $expense = $this->expenseOf($debit);
+                }
 
                 if ($expense instanceof Expense) {
                     $this->handle($transaction, $expense, $debit);
@@ -118,5 +121,15 @@ final readonly class AttachBankFee
                 report($failure);
             }
         }
+    }
+
+    /**
+     * The expense a debit is linked to, unless the debit is itself a commission.
+     *
+     * @param  BankTransaction|null  $debit  the debit
+     */
+    private function expenseOf(?BankTransaction $debit): ?Expense
+    {
+        return $debit?->expense_id !== null && $debit->matched_by !== BankMatchSource::Fee ? Expense::query()->find($debit->expense_id) : null;
     }
 }

@@ -51,7 +51,9 @@ final readonly class MatchBankTransactions
      * Applies a filter just saved to the transactions still to sort and not declined of the last days of a first read
      * (90) that it takes, the oldest first, so the due dates are paid in order. One that another filter takes too is
      * left to the person, and the linked ones are never touched. A failure is reported and never leaves: the filter is
-     * already saved.
+     * already saved. Not to be called inside an open transaction: it reads the transactions with plain reads before
+     * each one is locked, and inside a transaction those reads would fix the snapshot before the locks; the caller
+     * commits the save of the filter first.
      *
      * @param  BankFilter  $filter  The filter, saved.
      * @return int how many it settled

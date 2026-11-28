@@ -20,7 +20,6 @@ use App\Http\Requests\Banks\BankCandidatesRequest;
 use App\Http\Requests\Banks\BankListRequest;
 use App\Http\Requests\Banks\MarkBankTransferRequest;
 use App\Models\BankConnection;
-use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Models\Expense;
 use App\Models\Income;
@@ -96,7 +95,7 @@ final class BankTransactionController extends Controller
                         $show === 'all',
                         $fees[$transaction->id] ?? null,
                         in_array($transaction->id, $orphans, true),
-                        $show === 'unsorted' ? self::twoFilters($bankFilters, $transaction) : null,
+                        $show === 'unsorted' ? $bankFilters->namesWhenShared($transaction) : null,
                     ))
                     ->values()
                     ->all();
@@ -286,20 +285,6 @@ final class BankTransactionController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Marked as a transfer between your accounts.')]);
 
         return to_route('budget.bank.index');
-    }
-
-    /**
-     * The names of the filters that take a transaction to sort, when two or more do (none of them settles it), else null.
-     *
-     * @param  BankFilters  $filters  the filters of the family, read once for the page
-     * @param  BankTransaction  $transaction  the transaction
-     * @return list<string>|null
-     */
-    private static function twoFilters(BankFilters $filters, BankTransaction $transaction): ?array
-    {
-        $taking = $filters->matching($transaction);
-
-        return $taking->count() >= 2 ? array_values($taking->map(static fn (BankFilter $filter): string => $filter->name)->all()) : null;
     }
 
     /**
