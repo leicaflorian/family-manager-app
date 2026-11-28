@@ -9,6 +9,8 @@ use App\Enums\BankFilterAction;
 use App\Enums\BankFilterFee;
 use App\Models\BankTransaction;
 use App\Models\Expense;
+use App\Models\PlannedExpense;
+use App\Models\PlannedIncome;
 
 /**
  * A bank filter that is not saved yet: what the system proposes for a group of transactions, ready to fill the form
@@ -74,12 +76,7 @@ final readonly class BankFilterDraft
     public static function fromGroup(BankGroup $group, ?self $proposal): self
     {
         return new self(
-            name: $group->name,
-            contains: self::words($group),
-            excludes: ['COMMISSIONI'],
-            direction: $group->kind,
-            accountId: $group->accountId,
-            feeMode: BankFilterFee::Auto,
+            ...self::start($group->name, self::words($group), $group->kind, $group->accountId),
             action: $proposal?->action,
             plannedExpenseId: $proposal?->plannedExpenseId,
             plannedIncomeId: $proposal?->plannedIncomeId,
@@ -124,19 +121,39 @@ final readonly class BankFilterDraft
         $movement = $expense ?? $income;
 
         return new self(
-            name: $planned?->displayTitle() ?? $counterparty,
-            contains: BankText::words($transaction->text),
-            excludes: ['COMMISSIONI'],
-            direction: $transaction->kind(),
-            accountId: $transaction->financial_account_id,
+            ...self::start($planned?->displayTitle() ?? $counterparty, BankText::words($transaction->text), $transaction->kind(), $transaction->financial_account_id),
             action: $action,
-            plannedExpenseId: $action === BankFilterAction::Pay ? $expense?->planned_expense_id : null,
-            plannedIncomeId: $action === BankFilterAction::Pay ? $income?->planned_income_id : null,
+            plannedExpenseId: $action === BankFilterAction::Pay && $planned instanceof PlannedExpense ? $planned->id : null,
+            plannedIncomeId: $action === BankFilterAction::Pay && $planned instanceof PlannedIncome ? $planned->id : null,
             title: $creates && $movement !== null ? ($movement instanceof Expense ? $movement->title : $movement->label()) : null,
             categoryId: $creates ? $expense?->category_id : null,
             organizationId: $creates ? $movement?->organization_id : null,
             personId: $creates ? $movement?->person_id : null,
             transferAccountId: $action === BankFilterAction::Transfer ? $transaction->transfer_account_id : null,
+        );
+    }
+
+    /**
+     * The filter that pays a planned item, for the form opened from *It belongs to an expense*: it pays that item, and
+     * when the movement it came from is known, takes its words (without the commissions) and its account.
+     *
+     * @param  PlannedExpense|PlannedIncome  $planned  the planned item the filter pays
+     * @param  BankTransaction|null  $from  the movement the person was sorting, if any
+     */
+    public static function fromPlanned(PlannedExpense|PlannedIncome $planned, ?BankTransaction $from = null): self
+    {
+        $expense = $planned instanceof PlannedExpense;
+        $start = self::start($planned->displayTitle(), $from instanceof BankTransaction ? BankText::words($from->text) : [], $expense ? 'expense' : 'income', $from?->financial_account_id);
+
+        if (! $from instanceof BankTransaction) {
+            $start['excludes'] = [];
+        }
+
+        return new self(
+            ...$start,
+            action: BankFilterAction::Pay,
+            plannedExpenseId: $expense ? $planned->id : null,
+            plannedIncomeId: $expense ? null : $planned->id,
         );
     }
 
@@ -176,6 +193,28 @@ final readonly class BankFilterDraft
             'organization_id' => $this->organizationId,
             'person_id' => $this->personId,
             'transfer_account_id' => $this->transferAccountId,
+        ];
+    }
+
+    /**
+     * The start every draft shares: the name, the words the text must all have, `COMMISSIONI` among the words it must
+     * not have, the direction, the account to read and the commission found by itself.
+     *
+     * @param  string  $name  the name of the filter
+     * @param  list<string>  $contains  the words the text must all have
+     * @param  string  $direction  `expense` or `income`
+     * @param  int|null  $accountId  the account to read
+     * @return array{name: string, contains: list<string>, excludes: list<string>, direction: string, accountId: ?int, feeMode: BankFilterFee}
+     */
+    private static function start(string $name, array $contains, string $direction, ?int $accountId): array
+    {
+        return [
+            'name' => $name,
+            'contains' => $contains,
+            'excludes' => ['COMMISSIONI'],
+            'direction' => $direction,
+            'accountId' => $accountId,
+            'feeMode' => BankFilterFee::Auto,
         ];
     }
 

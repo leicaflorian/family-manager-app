@@ -19,8 +19,8 @@ use Inertia\Inertia;
  */
 final readonly class BankSimilar
 {
-    /** How many of the other movements the flash carries as rows; the page shows the count of all. */
-    private const int ROWS = 5;
+    /** How many of the other movements the flash carries as rows (the sheet shows five and the rest on tap); it says the count of all. */
+    private const int ROWS = 20;
 
     /**
      * @param  BankGroups  $groups  the groups of the movements still to sort
@@ -28,7 +28,7 @@ final readonly class BankSimilar
     public function __construct(private BankGroups $groups) {}
 
     /**
-     * Flashes `similar` for the movement just sorted: `count` of the others like it, the first five as `rows`, the
+     * Flashes `similar` for the movement just sorted: `count` of the others like it, the first twenty as `rows`, the
      * `action` the filter would do (`pay`, `create` or `transfer`) and the `url` of the form of the new filter.
      *
      * @param  BankTransaction  $transaction  the movement just sorted

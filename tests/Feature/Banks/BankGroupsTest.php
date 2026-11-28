@@ -249,7 +249,7 @@ it('after creating an expense from a movement of a group the page says how many 
 
     $flash = session('inertia.flash_data.similar');
 
-    expect($flash['rows'])->toHaveCount(5)
+    expect($flash['rows'])->toHaveCount(7)
         ->and(collect($flash['rows'])->pluck('id')->all())->each->not->toBe($rows[0]->id);
 });
 
@@ -347,5 +347,38 @@ it('paying a due date with no filter leads to the new filter form and offers not
 
     $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
         ->assertRedirect(route('budget.bank.filters.create', ['planned' => 'expense:'.$planned->id, 'from' => $rows[0]->id]))
+        ->assertInertiaFlashMissing('similar');
+});
+
+it('says what the filter for the others would do after a recorded expense is linked', function (): void {
+    bankGroupsSimilarOn();
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('PAGAMENTO POS BAR ROSSI', '-10.00', '2026-11-0'.$day, ['counterparty' => 'Bar Rossi']));
+    $expense = Expense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Bar Rossi', 'amount' => 10, 'date' => '2026-11-01']);
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'movement_id' => $expense->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.action', 'create');
+});
+
+it('offers the filter for the others after a due date is paid that already has a paying filter', function (): void {
+    bankGroupsSimilarOn();
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce', 'start_date' => '2026-01-05', 'financial_account_id' => null, 'bank_match' => null]);
+    BankFilter::factory()->pays($planned)->create(['family_id' => $this->marco->family_id, 'contains' => ['MUTUO']]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-0'.$day, ['counterparty' => 'Edison']));
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
+        ->assertRedirect(route('budget.bank.index'))
+        ->assertInertiaFlash('similar.count', 2)
+        ->assertInertiaFlash('similar.action', 'pay');
+});
+
+it('offers nothing to a member who pays a due date, who cannot make a filter that pays', function (): void {
+    bankGroupsSimilarOn(member: true);
+    $planned = PlannedExpense::factory()->create(['family_id' => $this->marco->family_id, 'title' => 'Luce', 'start_date' => '2026-01-05', 'financial_account_id' => null, 'bank_match' => null]);
+    $rows = collect([1, 2, 3])->map(fn (int $day): BankTransaction => bankGroupsRow('ADDEBITO DIRETTO EDISON', '-72.00', '2026-11-0'.$day, ['counterparty' => 'Edison']));
+
+    $this->post(route('budget.bank.assign', $rows[0]), ['kind' => 'expense', 'planned_id' => $planned->id])
+        ->assertRedirect(route('budget.bank.index'))
         ->assertInertiaFlashMissing('similar');
 });
