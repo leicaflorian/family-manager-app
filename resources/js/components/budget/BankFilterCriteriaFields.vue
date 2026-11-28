@@ -4,7 +4,8 @@
  * must contain and the ones it must not (tags: Enter adds one), the direction, the account the filter reads (or all of
  * them) and the amounts from and up to. An advanced filter, made from the rule of a planned item, has its expression
  * instead of the words, and it changes only as text. The slot, after the amounts, holds the AI buttons of the words.
- * After *It is not of this group* the field that got a word says so under it (`added`).
+ * After *It is not of this group* the field that got a word says so under it and is marked with the blue edge and
+ * ring of a field in focus, as the board *Dalla-banca-filtro-escludi* draws it (`added`).
  */
 import { trans } from 'laravel-vue-i18n';
 import { computed } from 'vue';
@@ -14,6 +15,7 @@ import type {
 } from '@/lib/bankFilters';
 import { wordsFieldProps } from '@/lib/bankFilters';
 import { errors } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 
 const {
     options,
@@ -33,6 +35,9 @@ const {
 
 /** The fields of the form, changed in place. */
 const values = defineModel<BankFilterFormValues>({ required: true });
+
+/** The box of the field *It is not of this group* just added a word to: the edge and the ring of a field in focus. */
+const addedClass = cn('border-action! ring-2 ring-action/20');
 
 /** The props the two fields of words share. */
 const words = wordsFieldProps();
@@ -76,6 +81,9 @@ const accounts = computed(() => [
                 :disabled="wordsLocked"
                 :label="$t('Contains the words')"
                 name="contains"
+                :inner-class="
+                    added?.field === 'contains' ? addedClass : undefined
+                "
                 :help="
                     added?.field === 'contains'
                         ? added.help
@@ -92,6 +100,9 @@ const accounts = computed(() => [
                 :label="$t('Does not contain')"
                 name="excludes"
                 optional
+                :inner-class="
+                    added?.field === 'excludes' ? addedClass : undefined
+                "
                 :help="added?.field === 'excludes' ? added.help : undefined"
                 :errors="errors(problems.excludes)"
             />
@@ -103,8 +114,8 @@ const accounts = computed(() => [
             :label="$t('Direction')"
             name="direction"
             :options="[
-                { value: 'expense', label: $t('Going out') },
-                { value: 'income', label: $t('Coming in') },
+                { value: 'expense', label: $t('Outflow') },
+                { value: 'income', label: $t('Inflow') },
             ]"
             :errors="errors(problems.direction)"
         />

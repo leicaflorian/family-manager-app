@@ -3031,5 +3031,9 @@
     "The filter opens already filled with what you have just chosen: you check it and save it. Nothing is linked before that.": "Il filtro si apre già riempito con quello che hai appena scelto: lo controlli e lo salvi. Prima non si collega niente.",
     "No, leave it so": "No, lascia così",
     "They are of the same mandate :name.": "Sono dello stesso mandato :name.",
-    "They have the same words: :words.": "Hanno le stesse parole: :words."
+    "They have the same words: :words.": "Hanno le stesse parole: :words.",
+    "Outflow": "Uscita",
+    "Inflow": "Entrata",
+    "Find it on its own": "Trovala da sola",
+    "Create the filter :name": "Crea il filtro :name"
 }

@@ -13,7 +13,7 @@
  * when nothing is found the AI is asked (if it can read). A movement of the group of the address leaves the group for
  * good, and the box *Movement taken out* asks what it is.
  */
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Funnel, TriangleAlert, Undo2, X } from '@lucide/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import {
@@ -53,6 +53,7 @@ import {
     summaryLine,
 } from '@/lib/bankFilters';
 import { splitAround } from '@/lib/text';
+import { squareButton } from '@/lib/topBar';
 import { errors } from '@/lib/errors';
 import { index as bankIndex } from '@/routes/budget/bank';
 import { destroy, store, update } from '@/routes/budget/bank/filters';
@@ -411,6 +412,12 @@ async function drop(preview: App.Data.BankFilterPreviewRowData): Promise<void> {
     }
 }
 
+/** The movement taken out was sorted from its box: the list and the summary are asked again, at once. */
+function refreshPreview(): void {
+    cancelPreview();
+    void loadPreview(formPayload(values));
+}
+
 /** *Undo the change*: the field it changed goes back to what it was; the movement stays out of its group. */
 function undoChange(): void {
     if (change.value === null) {
@@ -517,6 +524,17 @@ const conflictLine = computed((): string | null =>
         : null,
 );
 
+/**
+ * Each movement of the list can be taken out while who looks may save, the filter is not an advanced one and it takes
+ * two movements or more: taking out the last one would leave a filter that takes nothing (and a group of one).
+ */
+const droppable = computed(
+    (): boolean =>
+        canSave.value &&
+        values.pattern === null &&
+        shownPreview.value.rows.length >= 2,
+);
+
 /** Save stays off while the form is sent, while the preview of a change is awaited and while a movement is taken by another filter. */
 const saveOff = computed(
     (): boolean =>
@@ -562,7 +580,9 @@ const { title, head } = usePageMeta({
     title: () =>
         props.filter
             ? trans('Edit the filter :name', { name: props.filter.name })
-            : trans('New filter'),
+            : props.group
+              ? trans('Create the filter :name', { name: props.group.name })
+              : trans('New filter'),
     // The trail names the filter, as the board *Dalla-banca-filtro-pc*: «Filter Satispay»
     crumb: () =>
         props.filter
@@ -581,12 +601,15 @@ const { title, head } = usePageMeta({
     <div class="flex max-w-[1120px] flex-col gap-4 wide:gap-6">
         <FmTitle :title="title">
             <template #actions>
-                <FmButton
-                    variant="neutral"
-                    :icon="X"
-                    :label="$t('Close')"
+                <Link
                     :href="filtersUrl"
-                />
+                    :aria-label="$t('Close')"
+                    :title="$t('Close')"
+                    :class="squareButton"
+                    class="hover:bg-canvas"
+                >
+                    <X aria-hidden="true" :size="20" />
+                </Link>
             </template>
         </FmTitle>
 
@@ -620,7 +643,11 @@ const { title, head } = usePageMeta({
             }}
         </p>
 
-        <BankFilterDropped v-if="!wide && droppedBox" v-bind="droppedBox" />
+        <BankFilterDropped
+            v-if="!wide && droppedBox"
+            v-bind="droppedBox"
+            @sorted="refreshPreview"
+        />
 
         <div
             class="flex flex-col gap-4 wide:grid wide:grid-cols-[minmax(0,520px)_minmax(0,1fr)] wide:items-start wide:gap-6"
@@ -681,63 +708,65 @@ const { title, head } = usePageMeta({
                 <BankFilterDropped
                     v-if="wide && droppedBox"
                     v-bind="droppedBox"
+                    @sorted="refreshPreview"
                 />
                 <BankFilterPreviewList
                     :preview="shownPreview"
                     :fee-mode="values.fee_mode"
                     :error="previewError"
                     :loading="previewLoading"
-                    :droppable="canSave && values.pattern === null"
+                    :droppable="droppable"
                     :grouped="group != null"
                     @drop="drop"
                 />
-                <div
-                    class="flex flex-col gap-3.5 rounded-card bg-card px-4 py-4 shadow-card wide:flex-row wide:flex-wrap wide:items-center wide:px-5"
+            </div>
+        </div>
+
+        <div
+            class="flex flex-wrap items-center gap-3.5 rounded-card bg-card px-4 py-4 shadow-card wide:px-5"
+        >
+            <div class="flex min-w-0 flex-[1_1_260px] flex-col gap-1">
+                <span class="text-row text-ink">{{
+                    summaryLine(shownPreview.summary, values.direction)
+                }}</span>
+                <span
+                    v-if="conflictLine"
+                    class="flex items-start gap-1.5 text-meta text-warning"
                 >
-                    <div class="flex flex-[1_1_260px] flex-col gap-1">
-                        <span class="text-row text-ink">{{
-                            summaryLine(shownPreview.summary, values.direction)
-                        }}</span>
-                        <span
-                            v-if="conflictLine"
-                            class="flex items-start gap-1.5 text-meta text-warning"
-                        >
-                            <TriangleAlert
-                                aria-hidden="true"
-                                class="mt-px size-4 shrink-0"
-                            />
-                            <span class="text-ink">{{ conflictLine }}</span>
-                        </span>
-                    </div>
-                    <div
-                        class="flex flex-wrap items-center gap-2.5 wide:ml-auto"
-                    >
-                        <FmDeleteButton
-                            v-if="filter?.id && filter.can.delete"
-                            :url="destroy(filter.id).url"
-                            :question="
-                                $t('Delete the filter :name?', {
-                                    name: filter.name,
-                                })
-                            "
-                            :text="$t('What it sorted stays as it is.')"
-                            :confirm-label="$t('Delete the filter')"
-                        />
-                        <FmButton
-                            variant="text"
-                            :href="filtersUrl"
-                            data-discard-changes
-                            >{{ $t('Cancel') }}</FmButton
-                        >
-                        <FmButton
-                            v-if="canSave"
-                            class="grow wide:grow-0"
-                            :disabled="saveOff"
-                            @click="save"
-                            >{{ $t('Save the filter') }}</FmButton
-                        >
-                    </div>
-                </div>
+                    <TriangleAlert
+                        aria-hidden="true"
+                        class="mt-px size-4 shrink-0"
+                    />
+                    <span class="text-ink">{{ conflictLine }}</span>
+                </span>
+            </div>
+            <div
+                class="flex grow flex-wrap items-center gap-2.5 wide:ml-auto wide:grow-0"
+            >
+                <FmDeleteButton
+                    v-if="filter?.id && filter.can.delete"
+                    :url="destroy(filter.id).url"
+                    :question="
+                        $t('Delete the filter :name?', {
+                            name: filter.name,
+                        })
+                    "
+                    :text="$t('What it sorted stays as it is.')"
+                    :confirm-label="$t('Delete the filter')"
+                />
+                <FmButton
+                    variant="text"
+                    :href="filtersUrl"
+                    data-discard-changes
+                    >{{ $t('Cancel') }}</FmButton
+                >
+                <FmButton
+                    v-if="canSave"
+                    class="grow wide:grow-0"
+                    :disabled="saveOff"
+                    @click="save"
+                    >{{ $t('Save the filter') }}</FmButton
+                >
             </div>
         </div>
     </div>
