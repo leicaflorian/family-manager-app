@@ -397,7 +397,7 @@ test('the box of the movement says how it was linked, its commission and its fil
             ->where('movement.bank.fee.id', $fee?->id)
             ->where('movement.bank.fee.amount', -0.4)
             ->where('movement.bank.fee.booked_on', '2026-11-05')
-            ->where('movement.bank.filter', ['id' => $filter->id, 'name' => 'Satispay', 'url' => null])
+            ->where('movement.bank.filter', ['id' => $filter->id, 'name' => 'Satispay', 'url' => route('budget.bank.filters.edit', ['filter' => $filter->id], absolute: false)])
             ->where('movement.bank.undo', 'detach')
             ->where('movement.bank.undo_url', "/budget/bank/{$debit->id}/payment")
             ->where('movement.bank.url', '/budget/bank?show=all&q='.rawurlencode(substr($debit->text, 0, 100))));

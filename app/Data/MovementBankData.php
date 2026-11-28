@@ -26,7 +26,7 @@ final class MovementBankData extends Data
      * @param  string|null  $undo_url  where *It was not this one* goes, only when `undo` is given
      * @param  string  $how  how the link came (a `BankMatchSource` value)
      * @param  BankFeeData|null  $fee  the commission of its direct debit joined to the expense
-     * @param  array{id: int, name: string, url: string|null}|null  $filter  the filter that took it; `url` is the address of the filter's own page, filled in by the page of the filters when it exists
+     * @param  array{id: int, name: string, url: string|null}|null  $filter  the filter that took it; `url` is the address of the filter's own page
      * @param  string  $url  the transaction in the list *All* of *From the bank* (`?show=all` and its text in `q`)
      * @param  string|null  $undo  what *It was not this one* does: `delete` (the movement goes) or `detach` (it only comes off a movement that was already there); null when it cannot be undone or the person may not
      */
@@ -61,7 +61,7 @@ final class MovementBankData extends Data
             $undo !== null ? route('budget.bank.undo', ['transaction' => $transaction->id], absolute: false) : null,
             $transaction->matched_by->value ?? 'duplicate',
             $fee instanceof BankTransaction ? BankFeeData::fromTransaction($fee) : null,
-            $transaction->bankFilter === null ? null : ['id' => $transaction->bankFilter->id, 'name' => $transaction->bankFilter->name, 'url' => null],
+            $transaction->bankFilter === null ? null : ['id' => $transaction->bankFilter->id, 'name' => $transaction->bankFilter->name, 'url' => route('budget.bank.filters.edit', ['filter' => $transaction->bankFilter->id], absolute: false)],
             route('budget.bank.index', ['show' => 'all', 'q' => mb_substr($transaction->text, 0, 100)], absolute: false),
             $undo,
         );
