@@ -2545,6 +2545,7 @@ export const bankFilterPreview: App.Data.BankFilterPreviewData = {
                 orphan_fee: false,
                 transfer: null,
                 account_id: 4,
+                proposal: null,
                 two_filters: null,
             },
             hits: ['SATISPAY', 'DOMICILIAZIONE'],
