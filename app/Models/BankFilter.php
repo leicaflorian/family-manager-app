@@ -8,12 +8,16 @@ use App\Enums\BankFilterAction;
 use App\Enums\BankFilterFee;
 use App\Support\Banks\BankFilterCriteria;
 use Carbon\CarbonImmutable;
+use Closure;
 use Database\Factories\BankFilterFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
@@ -58,11 +62,15 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property-read PlannedExpense|null $plannedExpense
  * @property-read PlannedIncome|null $plannedIncome
  * @property-read FinancialAccount|null $transferAccount
+ * @property-read Collection<int, BankTransaction> $transactions
+ * @property-read int|null $transactions_count
+ * @property-read int|null $taken_count The movements it settled booked in the last 90 days, loaded by `forPage()`
  *
  * @method static BankFilterFactory factory($count = null, $state = [])
  * @method static Builder<static>|BankFilter newModelQuery()
  * @method static Builder<static>|BankFilter newQuery()
  * @method static Builder<static>|BankFilter query()
+ * @method static Builder<static>|BankFilter forPage()
  *
  * @mixin \Eloquent
  */
@@ -91,6 +99,53 @@ final class BankFilter extends FamilyModel
     public function criteria(): BankFilterCriteria
     {
         return BankFilterCriteria::fromFilter($this);
+    }
+
+    /** The relations the pages of the filters read (`BankFilterData`). */
+    private const array PAGE_RELATIONS = ['financialAccount', 'plannedExpense', 'plannedIncome', 'transferAccount', 'category', 'organization'];
+
+    /**
+     * The filters as the pages read them: with the relations `BankFilterData` names and `taken_count`, the movements
+     * each settled that were booked in the last days of a first read (90, the window of the preview).
+     *
+     * @param  Builder<self>  $query  the query
+     */
+    #[Scope]
+    protected function forPage(Builder $query): void
+    {
+        $query->with(self::PAGE_RELATIONS)->withCount($this->takenCount());
+    }
+
+    /**
+     * Loads on one filter what `forPage()` loads on a query.
+     */
+    public function loadForPage(): self
+    {
+        return $this->load(self::PAGE_RELATIONS)->loadCount($this->takenCount());
+    }
+
+    /**
+     * The count of the movements a filter settled that were booked in the last days of a first read, as `taken_count`.
+     *
+     * @return array<string, Closure(Builder<BankTransaction>): void>
+     */
+    private function takenCount(): array
+    {
+        $since = CarbonImmutable::today('Europe/Rome')->subDays(config()->integer('bank_feed.first_days'))->toDateString();
+
+        return ['transactions as taken_count' => static function (Builder $query) use ($since): void {
+            $query->where('booked_on', '>=', $since);
+        }];
+    }
+
+    /**
+     * The transactions of the bank the filter settled (`bank_transactions.bank_filter_id`).
+     *
+     * @return HasMany<BankTransaction, $this>
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(BankTransaction::class);
     }
 
     /**

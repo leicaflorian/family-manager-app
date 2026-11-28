@@ -104,6 +104,59 @@ final class BankFilters
     }
 
     /**
+     * The other filter that already takes a transaction to sort: the oldest filter, but the one left out, that takes
+     * it. A filter that would take it too would make two filters on one movement, which neither settles. Null when the
+     * transaction is not to sort (linked, put aside, a transfer, declined by *It was not this one*, a commission: no
+     * filter would touch it) or no other filter takes it.
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     * @param  int|null  $except  the id of the filter being changed, which never conflicts with itself
+     */
+    public function otherTaking(BankTransaction $transaction, ?int $except = null): ?BankFilter
+    {
+        if (! self::toSort($transaction)) {
+            return null;
+        }
+
+        return $this->matching($transaction)->first(static fn (BankFilter $filter): bool => $filter->id !== $except);
+    }
+
+    /**
+     * The conflicts of criteria with the other filters: each transaction to sort of the last days of a first read that
+     * the criteria take and another filter takes already, with that filter, by the id of the transaction.
+     *
+     * @param  BankFilterCriteria  $criteria  what the filter takes
+     * @param  int|null  $except  the id of the filter being changed
+     * @return Collection<int, BankFilter>
+     */
+    public function conflicts(BankFilterCriteria $criteria, ?int $except = null): Collection
+    {
+        $conflicts = new Collection;
+
+        foreach ($this->taken($criteria, config()->integer('bank_feed.first_days')) as $transaction) {
+            $other = $this->otherTaking($transaction, $except);
+
+            if ($other instanceof BankFilter) {
+                $conflicts->put($transaction->id, $other);
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
+     * Whether a filter could still settle the transaction: not linked, not put aside, not a transfer, not declined by
+     * *It was not this one* and not a commission (a commission joins the expense of its debit by itself).
+     *
+     * @param  BankTransaction  $transaction  the transaction
+     */
+    public static function toSort(BankTransaction $transaction): bool
+    {
+        return $transaction->expense_id === null && $transaction->income_id === null && $transaction->ignored_at === null
+            && $transaction->transfer_account_id === null && $transaction->declined_at === null && ! BankText::isFee($transaction->text);
+    }
+
+    /**
      * Every filter of the family, from the database the first time only.
      *
      * @return Collection<int, BankFilter>

@@ -35,8 +35,9 @@ final readonly class BankDuplicates
      * @param  BankTransaction  $transaction  The bank transaction.
      * @param  PlannedExpense|PlannedIncome|null  $planned  The planned item it pays, to look only among its payments.
      * @param  BankFilter|null  $filter  The filter that takes the transaction, which says how its commission is found.
+     * @param  list<int>  $skip  ids of payments to treat as taken already (the preview of a filter, which links nothing, skips the ones an earlier row would take)
      */
-    public function findAny(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null, ?BankFilter $filter = null): Expense|Income|null
+    public function findAny(BankTransaction $transaction, PlannedExpense|PlannedIncome|null $planned = null, ?BankFilter $filter = null, array $skip = []): Expense|Income|null
     {
         $day = $transaction->booked_on;
 
@@ -58,11 +59,33 @@ final readonly class BankDuplicates
             ->whereBetween('date', [$day->subDays(self::DAYS)->toDateString(), $day->addDays(self::DAYS)->toDateString()])
             ->whereIn(DB::raw('round(amount * 100)'), $amounts)
             ->whereNotIn('id', $this->others($transaction)->whereNotNull($column)->select($column))
+            ->when($skip !== [], static fn (Builder $query) => $query->whereNotIn('id', $skip))
             ->get()
             ->sortBy(static fn (Expense|Income $payment): int => abs((int) round($day->startOfDay()->diffInDays($payment->date?->startOfDay(), false))))
             ->first();
 
         return $found;
+    }
+
+    /**
+     * The ids of the payments of one direction among the keys of what earlier transactions would take
+     * (`expense:<id>`, `income:<id>`), as `findAny()` skips them.
+     *
+     * @param  list<string>  $used  the keys
+     * @param  string  $kind  `expense` or `income`
+     * @return list<int>
+     */
+    public static function idsOf(array $used, string $kind): array
+    {
+        $ids = [];
+
+        foreach ($used as $key) {
+            if (str_starts_with($key, $kind.':')) {
+                $ids[] = (int) substr($key, strlen($kind) + 1);
+            }
+        }
+
+        return $ids;
     }
 
     /**

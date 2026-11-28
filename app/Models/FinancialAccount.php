@@ -122,4 +122,12 @@ final class FinancialAccount extends FamilyModel
     {
         return $this->name;
     }
+
+    /**
+     * The name as the pages of the bank show it: «Account name ·· 1234», with the last four digits when they are known.
+     */
+    public function bankLabel(): string
+    {
+        return $this->last_four_digits === null ? $this->name : $this->name.' ·· '.$this->last_four_digits;
+    }
 }
