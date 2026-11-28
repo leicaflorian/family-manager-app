@@ -1,5 +1,31 @@
 [
     {
+        "version": "2.9.0",
+        "date": "2026-11-28",
+        "notes": {
+            "it": [
+                "Dalla banca ha ora una sua pagina sotto il Bilancio, con Da sistemare, Tutti e Filtri. In Tutti puoi cercare ogni movimento, anche quelli ignorati.",
+                "Con i filtri i movimenti si sistemano da soli: pagano una scadenza, creano una spesa o un'entrata, segnano un trasferimento o li ignorano.",
+                "Le tue regole Come compare in banca sono diventate filtri.",
+                "I movimenti simili ora stanno in gruppi: crei un filtro e li sistemi tutti, anche quelli che arriveranno.",
+                "Per i movimenti da soli trovi la proposta Forse è…, a cui rispondi sì o no. Se vuoi, l'AI ti aiuta a scrivere un filtro.",
+                "Puoi segnare i trasferimenti tra i tuoi conti, e le commissioni si uniscono alla spesa a cui appartengono.",
+                "Puoi collegare un movimento della banca anche a una spesa o a un'entrata che avevi già registrato.",
+                "Una bolletta di luce e gas insieme si importa una volta sola, con spesa e consumi per tutte e due. Anche un unico addebito in banca può pagarle entrambe."
+            ],
+            "en": [
+                "From the bank now has its own page under the Budget, with To sort, All and Filters. Under All you can search every movement, ignored ones too.",
+                "With filters, bank movements sort themselves: they pay a due date, create an expense or an income, mark a transfer or ignore it.",
+                "Your How it shows in the bank rules are now filters.",
+                "Similar movements are now grouped: create one filter and you sort them all, including the ones still to come.",
+                "Single movements get a Maybe it is… suggestion that you answer with yes or no. If you like, AI helps you write a filter.",
+                "You can mark transfers between your own accounts, and bank fees join the expense they belong to.",
+                "You can also link a bank movement to an expense or income you had already added.",
+                "A combined electricity and gas bill is imported just once, with an expense and usage for both. A single bank payment can pay both too."
+            ]
+        }
+    },
+    {
         "version": "2.8.4",
         "date": "2026-11-27",
         "notes": {

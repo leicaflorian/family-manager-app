@@ -2,6 +2,28 @@
 
 All notable changes to Fameja.app.
 
+## [2.9.0] - 2026-11-28
+
+### From the bank
+- A page of its own under the Budget, with the tabs To sort, All (search, filters and the transaction as the bank gave it) and Filters
+- Bank filters replace the "How it shows in the bank" rules: they pay due dates, create expenses or incomes, mark transfers or ignore, at every read and when saved, with a live preview of the movements they take
+- A movement is taken by one filter only; between filters that all pay, the planned item closest in amount wins, and a tie stays to sort
+- The AI proposes the words and fields of a filter only when asked, on masked text
+- Similar movements are shown in groups, with a proposal per group; a movement can leave its group and the filter corrects itself
+- Lone movements get a "Maybe it is…" proposal with yes and no
+- After sorting one movement of a group by hand, a filter for the others is offered
+- Transfers between the family's own accounts can be marked, including both halves when both accounts are linked
+- Commissions join the expense of their direct debit, automatically or by hand
+- The search finds planned and recorded movements and links one already recorded; the closest due date wins, and a chosen due date is paid as chosen
+- Undoing unlinks what was already there; an expense shows its commission and its filter
+
+### Electricity and gas bills
+- A combined bill is imported once: one document for both utilities, with an expense and a consumption for each supply
+- A single bank debit can pay the planned expenses of both supplies
+
+### Migrations
+- Seven new migrations, one of which turns the existing bank rules into filters; the old rule column is no longer read and can be removed in a later release
+
 ## [2.8.4] - 2026-11-27
 
 ### Release
