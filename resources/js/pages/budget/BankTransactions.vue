@@ -30,6 +30,7 @@ import {
 import { vAutoAnimate } from '@formkit/auto-animate/vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import { usePageMeta } from '@/composables/usePageMeta';
 import FmButton from '@/components/fm/FmButton.vue';
 import FmEmpty from '@/components/fm/FmEmpty.vue';
@@ -45,6 +46,7 @@ import type { BankAssignChoice } from '@/lib/bankAssign';
 import BankGroupCard from '@/components/budget/BankGroupCard.vue';
 import BankGroupPanel from '@/components/budget/BankGroupPanel.vue';
 import BankLoneRow from '@/components/budget/BankLoneRow.vue';
+import BankProposalLine from '@/components/budget/BankProposalLine.vue';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
 import BankFeeSheet from '@/components/budget/BankFeeSheet.vue';
 import BankTransferSheet from '@/components/budget/BankTransferSheet.vue';
@@ -65,6 +67,10 @@ import {
     transfer,
 } from '@/routes/budget/bank';
 import { create as createFilter } from '@/routes/budget/bank/filters';
+import {
+    accept as acceptRoute,
+    reject as rejectRoute,
+} from '@/routes/budget/bank/proposal';
 import { index as banksIndex } from '@/routes/banks';
 
 const props = defineProps<{
@@ -333,6 +339,85 @@ function toggleIgnored(row: App.Data.BankTransactionData): void {
     } else {
         router.post(ignore(row.id).url, {}, options);
     }
+}
+
+/** The movement *Yes* or *No* of «Maybe it is…» is being sent for, null while none is. */
+const proposing = ref<number | null>(null);
+
+/** The keys of the proposals turned down here (`id:key`): the line goes at once, the next candidate comes from the server. */
+const turnedDown = ref<string[]>([]);
+
+/**
+ * Whether the line «Maybe it is…» shows for a row: it has a proposal, the person can sort and it was not turned down.
+ *
+ * @param row - the movement
+ */
+function proposes(row: App.Data.BankTransactionData): boolean {
+    return (
+        props.can_sort &&
+        row.proposal !== null &&
+        !turnedDown.value.includes(`${row.id}:${row.proposal.key}`)
+    );
+}
+
+/**
+ * *Yes* on «Maybe it is…»: the server links, pays or marks it (the message says which) and the row goes. The server
+ * sends the numbers already lowered, so nothing is subtracted here.
+ *
+ * @param row - the movement
+ */
+function acceptProposal(row: App.Data.BankTransactionData): void {
+    if (row.proposal === null || proposing.value !== null) {
+        return;
+    }
+
+    router.post(
+        acceptRoute(row.id).url,
+        { key: row.proposal.key },
+        {
+            preserveScroll: true,
+            onStart: () => {
+                proposing.value = row.id;
+            },
+            onSuccess: () => {
+                gone.value = [...gone.value, row.id];
+            },
+            onError: (messages) => {
+                // A key that is not the proposal any more: the next load brings the right one
+                toast.error(messages.key ?? Object.values(messages)[0] ?? '');
+            },
+            onFinish: () => {
+                proposing.value = null;
+            },
+        },
+    );
+}
+
+/**
+ * *No* on «Maybe it is…»: the line goes and the server remembers, so the proposal does not come back.
+ *
+ * @param row - the movement
+ */
+function rejectProposal(row: App.Data.BankTransactionData): void {
+    if (row.proposal === null || proposing.value !== null) {
+        return;
+    }
+
+    const key = `${row.id}:${row.proposal.key}`;
+
+    router.delete(rejectRoute(row.id).url, {
+        data: { key: row.proposal.key },
+        preserveScroll: true,
+        onStart: () => {
+            proposing.value = row.id;
+        },
+        onSuccess: () => {
+            turnedDown.value = [...turnedDown.value, key];
+        },
+        onFinish: () => {
+            proposing.value = null;
+        },
+    });
 }
 
 /** The transaction the panel *It belongs to a planned expense* is open for, null while it is closed. */
@@ -981,7 +1066,16 @@ const { title, head } = usePageMeta({
                                 @transfer="openTransfer"
                                 @fee="openFee"
                                 @ignore="toggleIgnored"
-                            />
+                            >
+                                <template v-if="proposes(row)" #proposal>
+                                    <BankProposalLine
+                                        :row="row"
+                                        :busy="proposing !== null"
+                                        @yes="acceptProposal"
+                                        @no="rejectProposal"
+                                    />
+                                </template>
+                            </BankLoneRow>
                         </ul>
                         <button
                             v-if="next && moreLone > 0"

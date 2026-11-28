@@ -2282,6 +2282,40 @@ export const bankTransactions: App.Data.BankTransactionData[] = [
 ];
 
 /**
+ * «Maybe it is…» as `BankProposals` sends it under a lone movement: an expense already recorded, a due date to pay
+ * and a transfer from another account.
+ */
+export const bankProposals: Record<
+    'recorded' | 'deadline' | 'transfer',
+    App.Data.BankProposalData
+> = {
+    recorded: {
+        key: 'expense:812',
+        type: 'movement',
+        title: 'Spesa Famila',
+        date: '2026-11-15',
+        amount: 23.9,
+        recorded: true,
+    },
+    deadline: {
+        key: 'planned_income:6:2026-11-18',
+        type: 'deadline',
+        title: 'Assegno Unico novembre 2026',
+        date: '2026-11-18',
+        amount: 407.6,
+        recorded: false,
+    },
+    transfer: {
+        key: 'transfer:9',
+        type: 'transfer',
+        title: 'Buddy Bank',
+        date: null,
+        amount: null,
+        recorded: false,
+    },
+};
+
+/**
  * The groups of the tab *To sort*, as `BankTransactionController` sends them (`groups`), biggest first: one an
  * expense recorded before proposes to create, a planned income to mark received, one with no proposal, a credit with
  * no proposal and one that comes back every month.

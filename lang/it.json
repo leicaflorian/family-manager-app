@@ -2997,5 +2997,10 @@
     "Undo the change": "Annulla la modifica",
     "I changed the filter.": "Ho cambiato il filtro.",
     "The AI suggests a new organization: :name. You can save the filter without it and add the organization later.": "L'AI propone un ente nuovo: :name. Puoi salvare il filtro senza e aggiungere l'ente dopo.",
-    "Write it with the AI": "Scrivila con l'AI"
+    "Write it with the AI": "Scrivila con l'AI",
+    "Maybe it is: :title · already recorded on :date · :amount": "Forse è: :title · già segnata il :date · :amount",
+    "Maybe it is: :title · due on :date · :amount": "Forse è: :title · scadenza del :date · :amount",
+    "Maybe it is: :title · :date · :amount": "Forse è: :title · :date · :amount",
+    "Maybe it is a transfer from :title": "Forse è un trasferimento da :title",
+    "Maybe it is a transfer to :title": "Forse è un trasferimento a :title"
 }
