@@ -2726,5 +2726,6 @@
     "You already have a water utility: tick it if this is another supply.": "Hai già un'utenza dell'acqua: spunta se è un'altra fornitura.",
     "You already have a utility of this type: tick it if this is another supply.": "Hai già un'utenza di questo tipo: spunta se è un'altra fornitura.",
     ":supply: :field": ":supply: :field",
-    "To record the consumption tick the utility of this supply.": "Per segnare i consumi spunta l'utenza di questa fornitura."
+    "To record the consumption tick the utility of this supply.": "Per segnare i consumi spunta l'utenza di questa fornitura.",
+    "A bill of electricity and gas together is imported once: the document goes to both utilities, with an expense and a consumption for each supply.": "Una bolletta di luce e gas insieme si importa una volta: il documento va su tutte e due le utenze, con una spesa e un consumo per ogni fornitura."
 }
