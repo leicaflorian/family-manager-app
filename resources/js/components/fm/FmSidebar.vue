@@ -296,7 +296,8 @@ const budgetChildren = computed((): SubPage[] => [
               {
                   label: trans('From the bank'),
                   href: bankUrl,
-                  current: path === bankUrl,
+                  // The form of a filter is a page of *From the bank* too
+                  current: path === bankUrl || path.startsWith(`${bankUrl}/`),
                   ...(bankToSort > 0
                       ? {
                             count: bankToSort,

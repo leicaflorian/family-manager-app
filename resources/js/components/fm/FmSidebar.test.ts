@@ -665,6 +665,27 @@ describe('FmSidebar', () => {
         ).not.toHaveAttribute('aria-current');
     });
 
+    it('marks From the bank on the form of a bank filter too', () => {
+        render(FmSidebar, {
+            props: {
+                active: 'budget',
+                path: '/budget/bank/filters/1/edit',
+                items: navigationItems(),
+                areas: areaCounts,
+                family: 'Bianchi',
+                user: 'Marco Bianchi',
+                bankToSort: 0,
+            },
+        });
+
+        expect(
+            within(screen.getByRole('list', { name: 'Budget' })).getByRole(
+                'link',
+                { name: 'From the bank' },
+            ),
+        ).toHaveAttribute('aria-current', 'page');
+    });
+
     it('shows no number on From the bank when nothing is to sort', () => {
         render(FmSidebar, {
             props: {

@@ -9,7 +9,7 @@ import {
     it,
     vi,
 } from 'vite-plus/test';
-import { bankTransactions } from '@/test/fixtures';
+import { bankFilters, bankTransactions } from '@/test/fixtures';
 import { renderPage, screenWidth, withTrail } from '@/test/page';
 import BankTransactions from './BankTransactions.vue';
 
@@ -251,10 +251,37 @@ describe('Budget, From the bank', () => {
         ).toHaveAttribute('href', '/budget/bank?show=filters');
     });
 
-    it('under Filters says there is no filter yet', () => {
+    it('under Filters says there is no filter yet, with New filter', () => {
         renderPage(BankTransactions, props({ show: 'filters', rows: [] }));
 
         expect(screen.getByText('No filter yet')).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'New filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create');
+    });
+
+    it('under Filters lists the filters, with what they do and New filter', () => {
+        renderPage(
+            BankTransactions,
+            props({ show: 'filters', rows: [], bank_filters: bankFilters }),
+        );
+
+        expect(screen.queryByText('No filter yet')).not.toBeInTheDocument();
+        expect(
+            screen.getByText(
+                'Filters recognise the movements of the bank and sort them by themselves, at every read. A movement is taken by one filter only.',
+            ),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole('link', { name: 'New filter' }),
+        ).toHaveAttribute('href', '/budget/bank/filters/create');
+        expect(
+            screen.getByText('Satispay', { selector: '[data-filter-name]' }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('Luce', { selector: '[data-filter-name]' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('It was not this one').tagName).toBe('EM');
     });
 
     it('under All lists every transaction with its tag, the filters and the last line', () => {

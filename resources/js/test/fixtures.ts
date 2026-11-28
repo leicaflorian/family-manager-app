@@ -3,6 +3,7 @@
  */
 import type { InertiaConfig } from '@inertiajs/core';
 import type { MovementFormOptions } from '@/lib/budget';
+import type { BankFilterFormOptions } from '@/lib/bankFilters';
 
 /** My account: Marco Bianchi, the only administrator. */
 export const account: App.Data.AccountData = {
@@ -2558,4 +2559,15 @@ export const bankFilterPreview: App.Data.BankFilterPreviewData = {
     ],
     summary: { pay: 0, create: 0, link: 1, transfer: 0, ignore: 0 },
     conflicts: 0,
+};
+
+/** The choices of the form of a bank filter, as `BankFilterController` sends them: the accounts the bank reads and the open ones for a transfer. */
+export const bankFilterOptions: BankFilterFormOptions = {
+    ...movementOptions,
+    categories: [
+        { value: '3', label: 'Varie', help: null },
+        ...movementOptions.categories,
+    ],
+    accounts: [{ id: 4, name: 'Conto BancoPosta ·· 3307' }],
+    transfer_accounts: [{ id: 6, name: 'Libretto postale', connected: false }],
 };

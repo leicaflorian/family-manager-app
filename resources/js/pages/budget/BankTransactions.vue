@@ -4,7 +4,7 @@
  * Budget), as the boards *Dalla banca* and *Dalla banca-pc* draw it: the transactions the bank gave that no fixed
  * expense recognised, newest first, 50 at a time and the next ones while scrolling. A pending transaction says so
  * and waits for the bank to book it. *To sort*, *All* and *Filters* are the three tabs inside the page, in the grey
- * bar of the boards (*Filters* is empty for now). *All* lists every transaction the bank gave with its tag and what it
+ * bar of the boards. *Filters* lists the filters of the family (`BankFiltersList`) with *New filter*. *All* lists every transaction the bank gave with its tag and what it
  * is linked to, under the filters (text, account, status, month, direction); the text of a row opens the transaction as
  * the bank gave it (a bottom sheet on the phone, a panel beside the list when wide), *It was not this one* takes a link
  * back after asking and *Put back among the movements* brings a transaction set aside back;
@@ -45,6 +45,7 @@ import FmTabs from '@/components/fm/FmTabs.vue';
 import FmTitle from '@/components/fm/FmTitle.vue';
 import BankAllFilters from '@/components/budget/BankAllFilters.vue';
 import BankAllList from '@/components/budget/BankAllList.vue';
+import BankFiltersList from '@/components/budget/BankFiltersList.vue';
 import BankAssignSheet from '@/components/budget/BankAssignSheet.vue';
 import type { BankAssignChoice } from '@/lib/bankAssign';
 import BankRawPanel from '@/components/budget/BankRawPanel.vue';
@@ -66,6 +67,7 @@ import {
     sync,
     transfer,
 } from '@/routes/budget/bank';
+import { create as createFilter } from '@/routes/budget/bank/filters';
 import { create } from '@/routes/budget/movements';
 import { create as createPlanned } from '@/routes/budget/planned';
 import { index as banksIndex } from '@/routes/banks';
@@ -97,6 +99,8 @@ const props = defineProps<{
     accounts?: { id: number; name: string }[];
     /** The open accounts of the family, for *It is a transfer*, with whether the bank gives their transactions. */
     accounts_all?: { id: number; name: string; connected: boolean }[];
+    /** The tab *Filters*: the filters of the family, by name. */
+    bank_filters?: App.Data.BankFilterData[];
 }>();
 
 /** The filters of the tab *All*, each null while it is not on. */
@@ -483,6 +487,19 @@ function attachFee(expenseId: number): void {
     );
 }
 
+/** Marks where *It was not this one* goes in the line under the filters, to draw it in italics. */
+const UNDO = '\u0000';
+
+/** The line under the filters, cut around *It was not this one*. */
+const filtersFooter = computed((): [string, string] => {
+    const [before = '', after = ''] = trans(
+        'Filters work on the new movements and, when you save them, on the ones still to sort. An expense created by a filter goes away with :undo.',
+        { undo: UNDO },
+    ).split(UNDO);
+
+    return [before, after];
+});
+
 /** The tab *All*: the filters in use, none when the server did not send them. */
 const allFilters = computed(
     (): AllFilters =>
@@ -631,16 +648,49 @@ const { title, head } = usePageMeta({
             }}</span>
         </div>
 
-        <FmEmpty
-            v-if="show === 'filters'"
-            :icon="Funnel"
-            :title="$t('No filter yet')"
-            :text="
-                $t(
-                    'A filter sorts by itself the movements that look alike, the ones that arrive and the ones already here.',
-                )
-            "
-        />
+        <template v-if="show === 'filters'">
+            <FmEmpty
+                v-if="(bank_filters ?? []).length === 0"
+                :icon="Funnel"
+                :title="$t('No filter yet')"
+                :text="
+                    $t(
+                        'A filter sorts by itself the movements that look alike, the ones that arrive and the ones already here.',
+                    )
+                "
+            >
+                <FmButton :icon="Plus" :href="createFilter().url">{{
+                    $t('New filter')
+                }}</FmButton>
+            </FmEmpty>
+            <template v-else>
+                <div
+                    class="flex flex-col gap-4 wide:flex-row wide:flex-wrap wide:items-center wide:justify-between"
+                >
+                    <p
+                        class="m-0 px-1 text-body-sm text-ink-soft wide:max-w-160 wide:px-0"
+                    >
+                        {{
+                            $t(
+                                'Filters recognise the movements of the bank and sort them by themselves, at every read. A movement is taken by one filter only.',
+                            )
+                        }}
+                    </p>
+                    <FmButton
+                        :icon="Plus"
+                        :href="createFilter().url"
+                        :wide="!wide"
+                        >{{ $t('New filter') }}</FmButton
+                    >
+                </div>
+                <BankFiltersList :filters="bank_filters ?? []" />
+                <p class="m-0 px-1 text-meta text-ink-soft">
+                    {{ filtersFooter[0]
+                    }}<em>{{ $t('It was not this one') }}</em
+                    >{{ filtersFooter[1] }}
+                </p>
+            </template>
+        </template>
 
         <template v-else-if="show === 'all'">
             <BankAllFilters
