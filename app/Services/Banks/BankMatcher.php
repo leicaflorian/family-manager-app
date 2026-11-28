@@ -31,8 +31,9 @@ final readonly class BankMatcher
      *
      * @param  BankTransaction  $transaction  The transaction.
      * @param  PlannedExpense|PlannedIncome  $planned  The planned item it pays.
+     * @param  list<string>  $skipDue  The original dates (`yyyy-mm-dd`) of due dates that earlier movements of a preview already take: only the late-due-date fallback passes over them, as the save does because by then they are paid.
      */
-    public function deadline(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned): ?Deadline
+    public function deadline(BankTransaction $transaction, PlannedExpense|PlannedIncome $planned, array $skipDue = []): ?Deadline
     {
         $day = $transaction->booked_on;
 
@@ -45,7 +46,7 @@ final readonly class BankMatcher
             ? $this->deadlines->between([$planned], $day->subMonthsNoOverflow(Deadlines::MONTHS_BACK), $day->addDays($this->reach($schedule)))
             : $this->deadlines->between([$planned], CarbonImmutable::parse('1900-01-01'), CarbonImmutable::parse('2999-12-31'));
 
-        return $this->chooseDeadline($deadlines, $day, $schedule);
+        return $this->chooseDeadline($deadlines, $day, $schedule, $skipDue);
     }
 
     /**
@@ -59,8 +60,9 @@ final readonly class BankMatcher
      * @param  list<Deadline>  $deadlines  The due dates of the planned item, in order of date, the skipped ones left out; for a recurring item at least those from 12 months before the day to half a period after it.
      * @param  CarbonImmutable  $day  The day the transaction was booked.
      * @param  Schedule  $schedule  The recurrence of the planned item.
+     * @param  list<string>  $skipDue  Original dates of due dates to pass over when no due date is within reach.
      */
-    public function chooseDeadline(array $deadlines, CarbonImmutable $day, Schedule $schedule): ?Deadline
+    public function chooseDeadline(array $deadlines, CarbonImmutable $day, Schedule $schedule, array $skipDue = []): ?Deadline
     {
         if (! $schedule->recurring) {
             return array_find($deadlines, static fn (Deadline $deadline): bool => ! $deadline->isPaid());
@@ -85,6 +87,7 @@ final readonly class BankMatcher
         return array_find(
             $deadlines,
             static fn (Deadline $deadline): bool => ! $deadline->isPaid()
+                && ! in_array($deadline->occurrence->originalDate->toDateString(), $skipDue, true)
                 && $deadline->occurrence->date->toDateString() < $day->toDateString()
                 && $deadline->occurrence->date->toDateString() >= $since,
         );

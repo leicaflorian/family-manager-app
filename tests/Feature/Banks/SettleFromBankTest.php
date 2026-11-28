@@ -411,3 +411,25 @@ test('a planned expense without a fee is paid as today', function (): void {
             ->and($expense?->title)->toBe('Ricarica Satispay novembre 2026');
     });
 });
+
+test('the preview picks the next open due date as the save does', function (): void {
+    insideBianchi(function (): void {
+        // Every six months: 10/12/2025, 10/06/2026, 10/12/2026. Both movements are more than 45 days from all of them
+        $rent = bankSettlePlanned('Assicurazione', 'ZURICH', 300.0, '2025-12-10', ['interval' => 6]);
+        $first = bankSettleTransaction('SDD ZURICH', '-300.00', '2026-09-10');
+        $second = bankSettleTransaction('SDD ZURICH', '-300.00', '2026-09-11');
+        $settle = resolve(SettleFromBank::class);
+
+        $one = $settle->foresee($first, $rent);
+        $two = $settle->foresee($second, $rent, null, ['due:'.$one?->occurrence->originalDate->toDateString()]);
+
+        expect($one?->occurrence->originalDate->toDateString())->toBe('2025-12-10')
+            ->and($two?->occurrence->originalDate->toDateString())->toBe('2026-06-10');
+
+        $paidOne = bankSettleRun($first, $rent);
+        $paidTwo = bankSettleRun($second->refresh(), $rent);
+
+        expect($paidOne?->occurrence_date?->toDateString())->toBe('2025-12-10')
+            ->and($paidTwo?->occurrence_date?->toDateString())->toBe('2026-06-10');
+    });
+});

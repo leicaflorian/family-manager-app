@@ -133,7 +133,7 @@ final readonly class ApplyBankFilter
         return match (true) {
             $found instanceof Deadline => [
                 'outcome' => BankFilterOutcome::Paid, 'title' => $found->title, 'on' => $found->occurrence->date->toDateString(),
-                'used' => 'due:'.$found->occurrence->originalDate->toDateString(),
+                'used' => BankDuplicates::dueKey($found->occurrence->originalDate),
             ],
             $found instanceof Expense, $found instanceof Income => $this->linked($found),
             default => $this->nothing(),

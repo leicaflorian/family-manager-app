@@ -154,9 +154,10 @@ final readonly class SettleFromBank
             return $existing;
         }
 
-        $deadline = $this->matcher->deadline($transaction, $planned);
+        // The due dates the earlier movements of the preview take are passed over by the fallback, as paid ones are in the save
+        $deadline = $this->matcher->deadline($transaction, $planned, BankDuplicates::dueDatesOf($used));
 
-        if (! $deadline instanceof Deadline || in_array('due:'.$deadline->occurrence->originalDate->toDateString(), $used, true)) {
+        if (! $deadline instanceof Deadline || in_array(BankDuplicates::dueKey($deadline->occurrence->originalDate), $used, true)) {
             return null;
         }
 

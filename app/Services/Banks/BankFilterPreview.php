@@ -14,6 +14,7 @@ use App\Enums\BankFilterOutcome;
 use App\Models\BankFilter;
 use App\Models\BankTransaction;
 use App\Support\Banks\BankFilterCriteria;
+use App\Support\Banks\BankFilterDraft;
 use App\Support\Banks\BankFilterMatch;
 use App\Support\Banks\BankText;
 use Illuminate\Database\Eloquent\Collection;
@@ -76,6 +77,21 @@ final readonly class BankFilterPreview
         }
 
         return new BankFilterPreviewData($list, $summary, $conflicts);
+    }
+
+    /**
+     * What saving a filter made from a proposal would do with each of the movements of a group, by id, in the order
+     * the save applies them (`forecasts()`). A proposal without an action forecasts `none`.
+     *
+     * @param  Collection<int, BankTransaction>  $rows  the movements of the group
+     * @param  BankFilterDraft|null  $draft  the filter of the group with its proposal (`BankFilterDraft::fromGroup()`)
+     * @return array<int, array{will: string, title: ?string, on: ?string}>
+     */
+    public function forGroup(Collection $rows, ?BankFilterDraft $draft): array
+    {
+        $rows->loadMissing(['transferAccount', 'expense', 'income.organization']);
+
+        return $this->forecasts($rows, (new BankFilter)->forceFill($draft?->toArray() ?? []));
     }
 
     /**

@@ -35,11 +35,12 @@ final readonly class BankGroups
     /**
      * The groups of two or more transactions, the biggest first (then by name).
      *
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $read  what `read()` gave, to read the transactions once for several calls
      * @return list<BankGroup>
      */
-    public function all(): array
+    public function all(?array $read = null): array
     {
-        [$candidates] = $this->candidates();
+        [$candidates] = $read ?? $this->candidates();
 
         return array_values(array_filter(
             $this->build($candidates),
@@ -51,10 +52,11 @@ final readonly class BankGroups
      * The group with a key, null when it has fewer than two transactions now.
      *
      * @param  string  $key  the key of `keyOf()`
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $read  what `read()` gave
      */
-    public function find(string $key): ?BankGroup
+    public function find(string $key, ?array $read = null): ?BankGroup
     {
-        return array_find($this->all(), static fn (BankGroup $group): bool => $group->key === $key);
+        return array_find($this->all($read), static fn (BankGroup $group): bool => $group->key === $key);
     }
 
     /**
@@ -78,20 +80,25 @@ final readonly class BankGroups
     }
 
     /**
-     * The transactions still to sort that are in no group: not the ones of a group, and not the commission of a debit
+     * The transactions still to sort that are in no group, the pending ones too: not the ones of a group, and not the commission of a debit
      * (it goes with the debit). A commission with no debit stays, and so does what a filter takes.
      *
+     * @param  array{0: Collection<int, BankTransaction>, 1: list<int>}|null  $read  what `read()` gave
      * @return Builder<BankTransaction>
      */
-    public function lone(): Builder
+    public function lone(?array $read = null): Builder
     {
-        [$candidates, $paired] = $this->candidates();
+        [$candidates, $paired] = $read ?? $this->candidates();
         $grouped = collect($this->build($candidates))
             ->filter(static fn (BankGroup $group): bool => $group->transactions->count() >= 2)
             ->flatMap(static fn (BankGroup $group): array => $group->transactions->pluck('id')->all());
 
+        // Not `unsorted()`: the pending ones are listed too (they wait, marked), whatever their currency
         return BankTransaction::query()
-            ->unsorted()
+            ->whereNull('ignored_at')
+            ->whereNull('transfer_account_id')
+            ->whereNull('expense_id')
+            ->whereNull('income_id')
             ->whereNotIn('id', [...$grouped->all(), ...$paired])
             ->latest('booked_on')
             ->latest('id');
@@ -106,6 +113,18 @@ final readonly class BankGroups
     public function keyOf(BankTransaction $transaction): string
     {
         return substr(sha1(($this->base($transaction) ?? '').'|'.$transaction->kind().'|'.$transaction->financial_account_id), 0, self::KEY_LENGTH);
+    }
+
+    /**
+     * What the groups are made from, read once: the transactions that can be in a group and the ids of the
+     * commissions that follow their debit. A page that asks for `all()`, `lone()` and `find()` passes it to each, so
+     * the transactions are read once.
+     *
+     * @return array{0: Collection<int, BankTransaction>, 1: list<int>}
+     */
+    public function read(): array
+    {
+        return $this->candidates();
     }
 
     /**

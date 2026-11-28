@@ -190,6 +190,13 @@ readonly proposal_title: string | null,
 readonly proposal_detail: string | null,
 readonly recurring_url: string | null,
 };
+export type BankGroupRowData = {
+readonly transaction: App.Data.BankTransactionData,
+readonly fee: App.Data.BankFeeData | null,
+readonly will: string,
+readonly will_title: string | null,
+readonly will_on: string | null,
+};
 export type BankInstitutionData = {
 readonly name: string,
 readonly country: string,
